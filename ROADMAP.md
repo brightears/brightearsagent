@@ -6,11 +6,11 @@ Rules of engagement for any agent working this file:
 - Never touch `../brightears` or `../brightears26`. Read `CLAUDE.md` + `docs/PRODUCT-BRIEF.md` first. When writing LLM code, read the `/claude-api` skill.
 - Prefer boring, testable code. Every parser and the sequence engine get fixture-driven tests.
 
-## Phase 0 — Foundations
-- [ ] Local Postgres (document choice: Postgres.app or Docker) + `.env.local` template + first migration from `prisma/schema.prisma`; `npm run db:*` scripts (generate/migrate/studio/seed)
-- [ ] Seed script: one demo Business ("Demo DJ Co", US/Eastern) with packages, performers, gigs, and 10 sample leads in varied states — the dev playground
-- [ ] Tailwind v4 brand tokens (palette from CLAUDE.md), base layout, logo wired; light/colorful theme foundation (royalstreaming.com direction, NOT dark)
-- [ ] Acceptance: `npm run build` green; seeded dashboard page renders lead list
+## Phase 0 — Foundations ✅ (June 10, 2026)
+- [x] Local Postgres: existing Homebrew `postgresql@15` service, db `brightears_app_dev`; `.env.local` holds DATABASE_URL + OpenRouter key; `prisma.config.ts` loads `.env.local` then `.env`; `npm run db:*` scripts added (generate/migrate/deploy/studio/seed) + `postinstall: prisma generate`; first migration `20260610093627_init` applied (11 tables)
+- [x] Seed script `prisma/seed.ts` (idempotent): Demo DJ Co with 2 performers (DJ + photo booth), 3 packages, 2 booked gigs (availability-conflict fixtures), 10 leads covering every status incl. a date-conflict lead and an advance-fee SPAM lead
+- [x] Tailwind v4 brand tokens in `app/globals.css` (@theme: brand-cyan/deep-teal/soft-lavender/warm-peach/earthy-brown on light #fdfcfb, no dark mode), layout metadata + Geist font, logo wired from `public/brand/`
+- [x] Acceptance verified: `npm run build` green; `/dashboard` (pipeline columns by status) server-renders all seeded leads + spam-filtered count
 
 ## Phase 1 — Inbound spike (the product's mouth)
 - [ ] Decide Postmark vs Mailgun for inbound-parse + outbound (write a short ADR in docs/) 🔑 founder creates the chosen account (free/dev tier fine)
