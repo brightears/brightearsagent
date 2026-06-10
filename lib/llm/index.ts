@@ -16,9 +16,14 @@ const MODELS: Record<LlmPurpose, string> = {
   followup: process.env.MODEL_FOLLOWUP ?? "deepseek/deepseek-v4-pro",
 };
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY ?? "",
-});
+// Lazy: scripts load dotenv after import hoisting; Next.js injects env at runtime.
+let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
+function openrouter(model: string) {
+  if (!_openrouter) {
+    _openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY ?? "" });
+  }
+  return _openrouter(model);
+}
 
 async function logUsage(
   businessId: string | null,

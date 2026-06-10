@@ -21,15 +21,15 @@ Rules of engagement for any agent working this file:
 - [x] Acceptance verified end-to-end through the live webhook with live DeepSeek calls: platform fixtures → NEW in 0.02s; contact-form → NEW with correct body-field extraction in ~6.5s; terse price-shopper → NEW (not spam); overpayment scam → SPAM; all < 10s
 - [ ] Follow-up (when Postmark live): capture REAL notification emails from each platform and add as fixtures — current field labels are doc-reconstructed; parsers use tolerant alias lists but real samples should confirm
 
-## Phase 2 — Draft engine (the product's brain) — OpenRouter key already in `.env.local` ✓
-- [ ] `lib/llm` wrapper: OpenRouter + Vercel AI SDK, per-purpose model map (parse/triage → deepseek-v4-flash, draft/followup → deepseek-v4-pro), structured-output helper, LlmUsage logging baked in — no call site ever names a model directly
-- [ ] Voice profile: onboarding fields (voiceSamples, tone choices) → per-tenant system prompt
-- [ ] Availability check: Gig calendar conflict logic (date + tenant tz, multi-performer aware)
-- [ ] Draft generator: lead + availability + matching packages + voice → personalized reply (subject + body), honest about availability, quotes only from rate card, never invents facts; follow-up variant generator (sequence-step aware, adapts to thread)
-- [ ] `LlmUsage` logging on every call (purpose, model, tokens); per-tenant cost rollup query
-- [ ] Eval harness: 15+ scenario fixtures (available/booked/vague date/price-shopper/spam-adjacent/non-wedding event) with assertion checks (no invented prices, correct availability statement, opt-out present on follow-ups); runs in CI. Judge model may be stronger (claude-sonnet via OpenRouter); production models stay cheap
-- [ ] Model selection eval: run the harness across 3+ candidates per purpose (v4-flash vs qwen3.6-flash vs gemini-flash-lite for parse/triage; v4-pro vs glm-5 vs kimi-k2.6 vs claude-haiku for drafts at current OpenRouter pricing) — cheapest model that passes wins; record decision + numbers in docs/ADR-models.md
-- [ ] Acceptance: eval suite passes; median draft latency < 30s from webhook to PENDING draft
+## Phase 2 — Draft engine (the product's brain) — mostly ✅ (June 10, 2026)
+- [x] `lib/llm` wrapper (landed in Phase 1): OpenRouter + Vercel AI SDK, per-purpose model map, lazy provider init, LlmUsage logging baked in — no call site names a model
+- [x] Voice profile: `lib/agent/voice.ts` — per-tenant system prompt from voiceSamples + rate card; hard rules (never invent, availability honesty, white-label, no placeholders, sign-off)
+- [x] Availability: `lib/agent/availability.ts` — multi-performer conflict logic (free/partial/conflict/unknown), noon-UTC date convention, 7 unit tests
+- [x] Draft generator: `lib/agent/drafter.ts` — pure function (eval-friendly), first-reply + sequence-step follow-up variants, thread-aware, subject threading from rawSubject, deterministic refusal-language normalization of the availability self-report
+- [x] LlmUsage logging on every call via the wrapper
+- [x] Eval harness: 16 scenarios in `evals/scenarios.ts` + `npm run eval:drafts` runner — deterministic gates: price whitelist (client-quoted amounts allowed), availability-statement match, white-label regex, placeholder ban, word budgets, per-scenario must/mustNot. Eval-spec bugs found & fixed by first runs (honest "$400 budget" echo is correct behavior; follow-ups may skip availability talk)
+- [ ] Model selection eval: run harness across candidates (drafts: v4-pro vs glm-5 vs kimi-k2.6 vs claude-haiku; parse/triage: v4-flash vs qwen3.6-flash vs gemini-flash-lite) — cheapest pass wins; record in docs/ADR-002-models.md
+- [x] Acceptance verified: eval 16/16 (median LLM latency 8.1s); E2E webhook answered in 0.05s, background draft PENDING in 19s (< 30s target); lead NEW → DRAFTED; 53 unit tests + build green
 
 ## Phase 3 — Approve-from-phone loop (the product's hands)
 - [ ] Clerk auth + tenant resolution 🔑 founder creates Clerk app

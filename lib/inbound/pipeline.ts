@@ -3,6 +3,7 @@ import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
 import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
+import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -129,6 +130,14 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       },
     },
   });
+
+  // Draft generation runs in the background (persistent server) so the webhook
+  // answers Postmark fast; failures are logged and retried by the sequence cron.
+  if (!isSpam) {
+    void generateDraftForLead(lead.id).catch((err) =>
+      console.error(`draft generation failed for lead ${lead.id}`, err),
+    );
+  }
 
   return { outcome: "lead_created", leadId: lead.id, status: isSpam ? "SPAM" : "NEW" };
 }
