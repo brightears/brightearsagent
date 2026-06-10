@@ -28,7 +28,7 @@ Rules of engagement for any agent working this file:
 - [x] Draft generator: `lib/agent/drafter.ts` — pure function (eval-friendly), first-reply + sequence-step follow-up variants, thread-aware, subject threading from rawSubject, deterministic refusal-language normalization of the availability self-report
 - [x] LlmUsage logging on every call via the wrapper
 - [x] Eval harness: 16 scenarios in `evals/scenarios.ts` + `npm run eval:drafts` runner — deterministic gates: price whitelist (client-quoted amounts allowed), availability-statement match, white-label regex, placeholder ban, word budgets, per-scenario must/mustNot. Eval-spec bugs found & fixed by first runs (honest "$400 budget" echo is correct behavior; follow-ups may skip availability talk)
-- [ ] Model selection eval: run harness across candidates (drafts: v4-pro vs glm-5 vs kimi-k2.6 vs claude-haiku; parse/triage: v4-flash vs qwen3.6-flash vs gemini-flash-lite) — cheapest pass wins; record in docs/ADR-002-models.md
+- [x] Model selection eval → docs/ADR-002-models.md: drafts stay on **v4-pro** (16/16 ×2 AND wins blind writing-quality judge 5–3 vs flash; GLM-5 8/16 eliminated; Kimi 52.6s latency eliminated); parse/triage stay on **v4-flash** (cost floor, E2E-proven). Judge feedback folded into voice prompt. Eval pass bar: zero safety failures + ≤1 quality flake
 - [x] Acceptance verified: eval 16/16 (median LLM latency 8.1s); E2E webhook answered in 0.05s, background draft PENDING in 19s (< 30s target); lead NEW → DRAFTED; 53 unit tests + build green
 
 ## Phase 3 — Approve-from-phone loop (the product's hands) — mostly ✅ (June 10, 2026)
