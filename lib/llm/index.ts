@@ -9,12 +9,18 @@ import { db } from "@/lib/db";
  */
 export type LlmPurpose = "parse" | "triage" | "draft" | "followup";
 
-const MODELS: Record<LlmPurpose, string> = {
-  parse: process.env.MODEL_PARSE ?? "deepseek/deepseek-v4-flash",
-  triage: process.env.MODEL_TRIAGE ?? "deepseek/deepseek-v4-flash",
-  draft: process.env.MODEL_DRAFT ?? "deepseek/deepseek-v4-pro",
-  followup: process.env.MODEL_FOLLOWUP ?? "deepseek/deepseek-v4-pro",
-};
+// Read lazily so scripts (dotenv after import hoisting; eval model overrides)
+// and Next.js runtime env all behave identically.
+function modelFor(purpose: LlmPurpose): string {
+  const defaults: Record<LlmPurpose, string> = {
+    parse: "deepseek/deepseek-v4-flash",
+    triage: "deepseek/deepseek-v4-flash",
+    draft: "deepseek/deepseek-v4-pro",
+    followup: "deepseek/deepseek-v4-pro",
+  };
+  const envKey = `MODEL_${purpose.toUpperCase()}`;
+  return process.env[envKey] ?? defaults[purpose];
+}
 
 // Lazy: scripts load dotenv after import hoisting; Next.js injects env at runtime.
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
@@ -54,7 +60,7 @@ export async function llmObject<T>(opts: {
   prompt: string;
   schema: z.ZodType<T>;
 }): Promise<T> {
-  const model = MODELS[opts.purpose];
+  const model = modelFor(opts.purpose);
   const result = await generateObject({
     model: openrouter(model),
     system: opts.system,
@@ -71,7 +77,7 @@ export async function llmText(opts: {
   system: string;
   prompt: string;
 }): Promise<string> {
-  const model = MODELS[opts.purpose];
+  const model = modelFor(opts.purpose);
   const result = await generateText({
     model: openrouter(model),
     system: opts.system,
