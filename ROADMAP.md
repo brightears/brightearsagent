@@ -12,13 +12,14 @@ Rules of engagement for any agent working this file:
 - [x] Tailwind v4 brand tokens in `app/globals.css` (@theme: brand-cyan/deep-teal/soft-lavender/warm-peach/earthy-brown on light #fdfcfb, no dark mode), layout metadata + Geist font, logo wired from `public/brand/`
 - [x] Acceptance verified: `npm run build` green; `/dashboard` (pipeline columns by status) server-renders all seeded leads + spam-filtered count
 
-## Phase 1 — Inbound spike (the product's mouth)
-- [ ] Decide Postmark vs Mailgun for inbound-parse + outbound (write a short ADR in docs/) 🔑 founder creates the chosen account (free/dev tier fine)
-- [ ] Inbound webhook endpoint: receives parse payload, resolves tenant by slug address, stores raw payload (idempotent on provider message id)
-- [ ] Fixture library: collect real The Knot / WeddingWire / Bark / GigSalad notification emails + 5 generic contact-form/plain-email samples into `fixtures/inbound/` (sanitized). Sources: own test accounts, public examples, founder's network
-- [ ] Source-specific parsers (The Knot, WeddingWire, Bark, GigSalad) + LLM fallback parser for plain email/forms → normalized `Lead`; unit tests against every fixture
-- [ ] Spam/scam triage classifier (LLM + heuristics), `spamScore`/`spamReason`, SPAM status; test with known scam patterns (advance-fee, fake-event)
-- [ ] Acceptance: piping any fixture through the webhook creates a correct Lead (or SPAM) in < 10s; all parser tests green
+## Phase 1 — Inbound spike (the product's mouth) ✅ (June 10, 2026)
+- [x] ADR-001: **Postmark** (inbound-parse quality + deliverability; provider-agnostic InboundEmail type isolates a future swap) — 🔑 founder Postmark account STILL PENDING (not blocking: everything runs on fixtures locally)
+- [x] Inbound webhook `app/api/inbound` (Postmark JSON → InboundEmail), tenant by slug address, shared-secret auth, idempotent on MessageID, error-wrapped (500 → Postmark retries)
+- [x] Fixture library: 14 sanitized fixtures across theknot/weddingwire/bark/gigsalad/generic, structures researched from vendor-support docs + Mailparser/Zapier templates (agents' format evidence in fixture `_researchNotes`)
+- [x] Source parsers ×4 + LLM fallback parser (null-tolerant schema — cheap models return null for empty optionals); reply-matching attaches client replies to their lead → ENGAGED + stops sequences; 46 unit tests green
+- [x] Triage: scam heuristics (overpayment/wire-back etc.) + category-constrained LLM classifier with cost-asymmetry rule (only scam/bulk/vendor/notice categories may spam-flag; "unclear" never does); platform-parser leads skip LLM triage (their boilerplate fools it); parse+triage run concurrently on the fallback path
+- [x] Acceptance verified end-to-end through the live webhook with live DeepSeek calls: platform fixtures → NEW in 0.02s; contact-form → NEW with correct body-field extraction in ~6.5s; terse price-shopper → NEW (not spam); overpayment scam → SPAM; all < 10s
+- [ ] Follow-up (when Postmark live): capture REAL notification emails from each platform and add as fixtures — current field labels are doc-reconstructed; parsers use tolerant alias lists but real samples should confirm
 
 ## Phase 2 — Draft engine (the product's brain) — OpenRouter key already in `.env.local` ✓
 - [ ] `lib/llm` wrapper: OpenRouter + Vercel AI SDK, per-purpose model map (parse/triage → deepseek-v4-flash, draft/followup → deepseek-v4-pro), structured-output helper, LlmUsage logging baked in — no call site ever names a model directly

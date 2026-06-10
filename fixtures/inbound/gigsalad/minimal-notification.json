@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "The documented modern GigSalad lead notification is deliberately minimal: 'For each new lead you get, you'll receive an email notification. The email will not have the lead's details, so you'll need to click the button in the email to see the event information and respond to the client.' (help.gigsalad.com/article/81-email-notifications). Sender leads@gigsalad.com per help.gigsalad.com/article/62. No client name, no contact info, no event fields — just a click-through button and the speed nudge GigSalad repeats across its docs/blog ('25% better chance of booking if you respond in less than an hour'). The parser must still classify this as a real GIGSALAD lead with high confidence: this IS the complete extraction for this source variant.",
+  "from": "leads@gigsalad.com",
+  "fromName": "GigSalad",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "You have a new lead on GigSalad!",
+  "textBody": "You have a new lead on GigSalad!\n\nAn event planner is looking for a performer like you. Click the button below to see the event information and respond to the client.\n\nView Lead: https://www.gigsalad.com/leads/view/xyz789\n\nRespond quickly — event planners often move on to a different option when they don't hear anything back.\n\nThe GigSalad Team",
+  "providerMessageId": "gigsalad-fixture-002"
+}

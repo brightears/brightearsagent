@@ -12,11 +12,15 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
+    "@openrouter/ai-sdk-provider": "^2.9.0",
     "@prisma/client": "^6.19.3",
+    "ai": "^6.0.199",
     "next": "16.2.9",
     "prisma": "^6.19.3",
     "react": "19.2.4",
@@ -33,6 +37,7 @@
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.6"
   }
 }

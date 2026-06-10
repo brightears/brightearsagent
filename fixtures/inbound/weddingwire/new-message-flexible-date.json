@@ -1,0 +1,10 @@
+{
+  "_researchNotes": "Edge case combining three documented realities: (1) the second OFFICIAL subject shape — article 115003720143 (Zendesk API): \"An example of a new message subject line is: 'New message from John Doe'\" — here with a threading 'Re:' prefix as mail clients/notification re-sends produce; (2) WeddingWire couples can mark their date flexible, so the date line carries 'Flexible' instead of a parseable date — the parser must leave eventDate unset rather than invent one; (3) follow-up message notifications are lighter than first-lead emails (the thread details live in the Messages inbox per article 115003720163), so no phone/guest lines. Client email present via Reply-To relay behaviour ('Respond directly to the client by clicking the reply button', article 115003720143). Sender pros@weddingwire.com per whitelist article 115003741366.",
+  "from": "pros@weddingwire.com",
+  "fromName": "WeddingWire",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Re: New message from Olivia Tran",
+  "textBody": "You have a new message!\n\nOlivia Tran\n\nWedding Date: Flexible\n\nMessage:\nThanks for the quick reply! We haven't locked a venue yet so our wedding date is still flexible — sometime next spring. Could we set up a call this week?\n\nReply directly to this email to respond, or reply within your account.\n\nThe WeddingWire Team",
+  "headers": { "reply-to": "olivia.tran.weds@example.org" },
+  "providerMessageId": "weddingwire-fixture-003"
+}

@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "GigSalad sends up to three reminder emails for unread leads at 4, 12 and 24 hours (help.gigsalad.com/article/81-email-notifications: 'We send a total of three reminders: 4 hours after the lead was received, 12 hours after, and 24 hours after.'). Same sender leads@gigsalad.com. This fixture covers the reminder subject shape plus a one-line summary using a US numeric date (MM/DD/YYYY) and the 'needs a X for a Y on DATE in LOCATION' sentence form, with no labeled field lines — a sparse variant the parser must handle without inventing missing fields. Contact details withheld per help.gigsalad.com/article/64.",
+  "from": "leads@gigsalad.com",
+  "fromName": "GigSalad",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Reminder: You have an unread lead on GigSalad",
+  "textBody": "Don't keep your client waiting!\n\nDerrick T. needs a DJ for a Quinceanera on 07/03/2026 in San Antonio, TX.\n\nYou haven't read this lead yet. View the event information and respond now:\nhttps://www.gigsalad.com/leads/view/qrs456\n\nYou have a 25% better chance of booking if you respond in less than an hour.\n\nThe GigSalad Team",
+  "providerMessageId": "gigsalad-fixture-003"
+}

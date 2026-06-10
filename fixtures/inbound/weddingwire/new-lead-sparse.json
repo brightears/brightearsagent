@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Sparse variant: same official 'New lead from {Name}' subject (WeddingWire Vendor Support article 115003720143 via Zendesk API), sender pros@weddingwire.com (whitelist per article 115003741366). Article 360027979832 says inquiry details 'may include' name, event date, phone, email — i.e. phone is optional on the couple's form, so this fixture omits it. Date appears in US numeric form (MM/DD/YYYY) as couples type it into the form; guest count is the range bucket the storefront contact form offers ('100-150'), which a parser must NOT collapse into a single invented number. Short one-line message. No Reply-To header variant: client email appears only as a labeled body line.",
+  "from": "pros@weddingwire.com",
+  "fromName": "WeddingWire",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "New lead from Marcus Webb",
+  "textBody": "You have a new lead!\n\nMarcus Webb\n\nWedding Date: 10/03/2026\nNumber of Guests: 100-150\nEmail: m.webb.events@example.net\n\nMessage:\nHow much for 5 hours of DJ and MC?\n\nReply directly to this email to respond, or reply within your account.\n\nThe WeddingWire Team",
+  "providerMessageId": "weddingwire-fixture-002"
+}

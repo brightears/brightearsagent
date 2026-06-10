@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Sparse 'message' style notification. The Knot Pro support distinguishes plain conversation messages ('Responding to a Lead from Messages on The Knot', vendorsupport.theknotpro.com) from quote-request leads; couples can message a vendor without filling every detail. Releventful's forwarding doc says only first name + email are guaranteed (their importer discards the email otherwise) - so this fixture omits phone, guest count and location. helpcenter.theknot.com ('How do I reply to message?') confirms vendor replies route to the couple's email address, i.e. the couple's reachable email appears in the notification. Date appears in long US prose form ('April 5, 2027') rather than 10/17/2026 style, a variant the Zapier shared zap ('the knot to HL', zapier.com/shared/copy-the-knot-to-hl-leadexcess-build) handles via date formatter steps. Sender uses the partner.theknot.com domain variant.",
+  "from": "no-reply@partner.theknot.com",
+  "fromName": "The Knot",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Marcus sent you a message on The Knot",
+  "textBody": "Hi Demo DJ Co.,\n\nMarcus Webb sent you a message on The Knot.\n\nWedding date: April 5, 2027\n\n\"Hey there - are you available for our wedding next spring? It's a small backyard thing, mostly open-format music. What would that run us?\"\n\nReply to Marcus: marcus.webb88@example.com\n\nLog in to your Knot account to view the full conversation.\n\nThe Knot Pro",
+  "providerMessageId": "tk-fixture-0002-sparse"
+}

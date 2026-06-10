@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Typical website contact-form notification: form plugin emails the submission to the business inbox as labeled fields.",
+  "from": "noreply@demodjco.test",
+  "fromName": "Website Contact Form",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "New contact form submission",
+  "textBody": "Name: Hannah Lee\nEmail: hannah.lee@example.com\nPhone: (555) 201-7788\nEvent type: Wedding\nEvent date: 10/17/2026\nVenue: Willow Creek Farm\nGuest count: 150\nMessage: Hi! We saw you at our friends' wedding last fall. Are you free on our date? What packages do you offer?",
+  "providerMessageId": "generic-fixture-001"
+}

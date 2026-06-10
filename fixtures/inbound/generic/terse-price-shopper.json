@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Terse direct email — must classify as GENUINE lead, not spam (research: 'cheapest rate' questions are real buyers).",
+  "from": "mike.t@example.com",
+  "fromName": "Mike T",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "price",
+  "textBody": "how much for 3 hours on a saturday in september",
+  "providerMessageId": "generic-fixture-002"
+}

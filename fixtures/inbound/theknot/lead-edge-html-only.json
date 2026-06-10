@@ -1,0 +1,10 @@
+{
+  "_researchNotes": "Edge case: HTML-only payload (no textBody - some inbound-parse providers deliver empty text for multipart emails where the text part is dropped on forwarding), reply-style 'Re:' subject (vendor auto-forward rules commonly re-deliver the notification), wedding date 'TBD' (must NOT be converted to a date), and a guest-count range '100-150' (parser takes the lower bound). Sender on the bare theknot.com domain - the third domain Releventful (help.releventful.com/en/articles/10058259) lists for these emails. Planning Pod's doc warns The Knot Worldwide 'sometimes updates how their emails are formatted', which is why this fixture exercises the table-cell HTML layout.",
+  "from": "noreply@theknot.com",
+  "fromName": "The Knot",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Re: New lead from The Knot: Priya is interested in Demo DJ Co.",
+  "textBody": "",
+  "htmlBody": "<html><body><div><p>Hi Demo DJ Co.,</p><p>You have a new lead from The Knot!</p><h3>Event Details</h3><table><tr><td>Wedding date:</td><td>TBD</td></tr><tr><td>Number of guests:</td><td>100-150</td></tr><tr><td>Location:</td><td>Chicago, IL</td></tr></table><h3>Contact Information</h3><table><tr><td>Name:</td><td>Priya Raman</td></tr><tr><td>Email:</td><td>priya.raman.weds@example.com</td></tr><tr><td>Phone:</td><td>312-555-0188</td></tr></table><p>Message: &quot;We're planning a fusion wedding and still locking the venue, so the date is flexible. Do you handle both Bollywood and Top 40 sets?&quot;</p><p><a href=\"https://pros.theknot.com/inbox/leads/87654321\">Reply now</a></p></div></body></html>",
+  "providerMessageId": "tk-fixture-0003-edge-html"
+}

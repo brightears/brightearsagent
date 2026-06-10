@@ -1,0 +1,10 @@
+{
+  "_researchNotes": "Bark.com new-lead alert, sparse variant. Subject 'New customer looking for your services' is one of the generic alert subjects a seller quoted first-hand (iamryanwright.com/blog/bark-lead-generation-service). Bark request forms let customers skip questions, and reviews note many Bark leads lack budget/details ('leads tend to provide limited project details... many lacking budget information' — sidehustles.com Bark review), so this fixture has only event type and a vague date ('I'm not sure yet' is a standard Bark form option). UK-flavoured location since Bark is a UK company (footer address: Bark.com Global Limited, London). Customer name is first name + last initial only; phone/email withheld pre-purchase. Text-only variant to exercise the textBody path.",
+  "from": "team@bark.com",
+  "fromName": "Bark.com",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "New customer looking for your services",
+  "textBody": "Hi Demo DJ Co,\n\nNew customer for you on Bark.\n\nJordan P.\nBirmingham, West Midlands\n\nDJs\n\nWhat type of event is it?\nBirthday party\n\nWhen is the event?\nI'm not sure yet\n\nRespond to Jordan for 5 credits.\n\nView this lead: https://www.bark.com/sellers/leads/990221/\n\n--\nBark.com Global Limited, 85 Great Portland Street, London, W1W 7LT",
+  "providerMessageId": "pm-bark-fixture-0002",
+  "receivedAt": "2026-05-06T08:42:51Z"
+}
