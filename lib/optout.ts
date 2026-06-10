@@ -1,7 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { requireSecret } from "@/lib/auth-secret";
 
 function secret(): string {
-  return process.env.OPTOUT_SECRET ?? "dev-optout-secret";
+  // Throws in production if OPTOUT_SECRET is unset — a hardcoded fallback would
+  // make every opt-out token publicly forgeable (mass mark-dead attack).
+  return requireSecret(process.env.OPTOUT_SECRET, "OPTOUT_SECRET");
 }
 
 export function optoutToken(leadId: string): string {

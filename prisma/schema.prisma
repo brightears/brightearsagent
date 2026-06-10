@@ -99,15 +99,19 @@ model Business {
   pushSubscriptions PushSubscription[]
 }
 
-// One row per device the owner approved push on (PWA approve-from-phone loop).
+// One row per (business, device) the owner approved push on. Scoped by business
+// so the same physical device can serve an owner who runs two businesses, and
+// one tenant can never reassign or clobber another tenant's registration.
 model PushSubscription {
   id         String   @id @default(cuid())
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  endpoint   String   @unique
+  endpoint   String
   p256dh     String
   auth       String
   createdAt  DateTime @default(now())
+
+  @@unique([businessId, endpoint])
 }
 
 model Member {
@@ -211,7 +215,7 @@ model Message {
   body              String
   fromEmail         String?
   toEmail           String?
-  providerMessageId String? // Postmark/Mailgun id for threading + delivery events
+  providerMessageId String?          @unique // dedup backstop for webhook redelivery (nulls allowed multiple)
   draftId           String?          @unique
   draft             Draft?           @relation(fields: [draftId], references: [id], onDelete: SetNull)
 
@@ -235,6 +239,7 @@ model Draft {
   message      Message?
 
   @@index([leadId, status])
+  @@index([status, expiresAt]) // cron draft-expiry sweep
 }
 
 // Owner-configurable follow-up cadence (default: day 2, 5, 9).
@@ -259,6 +264,8 @@ model SequenceRun {
   nextRunAt   DateTime?
   stoppedAt   DateTime? // set on BOOKED/DEAD/ENGAGED/opt-out — never resumes
   stopReason  String?
+
+  @@index([stoppedAt, nextRunAt]) // cron due-runs query
 }
 
 // Token/cost ledger per tenant (margin visibility from day one).

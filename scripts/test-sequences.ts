@@ -6,6 +6,10 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
+// This test drives approveDraft, which is tenant-scoped via getCurrentBusiness()
+// → DEV_TENANT_SLUG. Point it at the isolated test tenant.
+process.env.DEV_TENANT_SLUG = "seq-test";
+
 const DAY = 24 * 3600 * 1000;
 
 function assert(cond: unknown, msg: string) {
@@ -69,7 +73,7 @@ async function main() {
 
   console.log("\n— backfill: REPLIED lead with no run gets one");
   let tick = await runSequenceTick(new Date(t0.getTime() + 1 * 3600 * 1000));
-  assert(tick.backfilledRuns >= 1, `backfilled my run (global tick also backfills other tenants — got ${tick.backfilledRuns})`);
+  assert(tick.backfilledRuns + tick.redraftedLeads >= 1, `backfilled my run (global tick also backfills other tenants — got ${tick.backfilledRuns})`);
   let run = await db.sequenceRun.findUnique({ where: { leadId: lead.id } });
   assert(run && Math.abs(run.nextRunAt!.getTime() - (t0.getTime() + 2 * DAY)) < 60000, "step 1 scheduled at day 2");
 

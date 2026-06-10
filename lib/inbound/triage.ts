@@ -7,25 +7,34 @@ export interface TriageResult {
   reason?: string;
 }
 
+// Scam patterns (advance-fee etc.) — real-money fraud, ALWAYS applied.
+const SCAM_PATTERNS: Array<[RegExp, number, string]> = [
+  [/(cashier'?s? check|certified check|money order).{0,200}(difference|refund|send back|wire)/s, 0.9, "Overpayment/wire-back pattern"],
+  [/(deaf|hearing impaired).{0,200}(check|payment in advance)/s, 0.5, "Classic scam framing"],
+  [/(western union|moneygram|wire transfer).{0,100}(urgent|immediately|asap)/s, 0.6, "Urgent wire transfer request"],
+  [/my (private )?(driver|shipper|agent) will (pick|collect)/s, 0.6, "Third-party pickup pattern"],
+  [/\b(bitcoin|usdt|crypto)\b.{0,100}(deposit|payment)/s, 0.4, "Crypto payment push"],
+];
+
+// Bulk-mail / solicitation markers — meaningful ONLY for unknown-source plain
+// email. Platform lead notifications (The Knot/WW/Bark) legitimately contain
+// "unsubscribe" links, so these must NOT run on source-parser leads or they'd
+// spam-file real inquiries.
+const BULK_MARKERS: Array<[RegExp, number, string]> = [
+  [/(unsubscribe|view in browser|email preferences)/, 0.5, "Bulk mail markers"],
+  [/(seo|web design|marketing) (services|proposal|agency)/, 0.5, "Vendor solicitation"],
+];
+
 /**
- * Heuristic pass — cheap, deterministic, test-friendly. Catches the documented
- * scam patterns vendors actually receive (advance-fee/overpayment is the #1).
+ * Heuristic pass — cheap, deterministic, test-friendly. `scamOnly` skips the
+ * bulk-mail markers (used for high-confidence platform-parsed leads).
  */
-export function triageHeuristics(email: InboundEmail): TriageResult {
+export function triageHeuristics(email: InboundEmail, scamOnly = false): TriageResult {
   const text = `${email.subject}\n${email.textBody}`.toLowerCase();
   let score = 0;
   const reasons: string[] = [];
 
-  const patterns: Array<[RegExp, number, string]> = [
-    [/(cashier'?s? check|certified check|money order).{0,200}(difference|refund|send back|wire)/s, 0.9, "Overpayment/wire-back pattern"],
-    [/(deaf|hearing impaired).{0,200}(check|payment in advance)/s, 0.5, "Classic scam framing"],
-    [/(western union|moneygram|wire transfer).{0,100}(urgent|immediately|asap)/s, 0.6, "Urgent wire transfer request"],
-    [/my (private )?(driver|shipper|agent) will (pick|collect)/s, 0.6, "Third-party pickup pattern"],
-    [/\b(bitcoin|usdt|crypto)\b.{0,100}(deposit|payment)/s, 0.4, "Crypto payment push"],
-    [/(unsubscribe|view in browser|email preferences)/, 0.5, "Bulk mail markers"],
-    [/(seo|web design|marketing) (services|proposal|agency)/, 0.5, "Vendor solicitation"],
-  ];
-
+  const patterns = scamOnly ? SCAM_PATTERNS : [...SCAM_PATTERNS, ...BULK_MARKERS];
   for (const [re, weight, label] of patterns) {
     if (re.test(text)) {
       score = Math.min(1, score + weight);

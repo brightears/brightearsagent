@@ -74,7 +74,7 @@ export async function savePushSubscription(sub: {
   }
   const business = await getCurrentBusiness();
   await db.pushSubscription.upsert({
-    where: { endpoint: sub.endpoint },
+    where: { businessId_endpoint: { businessId: business.id, endpoint: sub.endpoint } },
     create: {
       businessId: business.id,
       endpoint: sub.endpoint,
@@ -82,7 +82,6 @@ export async function savePushSubscription(sub: {
       auth: sub.keys.auth,
     },
     update: {
-      businessId: business.id,
       p256dh: sub.keys.p256dh,
       auth: sub.keys.auth,
     },

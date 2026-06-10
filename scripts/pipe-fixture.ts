@@ -1,8 +1,11 @@
 // Dev utility: pipe an InboundEmail fixture through the running webhook as a
 // Postmark-shaped payload. Usage: npx tsx scripts/pipe-fixture.ts <fixture.json> [baseUrl]
+import { config } from "dotenv";
+config({ path: [".env.local", ".env"] });
 import { readFileSync } from "node:fs";
 
 const [, , fixturePath, baseUrl = "http://localhost:3057"] = process.argv;
+const secret = process.env.INBOUND_WEBHOOK_SECRET;
 if (!fixturePath) {
   console.error("usage: tsx scripts/pipe-fixture.ts <fixture.json> [baseUrl]");
   process.exit(1);
@@ -24,7 +27,8 @@ const payload = {
 
 async function main() {
   const started = performance.now();
-  const res = await fetch(`${baseUrl}/api/inbound`, {
+  const url = secret ? `${baseUrl}/api/inbound?secret=${encodeURIComponent(secret)}` : `${baseUrl}/api/inbound`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),

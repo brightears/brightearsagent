@@ -18,11 +18,31 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
     },
   });
   if (!lead || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") return;
+  if (lead.optedOut) return;
+
+  // Dedupe: never stack a second PENDING draft on the same lead. Guards against
+  // webhook redelivery, overlapping cron ticks, and retries all racing here.
+  const existingPending = await db.draft.findFirst({
+    where: { leadId, status: "PENDING" },
+    select: { id: true },
+  });
+  if (existingPending) return;
 
   const eventDate = lead.eventDate ? isoDay(lead.eventDate) : null;
-  const gigs = eventDate
-    ? await db.gig.findMany({ where: { businessId: lead.businessId } })
-    : [];
+  // Only the gigs on the event day matter — range-filter instead of loading a
+  // business's entire history on every inbound lead / sequence tick.
+  const gigs =
+    eventDate && lead.eventDate
+      ? await db.gig.findMany({
+          where: {
+            businessId: lead.businessId,
+            date: {
+              gte: new Date(`${eventDate}T00:00:00Z`),
+              lt: new Date(`${eventDate}T23:59:59.999Z`),
+            },
+          },
+        })
+      : [];
 
   const req: DraftRequest = {
     business: {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
 import { complianceFooter } from "@/lib/optout";
+import { getCurrentBusiness } from "@/lib/tenant";
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
@@ -11,8 +12,9 @@ import { complianceFooter } from "@/lib/optout";
  * Owner edits are kept on the draft (voice-tuning signal).
  */
 export async function approveDraft(draftId: string, editedBody?: string) {
-  const draft = await db.draft.findUnique({
-    where: { id: draftId },
+  const business = await getCurrentBusiness();
+  const draft = await db.draft.findFirst({
+    where: { id: draftId, lead: { businessId: business.id } }, // tenant-scoped
     include: { lead: { include: { business: true } } },
   });
   if (!draft || draft.status !== "PENDING") return { ok: false, error: "draft not pending" };
@@ -20,6 +22,16 @@ export async function approveDraft(draftId: string, editedBody?: string) {
   const { lead } = draft;
   if (!lead.clientEmail) {
     return { ok: false, error: "lead has no reachable email (reply on the platform instead)" };
+  }
+  // Compliance hard-stop at the SEND boundary (not just in the cron engine):
+  // a draft can sit PENDING while the client opts out or the lead is closed.
+  // Never email an opted-out or terminal lead. (CLAUDE.md rule 5.)
+  if (lead.optedOut || lead.status === "DEAD" || lead.status === "BOOKED") {
+    await db.draft.update({
+      where: { id: draft.id },
+      data: { status: "EXPIRED", decidedAt: new Date() },
+    });
+    return { ok: false, error: "this lead has opted out or is closed — nothing was sent" };
   }
 
   const approvedBody = editedBody?.trim() || draft.body;
@@ -60,14 +72,17 @@ export async function approveDraft(draftId: string, editedBody?: string) {
     db.lead.update({
       where: { id: lead.id },
       data: {
-        status: draft.isFollowUp ? "IN_SEQUENCE" : "REPLIED",
+        // If the client wrote back while this draft was pending (ENGAGED), keep
+        // ENGAGED so the sequence never restarts — replying doesn't undo a reply.
+        status: lead.status === "ENGAGED" ? "ENGAGED" : draft.isFollowUp ? "IN_SEQUENCE" : "REPLIED",
         firstReplyAt: lead.firstReplyAt ?? new Date(),
       },
     }),
   ]);
 
   // First reply sent → the follow-up sequence clock starts (engine fires steps).
-  if (!draft.isFollowUp) {
+  // Skip if the client already replied (ENGAGED) — they don't need chasing.
+  if (!draft.isFollowUp && lead.status !== "ENGAGED") {
     const template = await db.sequenceTemplate.findFirst({
       where: { businessId: lead.businessId, active: true },
     });
@@ -90,18 +105,20 @@ export async function approveDraft(draftId: string, editedBody?: string) {
 }
 
 export async function rejectDraft(draftId: string) {
-  const draft = await db.draft.findUnique({ where: { id: draftId } });
-  if (!draft || draft.status !== "PENDING") return { ok: false, error: "draft not pending" };
-  await db.draft.update({
-    where: { id: draftId },
+  const business = await getCurrentBusiness();
+  // Tenant-scoped count guard: only reject a PENDING draft of our own lead.
+  const updated = await db.draft.updateMany({
+    where: { id: draftId, status: "PENDING", lead: { businessId: business.id } },
     data: { status: "REJECTED", decidedAt: new Date() },
   });
+  if (updated.count === 0) return { ok: false, error: "draft not pending" };
   revalidatePath("/dashboard");
   return { ok: true };
 }
 
 export async function markBooked(leadId: string) {
-  const lead = await db.lead.findUnique({ where: { id: leadId } });
+  const business = await getCurrentBusiness();
+  const lead = await db.lead.findFirst({ where: { id: leadId, businessId: business.id } });
   if (!lead) return { ok: false, error: "lead not found" };
   await db.$transaction([
     db.lead.update({ where: { id: leadId }, data: { status: "BOOKED", bookedAt: new Date() } }),
@@ -128,13 +145,16 @@ export async function markBooked(leadId: string) {
 }
 
 export async function markDead(leadId: string) {
-  await db.$transaction([
-    db.lead.update({ where: { id: leadId }, data: { status: "DEAD", deadAt: new Date() } }),
-    db.sequenceRun.updateMany({
-      where: { leadId, stoppedAt: null },
-      data: { stoppedAt: new Date(), stopReason: "marked_dead" },
-    }),
-  ]);
+  const business = await getCurrentBusiness();
+  const updated = await db.lead.updateMany({
+    where: { id: leadId, businessId: business.id },
+    data: { status: "DEAD", deadAt: new Date() },
+  });
+  if (updated.count === 0) return { ok: false, error: "lead not found" };
+  await db.sequenceRun.updateMany({
+    where: { leadId, stoppedAt: null },
+    data: { stoppedAt: new Date(), stopReason: "marked_dead" },
+  });
   revalidatePath("/dashboard");
   return { ok: true };
 }

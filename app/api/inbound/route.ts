@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { InboundEmail } from "@/lib/inbound/types";
 import { processInbound } from "@/lib/inbound/pipeline";
+import { checkSharedSecret } from "@/lib/auth-secret";
 
 /** Postmark inbound webhook payload (the fields we use). */
 interface PostmarkInbound {
@@ -17,9 +18,9 @@ interface PostmarkInbound {
 }
 
 export async function POST(req: NextRequest) {
-  // Shared-secret check (set the same value in the Postmark webhook URL ?secret=...)
-  const secret = process.env.INBOUND_WEBHOOK_SECRET;
-  if (secret && req.nextUrl.searchParams.get("secret") !== secret) {
+  // Shared-secret check (set the same value in the Postmark webhook URL ?secret=...).
+  // Fail-closed in production if the secret is unset.
+  if (!checkSharedSecret(process.env.INBOUND_WEBHOOK_SECRET, req.nextUrl.searchParams.get("secret"))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

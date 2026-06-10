@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { meterState } from "@/lib/billing/metering";
 
 export interface TickResult {
   expiredDrafts: number;
   backfilledRuns: number;
+  redraftedLeads: number;
   stepsFired: number;
   exhausted: number;
   skipped: number;
@@ -22,7 +24,7 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
-  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
+  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
 
   // 1. Expire stale drafts.
   const expired = await db.draft.updateMany({
@@ -30,6 +32,35 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     data: { status: "EXPIRED", decidedAt: now },
   });
   result.expiredDrafts = expired.count;
+
+  // 1b. Redraft sweep: leads that should have a reply draft waiting but don't —
+  // capped-then-upgraded leads, leads whose webhook-time draft threw, or leads
+  // whose initial draft expired while the owner was away. Without this they'd
+  // sit forever undrafted (the exact >5-min-response failure we sell against).
+  // Only for non-terminal leads currently under their plan's lead cap.
+  const undrafted = await db.lead.findMany({
+    where: {
+      status: { in: ["NEW", "DRAFTED"] },
+      optedOut: false,
+      drafts: { none: { status: "PENDING" } },
+      updatedAt: { lt: new Date(now.getTime() - 5 * 60 * 1000) }, // settle 5 min (let webhook-time drafting finish)
+      // Skip past-event leads: their draft would expire immediately (expiresAt =
+      // eventDate), causing a redraft-then-expire loop that burns LLM cost.
+      OR: [{ eventDate: null }, { eventDate: { gte: now } }],
+    },
+    include: { business: { select: { id: true, plan: true } } },
+    take: 50,
+  });
+  for (const lead of undrafted) {
+    const meter = await meterState(lead.business.id, lead.business.plan, now);
+    if (meter.overCap) continue; // still capped — leave NEW, owner already nudged
+    try {
+      await generateDraftForLead(lead.id);
+      result.redraftedLeads++;
+    } catch (err) {
+      console.error(`redraft sweep failed for lead ${lead.id}`, err);
+    }
+  }
 
   // 2. Backfill runs for REPLIED leads without one.
   const orphans = await db.lead.findMany({
@@ -69,7 +100,8 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       continue;
     }
 
-    // Never stack drafts: a pending one means the owner hasn't decided yet.
+    // Never stack drafts: any non-terminal draft (PENDING) means the owner
+    // hasn't decided yet — wait, don't draft another step on top.
     if (lead.drafts.length > 0) {
       result.skipped++;
       continue;
@@ -86,15 +118,27 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       continue;
     }
 
-    // Draft follow-up #nextStep (lands as PENDING + push to the owner's phone).
-    await generateDraftForLead(lead.id, nextStep);
+    // A transient draft failure must not abort the whole tick (starving every
+    // other tenant's runs) — isolate it; the run's nextRunAt is left in the past
+    // so the next tick retries this lead.
+    try {
+      // Draft follow-up #nextStep (lands as PENDING + push to the owner's phone).
+      await generateDraftForLead(lead.id, nextStep);
+    } catch (err) {
+      console.error(`sequence draft failed for lead ${lead.id} step ${nextStep}`, err);
+      result.skipped++;
+      continue;
+    }
 
-    const t0 = lead.firstReplyAt ?? now;
+    // Anchor the NEXT step to the actual fire time + the configured gap between
+    // steps — never to firstReplyAt — so approval delays or cron outages can't
+    // bunch follow-ups back-to-back. Minimum 1-day gap.
     const followingStepIdx = nextStep; // index into stepsDays for the step AFTER this one
-    const nextRunAt =
+    const gapDays =
       followingStepIdx < template.stepsDays.length
-        ? new Date(t0.getTime() + template.stepsDays[followingStepIdx] * DAY)
-        : new Date(now.getTime() + 2 * DAY); // exhaust-check visit after the last step
+        ? Math.max(1, template.stepsDays[followingStepIdx] - template.stepsDays[nextStep - 1])
+        : 2; // exhaust-check visit after the last step
+    const nextRunAt = new Date(now.getTime() + gapDays * DAY);
 
     await db.sequenceRun.update({
       where: { id: run.id },
