@@ -61,6 +61,10 @@ Rules of engagement for any agent working this file:
 - [x] All 12 routes render 200; marketing pages prerender static; build green; 55 tests green
 - [ ] Acceptance remainder: Lighthouse ≥ 90 run (needs a browser session — do during Phase 7 E2E) · note: JSON-LD/llms.txt cite brightears.io as canonical (intended post-cutover domain; harmless pre-cutover)
 
+## Pre-Phase-7 — Code review ✅ (June 10, 2026)
+- [x] High-effort multi-agent review of all 16 commits (7 finder angles + verify): 10 correctness + security findings fixed (commit 4d060c1) — compliance send-boundary hard-stop, sequence scheduling/retry/redraft robustness, double-draft + invalid-date + idempotency races, triage false-positive split, fail-closed prod auth, tenant-scoped actions, unique constraints + hot-query indexes. Lower-severity cleanup/efficiency/altitude items tracked in docs/REVIEW-DEFERRED.md
+- [x] Local dev secrets added (INBOUND_WEBHOOK_SECRET/CRON_SECRET/OPTOUT_SECRET) so prod fail-closed auth doesn't block local E2E
+
 ## Phase 7 — Production deployment 🔑 GitHub repo + push access, Render API key or new service (NOT the existing brightears service)
 - [ ] Founder: install GitHub CLI (`brew install gh && gh auth login`) or provide a repo + token; create private repo `brightears-app`, push; create Render API key (dashboard.render.com → Account Settings → API Keys) so agents can configure the service directly
 - [ ] New Render web service + Postgres (separate from `brightears`/`brightears-db`!), env config, real migrations (`prisma migrate deploy` — NEVER `db push --accept-data-loss`), automated DB backups enabled and documented
