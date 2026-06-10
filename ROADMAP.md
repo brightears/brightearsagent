@@ -20,12 +20,14 @@ Rules of engagement for any agent working this file:
 - [ ] Spam/scam triage classifier (LLM + heuristics), `spamScore`/`spamReason`, SPAM status; test with known scam patterns (advance-fee, fake-event)
 - [ ] Acceptance: piping any fixture through the webhook creates a correct Lead (or SPAM) in < 10s; all parser tests green
 
-## Phase 2 — Draft engine (the product's brain) 🔑 Anthropic API key
-- [ ] Voice profile: onboarding fields (voiceSamples, tone choices) → cached system prompt per tenant (use prompt caching)
+## Phase 2 — Draft engine (the product's brain) — OpenRouter key already in `.env.local` ✓
+- [ ] `lib/llm` wrapper: OpenRouter + Vercel AI SDK, per-purpose model map (parse/triage → deepseek-v4-flash, draft/followup → deepseek-v4-pro), structured-output helper, LlmUsage logging baked in — no call site ever names a model directly
+- [ ] Voice profile: onboarding fields (voiceSamples, tone choices) → per-tenant system prompt
 - [ ] Availability check: Gig calendar conflict logic (date + tenant tz, multi-performer aware)
 - [ ] Draft generator: lead + availability + matching packages + voice → personalized reply (subject + body), honest about availability, quotes only from rate card, never invents facts; follow-up variant generator (sequence-step aware, adapts to thread)
 - [ ] `LlmUsage` logging on every call (purpose, model, tokens); per-tenant cost rollup query
-- [ ] Eval harness: 15+ scenario fixtures (available/booked/vague date/price-shopper/spam-adjacent/non-wedding event) with assertion checks (no invented prices, correct availability statement, opt-out present on follow-ups); runs in CI
+- [ ] Eval harness: 15+ scenario fixtures (available/booked/vague date/price-shopper/spam-adjacent/non-wedding event) with assertion checks (no invented prices, correct availability statement, opt-out present on follow-ups); runs in CI. Judge model may be stronger (claude-sonnet via OpenRouter); production models stay cheap
+- [ ] Model selection eval: run the harness across 3+ candidates per purpose (v4-flash vs qwen3.6-flash vs gemini-flash-lite for parse/triage; v4-pro vs glm-5 vs kimi-k2.6 vs claude-haiku for drafts at current OpenRouter pricing) — cheapest model that passes wins; record decision + numbers in docs/ADR-models.md
 - [ ] Acceptance: eval suite passes; median draft latency < 30s from webhook to PENDING draft
 
 ## Phase 3 — Approve-from-phone loop (the product's hands)
@@ -56,7 +58,8 @@ Rules of engagement for any agent working this file:
 - [ ] Acceptance: Lighthouse ≥ 90 on all marketing pages; site reads fun + colorful (royalstreaming reference), not dark
 - [ ] NOTE: marketing site ships under the temp URL first; copy/links must not hardcode brightears.io until Phase 8
 
-## Phase 7 — Production deployment 🔑 Render account (new service — NOT the existing one)
+## Phase 7 — Production deployment 🔑 GitHub repo + push access, Render API key or new service (NOT the existing brightears service)
+- [ ] Founder: install GitHub CLI (`brew install gh && gh auth login`) or provide a repo + token; create private repo `brightears-app`, push; create Render API key (dashboard.render.com → Account Settings → API Keys) so agents can configure the service directly
 - [ ] New Render web service + Postgres (separate from `brightears`/`brightears-db`!), env config, real migrations (`prisma migrate deploy` — NEVER `db push --accept-data-loss`), automated DB backups enabled and documented
 - [ ] Render cron for sequences + weekly reports; health checks; error tracking (Sentry or similar); uptime monitor
 - [ ] Security pass: webhook signature verification (provider + Stripe), rate limiting, tenant isolation audit, secrets audit (nothing committed)

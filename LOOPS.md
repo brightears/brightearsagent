@@ -38,11 +38,11 @@ Then, to apply what it finds: `/code-review high --fix`. Before any deploy: `/se
 
 | Gate | What you create | Where |
 |---|---|---|
-| Phase 1 | Postmark (or Mailgun) account | postmarkapp.com — free dev tier |
-| Phase 2 | Anthropic API key | console.anthropic.com |
+| Phase 1 | Postmark (or Mailgun) account — **the first gate you'll hit** | postmarkapp.com — free dev tier |
+| Phase 2 | ~~OpenRouter API key~~ ✓ done (in `.env.local`) | — |
 | Phase 3 | Clerk app | clerk.com — free tier |
 | Phase 5 | Stripe account + confirm the 3 prices | stripe.com |
-| Phase 7 | New Render web service + Postgres (separate from the old ones) | dashboard.render.com |
+| Phase 7 | GitHub: `brew install gh && gh auth login`, private repo `brightears-app` · Render API key (so agents configure the new service themselves) | github.com · dashboard.render.com → Account Settings → API Keys |
 | Phase 8 | DNS records (agency./in./mail. brightears.io), LINE webhook URL change, Clerk origins | your DNS + LINE Developers Console |
 
 Phase 8 is the only one that touches anything Vinyl-related, and the roadmap forces the safe order: old app moves to agency.brightears.io and soaks for 7 verified days BEFORE brightears.io points at the new product.

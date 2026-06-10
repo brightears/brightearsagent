@@ -19,7 +19,7 @@ Self-serve SaaS under the existing **Bright Ears** brand (will take over brighte
 7. **White-label invariant:** no "AI", "bot", or Bright Ears branding in any client-facing email.
 8. **Track LLM cost per tenant** (`LlmUsage`) from the first call. Meter customers in LEADS (they understand leads, not tokens); tokens are our internal margin lens. Alert if any tenant's gross margin drops below 70%.
 9. **Timezones:** all date logic in tenant timezone (`Business.timezone`).
-10. **When writing LLM code, read the `/claude-api` skill first** (model ids, pricing, structured outputs, prompt caching for per-tenant voice prompts).
+10. **Model strategy (founder-set): OpenRouter gateway, cheap models, eval-driven selection.** All LLM calls go through OpenRouter (`OPENROUTER_API_KEY` in `.env.local`) via a single `lib/llm` wrapper with a **per-purpose model map** — never hardcode a model id at a call site. Provisional defaults (verified pricing June 2026): `parse` + `triage` → `deepseek/deepseek-v4-flash` ($0.098/M in, $0.197/M out); `draft` + `followup` → `deepseek/deepseek-v4-pro` ($0.435/M in, $0.87/M out). The Phase 2 eval harness decides final picks: cheapest model that passes the full eval suite wins, per purpose. The eval JUDGE may use a stronger model (e.g. `anthropic/claude-sonnet-4.6` via OpenRouter) — judges run occasionally, production runs cheap. Draft quality is the product: if evals show cheap models writing mediocre replies, upgrading the `draft` model is the correct trade — margins survive (per-lead cost is <1¢ even on mid-tier models at our token volumes).
 
 ## Pricing (founder-confirmed)
 
@@ -36,11 +36,11 @@ Self-serve SaaS under the existing **Bright Ears** brand (will take over brighte
 
 - Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind v4 — heed AGENTS.md: read `node_modules/next/dist/docs/` before writing code
 - Prisma 7 + Postgres (generated client at `app/generated/prisma`; `prisma.config.ts` present)
-- Anthropic API for parse/triage/draft
+- LLM: OpenRouter gateway + Vercel AI SDK (the pattern proven in brightears26) — per-purpose model map, DeepSeek V4 Flash/Pro defaults (see rule 10)
 - Postmark or Mailgun inbound-parse + outbound (decide in ROADMAP Phase 1 spike)
 - Stripe billing; Clerk auth
 - PWA + web push for approve-from-phone
 
 ## Founder gates (work stops until he provides)
 
-Accounts/credentials only he can create — flag loudly when reached: Anthropic API key · Postmark/Mailgun account · Clerk app · Stripe account + products · Render service · DNS access for in./mail./agency. brightears.io · LINE Developers Console change (cutover only).
+Accounts/credentials only he can create — flag loudly when reached: ~~OpenRouter API key~~ ✓ (in `.env.local`) · Postmark/Mailgun account · Clerk app · Stripe account + products · GitHub repo + push access (Phase 7, for Render auto-deploy) · Render API key or new service (Phase 7 — NEVER the existing brightears service) · DNS access for in./mail./agency. brightears.io · LINE Developers Console change (cutover only).

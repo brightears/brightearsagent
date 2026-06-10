@@ -31,7 +31,7 @@ Main threats: The Knot shipping native AI replies (counter: own-website/Bark/UK/
 
 Per-tenant inbound parse address (`leads@{slug}.in.brightears.io`) + one-time forwarding rules catch ALL lead sources (plain email, website forms, The Knot/WW/Bark/GigSalad notification emails — parsing those is established practice: 17hats, Mailparser, Zapier templates). LLM parses + triages spam → drafts availability-aware reply in owner's voice (rate-card-bounded) → PWA push → owner approves/edits in ≤2 taps → sent from `mail.brightears.io`, From = business name, Reply-To = owner → client replies loop back via the forward → sequences (day 2/5/9 default) until booked/dead, hard-stops on reply/booked/dead/opt-out, country-correct compliance footers.
 Adapters: Thumbtack Partner API (apply early — only marketplace officially sanctioning automated replies), Bark via official Zapier (budget caps), The Knot/WW deep-link nudge preserves their Quick Responder badge, GigSalad draft+deep-link only. Phase 1.5: send-as-their-Gmail via Unipile/Nylas (shared pre-verified OAuth). Phase 2: FB Messenger/Instagram via Meta review.
-Stack: Next.js 16 + Prisma 7 + Postgres, Anthropic API, Postmark/Mailgun, Clerk, Stripe, PWA. Deploys to its OWN Render service; never touches the live agency stack.
+Stack: Next.js 16 + Prisma 7 + Postgres, OpenRouter + Vercel AI SDK (per-purpose model map: DeepSeek V4 Flash for parse/triage, V4 Pro for drafts; eval harness decides final picks — per-lead LLM cost <1¢), Postmark/Mailgun, Clerk, Stripe, PWA. Deploys to its OWN Render service; never touches the live agency stack.
 
 ## 6. MVP scope
 
