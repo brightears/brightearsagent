@@ -4,6 +4,8 @@ import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { meterState } from "@/lib/billing/metering";
+import { pushToBusiness } from "@/lib/push";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -133,10 +135,21 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
 
   // Draft generation runs in the background (persistent server) so the webhook
   // answers Postmark fast; failures are logged and retried by the sequence cron.
+  // Lead-cap metering: at cap we still INGEST (never lose a lead) but pause
+  // drafting and nudge the owner — never a surprise bill (CLAUDE.md pricing).
   if (!isSpam) {
-    void generateDraftForLead(lead.id).catch((err) =>
-      console.error(`draft generation failed for lead ${lead.id}`, err),
-    );
+    const meter = await meterState(business.id, business.plan);
+    if (meter.overCap) {
+      void pushToBusiness(business.id, {
+        title: "Lead cap reached",
+        body: `${meter.used}/${meter.cap} leads this month — new inquiries are waiting. Upgrade to keep replies flowing.`,
+        url: "/dashboard/settings",
+      }).catch(() => null);
+    } else {
+      void generateDraftForLead(lead.id).catch((err) =>
+        console.error(`draft generation failed for lead ${lead.id}`, err),
+      );
+    }
   }
 
   return { outcome: "lead_created", leadId: lead.id, status: isSpam ? "SPAM" : "NEW" };
