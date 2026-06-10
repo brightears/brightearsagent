@@ -39,11 +39,11 @@ Rules of engagement for any agent working this file:
 - [x] Status transitions E2E + firstReplyAt stamped: verified DRAFTED→(approve)→REPLIED with timestamp; reply-match→ENGAGED verified in Phase 1; BOOKED creates the gig; DEAD stops sequences
 - [x] Acceptance (dev-transport variant): fixture → webhook 0.05s → draft PENDING ~19s → approve → .eml in outbox + lead REPLIED. Remaining for full sign-off: real push tap on a phone + real email delivery (needs Postmark token + browser session)
 
-## Phase 4 — Sequences + reporting (the product's persistence)
-- [ ] Sequence engine: cron route (Render cron later, local script now) walks SequenceRuns; drafts follow-ups (auto or approval per tenant setting); hard-stops on BOOKED/DEAD/ENGAGED/opt-out; opt-out link + country-correct compliance footer
-- [ ] Booked/dead flows: one-tap "Mark booked" (creates Gig from lead) / "Mark dead"; auto-dead after sequence exhausts
-- [ ] Weekly report email per tenant: leads in, median first-reply time, replies sent, engaged, booked (+ revenue if package attached) — the renewal engine; plain, braggable numbers
-- [ ] Acceptance: simulated 3-week clock test — sequences fire on schedule, stop correctly, report numbers match DB
+## Phase 4 — Sequences + reporting (the product's persistence) ✅ (June 10, 2026)
+- [x] Sequence engine `lib/sequences/engine.ts` + `/api/cron/sequences` (CRON_SECRET-gated): runs start when the first reply sends; steps at day-offsets [2,5,9] from firstReplyAt; follow-ups go through owner approval (never stacks while one is PENDING); defensive hard-stops on BOOKED/DEAD/ENGAGED/SPAM/opt-out; stale-draft expiry; backfill for pre-engine leads. Opt-out: HMAC-tokenized `/api/optout` link in a compliance footer appended at SEND time (owner reviews clean copy, footer can't be edited away). Follow-up auto-send deferred until trust earned (approval is one tap)
+- [x] Booked/dead flows: markBooked creates the Gig + stops runs (Phase 3); markDead stops runs; auto-DEAD when sequence exhausts with continued silence
+- [x] Weekly report `lib/reports/weekly.ts` + `/api/cron/weekly-report`: leads in, spam filtered count ("you never saw them"), median first-reply minutes with bragging line, replies/engaged/booked/in-sequence; skips empty weeks
+- [x] Acceptance: `scripts/test-sequences.ts` simulated 3-week clock — backfill, step 1 fires day 2 (live LLM draft), no stacking while pending, approve adds compliance footer (opt-out token asserted), steps 2-3 fire days 5/9, exhaust → auto-DEAD day 11, stop-on-reply, stop-on-opt-out, report numbers match direct SQL. PASS
 
 ## Phase 5 — Self-serve onboarding + billing 🔑 Stripe account + products
 - [ ] Onboarding wizard: business profile → performer kind → packages/rate card → voice samples → gig calendar import (manual + ICS paste) → forwarding setup with per-provider walkthroughs (Gmail/Outlook/Knot/WW notification settings) + "send yourself a test lead" verifier

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
+import { complianceFooter } from "@/lib/optout";
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
@@ -21,7 +22,12 @@ export async function approveDraft(draftId: string, editedBody?: string) {
     return { ok: false, error: "lead has no reachable email (reply on the platform instead)" };
   }
 
-  const body = editedBody?.trim() || draft.body;
+  const approvedBody = editedBody?.trim() || draft.body;
+  // Follow-ups carry the compliance footer (who/why/opt-out) — appended at send
+  // time so the owner reviews clean copy and the footer is never edited away.
+  const body = draft.isFollowUp
+    ? approvedBody + complianceFooter(lead.business.name, lead.id)
+    : approvedBody;
   const sent = await sendEmail({
     fromName: lead.business.name,
     to: lead.clientEmail,
@@ -54,11 +60,30 @@ export async function approveDraft(draftId: string, editedBody?: string) {
     db.lead.update({
       where: { id: lead.id },
       data: {
-        status: "REPLIED",
+        status: draft.isFollowUp ? "IN_SEQUENCE" : "REPLIED",
         firstReplyAt: lead.firstReplyAt ?? new Date(),
       },
     }),
   ]);
+
+  // First reply sent → the follow-up sequence clock starts (engine fires steps).
+  if (!draft.isFollowUp) {
+    const template = await db.sequenceTemplate.findFirst({
+      where: { businessId: lead.businessId, active: true },
+    });
+    if (template && template.stepsDays.length > 0) {
+      await db.sequenceRun
+        .create({
+          data: {
+            leadId: lead.id,
+            templateId: template.id,
+            currentStep: 0,
+            nextRunAt: new Date(Date.now() + template.stepsDays[0] * 24 * 3600 * 1000),
+          },
+        })
+        .catch(() => null); // unique leadId — already has a run
+    }
+  }
 
   revalidatePath("/dashboard");
   return { ok: true, transport: sent.transport };
