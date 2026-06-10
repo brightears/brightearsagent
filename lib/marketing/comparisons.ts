@@ -1,0 +1,979 @@
+// Comparison-cluster content (bottom-funnel SEO): /compare hub + /compare/[slug] pairwise pages.
+// All copy lives here so marketing can edit words without touching page markup.
+//
+// HONESTY RULES (see docs/PRODUCT-BRIEF.md §4 and docs/MARKETING-PLAN.md Q2):
+// - Competitor pricing below is VERIFIED against public pricing pages — never improvise.
+// - Be generous to competitors; credibility is the product. Show our own gaps in the same tables.
+// - Re-verify quarterly and bump LAST_VERIFIED (the "dated stamp" AI assistants look for).
+
+export const LAST_VERIFIED = "June 2026";
+
+/** Bright Ears pricing — founder-confirmed. Never improvise changes here. */
+export const BRIGHT_EARS_PRICING = {
+  range: "$25–149/mo",
+  trial: "14-day free trial — full Pro, no card required",
+  tiers: [
+    { name: "Starter", price: "$25/mo", includes: "15 leads/mo, 1 performer" },
+    {
+      name: "Pro",
+      price: "$79/mo",
+      includes: "60 leads/mo, follow-up sequences, auto-send, weekly report",
+    },
+    {
+      name: "Studio",
+      price: "$149/mo",
+      includes: "multi-performer, 150 leads/mo, team",
+    },
+  ],
+  overage:
+    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
+} as const;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type RoundupEntry = {
+  name: string;
+  /** Verified price range, e.g. "$20–50/mo" */
+  price: string;
+  builtFor: string;
+  shines: string;
+  stops: string;
+  /** Link to the pairwise page, when one exists */
+  slug?: ComparisonSlug;
+  isBrightEars?: boolean;
+};
+
+export type TableMark = "yes" | "partial" | "no" | "na";
+
+export type TableCell = { mark: TableMark; note: string };
+
+export type ComparisonRow = { feature: string; them: TableCell; us: TableCell };
+
+export type Faq = { question: string; answer: string };
+
+export type ComparisonPage = {
+  slug: ComparisonSlug;
+  /** Competitor display name (the "them" column) */
+  competitor: string;
+  competitorPrice: string;
+  /** <title> + meta description */
+  title: string;
+  metaDescription: string;
+  /** Card shown on the /compare hub grid */
+  cardTitle: string;
+  cardBlurb: string;
+  heroEyebrow: string;
+  heroHeading: string;
+  heroSub: string;
+  greatAtHeading: string;
+  greatAtIntro: string;
+  greatAt: { point: string; detail: string }[];
+  tableHeading: string;
+  rows: ComparisonRow[];
+  fitHeading: string;
+  fitParagraphs: string[];
+  fitPullQuote?: { quote: string; source: string };
+  /** Only on the "alternatives" roundup-style page */
+  alternativesHeading?: string;
+  alternativesIntro?: string;
+  alternatives?: { name: string; price: string; take: string; slug?: ComparisonSlug }[];
+  faqs: Faq[];
+  ctaHeading: string;
+  ctaSub: string;
+};
+
+export const COMPARISON_SLUGS = [
+  "dj-event-planner",
+  "gigbuilder",
+  "vibo",
+  "check-cherry",
+  "honeybook",
+  "dj-event-planner-alternatives",
+] as const;
+
+export type ComparisonSlug = (typeof COMPARISON_SLUGS)[number];
+
+// ---------------------------------------------------------------------------
+// JSON-LD helper (see node_modules/next/dist/docs/01-app/02-guides/json-ld.md —
+// escape "<" to prevent XSS via JSON.stringify)
+// ---------------------------------------------------------------------------
+
+export function faqJsonLd(faqs: Faq[]): string {
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({
+      "@type": "Question",
+      name: f.question,
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
+    })),
+  }).replace(/</g, "\\u003c");
+}
+
+// ---------------------------------------------------------------------------
+// Hub: the honest roundup table
+// ---------------------------------------------------------------------------
+
+export const ROUNDUP: RoundupEntry[] = [
+  {
+    name: "DJ Event Planner",
+    price: "$20–50/mo",
+    builtFor: "The DJ-business back office: contracts, invoicing, event workflow, employee scheduling.",
+    shines:
+      "Roughly two decades of DJ-specific depth nothing else matches. Multi-op operators run their whole business on it.",
+    stops:
+      "No AI, no public API, and it won't answer a lead for you. The codebase shows its ~20 years.",
+    slug: "dj-event-planner",
+  },
+  {
+    name: "GigBuilder",
+    price: "$25–50/mo",
+    builtFor: "Affordable all-in-one booking management with an AI writing helper.",
+    shines:
+      "A lot of surface for the money — website, booking flow, planning forms — and it put AI in front of DJs early.",
+    stops:
+      "The AI helps you write when you sit down; it doesn't watch your inbox or reply for you. Infrastructure feels dated.",
+    slug: "gigbuilder",
+  },
+  {
+    name: "Vibo",
+    price: "$99–179/mo",
+    builtFor: "The client music-planning experience: requests, timelines, must-plays, guest input.",
+    shines:
+      "Couples genuinely love it, and DJs are proud to send the invite. Best-in-class at what it does.",
+    stops: "It starts after the contract is signed. Nothing for leads.",
+    slug: "vibo",
+  },
+  {
+    name: "Check Cherry",
+    price: "~$30–75/mo",
+    builtFor: "Modern booking forms, packages, proposals and payments.",
+    shines: "The cleanest form-and-package experience in the category — a flow couples actually finish.",
+    stops: "It captures inquiries beautifully — then the replying and chasing is still you.",
+    slug: "check-cherry",
+  },
+  {
+    name: "HoneyBook",
+    price: "$36–129/mo",
+    builtFor: "Horizontal CRM for all service businesses, with AI drafts inside its own inbox.",
+    shines: "The most polished generalist on this list: contracts, invoices, payments, automations.",
+    stops:
+      "The AI only works inside HoneyBook's inbox — a full migration first — and nothing in it is DJ-specific.",
+    slug: "honeybook",
+  },
+  {
+    name: "Bright Ears",
+    price: "$25–149/mo",
+    builtFor: "The AI office that answers your leads — the only tool here that does.",
+    shines:
+      "Median first reply under 5 minutes, in your voice, from your rate card — you approve from your phone, and follow-ups run until booked or dead.",
+    stops:
+      "We don't do contracts, invoices or music planning. Keep your favorite tool above for that — we bolt on with one forwarding rule.",
+    isBrightEars: true,
+  },
+];
+
+export const HUB_FAQS: Faq[] = [
+  {
+    question: "What's the best DJ booking software in 2026?",
+    answer:
+      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry (~$30–75/mo). For client music planning after the booking, Vibo ($99–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). If the thing that hurts is leads going cold before you can reply, that's the one job Bright Ears was built for ($25–149/mo) — and it pairs with any of the above.",
+  },
+  {
+    question: "Isn't this comparison biased? You make one of these tools.",
+    answer:
+      "We make the AI inbox, so read everything here with that in mind. To keep ourselves honest we publish verified pricing with a 'last verified' date, credit competitors where they're better than us (which is often — we don't do contracts, invoicing or music planning), and show our own gaps in the same tables.",
+  },
+  {
+    question: "Do I have to replace my current software to use Bright Ears?",
+    answer:
+      "No. Bright Ears is a bolt-on, not a migration. One email forwarding rule sends your lead notifications — website forms, plain email, The Knot, WeddingWire, Bark, GigSalad — to your Bright Ears address. No password sharing, no OAuth, and booked gigs go back into whatever runs your business today.",
+  },
+  {
+    question: "How was the pricing on this page verified?",
+    answer:
+      "We checked each vendor's public pricing page in June 2026 and recorded the range across their published tiers. Pricing changes — if you spot a stale number, tell us and we'll re-verify and update the stamp.",
+  },
+  {
+    question: "What does Bright Ears cost?",
+    answer:
+      "A 14-day free trial with no card, then Starter at $25/mo (15 leads, 1 performer), Pro at $79/mo (60 leads, follow-up sequences, auto-send, weekly report), or Studio at $149/mo (multi-performer, 150 leads, team). Extra leads are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Shared row sets
+// ---------------------------------------------------------------------------
+
+/** DJ Event Planner vs Bright Ears — used on both the pairwise and the alternatives page. */
+const DJEP_ROWS: ComparisonRow[] = [
+  {
+    feature: "Answers new inquiries for you",
+    them: { mark: "no", note: "Inquiries land in your inbox; the reply is on you." },
+    us: {
+      mark: "yes",
+      note: "Drafted in your voice, from your rate card, aware of your real availability.",
+    },
+  },
+  {
+    feature: "Speed to first reply",
+    them: { mark: "no", note: "As fast as you can get to a keyboard." },
+    us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+  },
+  {
+    feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
+    them: { mark: "no", note: "Directory notifications sit in your inbox like any other email." },
+    us: { mark: "yes", note: "Parsed automatically via one forwarding rule." },
+  },
+  {
+    feature: "Spam & scam filtering",
+    them: { mark: "no", note: "Not part of the product." },
+    us: { mark: "yes", note: "Junk is filtered before your phone ever buzzes." },
+  },
+  {
+    feature: "Follow-up until booked or dead",
+    them: {
+      mark: "partial",
+      note: "Scheduled emails exist; chase-until-booked with automatic stops isn't the design.",
+    },
+    us: {
+      mark: "yes",
+      note: "Sequences run until booked or dead, hard-stop the moment they reply, one-tap opt-out compliance.",
+    },
+  },
+  {
+    feature: "Approve from your phone",
+    them: { mark: "partial", note: "There's mobile access to the CRM; it's built for the office desk." },
+    us: { mark: "yes", note: "Push notification → read the draft → approve, edit or decline." },
+  },
+  {
+    feature: "Contracts & e-signatures",
+    them: { mark: "yes", note: "Mature, deep, DJ-specific — the reason people stay a decade." },
+    us: { mark: "no", note: "Not our job. Keep DJ Event Planner for this." },
+  },
+  {
+    feature: "Invoicing & payments",
+    them: { mark: "yes", note: "Battle-tested over roughly 20 years." },
+    us: { mark: "no", note: "Same answer — keep DJEP." },
+  },
+  {
+    feature: "Event workflow & scheduling",
+    them: { mark: "yes", note: "Planning forms, equipment, employee scheduling — unmatched depth." },
+    us: { mark: "no", note: "We stop at the booking." },
+  },
+  {
+    feature: "Setup",
+    them: { mark: "na", note: "Already your system of record — nothing changes." },
+    us: { mark: "na", note: "One email forwarding rule. No password sharing, no OAuth, nothing migrates." },
+  },
+  {
+    feature: "Verified pricing (June 2026)",
+    them: { mark: "na", note: "$20–50/mo" },
+    us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Pairwise pages
+// ---------------------------------------------------------------------------
+
+const DJ_EVENT_PLANNER: ComparisonPage = {
+  slug: "dj-event-planner",
+  competitor: "DJ Event Planner",
+  competitorPrice: "$20–50/mo",
+  title: "Bright Ears vs DJ Event Planner (2026): Keep the CRM, Add the AI Inbox",
+  metaDescription:
+    "DJ Event Planner runs your contracts, invoices and events. Bright Ears answers your leads in under 5 minutes. Honest 2026 comparison with verified pricing — and why most DJs should run both.",
+  cardTitle: "vs DJ Event Planner",
+  cardBlurb: "Keep the 20-year workhorse CRM — add the AI inbox it never had.",
+  heroEyebrow: "Bright Ears vs DJ Event Planner",
+  heroHeading: "Keep DJ Event Planner. Add the part it never had.",
+  heroSub:
+    "This isn't really a versus. DJ Event Planner runs the business behind your gigs better than almost anything. It just doesn't answer the lead that came in while you were mid-set. That's us.",
+  greatAtHeading: "What DJ Event Planner is great at",
+  greatAtIntro:
+    "Credit where it's due — DJEP has been the multi-op workhorse for roughly two decades, and the depth shows.",
+  greatAt: [
+    {
+      point: "Contracts, invoicing and e-signatures",
+      detail:
+        "The paperwork engine is mature, battle-tested and DJ-specific. This is the core reason people stay for a decade.",
+    },
+    {
+      point: "Deep event workflow",
+      detail:
+        "Planning forms, timelines, equipment, employee scheduling — multi-op operators run their whole calendar on it.",
+    },
+    {
+      point: "Honest pricing",
+      detail: "$20–50/mo (verified June 2026) for that much functionality is genuinely fair.",
+    },
+    {
+      point: "A 20-year track record",
+      detail: "It's not going anywhere, and its user community knows every corner of it.",
+    },
+  ],
+  tableHeading: "Side by side",
+  rows: DJEP_ROWS,
+  fitHeading: "Where Bright Ears fits",
+  fitParagraphs: [
+    "Bright Ears is not a DJ Event Planner replacement, and we don't want to be one. We don't do contracts, invoices or event workflow. We do exactly one job: when an inquiry arrives — from your website form, plain email, or a The Knot / WeddingWire / Bark / GigSalad notification — we filter the spam, draft a reply in your voice from your rate card and real availability, and you approve it from your phone. Median first reply: under 5 minutes. Then follow-ups run until the lead is booked or dead, with one-tap opt-out compliance.",
+    "Setup is a single forwarding rule — no password sharing, no OAuth, and nothing about your DJEP setup changes. When the gig books, you run it in DJ Event Planner exactly the way you do today.",
+  ],
+  fitPullQuote: {
+    quote:
+      "I want to automate this. I've looked into DJ Intelligence, SMPL, and DJEP — none of them integrate with Zapier.",
+    source: "a mobile DJ writing the spec for us, r/mobileDJ",
+  },
+  faqs: [
+    {
+      question: "Is Bright Ears a replacement for DJ Event Planner?",
+      answer:
+        "No. We don't do contracts, invoicing, planning forms or event workflow — DJ Event Planner is excellent at those. Bright Ears handles the lead-response layer DJEP doesn't: filtering, answering and chasing inquiries until they're booked or dead, with you approving every reply from your phone.",
+    },
+    {
+      question: "Does Bright Ears integrate with DJ Event Planner?",
+      answer:
+        "No integration is needed, which is the point. Bright Ears works on the email layer: one forwarding rule sends your lead notifications to your Bright Ears address, replies go out under your business name, and the client's answers route straight back to you. Booked gigs go into DJEP the way they always have — there's no API hookup to break (DJEP has no public API anyway).",
+    },
+    {
+      question: "Does DJ Event Planner have AI replies?",
+      answer:
+        "Not as of June 2026. DJEP's strength is workflow depth, but the codebase is roughly 20 years old and there is no AI drafting or automatic lead response built in.",
+    },
+    {
+      question: "What does running both cost?",
+      answer:
+        "DJ Event Planner runs $20–50/mo depending on tier (verified June 2026). Bright Ears starts at $25/mo for 15 leads, with Pro at $79/mo (60 leads, follow-up sequences, auto-send) and Studio at $149/mo for multi-performer teams. Against a $1,500–3,000 booked wedding, one save covers both for a long time.",
+    },
+    {
+      question: "Can I try Bright Ears without touching my DJEP setup?",
+      answer:
+        "Yes. The 14-day trial needs no card and changes nothing in DJEP. Add the forwarding rule, watch drafts appear, and if it's not for you, delete the rule and everything is exactly as it was.",
+    },
+  ],
+  ctaHeading: "Add the AI inbox in front of your DJEP",
+  ctaSub: "14-day free trial, no card. Respond in under 5 minutes — even from the booth.",
+};
+
+const GIGBUILDER: ComparisonPage = {
+  slug: "gigbuilder",
+  competitor: "GigBuilder",
+  competitorPrice: "$25–50/mo",
+  title: "Bright Ears vs GigBuilder (2026): AI That Writes for You vs AI That Answers for You",
+  metaDescription:
+    "GigBuilder bundles booking tools and an AI writing helper for $25–50/mo. Bright Ears answers your leads in under 5 minutes while you're on a gig. Honest comparison with verified pricing.",
+  cardTitle: "vs GigBuilder",
+  cardBlurb: "AI that helps you write vs AI that answers while you're mid-set.",
+  heroEyebrow: "Bright Ears vs GigBuilder",
+  heroHeading: "AI that helps you write — or AI that answers while you're on a gig?",
+  heroSub:
+    "GigBuilder put AI in front of working DJs early, and it deserves credit for that. The difference is where the AI sits: theirs waits for you to sit down and write. Ours has the reply drafted before you've even seen the inquiry.",
+  greatAtHeading: "What GigBuilder is great at",
+  greatAtIntro:
+    "GigBuilder gets real credit for putting affordable, DJ-shaped tools — including AI — in front of working DJs.",
+  greatAt: [
+    {
+      point: "All-in-one on a budget",
+      detail:
+        "$25–50/mo (verified June 2026) covers a website, booking system, planning forms and client portal — a lot of surface for the money.",
+    },
+    {
+      point: "An AI writing helper",
+      detail:
+        "Earlier than most DJ tools to add AI assistance for writing — genuinely useful when you're staring at a blank reply box.",
+    },
+    {
+      point: "Planning forms and a client portal",
+      detail:
+        "Clients can fill in music and event details online, and the booking flow is proven with working mobile DJs.",
+    },
+  ],
+  tableHeading: "Side by side",
+  rows: [
+    {
+      feature: "Answers new inquiries for you",
+      them: { mark: "partial", note: "An AI helper assists when you sit down to write." },
+      us: { mark: "yes", note: "The reply is drafted before you've opened the inbox — you just approve it." },
+    },
+    {
+      feature: "Speed to first reply",
+      them: { mark: "no", note: "Still limited by when you can get to a keyboard." },
+      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+    },
+    {
+      feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
+      them: { mark: "no", note: "Built around its own websites and booking forms." },
+      us: { mark: "yes", note: "One forwarding rule catches forms, plain email and directory notifications." },
+    },
+    {
+      feature: "Spam & scam filtering",
+      them: { mark: "no", note: "Not part of the product." },
+      us: { mark: "yes", note: "Junk is filtered before your phone ever buzzes." },
+    },
+    {
+      feature: "Follow-up until booked or dead",
+      them: {
+        mark: "partial",
+        note: "Email tools exist; booked-or-dead chasing with hard stops isn't the centerpiece.",
+      },
+      us: { mark: "yes", note: "Sequences run until booked or dead, stop instantly on a reply, one-tap opt-out." },
+    },
+    {
+      feature: "Approve from your phone",
+      them: { mark: "partial", note: "Web access anywhere — but the writing still waits for you." },
+      us: { mark: "yes", note: "Push notification → approve, edit or decline in two taps." },
+    },
+    {
+      feature: "Contracts & payments",
+      them: { mark: "yes", note: "Included in the booking workflow." },
+      us: { mark: "no", note: "Not our job — keep GigBuilder (or your contract tool) for this." },
+    },
+    {
+      feature: "Client planning forms & portal",
+      them: { mark: "yes", note: "A long-standing strength — clients fill music and event details online." },
+      us: { mark: "no", note: "We stop at the booking." },
+    },
+    {
+      feature: "Setup",
+      them: { mark: "na", note: "Its own ecosystem: website, forms, planner." },
+      us: { mark: "na", note: "A forwarding rule in front of whatever you keep. Nothing migrates." },
+    },
+    {
+      feature: "Verified pricing (June 2026)",
+      them: { mark: "na", note: "$25–50/mo" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+    },
+  ],
+  fitHeading: "Where Bright Ears fits",
+  fitParagraphs: [
+    "An AI writing helper still needs you at the keyboard — and the whole problem is that the inquiry lands while you're at a gig, asleep, or at your day job. Couples book whoever replies first. Bright Ears watches the inbox itself: spam filtered out, a reply drafted in your voice from your rate card and real availability, pushed to your phone. You tap Approve. Median first reply: under 5 minutes.",
+    "And it doesn't stop at one reply — follow-ups run until the lead is booked or dead, with hard stops the moment they answer and one-tap opt-out compliance. GigBuilder stays a fine place to run your website and booking flow; we sit in front of any inbox with one forwarding rule. No migration, no password sharing, no OAuth.",
+  ],
+  fitPullQuote: {
+    quote: "I can't always text the lead within 5 minutes.",
+    source: "a working mobile DJ, on why inquiries go cold",
+  },
+  faqs: [
+    {
+      question: "What's the actual difference between GigBuilder's AI and Bright Ears?",
+      answer:
+        "GigBuilder's AI is a writing helper: when you sit down to reply, it helps you draft. Bright Ears is an answering layer: the reply is drafted from your rate card and availability before you've opened the inbox, and you approve it from your phone. The difference matters exactly when you can't be at a keyboard — which is when most leads arrive.",
+    },
+    {
+      question: "Can I use Bright Ears alongside my GigBuilder site?",
+      answer:
+        "Yes. Forward your lead notification emails — from your site's form, plain email, or The Knot / WeddingWire / Bark / GigSalad — to your Bright Ears address. One forwarding rule, no password sharing, no OAuth, and drafts start appearing.",
+    },
+    {
+      question: "Is GigBuilder cheaper than Bright Ears?",
+      answer:
+        "Their published range is $25–50/mo (verified June 2026); ours is $25–149/mo depending on lead volume. At the entry tier the price is the same — what you pay for as you grow is leads actually answered and chased, metered in leads so there are never surprise bills.",
+    },
+    {
+      question: "Will clients ever see that an AI replied?",
+      answer:
+        "No. Replies go out under your business name, in your voice, and the client's answers route straight back to you. You approve everything before it sends, and there's no AI branding anywhere a client can see.",
+    },
+  ],
+  ctaHeading: "Put the reply on autopilot — keep your hands on the faders",
+  ctaSub: "14-day free trial, no card. You approve every reply from your phone.",
+};
+
+const VIBO: ComparisonPage = {
+  slug: "vibo",
+  competitor: "Vibo",
+  competitorPrice: "$99–179/mo",
+  title: "Bright Ears vs Vibo (2026): Before the Booking vs After It",
+  metaDescription:
+    "Vibo is the best client music-planning experience in the business — after the contract is signed. Bright Ears gets you to that signature by answering every lead in under 5 minutes. Honest comparison.",
+  cardTitle: "vs Vibo",
+  cardBlurb: "Vibo owns everything after the booking. We exist to get you the booking.",
+  heroEyebrow: "Bright Ears vs Vibo",
+  heroHeading: "Vibo owns the party planning. We get you the party.",
+  heroSub:
+    "Easiest comparison on this site: there's almost zero overlap. Vibo starts working after the couple books you. Bright Ears exists to make sure they book you.",
+  greatAtHeading: "What Vibo is great at",
+  greatAtIntro:
+    "We'll say it plainly: if music planning with clients is your bottleneck, buy Vibo. It leads its category for a reason.",
+  greatAt: [
+    {
+      point: "The client music experience",
+      detail:
+        "Song requests, must-plays and don't-plays, timelines, guest input — couples genuinely enjoy it, and it makes you look professional.",
+    },
+    {
+      point: "An app DJs are proud to send",
+      detail:
+        "Sending a Vibo invite signals you run a real operation. It's a closing asset as much as a planning tool.",
+    },
+    {
+      point: "Worth its price for the right business",
+      detail:
+        "$99–179/mo (verified June 2026) is premium, but it's priced against the client experience it delivers, and steady-volume businesses get their money's worth.",
+    },
+  ],
+  tableHeading: "Side by side",
+  rows: [
+    {
+      feature: "Answers new inquiries for you",
+      them: { mark: "no", note: "Vibo starts after the contract is signed." },
+      us: { mark: "yes", note: "Drafted in your voice from your rate card and real availability." },
+    },
+    {
+      feature: "Speed to first reply",
+      them: { mark: "no", note: "Not its job." },
+      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+    },
+    {
+      feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
+      them: { mark: "no", note: "Vibo never touches your inbox." },
+      us: { mark: "yes", note: "One forwarding rule catches forms, plain email and directory notifications." },
+    },
+    {
+      feature: "Follow-up until booked or dead",
+      them: { mark: "no", note: "It reminds clients about music planning, not leads about booking you." },
+      us: { mark: "yes", note: "Sequences until booked or dead, hard-stop on reply, one-tap opt-out." },
+    },
+    {
+      feature: "Spam & scam filtering",
+      them: { mark: "no", note: "Not its job either." },
+      us: { mark: "yes", note: "Junk filtered before you see it." },
+    },
+    {
+      feature: "Works from your phone",
+      them: { mark: "partial", note: "Great mobile apps — for planning the music." },
+      us: { mark: "yes", note: "Approve, edit or decline replies in two taps." },
+    },
+    {
+      feature: "Client music planning",
+      them: { mark: "yes", note: "Best-in-class: requests, must-plays, timelines, guest input." },
+      us: { mark: "no", note: "We hand off the moment it's booked. Vibo takes it from there." },
+    },
+    {
+      feature: "Event-day experience",
+      them: { mark: "yes", note: "The polish couples remember." },
+      us: { mark: "no", note: "Not our lane." },
+    },
+    {
+      feature: "Setup",
+      them: { mark: "na", note: "A client-facing app you invite couples into." },
+      us: { mark: "na", note: "An email forwarding rule couples never see." },
+    },
+    {
+      feature: "Verified pricing (June 2026)",
+      them: { mark: "na", note: "$99–179/mo" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+    },
+  ],
+  fitHeading: "Where Bright Ears fits",
+  fitParagraphs: [
+    "Vibo's product begins at the contract. Everything before that — the inquiry from The Knot at 11pm, the spam, the price-shoppers, the follow-up nobody has time to send — is exactly the part Bright Ears does. Replies drafted in your voice from your rate card and real availability, approved from your phone, median first reply under 5 minutes, then follow-ups until the lead is booked or dead.",
+    "Run both and the handoff is clean: we chase the lead until it books; you send the Vibo invite the moment it does. More signed contracts in, more great parties out.",
+  ],
+  fitPullQuote: {
+    quote: "If there were two of me, I would double my business.",
+    source: "every busy DJ owner, eventually",
+  },
+  faqs: [
+    {
+      question: "Do Vibo and Bright Ears compete?",
+      answer:
+        "No. Vibo is client music planning after the booking; Bright Ears is lead response before it. Plenty of businesses should run both: Bright Ears gets the contract signed, Vibo makes the event great.",
+    },
+    {
+      question: "Does Vibo help me win more leads?",
+      answer:
+        "Indirectly — a slick planning experience helps referrals, and DJs use the Vibo invite as a selling point in proposals. But Vibo doesn't watch your inbox, filter spam, or reply to The Knot leads. The couple who never hears back never gets to see your Vibo.",
+    },
+    {
+      question: "Why is Vibo so much more expensive than most DJ software?",
+      answer:
+        "It's priced as a client-experience product ($99–179/mo, verified June 2026), and for businesses with steady bookings it earns it. Bright Ears prices on leads handled instead: $25/mo for 15 leads, $79/mo for 60 with sequences and auto-send, $149/mo for multi-performer teams.",
+    },
+    {
+      question: "If I can only afford one, which should I buy?",
+      answer:
+        "Depends where gigs die for you. If inquiries get answered fast but events feel chaotic, buy Vibo. If you're a great DJ whose leads go quiet before you can reply — 'get an inquiry, immediately respond, and then nothing' — fix that first. It's the cheaper fix and one saved booking pays for it many times over.",
+    },
+  ],
+  ctaHeading: "Get more contracts for Vibo to plan",
+  ctaSub: "14-day free trial, no card. Median first reply under 5 minutes.",
+};
+
+const CHECK_CHERRY: ComparisonPage = {
+  slug: "check-cherry",
+  competitor: "Check Cherry",
+  competitorPrice: "~$30–75/mo",
+  title: "Bright Ears vs Check Cherry (2026): Capturing Leads vs Answering Them",
+  metaDescription:
+    "Check Cherry makes the cleanest booking forms and packages in the category. Bright Ears answers the inquiries that come through them — in under 5 minutes, in your voice. Honest comparison.",
+  cardTitle: "vs Check Cherry",
+  cardBlurb: "Beautiful forms capture leads. They still can't reply on your behalf.",
+  heroEyebrow: "Bright Ears vs Check Cherry",
+  heroHeading: "Check Cherry catches the lead. We answer it.",
+  heroSub:
+    "Modern forms, clean packages, a booking flow couples actually finish — Check Cherry earns its fans. The form just can't reply on your behalf. That's the part we built.",
+  greatAtHeading: "What Check Cherry is great at",
+  greatAtIntro:
+    "Of the modern, DJ-friendly booking tools, Check Cherry might be the most tasteful. Real credit:",
+  greatAt: [
+    {
+      point: "Modern booking forms and packages",
+      detail:
+        "The cleanest form-and-package experience in the space — clear options, add-ons and availability, all couple-friendly.",
+    },
+    {
+      point: "Proposals, contracts and payments",
+      detail: "The path from inquiry to signed-and-paid is smooth and looks professional throughout.",
+    },
+    {
+      point: "Fair pricing",
+      detail: "Around $30–75/mo (verified June 2026) for a polished booking front-end is reasonable.",
+    },
+  ],
+  tableHeading: "Side by side",
+  rows: [
+    {
+      feature: "Answers new inquiries for you",
+      them: { mark: "no", note: "Forms capture the inquiry beautifully; the personal reply is still you." },
+      us: { mark: "yes", note: "Drafted in your voice from your rate card and real availability." },
+    },
+    {
+      feature: "Speed to first reply",
+      them: { mark: "no", note: "Whenever you next sit down." },
+      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+    },
+    {
+      feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
+      them: { mark: "no", note: "Home turf is its own forms and pages; directory emails sit outside it." },
+      us: { mark: "yes", note: "One forwarding rule catches forms — Check Cherry's included — and directory leads." },
+    },
+    {
+      feature: "Spam & scam filtering",
+      them: { mark: "no", note: "Not part of the product." },
+      us: { mark: "yes", note: "Junk filtered before your phone buzzes." },
+    },
+    {
+      feature: "Follow-up until booked or dead",
+      them: {
+        mark: "partial",
+        note: "Workflow emails around bookings exist; a chase-until-booked engine it is not.",
+      },
+      us: { mark: "yes", note: "Sequences until booked or dead, hard-stop on reply, one-tap opt-out." },
+    },
+    {
+      feature: "Approve from your phone",
+      them: { mark: "partial", note: "Mobile-friendly — but replies are still typing." },
+      us: { mark: "yes", note: "Two taps: read the draft, approve." },
+    },
+    {
+      feature: "Booking forms & packages",
+      them: { mark: "yes", note: "The cleanest in the category — a flow couples actually finish." },
+      us: { mark: "no", note: "We don't do forms. Keep Check Cherry's." },
+    },
+    {
+      feature: "Proposals, contracts & payments",
+      them: { mark: "yes", note: "Smooth and professional end to end." },
+      us: { mark: "no", note: "Not our job." },
+    },
+    {
+      feature: "Setup",
+      them: { mark: "na", note: "Your booking front-end — it replaces your forms and checkout." },
+      us: { mark: "na", note: "A forwarding rule behind any front-end, including Check Cherry's." },
+    },
+    {
+      feature: "Verified pricing (June 2026)",
+      them: { mark: "na", note: "~$30–75/mo" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+    },
+  ],
+  fitHeading: "Where Bright Ears fits",
+  fitParagraphs: [
+    "A great form raises conversion on people who fill out forms. Two problems remain. First, the reply: the couple who submits at 11:40pm is shopping three other DJs, and if your answer comes tomorrow afternoon, you're the fifth DJ to reach out. Second, not every lead arrives through your form — The Knot, WeddingWire, Bark and GigSalad notifications land in plain email, where no form can help.",
+    "Bright Ears sits behind both. Forward your notifications — Check Cherry's included — and every inquiry gets spam-checked and answered in your voice, from your rate card, with your real availability. You approve from your phone; follow-ups run until booked or dead. Keep Check Cherry for the proposal and the payment — that handoff is exactly how it should work.",
+  ],
+  fitPullQuote: {
+    quote: "You don't want to be the 5th DJ that reaches out.",
+    source: "wedding DJ forum wisdom — and it's true",
+  },
+  faqs: [
+    {
+      question: "Does Check Cherry answer inquiries automatically?",
+      answer:
+        "Check Cherry is built to capture and book: forms, packages, proposals, contracts, payments. The personalized reply to a new inquiry — and the follow-up when the couple goes quiet — is still on you. That's the layer Bright Ears adds.",
+    },
+    {
+      question: "Can I run Bright Ears with Check Cherry?",
+      answer:
+        "Yes, and it's a natural pairing. One forwarding rule sends new-inquiry notifications to Bright Ears; we reply in your voice within minutes and chase until booked or dead; the booking itself flows through Check Cherry as usual. No integration to maintain, no password sharing, no OAuth.",
+    },
+    {
+      question: "Which is cheaper?",
+      answer:
+        "They're comparable. Check Cherry runs roughly $30–75/mo (verified June 2026). Bright Ears is $25–149/mo by lead volume — Starter $25 (15 leads), Pro $79 (60 leads, sequences, auto-send), Studio $149 (multi-performer). At your cap, drafting pauses — never a surprise bill.",
+    },
+    {
+      question: "Do I still need nice booking forms if replies are instant?",
+      answer:
+        "Yes — they do different jobs. Forms qualify and convert; speed wins the shortlist. Around a third of vendors never respond to inquiries at all, and couples book whoever replies first. Fast and polished together beat either one alone.",
+    },
+  ],
+  ctaHeading: "Make the fastest reply also the best-looking booking",
+  ctaSub: "14-day free trial, no card. Respond in under 5 minutes — even from the booth.",
+};
+
+const HONEYBOOK: ComparisonPage = {
+  slug: "honeybook",
+  competitor: "HoneyBook",
+  competitorPrice: "$36–129/mo",
+  title: "Bright Ears vs HoneyBook (2026): Bolt-On AI Inbox vs Full-CRM Migration",
+  metaDescription:
+    "HoneyBook is a polished all-in-one CRM with AI drafts inside its own inbox — once you move your whole business in. Bright Ears answers leads from the setup you already have. Honest comparison.",
+  cardTitle: "vs HoneyBook",
+  cardBlurb: "Full-CRM migration with AI inside — or one forwarding rule in front of what you have.",
+  heroEyebrow: "Bright Ears vs HoneyBook",
+  heroHeading: "Move your whole business — or add one forwarding rule?",
+  heroSub:
+    "HoneyBook is the most polished generalist CRM on this site, and its AI really does draft replies. The catch is the word 'inside': everything works once your whole business lives in HoneyBook. Bright Ears works in front of whatever you already run.",
+  greatAtHeading: "What HoneyBook is great at",
+  greatAtIntro:
+    "HoneyBook deserves real respect — it's the strongest horizontal tool a performer business can buy, and on AI replies their instincts match ours.",
+  greatAt: [
+    {
+      point: "All-in-one polish",
+      detail:
+        "Contracts, invoices, payments, scheduling and pipelines in one place, with the best-designed UI in this comparison.",
+    },
+    {
+      point: "AI drafts in its inbox",
+      detail:
+        "HoneyBook ships AI-suggested replies inside its own inbox — they clearly believe what we believe: leads should be answered fast.",
+    },
+    {
+      point: "A mature product and team",
+      detail: "Steady releases, integrations and a solid mobile app. $36–129/mo (verified June 2026).",
+    },
+  ],
+  tableHeading: "Side by side",
+  rows: [
+    {
+      feature: "Answers new inquiries for you",
+      them: {
+        mark: "partial",
+        note: "AI drafts exist — inside HoneyBook's own inbox, once your business lives there.",
+      },
+      us: { mark: "yes", note: "Drafts from the email setup you already have. Nothing migrates." },
+    },
+    {
+      feature: "Speed to first reply",
+      them: { mark: "partial", note: "As fast as you work the HoneyBook inbox." },
+      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+    },
+    {
+      feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
+      them: {
+        mark: "partial",
+        note: "Lead capture centers on HoneyBook's forms and inbox; DJ directory notifications aren't the design center.",
+      },
+      us: { mark: "yes", note: "Parsing those notification emails is exactly what we're built for." },
+    },
+    {
+      feature: "Spam & scam filtering",
+      them: { mark: "no", note: "Not something we could verify as a feature." },
+      us: { mark: "yes", note: "Spam and scams filtered before you see them." },
+    },
+    {
+      feature: "Follow-up sequences",
+      them: { mark: "yes", note: "Automations are genuinely strong: sequences, reminders, pipelines." },
+      us: { mark: "yes", note: "Booked-or-dead chasing with hard stops on reply and one-tap opt-out." },
+    },
+    {
+      feature: "Approve from your phone",
+      them: { mark: "yes", note: "A solid mobile app." },
+      us: { mark: "yes", note: "Two taps: read the draft, approve." },
+    },
+    {
+      feature: "Contracts, invoices & payments",
+      them: { mark: "yes", note: "Best-in-class polish — the core of the product." },
+      us: { mark: "no", note: "Honestly, HoneyBook wins this row outright. We don't compete there." },
+    },
+    {
+      feature: "Built around performer leads",
+      them: { mark: "no", note: "Horizontal by design — photographers, planners, coaches, everyone." },
+      us: {
+        mark: "yes",
+        note: "Your packages, your dates, your voice — DJs, bands and photo booths alike.",
+      },
+    },
+    {
+      feature: "Setup",
+      them: { mark: "na", note: "A full migration: contacts, templates, pipeline, habits." },
+      us: { mark: "na", note: "One forwarding rule. Keep everything where it is." },
+    },
+    {
+      feature: "Verified pricing (June 2026)",
+      them: { mark: "na", note: "$36–129/mo" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+    },
+  ],
+  fitHeading: "Where Bright Ears fits",
+  fitParagraphs: [
+    "The difference is architectural, not cosmetic. HoneyBook's AI lives inside HoneyBook: to get drafted replies, your leads, templates, contracts and habits all move in, and you work from its inbox. That's a real migration — and for some businesses it's exactly the right call.",
+    "Bright Ears took the opposite bet: stay out of your way. One forwarding rule from the email you already use — no password sharing, no OAuth — and inquiries from your website, plain email, The Knot, WeddingWire, Bark and GigSalad get spam-filtered, drafted in your voice from your rate card, and pushed to your phone for approval. Median first reply under 5 minutes, follow-ups until booked or dead, and clients never see anything but you.",
+  ],
+  fitPullQuote: {
+    quote: "Falling asleep with the laptop on.",
+    source: "the late-night admin shift both products exist to end",
+  },
+  faqs: [
+    {
+      question: "HoneyBook has AI replies — why would I need Bright Ears?",
+      answer:
+        "If you already run your whole business in HoneyBook and love it, you may not. The difference shows when you don't: HoneyBook's AI drafts work inside its own inbox after a full migration, while Bright Ears bolts onto whatever you use today — DJ Event Planner, Check Cherry, plain Gmail — via one forwarding rule, and is built specifically around performer leads: rate-card pricing, real availability, directory notification emails.",
+    },
+    {
+      question: "Is HoneyBook overkill for a DJ business?",
+      answer:
+        "Not necessarily — it's excellent software. But it's horizontal by design: photographers, planners, coaches, everyone. Nothing in it knows what a multi-op Saturday looks like. A common pattern: keep your DJ-specific workflow tool, add Bright Ears for lead response, and skip the migration entirely.",
+    },
+    {
+      question: "How do the prices compare?",
+      answer:
+        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (15 leads), $79/mo Pro (60 leads, follow-up sequences, auto-send, weekly report), $149/mo Studio (multi-performer, 150 leads, team), with a 14-day free trial and no card required.",
+    },
+    {
+      question: "What if I'm already mid-migration to HoneyBook?",
+      answer:
+        "Finish it — switching twice is worse than either tool alone. Bright Ears can still sit in front: forward your lead notifications and we'll answer and chase while you work the pipeline in HoneyBook.",
+    },
+  ],
+  ctaHeading: "Keep your stack. Add the answering.",
+  ctaSub: "14-day free trial, no card. One forwarding rule — nothing migrates.",
+};
+
+const DJEP_ALTERNATIVES: ComparisonPage = {
+  slug: "dj-event-planner-alternatives",
+  competitor: "DJ Event Planner",
+  competitorPrice: "$20–50/mo",
+  title: "DJ Event Planner Alternatives (2026): Switch — or Add What's Missing?",
+  metaDescription:
+    "Looking for a DJ Event Planner alternative? Honest 2026 guide with verified pricing: GigBuilder, Check Cherry, HoneyBook, Vibo — and the bolt-on option that fixes the real complaint without a migration.",
+  cardTitle: "DJ Event Planner alternatives",
+  cardBlurb: "The honest switching guide — including the option nobody mentions: don't switch, add.",
+  heroEyebrow: "DJ Event Planner alternatives, honestly",
+  heroHeading: "Before you rage-quit DJEP, read this",
+  heroSub:
+    "Most 'DJ Event Planner alternative' searches start with a real frustration — the dated interface, the missing integrations, the admin hours. Honest take from people who ran an entertainment business for 20 years: the depth you'd give up is real. Here's the full map, including the option nobody mentions — don't switch, add.",
+  greatAtHeading: "What you'd be giving up",
+  greatAtIntro:
+    "DJ Event Planner's reputation isn't an accident. Before switching, weigh what it still does better than the alternatives:",
+  greatAt: [
+    {
+      point: "Two decades of workflow depth",
+      detail:
+        "Contracts, invoicing, planning forms, equipment, employee scheduling — multi-op operators run everything on it, and most alternatives cover half.",
+    },
+    {
+      point: "It's cheap for what it does",
+      detail: "$20–50/mo (verified June 2026). Several alternatives cost more and do less of the back office.",
+    },
+    {
+      point: "Your data and habits live there",
+      detail: "Migrations cost weeks and break muscle memory. The grass needs to be a lot greener.",
+    },
+  ],
+  alternativesHeading: "The alternatives, honestly rated",
+  alternativesIntro: "Pricing verified June 2026. Each link goes to a full head-to-head.",
+  alternatives: [
+    {
+      name: "GigBuilder",
+      price: "$25–50/mo",
+      take:
+        "The closest like-for-like swap: booking system, planning forms, client portal, plus an AI writing helper. Its infrastructure feels dated too, so on modernity it's a sideways move.",
+      slug: "gigbuilder",
+    },
+    {
+      name: "Check Cherry",
+      price: "~$30–75/mo",
+      take:
+        "The modern-feeling option: beautiful booking forms, packages, proposals, payments. Lighter on deep multi-op workflow than DJEP.",
+      slug: "check-cherry",
+    },
+    {
+      name: "HoneyBook",
+      price: "$36–129/mo",
+      take:
+        "The polished generalist: contracts, invoices, pipelines, AI drafts in its own inbox. Requires a full migration, and nothing in it is DJ-specific.",
+      slug: "honeybook",
+    },
+    {
+      name: "Vibo",
+      price: "$99–179/mo",
+      take:
+        "Not actually a DJEP alternative — it's client music planning after the booking. Listed because it's often cross-shopped; it replaces nothing in your back office.",
+      slug: "vibo",
+    },
+    {
+      name: "Bright Ears",
+      price: "$25–149/mo",
+      take:
+        "Not a replacement either — a bolt-on AI inbox that answers and chases your leads while you keep DJEP for everything else. If the complaint behind your search is admin time, this is usually the actual fix.",
+    },
+  ],
+  tableHeading: "If you add instead of switch",
+  rows: DJEP_ROWS,
+  fitHeading: "The option nobody mentions: keep DJEP, fix the real complaint",
+  fitParagraphs: [
+    "Ask what's actually driving the switch. If it's contracts or invoicing — DJEP already does those well. The complaint underneath most 'alternatives' threads is time: inquiries arriving at all hours, replies going out too late, follow-ups never happening. \"Get an inquiry, immediately respond, and then nothing.\" Switching CRMs doesn't fix that, because no CRM on this page answers a lead for you.",
+    "Bright Ears does exactly that one job. One forwarding rule sends your lead notifications — website form, plain email, The Knot, WeddingWire, Bark, GigSalad — to your Bright Ears address. Spam gets filtered, a reply is drafted in your voice from your rate card and real availability, and you approve it from your phone. Median first reply under 5 minutes; follow-ups run until booked or dead with one-tap opt-out compliance. DJEP stays your system of record. You stop being the bottleneck.",
+  ],
+  fitPullQuote: {
+    quote:
+      "I want to automate this. I've looked into DJ Intelligence, SMPL, and DJEP — none of them integrate with Zapier.",
+    source: "r/mobileDJ — the customer-written spec",
+  },
+  faqs: [
+    {
+      question: "What's the closest like-for-like DJ Event Planner alternative?",
+      answer:
+        "GigBuilder covers the most similar ground at a similar price ($25–50/mo, verified June 2026), with Check Cherry (~$30–75/mo) as the modern-feeling option if forms and proposals matter more than deep multi-op workflow. Neither is a clean upgrade on every axis — DJEP's depth is real.",
+    },
+    {
+      question: "Should I switch away from DJ Event Planner at all?",
+      answer:
+        "If your complaint is the dated interface and you can live with fewer back-office features, Check Cherry will feel like fresh air. If your complaint is hours lost to admin and slow lead replies, switching won't fix it — none of these CRMs answer an inquiry for you. That's an add-on problem, not a migration problem.",
+    },
+    {
+      question: "Does anything integrate with DJ Event Planner?",
+      answer:
+        "DJEP has no public API, which is why the integration story is thin across the board — and why DJs end up writing posts like the one quoted above. Bright Ears sidesteps it by working on the email layer: lead notifications forward in, approved replies go out, no API needed.",
+    },
+    {
+      question: "What does the bolt-on option cost?",
+      answer:
+        "Bright Ears starts at $25/mo (15 leads, 1 performer), with Pro at $79/mo (60 leads, follow-up sequences, auto-send, weekly report) and Studio at $149/mo (multi-performer, 150 leads, team). 14-day free trial, no card. Extra leads $10 per 10 — at your cap, drafting pauses rather than surprise-billing you.",
+    },
+  ],
+  ctaHeading: "Fix the complaint without the migration",
+  ctaSub: "14-day free trial, no card. Keep DJEP — add the AI inbox in front of it.",
+};
+
+// ---------------------------------------------------------------------------
+// Lookup
+// ---------------------------------------------------------------------------
+
+export const COMPARISONS: Record<ComparisonSlug, ComparisonPage> = {
+  "dj-event-planner": DJ_EVENT_PLANNER,
+  gigbuilder: GIGBUILDER,
+  vibo: VIBO,
+  "check-cherry": CHECK_CHERRY,
+  honeybook: HONEYBOOK,
+  "dj-event-planner-alternatives": DJEP_ALTERNATIVES,
+};
+
+export function getComparison(slug: string): ComparisonPage | undefined {
+  return (COMPARISONS as Record<string, ComparisonPage>)[slug];
+}

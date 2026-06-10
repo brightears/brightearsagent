@@ -274,3 +274,13 @@ model LlmUsage {
 
   @@index([businessId, createdAt])
 }
+
+// Marketing email captures (free tools, templates download, waitlist-ish).
+model MarketingContact {
+  id        String   @id @default(cuid())
+  email     String
+  source    String // "reply-generator" | "templates" | "roi-calculator"
+  createdAt DateTime @default(now())
+
+  @@unique([email, source])
+}

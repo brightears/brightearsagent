@@ -1,0 +1,42 @@
+# Bright Ears
+
+> Bright Ears is the AI back office for wedding/event DJ and performer businesses. It answers every inquiry in under 5 minutes — in the owner's voice, with their real availability and rates — then follows up until the gig is booked or dead. The owner approves everything from their phone; clients only ever see the business, never the AI. Self-serve, 14-day free trial, no card.
+
+## What it does
+
+- Catches every lead source via simple email forwarding — plain email, website forms, and The Knot / WeddingWire / Bark / GigSalad notification emails. No password sharing, no OAuth.
+- Filters spam and scam inquiries before the owner ever sees them.
+- Drafts a personalized, availability-aware reply from the owner's own rate card and voice samples; median first reply is under 5 minutes.
+- Owner approves or edits from their phone in one or two taps.
+- Follow-up sequences (day 2/5/9) run until each lead is booked or dead, with hard stops on reply, booking, or opt-out, and compliant one-tap unsubscribe.
+- Weekly report shows median response time and gigs booked.
+
+## Pricing
+
+- 14-day free trial (full Pro features, no credit card).
+- Starter: $25/month — 15 leads/month, 1 performer.
+- Pro: $79/month — 60 leads/month, follow-up sequences, per-source auto-send, weekly report.
+- Studio: $149/month — multi-performer, 150 leads/month, team access.
+- Overage: lead packs at $10 per 10 leads. At the cap, drafting pauses — there are never surprise bills.
+
+## The story (verifiable)
+
+We ran entertainment for venues for 20 years and drowned in the same inquiries, schedules, and invoices as every performer. So we built an AI back office for our own agency — her name is Vinyl, and she still runs it today at our live agency. Bright Ears is that same back office, rebuilt for your business.
+
+## Key pages
+
+- [Home](https://brightears.io/): what Bright Ears does, with a live demo of the reply engine
+- [Pricing](https://brightears.io/pricing): plans, trial, and lead metering explained
+- [Compare](https://brightears.io/compare): Bright Ears vs DJ Event Planner, HoneyBook, and other DJ software
+- [Our story](https://brightears.io/story): 20 years of gigs, and the AI that runs our own agency
+- [Start free](https://brightears.io/onboarding): self-serve signup, 14-day trial, no card
+
+## Free tools
+
+- [Inquiry Reply Generator](https://brightears.io/tools/inquiry-reply-generator): paste a real inquiry, watch a reply draft itself
+- [25 Wedding DJ Inquiry & Follow-Up Templates](https://brightears.io/tools/templates): copy-paste first replies, day 2/5/9 follow-ups, review asks, rebooking and referral emails
+- [Lead ROI Calculator](https://brightears.io/tools/lead-roi-calculator): what slow replies cost per year at your booking rate, with the math shown
+
+## Who it's for
+
+Wedding, mobile, and event DJ business owners (1–5 people) first; the same product works for any bookable performer business — bands, singers, magicians, photo booths, MCs. Not for club DJs, venues, or large agencies.
