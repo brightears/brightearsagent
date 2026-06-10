@@ -1,0 +1,22 @@
+{
+  "name": "Bright Ears",
+  "short_name": "BrightEars",
+  "description": "Your gigs, answered and booked — approve replies from anywhere.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "theme_color": "#00bbe4",
+  "background_color": "#fdfcfb",
+  "icons": [
+    {
+      "src": "/brand/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/logo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

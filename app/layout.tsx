@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "Bright Ears — your gigs, answered and booked",
   description:
     "The AI office for DJ and entertainment businesses: every inquiry answered in minutes, in your voice, with your real availability — you just tap Approve.",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#00bbe4",
 };
 
 export default function RootLayout({

@@ -59,22 +59,33 @@ function describeThread(req: DraftRequest): string {
 }
 
 const REFUSAL_LANGUAGE =
-  /(already (booked|taken|committed)|booked (up|that)|not available|unavailable|won'?t be able|can'?t (make|do) (it|that date)|date is taken)/i;
+  /(already (fully |all )?(booked|taken|committed)|booked (up|that|solid)|not available|unavailable|won'?t be able|can'?t (make|do) (it|that date)|date is taken|fully committed)/i;
+
+const AFFIRM_LANGUAGE =
+  /(is (wide )?open|we('| a)re (free|available|open)|date is (free|available)|happy to say we('| a)re free|have (that date|your date) (open|free)|is available)/i;
 
 /**
- * Models occasionally mislabel an honest refusal as "not_addressed". The field
- * drives UI badges, so normalize deterministically: when we KNOW the input was
- * a conflict and the body contains refusal language, it's "conflicted".
+ * The model's enum self-report is unreliable (~25% mislabels) while its BODIES
+ * are consistently correct — so the label that drives UI badges and evals is
+ * derived deterministically from the KNOWN input state + body language. The
+ * self-report only survives where derivation is inconclusive.
  */
 function normalizeStatement(req: DraftRequest, result: DraftResult): DraftResult {
-  if (
-    req.availability.state === "conflict" &&
-    result.availabilityStatement !== "conflicted" &&
-    REFUSAL_LANGUAGE.test(result.body)
-  ) {
-    return { ...result, availabilityStatement: "conflicted" };
+  const { state } = req.availability;
+  let statement = result.availabilityStatement;
+
+  if (state === "conflict") {
+    if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed"; // visible safety failure
+    else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted";
+  } else if (state === "free" || state === "partial") {
+    if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed";
+    else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted"; // model contradicted input — surface it
+  } else {
+    // unknown date: nothing to affirm
+    if (!AFFIRM_LANGUAGE.test(result.body)) statement = "not_addressed";
   }
-  return result;
+
+  return statement === result.availabilityStatement ? result : { ...result, availabilityStatement: statement };
 }
 
 /** Pure draft generation — no DB access; evals call this directly. */

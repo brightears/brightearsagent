@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
 
@@ -60,12 +61,17 @@ export default async function Dashboard() {
               </h2>
               <ul className="p-3 space-y-2 min-h-16">
                 {leads.map((lead) => (
-                  <li key={lead.id} className="rounded-xl border border-off-white p-3 hover:border-brand-cyan transition-colors">
-                    <p className="font-medium text-sm">{lead.clientName ?? "Unknown"}</p>
-                    <p className="text-xs text-ink/60">
-                      {lead.eventType ?? "event"} · {fmtDate(lead.eventDate)}
-                    </p>
-                    {lead.venue && <p className="text-xs text-ink/40">{lead.venue}</p>}
+                  <li key={lead.id}>
+                    <Link
+                      href={`/dashboard/leads/${lead.id}`}
+                      className="block rounded-xl border border-off-white p-3 hover:border-brand-cyan transition-colors"
+                    >
+                      <p className="font-medium text-sm">{lead.clientName ?? "Unknown"}</p>
+                      <p className="text-xs text-ink/60">
+                        {lead.eventType ?? "event"} · {fmtDate(lead.eventDate)}
+                      </p>
+                      {lead.venue && <p className="text-xs text-ink/40">{lead.venue}</p>}
+                    </Link>
                   </li>
                 ))}
                 {leads.length === 0 && <li className="text-xs text-ink/30 px-1">—</li>}

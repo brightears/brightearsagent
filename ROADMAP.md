@@ -31,13 +31,13 @@ Rules of engagement for any agent working this file:
 - [ ] Model selection eval: run harness across candidates (drafts: v4-pro vs glm-5 vs kimi-k2.6 vs claude-haiku; parse/triage: v4-flash vs qwen3.6-flash vs gemini-flash-lite) — cheapest pass wins; record in docs/ADR-002-models.md
 - [x] Acceptance verified: eval 16/16 (median LLM latency 8.1s); E2E webhook answered in 0.05s, background draft PENDING in 19s (< 30s target); lead NEW → DRAFTED; 53 unit tests + build green
 
-## Phase 3 — Approve-from-phone loop (the product's hands)
-- [ ] Clerk auth + tenant resolution 🔑 founder creates Clerk app
-- [ ] Dashboard: lead pipeline (NEW→…→BOOKED/DEAD columns), lead detail with full thread, draft review (approve / edit / reject), gig calendar CRUD, packages CRUD, settings
-- [ ] PWA + web push: push on new PENDING draft; approve/edit from phone in ≤ 2 taps; drafts expire when stale
-- [ ] Outbound send: via provider from `mail.brightears.io` (until DNS: provider sandbox domain), From = business name, Reply-To = owner; threading headers so client replies chain; replies loop back via tenant forward → ENGAGED
-- [ ] Status transitions wired end-to-end + `firstReplyAt` stamped (the headline metric)
-- [ ] Acceptance: full demo loop on seeded tenant — fixture in → push received → approve on phone → email delivered (to test inbox) → reply flips lead to ENGAGED
+## Phase 3 — Approve-from-phone loop (the product's hands) — mostly ✅ (June 10, 2026)
+- [ ] Clerk auth + tenant resolution 🔑 BLOCKED on founder Clerk app (clerk.com, free tier → paste publishable + secret keys). Tenant shim in place: `lib/tenant.ts` getCurrentBusiness() is the single swap point
+- [x] Dashboard complete: pipeline columns (linked cards) → lead detail with full thread + spam-reason alerts → draft review (approve/edit/reject + booked/dead, dev-transport notice) → calendar (month grid in business tz, gig CRUD, performer assignment) → packages (rate-card CRUD, soft-deactivate, cents-safe pricing) → settings (profile form, lead-address card with copy button, push toggle)
+- [x] PWA + push: manifest + service worker + device subscription flow; push fires on every new PENDING draft ("Reply ready: {client}" → deep-link to lead); dead endpoints pruned; VAPID self-generated. (Real-device tap-through pending a browser/phone session — code path verified to subscription storage)
+- [x] Outbound send: transport abstraction — dev transport writes .eml files (verified: white-label From=business, Reply-To=owner, correct prices); Postmark transport ready, activates when 🔑 POSTMARK_SERVER_TOKEN lands; mail.brightears.io From-domain at Phase 8
+- [x] Status transitions E2E + firstReplyAt stamped: verified DRAFTED→(approve)→REPLIED with timestamp; reply-match→ENGAGED verified in Phase 1; BOOKED creates the gig; DEAD stops sequences
+- [x] Acceptance (dev-transport variant): fixture → webhook 0.05s → draft PENDING ~19s → approve → .eml in outbox + lead REPLIED. Remaining for full sign-off: real push tap on a phone + real email delivery (needs Postmark token + browser session)
 
 ## Phase 4 — Sequences + reporting (the product's persistence)
 - [ ] Sequence engine: cron route (Render cron later, local script now) walks SequenceRuns; drafts follow-ups (auto or approval per tenant setting); hard-stops on BOOKED/DEAD/ENGAGED/opt-out; opt-out link + country-correct compliance footer
