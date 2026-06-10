@@ -1,0 +1,264 @@
+// GigSorted — AI back office for wedding/event performer businesses.
+// MVP schema: email-spine lead pipeline, draft-approve loop, follow-up sequences,
+// in-app gig calendar. Polymorphic PerformerKind from day one.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PerformerKind {
+  DJ
+  BAND
+  SINGER
+  MAGICIAN
+  DANCER
+  MC
+  PHOTO_BOOTH
+  MUSICIAN
+  COMEDIAN
+  OTHER
+}
+
+enum PlanTier {
+  TRIAL
+  SOLO
+  PRO
+  MULTI_OP
+}
+
+enum LeadSource {
+  WEBSITE_FORM
+  PLAIN_EMAIL
+  THE_KNOT
+  WEDDINGWIRE
+  BARK
+  GIGSALAD
+  THUMBTACK
+  OTHER
+}
+
+enum LeadStatus {
+  NEW          // parsed, awaiting triage/draft
+  SPAM         // triaged out — never shown unless owner opts in
+  DRAFTED      // reply drafted, awaiting owner approval
+  REPLIED      // first reply sent
+  IN_SEQUENCE  // follow-ups running
+  ENGAGED      // prospect replied — back to human/draft loop
+  BOOKED       // won — hard-stops all automation
+  DEAD         // lost/unresponsive after sequence — hard-stops all automation
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum DraftStatus {
+  PENDING
+  APPROVED
+  EDITED    // approved with owner edits (edits feed voice tuning)
+  REJECTED
+  EXPIRED
+}
+
+// One tenant = one performer business (1-5 people).
+model Business {
+  id                   String        @id @default(cuid())
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  name                 String
+  slug                 String        @unique // leads@{slug}.in.gigsorted.com
+  ownerEmail           String        @unique
+  ownerName            String
+  performerKind        PerformerKind @default(DJ)
+  country              String        @default("US") // drives compliance footer (CAN-SPAM/PECR/CASL/Spam Act)
+  timezone             String        @default("America/New_York")
+  currency             String        @default("USD")
+  websiteUrl           String?
+  replyToEmail         String? // Reply-To on outbound; defaults to ownerEmail
+  voiceSamples         String? // pasted past replies — seeds draft voice
+  autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
+  plan                 PlanTier      @default(TRIAL)
+  trialEndsAt          DateTime?
+  stripeCustomerId     String?       @unique
+  stripeSubscriptionId String?
+
+  members    Member[]
+  performers Performer[]
+  packages   Package[]
+  gigs       Gig[]
+  leads      Lead[]
+  sequences  SequenceTemplate[]
+  llmUsage   LlmUsage[]
+}
+
+model Member {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email      String
+  name       String
+  isOwner    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([businessId, email])
+}
+
+// Multi-op: each bookable person/unit. Solo ops have exactly one.
+model Performer {
+  id         String        @id @default(cuid())
+  businessId String
+  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String
+  kind       PerformerKind @default(DJ)
+  active     Boolean       @default(true)
+
+  gigs Gig[]
+}
+
+// Rate card: what the AI is allowed to quote.
+model Package {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name        String // "6-hour wedding package"
+  description String
+  priceMin    Int // cents
+  priceMax    Int? // cents; null = fixed price
+  eventTypes  String[] // ["wedding", "corporate", "birthday"]
+  active      Boolean  @default(true)
+}
+
+// In-app gig calendar — the availability source (no OAuth at MVP).
+model Gig {
+  id          String     @id @default(cuid())
+  businessId  String
+  business    Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  performerId String?
+  performer   Performer? @relation(fields: [performerId], references: [id], onDelete: SetNull)
+  date        DateTime // event date (tenant tz)
+  startTime   String? // "18:00"
+  endTime     String?
+  title       String
+  venue       String?
+  leadId      String?    @unique
+  lead        Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, date])
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  businessId   String
+  business     Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  source       LeadSource
+  status       LeadStatus @default(NEW)
+  // Parsed couple/client details (all nullable — parser fills what it finds)
+  clientName   String?
+  clientEmail  String?
+  clientPhone  String?
+  eventType    String? // "wedding", "corporate", ...
+  eventDate    DateTime?
+  venue        String?
+  guestCount   Int?
+  budgetHint   String?
+  rawSubject   String?
+  rawBody      String // original inbound payload (text)
+  spamScore    Float? // triage classifier output
+  spamReason   String?
+  firstReplyAt DateTime? // for the "median response time" report
+  bookedAt     DateTime?
+  deadAt       DateTime?
+  optedOut     Boolean    @default(false) // hard-stop flag for sequences
+
+  messages    Message[]
+  drafts      Draft[]
+  gig         Gig?
+  sequenceRun SequenceRun?
+
+  @@index([businessId, status])
+  @@index([businessId, createdAt])
+}
+
+// Full conversation thread per lead (inbound + outbound).
+model Message {
+  id                String           @id @default(cuid())
+  leadId            String
+  lead              Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+  direction         MessageDirection
+  subject           String?
+  body              String
+  fromEmail         String?
+  toEmail           String?
+  providerMessageId String? // Postmark/Mailgun id for threading + delivery events
+  draftId           String?          @unique
+  draft             Draft?           @relation(fields: [draftId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+}
+
+// The approve-from-phone loop.
+model Draft {
+  id           String      @id @default(cuid())
+  leadId       String
+  lead         Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  status       DraftStatus @default(PENDING)
+  subject      String
+  body         String
+  editedBody   String? // owner's edited version (feeds voice tuning)
+  decidedAt    DateTime?
+  expiresAt    DateTime? // stale drafts expire (event passed, lead dead)
+  isFollowUp   Boolean     @default(false)
+  sequenceStep Int?
+  message      Message?
+
+  @@index([leadId, status])
+}
+
+// Owner-configurable follow-up cadence (default: day 2, 5, 9).
+model SequenceTemplate {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name       String   @default("Default follow-up")
+  stepsDays  Int[]    @default([2, 5, 9]) // days after last outbound with no reply
+  active     Boolean  @default(true)
+
+  runs SequenceRun[]
+}
+
+model SequenceRun {
+  id          String           @id @default(cuid())
+  leadId      String           @unique
+  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  templateId  String
+  template    SequenceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  currentStep Int              @default(0)
+  nextRunAt   DateTime?
+  stoppedAt   DateTime? // set on BOOKED/DEAD/ENGAGED/opt-out — never resumes
+  stopReason  String?
+}
+
+// Token/cost ledger per tenant (margin visibility from day one).
+model LlmUsage {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  purpose      String // "parse" | "triage" | "draft" | "followup"
+  model        String
+  inputTokens  Int
+  outputTokens Int
+
+  @@index([businessId, createdAt])
+}
