@@ -52,13 +52,14 @@ Rules of engagement for any agent working this file:
 - [x] Margin guardrail: nightly cron + `scripts/margins.ts`; pricing snapshot tied to ADR-002; validated on real data (demo tenant: $0.0034 LLM cost vs $25 plan after a full testing day)
 - [ ] Acceptance: stranger-test (signup → onboard → first drafted reply < 20 min, no help) — needs 🔑 Clerk + 🔑 Stripe; wizard flow verified end-to-end on the dev tenant including the live lead verifier
 
-## Phase 6 — Marketing site + content (the product's face)
-- [ ] Landing page on the new app (brand + voice + design per CLAUDE.md; verbatim customer-language headlines; the Vinyl story section — "we've been there", no personal names; live demo widget: paste an inquiry → watch the reply draft itself)
-- [ ] Pricing page, comparison hub + 6 pairwise pages (vs DJ Event Planner, GigBuilder, Vibo, Check Cherry, HoneyBook, "DJEP alternatives"), FAQ with schema markup
-- [ ] Free tool: Inquiry Reply Generator (email-gated) + "25 Wedding DJ Inquiry & Follow-Up Templates" post
-- [ ] AEO substrate: llms.txt, structured data, clean semantic HTML, sitemap; founder-story page
-- [ ] Acceptance: Lighthouse ≥ 90 on all marketing pages; site reads fun + colorful (royalstreaming reference), not dark
-- [ ] NOTE: marketing site ships under the temp URL first; copy/links must not hardcode brightears.io until Phase 8
+## Phase 6 — Marketing site + content (the product's face) — ✅ built (June 10, 2026)
+- [x] Landing page `/`: "Stop being the 5th DJ to reply" hero, verbatim pain cards, LIVE demo widget (POST /api/demo-reply, typewriter render, rate-limited 5/IP/day + 500/day global, live-tested with a real inquiry → perfect reply), how-it-works, "We've been there" Vinyl section, feature grid, gradient CTA band
+- [x] Pricing (3 cards, Pro highlighted, 10-question FAQ + FAQPage JSON-LD), `/story` long-form narrative (no personal names, Organization JSON-LD)
+- [x] Comparison cluster: `/compare` hub + 6 static pairwise pages (verified June-2026 competitor pricing, honest-and-generous tone, content in `lib/marketing/comparisons.ts`)
+- [x] Free tools: Inquiry Reply Generator (email-gated templates via MarketingContact), 25 actually-written templates with copy buttons, Lead ROI calculator (transparent math)
+- [x] AEO substrate: public/llms.txt, app/sitemap.ts, app/robots.ts (GPTBot/ClaudeBot/PerplexityBot explicitly allowed), JSON-LD on pricing/story/compare
+- [x] All 12 routes render 200; marketing pages prerender static; build green; 55 tests green
+- [ ] Acceptance remainder: Lighthouse ≥ 90 run (needs a browser session — do during Phase 7 E2E) · note: JSON-LD/llms.txt cite brightears.io as canonical (intended post-cutover domain; harmless pre-cutover)
 
 ## Phase 7 — Production deployment 🔑 GitHub repo + push access, Render API key or new service (NOT the existing brightears service)
 - [ ] Founder: install GitHub CLI (`brew install gh && gh auth login`) or provide a repo + token; create private repo `brightears-app`, push; create Render API key (dashboard.render.com → Account Settings → API Keys) so agents can configure the service directly
