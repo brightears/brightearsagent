@@ -96,6 +96,18 @@ model Business {
   leads      Lead[]
   sequences  SequenceTemplate[]
   llmUsage   LlmUsage[]
+  pushSubscriptions PushSubscription[]
+}
+
+// One row per device the owner approved push on (PWA approve-from-phone loop).
+model PushSubscription {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime @default(now())
 }
 
 model Member {

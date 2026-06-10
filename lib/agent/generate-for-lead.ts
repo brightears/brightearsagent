@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { pushToBusiness } from "@/lib/push";
 import { generateDraft } from "@/lib/agent/drafter";
 import { checkAvailability, isoDay } from "@/lib/agent/availability";
 import type { DraftRequest } from "@/lib/agent/types";
@@ -60,7 +61,7 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
 
   const result = await generateDraft(req);
 
-  await db.$transaction([
+  const [draft] = await db.$transaction([
     db.draft.create({
       data: {
         leadId: lead.id,
@@ -76,4 +77,12 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
       ? [db.lead.update({ where: { id: lead.id }, data: { status: "DRAFTED" } })]
       : []),
   ]);
+
+  // One-tap approve from the phone — the core loop.
+  void pushToBusiness(lead.businessId, {
+    title: `Reply ready: ${lead.clientName ?? "new lead"}`,
+    body: result.subject,
+    url: `/dashboard/leads/${lead.id}`,
+  }).catch(() => null);
+  void draft;
 }

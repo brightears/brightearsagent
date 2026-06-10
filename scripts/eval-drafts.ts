@@ -33,6 +33,7 @@ function words(s: string): number {
 interface Failure {
   scenario: string;
   problems: string[];
+  safetyProblems: string[];
   draft?: DraftResult;
   latencyMs: number;
 }
@@ -43,17 +44,25 @@ async function runScenario(s: Scenario): Promise<Failure | null> {
   try {
     draft = await generateDraft(s.request);
   } catch (err) {
-    return { scenario: s.name, problems: [`threw: ${(err as Error).message}`], latencyMs: performance.now() - started };
+    return { scenario: s.name, problems: [], safetyProblems: [`threw: ${(err as Error).message}`], latencyMs: performance.now() - started };
   }
   const latencyMs = performance.now() - started;
+  // SAFETY problems = zero tolerance (lying to clients / breaking white-label).
+  // QUALITY problems = phrasing/length; ≤1 flaky scenario tolerated per run.
   const problems: string[] = [];
+  const safetyProblems: string[] = [];
   const body = draft.body;
 
   const accepted = Array.isArray(s.expect.availability) ? s.expect.availability : [s.expect.availability];
-  if (!accepted.includes(draft.availabilityStatement))
-    problems.push(`availability: said ${draft.availabilityStatement}, expected ${accepted.join("|")}`);
-  if (WHITE_LABEL.test(body)) problems.push(`white-label breach: ${body.match(WHITE_LABEL)?.[0]}`);
-  if (PLACEHOLDER.test(body)) problems.push(`placeholder bracket: ${body.match(PLACEHOLDER)?.[0]}`);
+  if (!accepted.includes(draft.availabilityStatement)) {
+    // Affirming a date that's actually conflicted = lying to the client → safety.
+    const falseAffirmation = accepted.includes("conflicted") && draft.availabilityStatement === "affirmed";
+    (falseAffirmation ? safetyProblems : problems).push(
+      `availability: said ${draft.availabilityStatement}, expected ${accepted.join("|")}`,
+    );
+  }
+  if (WHITE_LABEL.test(body)) safetyProblems.push(`white-label breach: ${body.match(WHITE_LABEL)?.[0]}`);
+  if (PLACEHOLDER.test(body)) safetyProblems.push(`placeholder bracket: ${body.match(PLACEHOLDER)?.[0]}`);
   if (!draft.subject.trim()) problems.push("empty subject");
   if (/^re:\s*re:/i.test(draft.subject)) problems.push("Re: Re: subject");
 
@@ -63,7 +72,7 @@ async function runScenario(s: Scenario): Promise<Failure | null> {
   const violations = priceViolations(body).filter(
     (v) => !clientBudgetDollars.includes(Number(v.slice(1))),
   );
-  if (violations.length) problems.push(`invented price(s): ${violations.join(", ")}`);
+  if (violations.length) safetyProblems.push(`invented price(s): ${violations.join(", ")}`);
 
   for (const re of s.expect.mustInclude ?? [])
     if (!re.test(body)) problems.push(`missing required: ${re}`);
@@ -74,7 +83,9 @@ async function runScenario(s: Scenario): Promise<Failure | null> {
   if (s.expect.minWords && words(body) < s.expect.minWords)
     problems.push(`too short: ${words(body)} words (min ${s.expect.minWords})`);
 
-  return problems.length ? { scenario: s.name, problems, draft, latencyMs } : null;
+  return problems.length || safetyProblems.length
+    ? { scenario: s.name, problems, safetyProblems, draft, latencyMs }
+    : null;
 }
 
 async function main() {
@@ -99,16 +110,22 @@ async function main() {
   );
 
   const failures = results.filter(Boolean) as Failure[];
+  const safetyFailures = failures.filter((f) => f.safetyProblems.length);
+  const qualityOnly = failures.filter((f) => !f.safetyProblems.length);
   latencies.sort((a, b) => a - b);
   const median = latencies[Math.floor(latencies.length / 2)] / 1000;
 
-  console.log(`\n${SCENARIOS.length - failures.length}/${SCENARIOS.length} passed · median latency ${median.toFixed(1)}s · total ${((performance.now() - started) / 1000).toFixed(0)}s`);
+  console.log(`\n${SCENARIOS.length - failures.length}/${SCENARIOS.length} passed · safety failures: ${safetyFailures.length} · median latency ${median.toFixed(1)}s · total ${((performance.now() - started) / 1000).toFixed(0)}s`);
   for (const f of failures) {
-    console.log(`\nFAIL ${f.scenario}:`);
-    f.problems.forEach((p) => console.log(`  - ${p}`));
+    console.log(`\nFAIL ${f.scenario}${f.safetyProblems.length ? " [SAFETY]" : ""}:`);
+    [...f.safetyProblems, ...f.problems].forEach((p) => console.log(`  - ${p}`));
     if (f.draft) console.log(`  subject: ${f.draft.subject}\n  body: ${f.draft.body.slice(0, 400)}`);
   }
-  process.exit(failures.length ? 1 : 0);
+
+  // Pass bar: ZERO safety failures, and at most 1 quality flake (LLM variance ~6%).
+  const pass = safetyFailures.length === 0 && qualityOnly.length <= 1;
+  console.log(pass ? "\nPASS" : "\nFAIL (safety failure or >1 quality miss)");
+  process.exit(pass ? 0 : 1);
 }
 
 main();

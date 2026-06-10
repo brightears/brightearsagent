@@ -19,10 +19,13 @@ async function main() {
   // First-reply scenarios only — the money moment.
   const picks = SCENARIOS.filter((s) => s.request.sequenceStep === 0).slice(0, 8);
 
-  const JUDGE_MODEL = "anthropic/claude-sonnet-4.6";
+  // Third model family (not DeepSeek) for neutrality; Anthropic via OpenRouter
+  // needs BYOK on this account, so Gemini Pro referees.
+  const JUDGE_MODEL = "google/gemini-3.1-pro-preview";
 
-  let a = 0, b = 0, tie = 0;
+  let a = 0, b = 0, tie = 0, errors = 0;
   for (const s of picks) {
+    try {
     process.env.MODEL_DRAFT = modelA;
     const draftA = await generateDraft(s.request);
     process.env.MODEL_DRAFT = modelB;
@@ -48,9 +51,13 @@ async function main() {
       verdict.winner === "tie" ? "tie" : (verdict.winner === "1") === !flip ? "A" : "B";
     if (w === "A") a++; else if (w === "B") b++; else tie++;
     console.log(`${s.name}: ${w} — ${verdict.reason}`);
+    } catch (err) {
+      errors++;
+      console.log(`${s.name}: ERROR — ${(err as Error).message.slice(0, 120)}`);
+    }
   }
 
-  console.log(`\n${modelA} (A): ${a} · ${modelB} (B): ${b} · ties: ${tie}`);
+  console.log(`\n${modelA} (A): ${a} · ${modelB} (B): ${b} · ties: ${tie} · errors: ${errors}`);
 }
 
 main();
