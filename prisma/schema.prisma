@@ -1,4 +1,4 @@
-// GigSorted — AI back office for wedding/event performer businesses.
+// Bright Ears — AI back office for wedding/event performer businesses.
 // MVP schema: email-spine lead pipeline, draft-approve loop, follow-up sequences,
 // in-app gig calendar. Polymorphic PerformerKind from day one.
 
@@ -26,10 +26,10 @@ enum PerformerKind {
 }
 
 enum PlanTier {
-  TRIAL
-  SOLO
-  PRO
-  MULTI_OP
+  TRIAL   // 14 days, full Pro features, no card
+  STARTER // $25/mo — 15 leads/mo, instant replies + approve-from-phone, 1 performer
+  PRO     // $79/mo — 60 leads/mo, sequences, per-source auto-send, weekly reports
+  STUDIO  // $149/mo — multi-performer, 150 leads/mo, team members
 }
 
 enum LeadSource {
@@ -73,7 +73,7 @@ model Business {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
   name                 String
-  slug                 String        @unique // leads@{slug}.in.gigsorted.com
+  slug                 String        @unique // leads@{slug}.in.brightears.io
   ownerEmail           String        @unique
   ownerName            String
   performerKind        PerformerKind @default(DJ)

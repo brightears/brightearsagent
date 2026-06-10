@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 514" fill="none">
+  <!-- Cyan circle ring -->
+  <circle cx="256" cy="257" r="228" stroke="#4fd6ff" stroke-width="24" fill="none"/>
+
+  <!-- Letter B - vertical stroke left side -->
+  <rect x="152" y="170" width="13" height="174" fill="white"/>
+
+  <!-- Letter B - top horizontal bar -->
+  <rect x="152" y="170" width="78" height="13" fill="white"/>
+
+  <!-- Letter B - middle horizontal bar -->
+  <rect x="152" y="250" width="78" height="13" fill="white"/>
+
+  <!-- Letter B - bottom horizontal bar -->
+  <rect x="152" y="331" width="78" height="13" fill="white"/>
+
+  <!-- Letter B - top bump (right side arc) -->
+  <path d="M225 170 C260 170, 272 190, 272 211 C272 232, 260 250, 225 250" stroke="white" stroke-width="13" fill="none"/>
+
+  <!-- Letter B - bottom bump (right side arc, slightly wider) -->
+  <path d="M225 253 C265 253, 278 275, 278 292 C278 312, 265 334, 225 334" stroke="white" stroke-width="13" fill="none"/>
+
+  <!-- Letter E - top horizontal bar -->
+  <rect x="295" y="170" width="75" height="13" fill="white"/>
+
+  <!-- Letter E - middle horizontal bar (CYAN accent) -->
+  <rect x="295" y="250" width="56" height="13" fill="#4fd6ff"/>
+
+  <!-- Letter E - bottom horizontal bar -->
+  <rect x="295" y="331" width="75" height="13" fill="white"/>
+</svg>
