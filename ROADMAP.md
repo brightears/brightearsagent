@@ -45,11 +45,12 @@ Rules of engagement for any agent working this file:
 - [x] Weekly report `lib/reports/weekly.ts` + `/api/cron/weekly-report`: leads in, spam filtered count ("you never saw them"), median first-reply minutes with bragging line, replies/engaged/booked/in-sequence; skips empty weeks
 - [x] Acceptance: `scripts/test-sequences.ts` simulated 3-week clock — backfill, step 1 fires day 2 (live LLM draft), no stacking while pending, approve adds compliance footer (opt-out token asserted), steps 2-3 fire days 5/9, exhaust → auto-DEAD day 11, stop-on-reply, stop-on-opt-out, report numbers match direct SQL. PASS
 
-## Phase 5 — Self-serve onboarding + billing 🔑 Stripe account + products
-- [ ] Onboarding wizard: business profile → performer kind → packages/rate card → voice samples → gig calendar import (manual + ICS paste) → forwarding setup with per-provider walkthroughs (Gmail/Outlook/Knot/WW notification settings) + "send yourself a test lead" verifier
-- [ ] Stripe: 14-day trial (no card) → Starter $25 / Pro $79 / Studio $149; lead-metering with plan caps; at cap: pause drafting + friendly upsell (never surprise bills); lead packs $10/10
-- [ ] Margin guardrail: nightly job flags any tenant with gross margin < 70% (LlmUsage vs plan price)
-- [ ] Acceptance: stranger-test — someone who isn't us signs up, onboards, and gets their first drafted reply within 20 minutes without help
+## Phase 5 — Self-serve onboarding + billing — non-Stripe half ✅ (June 10, 2026)
+- [x] Onboarding wizard `/onboarding`: 5 steps (basics with performer-kind selector → packages → voice samples + tone chips → booked dates → forwarding setup with Gmail/Outlook/Knot/WW walkthroughs) + LIVE verifier (polls `/api/onboarding/verify`; tested: fresh lead through the real webhook flips it to verified 🎉); resume heuristic; dashboard "Resume setup" banner
+- [ ] Stripe: 14-day trial (no card) → Starter $25 / Pro $79 / Studio $149 checkout + customer portal + webhooks 🔑 BLOCKED on founder Stripe account (stripe.com → create account → paste secret + publishable keys + I create the products via API). Metering already enforces caps independently
+- [x] Lead metering: plan caps (15/60/150, trial=60); at cap leads still ingest, drafting pauses + upsell push — surprise bills structurally impossible; spam never counts against the customer
+- [x] Margin guardrail: nightly cron + `scripts/margins.ts`; pricing snapshot tied to ADR-002; validated on real data (demo tenant: $0.0034 LLM cost vs $25 plan after a full testing day)
+- [ ] Acceptance: stranger-test (signup → onboard → first drafted reply < 20 min, no help) — needs 🔑 Clerk + 🔑 Stripe; wizard flow verified end-to-end on the dev tenant including the live lead verifier
 
 ## Phase 6 — Marketing site + content (the product's face)
 - [ ] Landing page on the new app (brand + voice + design per CLAUDE.md; verbatim customer-language headlines; the Vinyl story section — "we've been there", no personal names; live demo widget: paste an inquiry → watch the reply draft itself)

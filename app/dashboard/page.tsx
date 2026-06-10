@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { OnboardingBanner } from "@/components/onboarding-banner";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,8 @@ export default async function Dashboard() {
           </p>
         </div>
       </header>
+
+      <OnboardingBanner />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {COLUMNS.map((col) => {

@@ -1,0 +1,40 @@
+import { db } from "@/lib/db";
+import { getCurrentBusiness } from "@/lib/tenant";
+
+// Live forwarding verifier for onboarding step 5: the wizard polls this every
+// 5s while the owner sends a test email (or forwards a real inquiry) to their
+// lead address. "Verified" = any Lead row for this tenant in the last 10
+// minutes — spam-triaged test emails still count, because a Lead row proves
+// the forward → inbound parse path works end to end.
+
+export const dynamic = "force-dynamic";
+
+const WINDOW_MS = 10 * 60 * 1000;
+
+export async function GET() {
+  let business;
+  try {
+    business = await getCurrentBusiness();
+  } catch {
+    return Response.json({ verified: false, error: "no-tenant" }, { status: 401 });
+  }
+
+  const lead = await db.lead.findFirst({
+    where: {
+      businessId: business.id,
+      createdAt: { gte: new Date(Date.now() - WINDOW_MS) },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, clientName: true, rawSubject: true, createdAt: true },
+  });
+
+  return Response.json({
+    verified: lead !== null,
+    lead: lead && {
+      id: lead.id,
+      clientName: lead.clientName,
+      subject: lead.rawSubject,
+      receivedAt: lead.createdAt,
+    },
+  });
+}
