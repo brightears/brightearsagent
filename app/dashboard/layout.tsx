@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { UserButton } from "@clerk/nextjs";
 
 const NAV = [
   { href: "/dashboard", label: "Pipeline" },
@@ -7,6 +8,8 @@ const NAV = [
   { href: "/dashboard/packages", label: "Packages" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
+
+const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -28,6 +31,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Link>
             ))}
           </div>
+          {clerkEnabled && (
+            <div className="ml-auto">
+              <UserButton />
+            </div>
+          )}
         </div>
       </nav>
       {children}

@@ -7,8 +7,10 @@ import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
 // This test drives approveDraft, which is tenant-scoped via getCurrentBusiness()
-// → DEV_TENANT_SLUG. Point it at the isolated test tenant.
+// → DEV_TENANT_SLUG. Point it at the isolated test tenant, and never send real
+// email (recipients are @example.invalid).
 process.env.DEV_TENANT_SLUG = "seq-test";
+process.env.EMAIL_TRANSPORT = "dev";
 
 const DAY = 24 * 3600 * 1000;
 

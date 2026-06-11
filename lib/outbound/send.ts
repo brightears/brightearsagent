@@ -25,7 +25,9 @@ export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
   const token = process.env.POSTMARK_SERVER_TOKEN;
   const fromAddress = process.env.OUTBOUND_FROM ?? "replies@dev.invalid";
 
-  if (!token) {
+  // EMAIL_TRANSPORT=dev forces the file transport even when a token exists —
+  // test scripts set this so they never hit the real Postmark API.
+  if (!token || process.env.EMAIL_TRANSPORT === "dev") {
     const dir = join(process.cwd(), ".dev-outbox");
     mkdirSync(dir, { recursive: true });
     const id = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

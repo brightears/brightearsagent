@@ -115,13 +115,14 @@ model PushSubscription {
 }
 
 model Member {
-  id         String   @id @default(cuid())
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  email      String
-  name       String
-  isOwner    Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email       String
+  name        String
+  isOwner     Boolean  @default(false)
+  clerkUserId String?  @unique // linked on first sign-in; null = invited/not yet signed in
+  createdAt   DateTime @default(now())
 
   @@unique([businessId, email])
 }
