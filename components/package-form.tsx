@@ -16,9 +16,10 @@ export interface PackageFormInitial {
   active: boolean;
 }
 
+// Form styling per docs/DESIGN.md — uppercase muted labels, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan transition-colors";
-const labelStyles = "block text-xs font-semibold text-deep-teal mb-1";
+  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelStyles = "block text-xs font-semibold text-ink/60 uppercase tracking-wide mb-1";
 
 /**
  * Add mode (no `initial`): always-open form that creates a package.
@@ -124,7 +125,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
             type="checkbox"
             name="active"
             defaultChecked={initial.active}
-            className="size-4 accent-[#00bbe4]"
+            className="size-4 accent-brand-cyan"
           />
           Active (the AI can quote this package)
         </label>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { buttonStyles } from "@/components/ui";
 
 /**
  * "Resume setup" nudge on the dashboard. Onboarding is considered incomplete
@@ -24,18 +25,18 @@ export async function OnboardingBanner() {
         : "your voice samples";
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand-cyan/40 bg-linear-to-r from-brand-cyan-soft/70 to-soft-lavender/30 px-4 py-3">
-      <span className="text-xl" aria-hidden>
+    <div className="mb-6 flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-r from-warm-peach/50 via-soft-lavender/25 to-brand-cyan-soft/40 px-6 py-4">
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-xl shadow-sm"
+        aria-hidden
+      >
         🪄
       </span>
       <p className="min-w-48 flex-1 text-sm text-deep-teal">
         <span className="font-semibold">Almost there —</span> we still need {missing} before
         replies can sound like you.
       </p>
-      <Link
-        href="/onboarding"
-        className="rounded-xl bg-brand-cyan px-3 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-      >
+      <Link href="/onboarding" className={`${buttonStyles.primary} text-sm`}>
         Resume setup →
       </Link>
     </div>

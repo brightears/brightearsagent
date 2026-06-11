@@ -1,5 +1,6 @@
+import type { ReactNode } from "react";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { Card, Badge, buttonStyles } from "@/components/ui";
+import { Card, Badge, buttonStyles, PageHeader } from "@/components/ui";
 import { SettingsForm, CopyButton } from "@/components/settings-form";
 import { PushToggle } from "@/components/push-toggle";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
@@ -13,12 +14,39 @@ const PLAN_CARDS = [
   { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multiple performers · team` },
 ];
 
+/** Emoji-accented section title — small tinted tile + heading, marketing-page energy. */
+function SectionTitle({
+  emoji,
+  tint,
+  className = "",
+  children,
+}: {
+  emoji: string;
+  tint: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <h2 className={`flex items-center gap-2.5 text-lg font-bold text-deep-teal ${className}`}>
+      <span
+        aria-hidden
+        className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl text-base ${tint}`}
+      >
+        {emoji}
+      </span>
+      {children}
+    </h2>
+  );
+}
+
 async function BillingCard() {
   const state = await billingState();
   return (
     <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold text-deep-teal">Plan & billing</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <SectionTitle emoji="💳" tint="bg-brand-cyan-soft">
+          Plan &amp; billing
+        </SectionTitle>
         <Badge tone={state.subscribed ? "teal" : "peach"}>
           {state.subscribed ? state.plan : state.trialDaysLeft !== null && state.trialDaysLeft > 0 ? `Trial · ${state.trialDaysLeft} days left` : "Trial ended"}
         </Badge>
@@ -34,20 +62,39 @@ async function BillingCard() {
         </form>
       ) : (
         <div>
-          <p className="text-sm text-ink/60 mb-4">
+          <p className="text-sm text-ink/60 mb-5">
             {state.trialDaysLeft !== null && state.trialDaysLeft > 0
               ? "Pick a plan to keep replies flowing after your trial."
               : "Your trial has ended — new inquiries are saved but replies are paused until you subscribe."}
           </p>
-          <div className="grid sm:grid-cols-3 gap-3">
-            {PLAN_CARDS.map((p) => (
-              <form key={p.plan} action={startCheckout.bind(null, p.plan)} className="border border-off-white rounded-xl p-4 flex flex-col gap-2">
-                <div className="font-bold text-deep-teal">{p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}</div>
-                <div className="text-2xl font-bold">{p.price}<span className="text-sm font-normal text-ink/50">/mo</span></div>
-                <div className="text-xs text-ink/60 flex-1">{p.blurb}</div>
-                <button className={p.plan === "PRO" ? buttonStyles.primary : buttonStyles.secondary}>Choose</button>
-              </form>
-            ))}
+          <div className="grid sm:grid-cols-3 gap-4">
+            {PLAN_CARDS.map((p) => {
+              const popular = p.plan === "PRO";
+              return (
+                <form
+                  key={p.plan}
+                  action={startCheckout.bind(null, p.plan)}
+                  className={`relative flex flex-col gap-2 rounded-2xl bg-white p-5 ${
+                    popular
+                      ? "border border-transparent ring-2 ring-brand-cyan shadow-md"
+                      : "border border-off-white"
+                  }`}
+                >
+                  {popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      <Badge tone="teal">Most popular</Badge>
+                    </div>
+                  )}
+                  <div className="font-bold text-deep-teal">{p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}</div>
+                  <div className="text-3xl font-extrabold text-deep-teal">
+                    {p.price}
+                    <span className="text-sm font-normal text-ink/50">/mo</span>
+                  </div>
+                  <div className="text-xs text-ink/60 flex-1">{p.blurb}</div>
+                  <button className={popular ? buttonStyles.primary : buttonStyles.secondary}>Choose</button>
+                </form>
+              );
+            })}
           </div>
         </div>
       )}
@@ -61,17 +108,17 @@ export default async function SettingsPage() {
 
   return (
     <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-deep-teal">Settings</h1>
-        <p className="text-sm text-ink/60">
-          Your business, your voice, your devices — everything the AI office needs to sound like you.
-        </p>
-      </header>
+      <PageHeader
+        title="Settings"
+        subtitle="Your business, your voice, your devices — everything the AI office needs to sound like you."
+      />
 
       <div className="space-y-6">
         <BillingCard />
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-deep-teal mb-4">Business profile</h2>
+          <SectionTitle emoji="🏢" tint="bg-soft-lavender" className="mb-5">
+            Business profile
+          </SectionTitle>
           <SettingsForm
             business={{
               name: business.name,
@@ -87,11 +134,15 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-deep-teal mb-2">Your lead address</h2>
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            <code className="font-mono text-sm bg-brand-cyan-soft text-deep-teal rounded-xl px-3 py-2 select-all break-all">
-              {leadAddress}
-            </code>
+          <SectionTitle emoji="📬" tint="bg-warm-peach" className="mb-4">
+            Your lead address
+          </SectionTitle>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft/30 px-4 py-2">
+              <code className="select-all break-all font-mono text-sm font-semibold text-deep-teal">
+                {leadAddress}
+              </code>
+            </span>
             <CopyButton text={leadAddress} />
           </div>
           <p className="text-sm text-ink/60">
@@ -101,7 +152,9 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-bold text-deep-teal mb-2">Notifications</h2>
+          <SectionTitle emoji="🔔" tint="bg-brand-cyan-soft" className="mb-2">
+            Notifications
+          </SectionTitle>
           <p className="text-sm text-ink/60 mb-4">
             Get a ping the moment a reply is ready, so you can approve it from your phone — even
             from the booth.

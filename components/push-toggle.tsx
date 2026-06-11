@@ -1,8 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { savePushSubscription, removePushSubscription } from "@/app/actions/settings";
 import { buttonStyles } from "@/components/ui";
+
+/** Friendly card row for every push state — colored dot + plain-words microcopy (docs/DESIGN.md). */
+function StatusRow({
+  dot,
+  tint = "border-off-white bg-off-white/30",
+  title,
+  hint,
+  action,
+}: {
+  dot: string;
+  tint?: string;
+  title: string;
+  hint?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border px-4 py-3.5 ${tint}`}>
+      <span aria-hidden className={`size-2.5 flex-none rounded-full ${dot}`} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-deep-teal">{title}</p>
+        {hint && <p className="mt-0.5 text-xs leading-relaxed text-ink/55">{hint}</p>}
+      </div>
+      {action && <div className="flex-none">{action}</div>}
+    </div>
+  );
+}
 
 /** Web-push wants the VAPID public key as raw bytes, not base64url. */
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
@@ -111,51 +137,68 @@ export function PushToggle() {
   }
 
   if (state === "loading") {
-    return <p className="text-sm text-ink/40">Checking this device…</p>;
+    return <StatusRow dot="bg-ink/20 animate-pulse" title="Checking this device…" />;
   }
 
   if (state === "unsupported") {
     return (
-      <p className="text-sm text-ink/60">
-        This browser doesn&apos;t support push notifications. On iPhone, add Bright Ears to your
-        home screen first (Share → Add to Home Screen), then enable push from there.
-      </p>
+      <StatusRow
+        dot="bg-ink/25"
+        title="Push isn't available in this browser"
+        hint={
+          <>
+            On iPhone, add Bright Ears to your home screen first (Share → Add to Home Screen),
+            then enable push from there.
+          </>
+        }
+      />
     );
   }
 
   if (state === "denied") {
     return (
-      <p className="text-sm text-ink/60">
-        Notifications are blocked for this site. Allow them in your browser settings, then come
-        back and try again — no pressure, email still works.
-      </p>
+      <StatusRow
+        dot="bg-warm-peach"
+        tint="border-warm-peach/60 bg-warm-peach/20"
+        title="Notifications are blocked for this site"
+        hint="Allow them in your browser settings, then come back and try again — no pressure, email still works."
+      />
     );
   }
 
   if (state === "subscribed") {
     return (
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-deep-teal">
-          <span className="h-2 w-2 rounded-full bg-brand-cyan" aria-hidden />
-          Push is on for this device
-        </span>
-        <button type="button" onClick={disable} className={buttonStyles.secondary}>
-          Turn off
-        </button>
-      </div>
+      <StatusRow
+        dot="bg-brand-cyan"
+        tint="border-brand-cyan/40 bg-brand-cyan-soft/30"
+        title="Push is on for this device"
+        hint="You'll hear the ping the moment a reply is ready."
+        action={
+          <button type="button" onClick={disable} className={buttonStyles.secondary}>
+            Turn off
+          </button>
+        }
+      />
     );
   }
 
   return (
     <div className="space-y-2">
-      <button
-        type="button"
-        onClick={enable}
-        disabled={state === "busy"}
-        className={buttonStyles.primary}
-      >
-        {state === "busy" ? "Setting up…" : "Enable push on this device"}
-      </button>
+      <StatusRow
+        dot={state === "busy" ? "bg-brand-cyan animate-pulse" : "bg-ink/25"}
+        title={state === "busy" ? "Setting up…" : "Push is off on this device"}
+        hint="Turn it on and you'll hear the ping the moment a reply is ready — even mid-set."
+        action={
+          <button
+            type="button"
+            onClick={enable}
+            disabled={state === "busy"}
+            className={buttonStyles.primary}
+          >
+            {state === "busy" ? "Setting up…" : "Enable push on this device"}
+          </button>
+        }
+      />
       {state === "error" && errorMsg && (
         <p className="text-sm font-medium text-red-600">{errorMsg}</p>
       )}

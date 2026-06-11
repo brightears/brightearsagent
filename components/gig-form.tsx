@@ -6,9 +6,10 @@ import { buttonStyles } from "@/components/ui";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
+// Form styling per docs/DESIGN.md — uppercase muted labels, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan transition-colors";
-const labelStyles = "block text-xs font-semibold text-deep-teal mb-1";
+  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelStyles = "block text-xs font-semibold text-ink/60 uppercase tracking-wide mb-1";
 
 export function GigForm({ performers }: { performers: { id: string; name: string }[] }) {
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(

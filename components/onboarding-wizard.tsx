@@ -10,7 +10,6 @@
 //   5 Connect leads   → walkthroughs + live verifier polling /api/onboarding/verify
 
 import { useActionState, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { createPackage } from "@/app/actions/packages";
 import {
@@ -18,26 +17,27 @@ import {
   saveBusinessBasics,
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
-import { buttonStyles, Badge, Card } from "@/components/ui";
+import { buttonStyles, Badge, BrightEarsLogo, Card } from "@/components/ui";
 import { CopyButton } from "@/components/settings-form";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
+// Form styling per docs/DESIGN.md — uppercase micro-labels, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan transition-colors";
-const labelStyles = "block text-xs font-semibold text-deep-teal mb-1";
+  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-ink/60 mb-1";
 
 // ---------------------------------------------------------------------------
-// Step definitions — one brand color per chip, deliberately playful.
+// Step definitions — chips walk the DESIGN.md palette: cyan → lavender → peach.
 // ---------------------------------------------------------------------------
 
 const STEPS = [
   { label: "Your business", emoji: "🪩", chip: "bg-brand-cyan text-white" },
   { label: "What you sell", emoji: "💸", chip: "bg-soft-lavender text-white" },
   { label: "Your voice", emoji: "💬", chip: "bg-warm-peach text-ink" },
-  { label: "Your calendar", emoji: "📅", chip: "bg-deep-teal text-white" },
-  { label: "Connect leads", emoji: "⚡", chip: "bg-earthy-brown text-white" },
+  { label: "Your calendar", emoji: "📅", chip: "bg-brand-cyan text-white" },
+  { label: "Connect leads", emoji: "⚡", chip: "bg-soft-lavender text-white" },
 ] as const;
 
 const KINDS: { kind: PerformerKind; emoji: string; label: string }[] = [
@@ -209,10 +209,10 @@ function StepBusiness({
               key={k.kind}
               onClick={() => setKind(k.kind)}
               aria-pressed={kind === k.kind}
-              className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-2 py-3 text-xs font-semibold transition-colors ${
+              className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-xs font-semibold transition-all ${
                 kind === k.kind
-                  ? "border-brand-cyan bg-brand-cyan-soft text-deep-teal"
-                  : "border-off-white bg-white text-ink/70 hover:border-brand-cyan/50"
+                  ? "border-brand-cyan bg-brand-cyan-soft text-deep-teal ring-2 ring-brand-cyan shadow-sm"
+                  : "border-off-white bg-white text-ink/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
               }`}
             >
               <span className="text-2xl" aria-hidden>{k.emoji}</span>
@@ -720,12 +720,12 @@ function StepConnect({
         blurb="One forwarding rule and you're done forever: every inquiry — email, website form, The Knot, WeddingWire — lands here with a reply already drafted."
       />
 
-      <div className="rounded-2xl bg-deep-teal p-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-cyan-soft">
+      <div className="rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/30 p-4">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-deep-teal/70">
           Your lead address
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <code className="select-all break-all rounded-xl bg-white/10 px-3 py-2 font-mono text-sm text-white">
+          <code className="select-all break-all rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-deep-teal shadow-sm">
             {leadAddress}
           </code>
           <CopyButton text={leadAddress} />
@@ -818,16 +818,16 @@ function StepConnect({
       </div>
 
       {leadDetected ? (
-        <div className="rounded-2xl border-2 border-brand-cyan bg-brand-cyan-soft/60 p-6 text-center">
-          <p className="mb-1 text-4xl" aria-hidden>🎉</p>
-          <p className="text-lg font-bold text-deep-teal">
+        <div className="rounded-3xl border-2 border-brand-cyan bg-brand-cyan-soft/60 p-8 text-center shadow-md">
+          <p className="text-3xl tracking-widest" aria-hidden>🎊 ✨ 🎉 ✨ 🎊</p>
+          <p className="mt-3 text-xl font-extrabold text-deep-teal">
             Your first lead just landed — check your phone.
           </p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-ink/70">
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink/70">
             We caught it, parsed it, and a reply is being drafted in your voice right now. That’s
             what happens to every inquiry from here on — even when you’re mid-set.
           </p>
-          <Link href="/dashboard" className={`${buttonStyles.primary} mt-4 inline-block`}>
+          <Link href="/dashboard" className={`${buttonStyles.primary} mt-5 inline-block`}>
             Take me to my pipeline →
           </Link>
         </div>
@@ -927,16 +927,15 @@ export function OnboardingWizard({
   }, [step, leadDetected]);
 
   return (
-    <div className="relative flex-1 overflow-hidden">
-      {/* Playful brand blobs behind everything */}
-      <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-80 rounded-full bg-brand-cyan-soft opacity-60 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -right-28 top-48 size-80 rounded-full bg-soft-lavender/40 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 size-80 rounded-full bg-warm-peach/40 blur-3xl" />
-
+    // White step cards float on the same soft gradient as PageHeader's band,
+    // stretched into a full-page backdrop (docs/DESIGN.md — one gradient per screen).
+    <div className="relative flex-1 bg-gradient-to-br from-brand-cyan-soft/40 via-soft-lavender/20 to-warm-peach/30">
       <main className="relative mx-auto w-full max-w-2xl px-6 py-10">
         <header className="mb-8 text-center">
-          <Image src="/brand/logo.svg" alt="Bright Ears" width={56} height={56} className="mx-auto mb-3 bg-deep-teal rounded-xl p-2" priority />
-          <h1 className="text-3xl font-bold text-deep-teal">Let’s get you set up</h1>
+          <div className="mb-3 flex justify-center">
+            <BrightEarsLogo size={56} />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-deep-teal">Let’s get you set up</h1>
           <p className="mt-1 text-sm text-ink/60">
             Five quick steps — under ten minutes — and every inquiry you get starts answering
             itself, in your voice.

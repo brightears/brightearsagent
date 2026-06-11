@@ -4,7 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { isoDay } from "@/lib/agent/availability";
 import { deleteGig } from "@/app/actions/gigs";
 import { GigForm } from "@/components/gig-form";
-import { Card } from "@/components/ui";
+import { Card, EmptyState, PageHeader, StatPill, buttonStyles } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -82,47 +82,71 @@ export default async function CalendarPage({
     year: "numeric",
     timeZone: "UTC",
   });
-  const navLink =
-    "rounded-xl border border-deep-teal/30 px-3 py-1.5 text-sm font-semibold text-deep-teal hover:border-brand-cyan hover:text-brand-cyan transition-colors";
+  const navButton = `${buttonStyles.secondary} text-sm`;
 
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-deep-teal">Gig calendar</h1>
-        <p className="text-sm text-ink/60">
-          Your availability source — the AI checks these dates before it promises anything.
-        </p>
-      </header>
+      <PageHeader
+        title="Calendar"
+        subtitle={`${monthLabel} — the AI checks these dates before it promises anything.`}
+        stats={
+          gigs.length > 0 ? (
+            <StatPill tone="teal">
+              🎶 {gigs.length} {gigs.length === 1 ? "gig" : "gigs"} this month
+            </StatPill>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] items-start">
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-4">
+        <Card className="p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
             <h2 className="text-lg font-bold text-deep-teal">{monthLabel}</h2>
             <div className="flex items-center gap-2">
-              <Link href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, -1)}`} aria-label="Previous month" className={navLink}>
+              <Link
+                href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, -1)}`}
+                aria-label="Previous month"
+                className={navButton}
+              >
                 ←
               </Link>
-              <Link href="/dashboard/calendar" className={navLink}>
+              <Link href="/dashboard/calendar" className={navButton}>
                 Today
               </Link>
-              <Link href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, 1)}`} aria-label="Next month" className={navLink}>
+              <Link
+                href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, 1)}`}
+                aria-label="Next month"
+                className={navButton}
+              >
                 →
               </Link>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 mb-1.5">
-            {WEEKDAYS.map((d) => (
-              <p key={d} className="text-center text-xs font-semibold text-ink/40 py-1">
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {WEEKDAYS.map((d, i) => (
+              <p
+                key={d}
+                className={`text-center text-xs font-semibold py-1 ${
+                  i === 0 || i === 6 ? "text-deep-teal/50" : "text-ink/40"
+                }`}
+              >
                 {d}
               </p>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-2">
             {cells.map((day, i) => {
+              const col = i % 7;
+              const isWeekend = col === 0 || col === 6;
               if (day === null) {
-                return <div key={`blank-${i}`} className="min-h-24 rounded-xl bg-off-white/30" />;
+                return (
+                  <div
+                    key={`blank-${i}`}
+                    className={`min-h-24 rounded-xl ${isWeekend ? "bg-warm-peach/10" : "bg-off-white/25"}`}
+                  />
+                );
               }
               const dayKey = `${month}-${String(day).padStart(2, "0")}`;
               const dayGigs = gigsByDay.get(dayKey) ?? [];
@@ -130,17 +154,31 @@ export default async function CalendarPage({
               return (
                 <div
                   key={dayKey}
-                  className={`min-h-24 rounded-xl border bg-white p-1.5 space-y-1 ${
-                    isToday ? "border-brand-cyan ring-2 ring-brand-cyan/30" : "border-off-white"
-                  }`}
+                  className={`min-h-24 rounded-xl border p-1.5 space-y-1 ${
+                    isWeekend ? "bg-warm-peach/20" : "bg-white"
+                  } ${isToday ? "border-brand-cyan ring-2 ring-brand-cyan/30" : "border-off-white"}`}
                 >
-                  <p className={`text-xs font-semibold ${isToday ? "text-brand-cyan" : "text-ink/50"}`}>
-                    {day}
+                  <p className="text-xs font-semibold">
+                    {isToday ? (
+                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-cyan text-[11px] font-bold text-white">
+                        {day}
+                      </span>
+                    ) : (
+                      <span className="text-ink/50">{day}</span>
+                    )}
                   </p>
                   {dayGigs.map((gig) => (
-                    <div key={gig.id} className="rounded-lg bg-brand-cyan-soft px-1.5 py-1 text-deep-teal">
+                    <div key={gig.id} className="rounded-lg bg-deep-teal px-2 py-1.5 text-white shadow-sm">
                       <div className="flex items-start justify-between gap-1">
-                        <p className="text-xs font-semibold leading-tight">{gig.title}</p>
+                        <div className="min-w-0">
+                          {gig.startTime && (
+                            <p className="text-[10px] font-medium text-white/75 leading-tight">
+                              {gig.startTime}
+                              {gig.endTime ? `–${gig.endTime}` : ""}
+                            </p>
+                          )}
+                          <p className="text-xs font-semibold leading-tight">{gig.title}</p>
+                        </div>
                         <form
                           action={async () => {
                             "use server";
@@ -151,32 +189,39 @@ export default async function CalendarPage({
                             type="submit"
                             aria-label={`Remove ${gig.title}`}
                             title="Remove gig"
-                            className="text-deep-teal/40 hover:text-red-600 leading-none transition-colors"
+                            className="text-white/50 hover:text-red-300 leading-none transition-colors"
                           >
                             ×
                           </button>
                         </form>
                       </div>
-                      {gig.startTime && (
-                        <p className="text-[10px] opacity-75">
-                          {gig.startTime}
-                          {gig.endTime ? `–${gig.endTime}` : ""}
-                        </p>
-                      )}
-                      {gig.performer && <p className="text-[10px] opacity-75">{gig.performer.name}</p>}
-                      {gig.venue && <p className="text-[10px] opacity-60">{gig.venue}</p>}
+                      {gig.performer && <p className="text-[10px] text-white/75">{gig.performer.name}</p>}
+                      {gig.venue && <p className="text-[10px] text-white/60">{gig.venue}</p>}
                     </div>
                   ))}
                 </div>
               );
             })}
           </div>
+
+          {gigs.length === 0 && (
+            <EmptyState
+              compact
+              emoji="🗓️"
+              title="Nothing booked this month — yet"
+              hint="Add a gig and the AI treats that date as taken."
+            />
+          )}
         </Card>
 
-        <Card className="p-5">
-          <h2 className="text-lg font-bold text-deep-teal mb-1">Add a gig</h2>
-          <p className="text-xs text-ink/60 mb-4">Booked dates show as conflicts in AI replies.</p>
-          <GigForm performers={performers} />
+        <Card className="overflow-hidden">
+          <div className="bg-brand-cyan-soft/30 px-6 py-4">
+            <h2 className="text-lg font-bold text-deep-teal">Add a gig</h2>
+            <p className="text-xs text-ink/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
+          </div>
+          <div className="p-6">
+            <GigForm performers={performers} />
+          </div>
         </Card>
       </div>
     </main>

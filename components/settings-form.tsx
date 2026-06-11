@@ -42,9 +42,10 @@ export type BusinessProfile = {
   performerKind: PerformerKind;
 };
 
+// Form styling per docs/DESIGN.md — uppercase micro-labels, cyan focus ring.
 const inputCls =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-cyan transition-colors";
-const labelCls = "block text-sm font-semibold text-deep-teal mb-1";
+  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink/60 mb-1";
 
 export function SettingsForm({ business }: { business: BusinessProfile }) {
   const [state, formAction, pending] = useActionState(
@@ -181,7 +182,11 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
           {pending ? "Saving…" : "Save changes"}
         </button>
-        {state?.ok && <span className="text-sm font-medium text-deep-teal">Saved ✓</span>}
+        {state?.ok && (
+          <span className="rounded-full bg-brand-cyan-soft/50 px-3 py-1 text-sm font-semibold text-deep-teal">
+            Saved ✓
+          </span>
+        )}
         {state && !state.ok && (
           <span className="text-sm font-medium text-red-600">{state.error}</span>
         )}

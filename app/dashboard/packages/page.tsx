@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { deletePackage } from "@/app/actions/packages";
 import { PackageForm } from "@/components/package-form";
-import { Badge, Card, buttonStyles } from "@/components/ui";
+import { Badge, Card, EmptyState, PageHeader, StatPill, buttonStyles } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,29 +24,40 @@ export default async function PackagesPage() {
       ? `${money.format(minCents / 100)}–${money.format(maxCents / 100)}`
       : money.format(minCents / 100);
 
+  const activeCount = packages.filter((p) => p.active).length;
+  const inactiveCount = packages.length - activeCount;
+
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-deep-teal">Packages</h1>
-        <p className="text-sm text-ink/60">
-          Your rate card — these are the only prices the AI is allowed to quote.
-        </p>
-      </header>
+      <PageHeader
+        title="Packages"
+        subtitle="Your rate card — these are the only prices the AI is allowed to quote."
+        stats={
+          packages.length > 0 ? (
+            <>
+              <StatPill tone="teal">
+                {activeCount} active
+              </StatPill>
+              {inactiveCount > 0 && <StatPill>{inactiveCount} inactive</StatPill>}
+            </>
+          ) : undefined
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
         <div className="grid gap-4 sm:grid-cols-2">
           {packages.map((pkg) => (
-            <Card key={pkg.id} className={`p-5 ${pkg.active ? "" : "opacity-60"}`}>
-              <div className="flex items-start justify-between gap-2 mb-1">
+            <Card key={pkg.id} className={`p-6 ${pkg.active ? "" : "opacity-60"}`}>
+              <div className="flex items-start justify-between gap-2">
                 <h2 className="font-bold text-deep-teal">{pkg.name}</h2>
                 <Badge tone={pkg.active ? "cyan" : "gray"}>{pkg.active ? "Active" : "Inactive"}</Badge>
               </div>
-              <p className="text-2xl font-bold text-ink mb-2">
+              <p className="mt-2 text-3xl font-extrabold tracking-tight text-deep-teal">
                 {priceLabel(pkg.priceMin, pkg.priceMax)}
               </p>
-              {pkg.description && <p className="text-sm text-ink/70 mb-3">{pkg.description}</p>}
+              {pkg.description && <p className="mt-2 text-sm text-ink/70">{pkg.description}</p>}
               {pkg.eventTypes.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {pkg.eventTypes.map((type) => (
                     <Badge key={type} tone="lavender">
                       {type}
@@ -54,7 +65,7 @@ export default async function PackagesPage() {
                   ))}
                 </div>
               )}
-              <div className="flex items-center gap-2 pt-3 border-t border-off-white">
+              <div className="mt-5 flex items-center gap-2 border-t border-off-white pt-4">
                 <PackageForm
                   initial={{
                     id: pkg.id,
@@ -83,18 +94,24 @@ export default async function PackagesPage() {
             </Card>
           ))}
           {packages.length === 0 && (
-            <Card className="p-8 sm:col-span-2 text-center">
-              <p className="text-ink/50">
-                No packages yet — add your first one and the AI can start quoting it. →
-              </p>
+            <Card className="sm:col-span-2 p-6">
+              <EmptyState
+                emoji="📦"
+                title="Add your first package"
+                hint="It's what the AI is allowed to quote — start with the form on the right."
+              />
             </Card>
           )}
         </div>
 
-        <Card className="p-5">
-          <h2 className="text-lg font-bold text-deep-teal mb-1">Add a package</h2>
-          <p className="text-xs text-ink/60 mb-4">Prices in dollars — we&apos;ll handle the cents.</p>
-          <PackageForm />
+        <Card className="overflow-hidden">
+          <div className="bg-soft-lavender/20 px-6 py-4">
+            <h2 className="text-lg font-bold text-deep-teal">Add a package</h2>
+            <p className="text-xs text-ink/60 mt-0.5">Prices in dollars — we&apos;ll handle the cents.</p>
+          </div>
+          <div className="p-6">
+            <PackageForm />
+          </div>
         </Card>
       </div>
     </main>

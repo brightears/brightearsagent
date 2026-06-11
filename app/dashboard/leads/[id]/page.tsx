@@ -2,24 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, EmptyState, LEAD_STATUS_META, PageHeader, StatPill } from "@/components/ui";
 import { DraftReview } from "@/components/draft-review";
-import type { LeadSource, LeadStatus } from "@/app/generated/prisma/enums";
+import type { LeadSource } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
-
-type BadgeTone = "cyan" | "teal" | "lavender" | "peach" | "gray";
-
-const STATUS_META: Record<LeadStatus, { label: string; tone: BadgeTone }> = {
-  NEW: { label: "New", tone: "cyan" },
-  SPAM: { label: "Spam", tone: "gray" },
-  DRAFTED: { label: "Reply ready", tone: "lavender" },
-  REPLIED: { label: "Replied", tone: "cyan" },
-  IN_SEQUENCE: { label: "Following up", tone: "peach" },
-  ENGAGED: { label: "Talking", tone: "lavender" },
-  BOOKED: { label: "Booked 🎉", tone: "teal" },
-  DEAD: { label: "Gone quiet", tone: "gray" },
-};
 
 const SOURCE_LABELS: Record<LeadSource, string> = {
   WEBSITE_FORM: "Website form",
@@ -74,89 +61,102 @@ export default async function LeadDetailPage({
 
   const pendingDraft = lead.drafts[0];
   const tz = business.timezone;
-  const status = STATUS_META[lead.status];
+  const status = LEAD_STATUS_META[lead.status];
 
-  const meta = [
-    lead.eventType ?? "event",
-    fmtEventDate(lead.eventDate, tz),
-    lead.venue,
-    lead.guestCount != null ? `${lead.guestCount} guests` : null,
-  ].filter(Boolean);
-
-  const contact = [lead.clientEmail, lead.clientPhone].filter(Boolean);
+  const subtitle = [lead.eventType ?? "event", fmtEventDate(lead.eventDate, tz), lead.venue]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full space-y-6">
+    <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
       <Link
         href="/dashboard"
-        className="inline-block text-sm text-ink/60 hover:text-brand-cyan transition-colors"
+        className="mb-4 inline-block text-sm font-semibold text-ink/60 hover:text-brand-cyan transition-colors"
       >
         ← Back to pipeline
       </Link>
 
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-deep-teal">{lead.clientName ?? "Unknown lead"}</h1>
-          <Badge tone={status.tone}>{status.label}</Badge>
-          <Badge tone="gray">{SOURCE_LABELS[lead.source]}</Badge>
-        </div>
-        <p className="text-sm text-ink/70">{meta.join(" · ")}</p>
-        {contact.length > 0 && <p className="text-sm text-ink/50">{contact.join(" · ")}</p>}
+      <PageHeader
+        title={lead.clientName ?? "Unknown lead"}
+        subtitle={subtitle}
+        stats={
+          <>
+            <StatPill>📬 {SOURCE_LABELS[lead.source]}</StatPill>
+            <Badge tone={status.badgeTone}>{status.label}</Badge>
+            {lead.guestCount != null && <StatPill>👥 {lead.guestCount} guests</StatPill>}
+            {lead.clientEmail && <StatPill>✉️ {lead.clientEmail}</StatPill>}
+            {lead.clientPhone && <StatPill>📞 {lead.clientPhone}</StatPill>}
+          </>
+        }
+      />
+
+      <div className="space-y-6">
         {lead.spamReason && (
-          <p className="rounded-xl bg-warm-peach/40 border border-warm-peach px-3 py-2 text-sm text-ink">
-            <span className="font-semibold">Filtered as spam:</span> {lead.spamReason}
-          </p>
+          <div className="rounded-2xl border border-warm-peach/70 bg-warm-peach/25 px-4 py-3 shadow-sm">
+            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink">
+              <span className="text-lg" aria-hidden>
+                🛡️
+              </span>
+              <span>
+                <span className="font-semibold text-deep-teal">Filtered as spam for you</span> —{" "}
+                {lead.spamReason}
+              </span>
+            </p>
+          </div>
         )}
-      </header>
 
-      <section className="space-y-3">
-        <h2 className="font-bold text-deep-teal">Conversation</h2>
-        {lead.messages.length === 0 && (
-          <Card className="p-4">
-            <p className="text-sm text-ink/50">No messages yet.</p>
-          </Card>
-        )}
-        <ul className="space-y-3">
-          {lead.messages.map((m) => (
-            <li
-              key={m.id}
-              className={`flex ${m.direction === "OUTBOUND" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-2xl p-4 shadow-sm ${
-                  m.direction === "OUTBOUND"
-                    ? "bg-brand-cyan-soft"
-                    : "bg-white border border-off-white"
-                }`}
-              >
-                {m.subject && <p className="text-sm font-semibold text-deep-teal mb-1">{m.subject}</p>}
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.body}</p>
-                <p className="mt-2 text-xs text-ink/40">
-                  {m.direction === "OUTBOUND" ? "You" : (lead.clientName ?? "Them")} ·{" "}
-                  {fmtTimestamp(m.createdAt, tz)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <section className="space-y-3">
+          <h2 className="font-bold text-deep-teal">Conversation</h2>
+          {lead.messages.length === 0 ? (
+            <Card>
+              <EmptyState
+                emoji="💌"
+                title="No messages yet"
+                hint="The conversation with this lead will live here."
+              />
+            </Card>
+          ) : (
+            <ul className="space-y-4">
+              {lead.messages.map((m) => {
+                const outbound = m.direction === "OUTBOUND";
+                return (
+                  <li key={m.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-prose ${outbound ? "text-right" : "text-left"}`}>
+                      <div
+                        className={`rounded-2xl p-4 text-left shadow-sm ${
+                          outbound ? "bg-brand-cyan-soft/40" : "bg-white border border-off-white"
+                        }`}
+                      >
+                        {m.subject && (
+                          <p className="text-sm font-semibold text-deep-teal mb-1">{m.subject}</p>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/90">
+                          {m.body}
+                        </p>
+                      </div>
+                      <p className="mt-1 px-1 text-[11px] text-ink/40">
+                        {outbound ? "You" : (lead.clientName ?? "Them")} ·{" "}
+                        {fmtTimestamp(m.createdAt, tz)}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-      {pendingDraft && (
-        <section>
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="font-bold text-deep-teal">Reply ready for review</h2>
-              <Badge tone="lavender">Pending</Badge>
-            </div>
+        {pendingDraft && (
+          <section>
             <DraftReview
               draftId={pendingDraft.id}
               leadId={lead.id}
               subject={pendingDraft.subject}
               body={pendingDraft.body}
             />
-          </Card>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
     </main>
   );
 }
