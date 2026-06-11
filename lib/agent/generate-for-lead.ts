@@ -53,6 +53,7 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
       country: lead.business.country,
       voiceSamples: lead.business.voiceSamples,
       websiteUrl: lead.business.websiteUrl,
+      bookingLinkUrl: lead.business.bookingLinkUrl,
     },
     packages: lead.business.packages.map((p) => ({
       name: p.name,

@@ -5,7 +5,7 @@ import { Badge, Card } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Simple plans metered in leads, not tokens. 14-day free trial of Pro, no card. Starter $25/mo, Pro $79/mo, Studio $149/mo. At your cap drafting pauses — never surprise bills.",
+    "Every plan is the complete assistant — instant replies, follow-ups until booked-or-dead, weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. If it doesn't pay for itself in your first season, full refund.",
 };
 
 type Plan = {
@@ -16,49 +16,59 @@ type Plan = {
   highlighted?: boolean;
 };
 
+// Tier recut per docs/ADR-003-scope-vs-price.md Stage 1: every tier is the
+// COMPLETE assistant (replies, sequences, weekly report, spam filtering,
+// approve-from-phone). Plans differ only in capacity and autonomy — leads,
+// performers, auto-send, team. Never capability-gate copy here again.
 const PLANS: Plan[] = [
   {
     name: "Starter",
     price: "$25",
-    blurb: "For the solo performer who never wants to be the 5th DJ to reply again.",
+    blurb: "The complete assistant for a solo performer — you approve every send.",
     features: [
       "15 leads per month",
       "1 performer (you)",
-      "Replies drafted in your voice, from your rate card",
-      "Availability-aware — drafts check your gig calendar",
+      "Instant replies in your voice — from your rate card, checked against your gig calendar",
+      "Follow-up sequences until every lead is booked or dead, opt-out compliance built in",
+      "Weekly report: median reply time & gigs booked",
       "Spam & scams filtered before you ever see them",
-      "Approve, edit or toss every draft from your phone",
+      "You approve every send — one tap from your phone, even from the booth",
       "Works with The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
     ],
   },
   {
     name: "Pro",
     price: "$79",
-    blurb: "For the busy season — follow-ups run until every lead is booked or dead.",
+    blurb: "The same assistant, more headroom — and it can send for itself on sources you trust.",
     features: [
-      "Everything in Starter",
+      "Everything in Starter — the same complete assistant",
       "60 leads per month",
-      "Follow-up sequences until booked-or-dead",
-      "Auto-send per source — full autopilot where you trust it",
-      "Weekly report: median reply time & gigs booked",
-      "One-tap opt-out compliance on every follow-up",
+      "Per-source auto-send: full autopilot on sources you trust, approval everywhere else",
     ],
     highlighted: true,
   },
   {
     name: "Studio",
     price: "$149",
-    blurb: "For multi-performer businesses — the whole roster, one inbox, one team.",
+    blurb: "The same assistant for the whole roster — one inbox, every performer, your team.",
     features: [
       "Everything in Pro",
       "150 leads per month",
-      "Multiple performers — route leads across your roster",
+      "Multi-performer routing — leads matched across your whole roster",
       "Team seats so anyone can review and approve",
     ],
   },
 ];
 
 const FAQS: { q: string; a: string }[] = [
+  {
+    q: "What's the difference between Starter, Pro and Studio?",
+    a: "Capacity and autonomy — never features. Every plan includes the complete assistant: instant replies in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 leads with multi-performer routing and team seats.",
+  },
+  {
+    q: "What if it doesn't pay for itself?",
+    a: "Then you shouldn't be paying for it: if Bright Ears doesn't pay for itself in your first season, full refund. The math we're betting on — one saved $1,800 booking covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+  },
   {
     q: "Is email forwarding safe? Do I have to share my password?",
     a: "No passwords, no inbox access, no OAuth permissions. You add one simple forwarding rule in your own email or lead platform that sends inquiry notifications to your private Bright Ears address. You stay in full control and can switch the forward off anytime.",
@@ -97,7 +107,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Do I need a credit card to start the trial?",
-    a: "No card needed. You get 14 days of full Pro — sequences, auto-send, weekly report, all of it. At the end, pick the plan that fits or walk away. We will not charge you by surprise.",
+    a: "No card needed. You get 14 days of full Pro — 60 leads and per-source auto-send, on top of the complete assistant every plan includes. At the end, pick the plan that fits or walk away. We will not charge you by surprise.",
   },
 ];
 
@@ -161,8 +171,15 @@ export default function PricingPage() {
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-lg text-ink/70">
           A booked wedding is worth $1,500–3,000. Bright Ears answers every
-          inquiry in under 5 minutes — even from the booth — for less than a
-          dinner out. Start with 14 days of full Pro. No card.
+          inquiry in under 5 minutes — even from the booth — and follows up
+          until it&apos;s booked or dead, for less than a dinner out. Start with
+          14 days of full Pro. No card.
+        </p>
+        <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-deep-teal">
+          Every plan is the complete assistant — instant replies in your voice,
+          follow-ups until booked-or-dead, weekly report, spam filtering,
+          approve from your phone. You only choose leads, performers and
+          autopilot.
         </p>
       </section>
 
@@ -211,6 +228,33 @@ export default function PricingPage() {
               </p>
             </Card>
           ))}
+        </div>
+      </section>
+
+      {/* Outcome math + guarantee (ADR-003: per-gig economics as framing + guarantee) */}
+      <section className="relative max-w-6xl mx-auto px-6 pb-8">
+        <div className="rounded-3xl border border-off-white bg-white p-8 text-center shadow-sm">
+          <h2 className="text-xl font-bold text-deep-teal">The outcome math</h2>
+          <div className="mx-auto mt-6 grid max-w-3xl gap-8 sm:grid-cols-2">
+            <div>
+              <p className="text-3xl font-bold text-brand-cyan">$1,800</p>
+              <p className="mt-2 text-sm text-ink/70">
+                One saved $1,800 booking pays for{" "}
+                <strong className="text-deep-teal">6 years of Starter</strong>.
+              </p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-brand-cyan">~$1.67</p>
+              <p className="mt-2 text-sm text-ink/70">
+                Per lead handled — one raw Bark lead costs{" "}
+                <strong className="text-deep-teal">$28–47</strong>, and you
+                still have to answer it yourself.
+              </p>
+            </div>
+          </div>
+          <p className="mt-7 inline-block rounded-full bg-brand-cyan-soft px-5 py-2.5 text-sm font-semibold text-deep-teal">
+            If it doesn&apos;t pay for itself in your first season, full refund.
+          </p>
         </div>
       </section>
 
@@ -270,7 +314,8 @@ export default function PricingPage() {
           </h2>
           <p className="relative mt-4 text-white/80 max-w-xl mx-auto">
             Respond in under 5 minutes — even from the booth. 14 days of full
-            Pro, free, no card.
+            Pro, free, no card. And if it doesn&apos;t pay for itself in your
+            first season, full refund.
           </p>
           <Link
             href="/onboarding"

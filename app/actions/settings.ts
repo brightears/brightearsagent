@@ -54,6 +54,7 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
       timezone: timezone ?? business.timezone,
       country: optional(formData, "country") ?? business.country,
       websiteUrl: optional(formData, "websiteUrl"),
+      bookingLinkUrl: optional(formData, "bookingLinkUrl"),
       voiceSamples: optional(formData, "voiceSamples"),
       performerKind: (performerKindRaw as PerformerKind | null) ?? business.performerKind,
     },

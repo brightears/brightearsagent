@@ -35,5 +35,8 @@ export function buildVoicePrompt(business: BusinessProfile, packages: PackageInf
     `5. First replies: 90-170 words, answer their actual question, one clear next step (a question or a call/meeting offer). Follow-ups: under 90 words, friendly, zero pressure, reference something specific from their inquiry.`,
     `6. Never use placeholder brackets like [date] or [name] — if you don't know it, write around it.`,
     `7. Sign off with the owner's first name and business name.`,
+    business.bookingLinkUrl
+      ? `8. CLOSING LINK: when the client shows real interest or asks how to book (and the date is NOT conflicted), include this exact link as the easy next step to lock it in: ${business.bookingLinkUrl} — present it naturally (\"you can lock in your date here\"), never more than once per email.`
+      : ``,
   ].join("\n\n");
 }

@@ -38,6 +38,7 @@ export type BusinessProfile = {
   timezone: string;
   country: string;
   websiteUrl: string | null;
+  bookingLinkUrl: string | null;
   voiceSamples: string | null;
   performerKind: PerformerKind;
 };
@@ -162,6 +163,23 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             defaultValue={business.websiteUrl ?? ""}
             className={inputCls}
           />
+        </div>
+
+        <div>
+          <label htmlFor="bookingLinkUrl" className={labelCls}>
+            Booking / deposit link
+          </label>
+          <input
+            id="bookingLinkUrl"
+            name="bookingLinkUrl"
+            type="url"
+            placeholder="Your Check Cherry, HoneyBook or Stripe payment page"
+            defaultValue={business.bookingLinkUrl ?? ""}
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-ink/45">
+            When a couple is ready, the AI includes this link so they can lock in their date — your existing booking page, contract, or deposit link.
+          </p>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="voiceSamples" className={labelCls}>

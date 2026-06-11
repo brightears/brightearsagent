@@ -9,6 +9,7 @@ import {
   LAST_VERIFIED,
   ROUNDUP,
   faqJsonLd,
+  ROADMAP_LINE,
 } from "@/lib/marketing/comparisons";
 
 export const metadata: Metadata = {
@@ -127,6 +128,7 @@ export default function ComparePage() {
             </table>
           </div>
         </Card>
+        <p className="mt-4 text-sm font-semibold text-deep-teal">{ROADMAP_LINE}</p>
         <p className="mt-3 text-xs text-ink/50">
           Spot a stale number? Tell us — we&apos;ll re-verify and update the stamp. Being wrong about a
           competitor&apos;s pricing helps nobody, least of all us.

@@ -26,10 +26,10 @@ enum PerformerKind {
 }
 
 enum PlanTier {
-  TRIAL   // 14 days, full Pro features, no card
-  STARTER // $25/mo — 15 leads/mo, instant replies + approve-from-phone, 1 performer
-  PRO     // $79/mo — 60 leads/mo, sequences, per-source auto-send, weekly reports
-  STUDIO  // $149/mo — multi-performer, 150 leads/mo, team members
+  TRIAL   // 14 days, full capability, no card
+  STARTER // $25/mo — complete assistant: 15 leads/mo, 1 performer, approve every send
+  PRO     // $79/mo — 60 leads/mo + per-source auto-send autopilot
+  STUDIO  // $149/mo — 150 leads/mo, multi-performer routing, team seats
 }
 
 enum LeadSource {
@@ -81,6 +81,7 @@ model Business {
   timezone             String        @default("America/New_York")
   currency             String        @default("USD")
   websiteUrl           String?
+  bookingLinkUrl       String? // owner's EXISTING booking/contract/deposit page — the AI carries it to the close
   replyToEmail         String? // Reply-To on outbound; defaults to ownerEmail
   voiceSamples         String? // pasted past replies — seeds draft voice
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send

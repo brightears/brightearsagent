@@ -36,11 +36,11 @@ Stack: Next.js 16 + Prisma 7 + Postgres, OpenRouter + Vercel AI SDK (per-purpose
 ## 6. MVP scope
 
 **IN:** self-serve signup, 14-day trial (no card), onboarding wizard (profile, packages, voice samples, forwarding walkthrough, gig calendar), inbound parse + 4 source parsers + generic LLM parser, spam triage, draft engine + eval harness, approve-from-phone PWA, sequences, lead pipeline UI, weekly report email, Stripe with lead-metering, polymorphic PerformerKind.
-**OUT (phase 2+):** quotes/contracts/e-sign, payment chasing, client planning portal, IG/FB DMs, Gmail send-as, machine-readable booking endpoint (in the pocket — later each customer gets their own AI-readable booking endpoint; never a central marketplace), non-DJ marketing.
+**OUT (phase 2+):** quotes/contracts/e-sign + deposit links — this is the **v1.1 money path** scoped in `ADR-003-scope-vs-price.md` (quote builder → contract-lite e-sign → deposit via the DJ's OWN payment link, zero custody), gated on Gate 1 pass; until then `Business.bookingLinkUrl` carries the owner's existing booking/contract/deposit page in closing replies and nudges — payment chasing, client planning portal, IG/FB DMs, Gmail send-as, machine-readable booking endpoint (in the pocket — later each customer gets their own AI-readable booking endpoint; never a central marketplace), non-DJ marketing.
 
-## 7. Pricing (founder-confirmed)
+## 7. Pricing (founder-confirmed; tier recut per ADR-003)
 
-14-day full-Pro trial, no card → **Starter $25/mo** (15 leads/mo, 1 performer) → **Pro $79/mo** (60 leads/mo, sequences, per-source auto-send, weekly report) → **Studio $149/mo** (multi-performer, 150 leads, team). Lead packs $10/10; at cap, pause + upsell — never surprise bills. Customers are metered in **leads** (they don't think in tokens); `LlmUsage` is our internal margin lens with a 70% gross-margin guardrail. Founding members: first 25 at $15/mo for year one ↔ review + case study. Positioning: against a $1,500–3,000 booked wedding and against DJEP as a *bolt-on*, not a switch.
+14-day full-Pro trial, no card → **Starter $25/mo** (15 leads/mo, 1 performer, approve-every-send) → **Pro $79/mo** (60 leads/mo, per-source auto-send autopilot) → **Studio $149/mo** (150 leads/mo, multi-performer routing, team seats). **Tier recut (`ADR-003-scope-vs-price.md`, June 2026): every tier is the full-capability assistant** — instant replies, follow-up sequences until booked-or-dead, weekly report, spam triage, approve-from-phone in ALL tiers; tiers gate only capacity + autonomy (leads, performers, auto-send, team), never capability (capability-gating is the resented HoneyBook anti-pattern; DJEP/GigBuilder/Check Cherry all gate capacity). **Refund guarantee: "if it doesn't pay for itself in your first season, full refund"** — success-fee rejected (ADR-003); per-gig economics live as framing instead (one saved $1,800 gig = 6 years of Starter; ~$1.32–1.67 per lead handled vs Bark's $28–47 per raw lead). Lead packs $10/10; at cap, pause + upsell — never surprise bills. Customers are metered in **leads** (they don't think in tokens); `LlmUsage` is our internal margin lens with a 70% gross-margin guardrail. Founding members: first 25 at $15/mo for year one ↔ review + case study. Positioning: against a $1,500–3,000 booked wedding and against DJEP as a *bolt-on*, not a switch.
 
 ## 8. Brand, voice, design
 
@@ -52,7 +52,7 @@ Full engine in `MARKETING-PLAN.md`. Summary: agents produce the content/AEO/free
 
 ## 10. Gates
 
-- **Gate 1 (launch + 90 days):** ≥10 paying businesses, ≥3 arms-length. Miss badly → reposition or kill.
+- **Gate 1 (launch + 90 days):** ≥10 paying businesses, ≥3 arms-length. Miss badly → reposition or kill. **Pass → unlock Money Path v1 per `ADR-003-scope-vs-price.md`** (quote → contract-lite e-sign → deposit via the DJ's own payment link, zero custody; ships to all tiers, ~2.5–4 weeks; its own success gate: ≥30% of active customers send a deposit request within 30 days).
 - **Gate 2 (month 6):** trial→paid ≥25%; logo churn ≤5%/mo after first cohort; case-study-grade booked-gig numbers exist.
 - **Target:** ฿150k/month profit ≈ ~50 customers at blended ~$85 — realistic 12–18 months post-launch if gates pass.
 

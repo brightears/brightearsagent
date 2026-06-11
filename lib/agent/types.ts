@@ -9,6 +9,7 @@ export interface BusinessProfile {
   country: string;
   voiceSamples?: string | null;
   websiteUrl?: string | null;
+  bookingLinkUrl?: string | null; // owner's existing booking/contract/deposit page — the close
 }
 
 export interface PackageInfo {

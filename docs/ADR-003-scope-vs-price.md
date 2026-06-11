@@ -1,0 +1,31 @@
+# ADR-003: Scope vs price — the "is answering inbounds too thin?" verdict
+
+**Date:** June 11, 2026 · **Trigger:** founder challenge ("isn't that minimal for $25/mo? I thought we offer a full assistant") · **Method:** 4-agent evidence dig (value perception, money-path feasibility, strategy pre-mortem, pricing recut) — raw output: workflow `wf_0786a785-b8f`.
+
+## The verdict in one paragraph
+The founder's instinct is **right about the symptom, right about the story, wrong about the cure**. Right: our $25 tier literally IS "just answering" (we capability-gated sequences + weekly report out of it — the cheapest tier breaks our own one-liner), our comparison table apologizes ("we don't do contracts, invoices"), and the marketing sells all of Vinyl while the product ships chapter one. Wrong cure: full-suite parity remains the death path — DJEP's 20-year depth, HoneyBook's $500M+ and 230 staff, Gigwell's 12 years at $120k raised, and a NEW threat the brief missed: **Wedy Pro AI** ($25/mo, Techstars-backed, Shark Tank) already sells an AI all-in-one at our exact entry price; competing on breadth means fighting funded Wedy on its turf. The cure the evidence supports: **own the money moment, not the feature list** — the perception cliff is specifically THE CLOSE (deposit-paid-date-held), and the category's own playbook confirms the sequence (Mikla.ai launched as a pure AI receptionist Nov 2024; by June 2026 its $249 tier bundles contracts/e-sign/deposit).
+
+## Decision: Path B — "from hello to paid deposit," in three locked stages
+
+**Stage 1 — NOW, words and near-zero code (pre-launch):**
+1. **Tier recut (capacity/autonomy-gated, never capability-gated):** sequences + weekly report move into EVERY tier incl. Starter. (Engine never actually gated them — this was copy-only.) Starter $25 = the complete assistant, 15 leads, approve-every-send · Pro $79 = 60 leads + per-source auto-send autopilot · Studio $149 = 150 leads, multi-performer, team. Niche norm confirmed: DJEP/GigBuilder/Check Cherry give full capability at entry and gate capacity; HoneyBook gates capability and is the resented anti-pattern.
+2. **Reposition:** one-liner becomes "wins you the gig: answered in minutes, followed up for days, until it's booked — you just tap Approve." Comparison row rewritten from apology to designed boundary ("We stop at the booking — by design"). Publish the money-path roadmap honestly (category-standard; Mikla/Wedy prove announcing it costs nothing).
+3. **Kill the cliff with a link, not a build:** `Business.bookingLinkUrl` — owner attaches their EXISTING booking/contract/deposit page (Check Cherry checkout, HoneyBook smart file, bare Stripe/Square link); the AI's closing replies and day-2/5/9 nudges carry it. "Answers inbounds" becomes "carries the couple to the close" with one schema field.
+4. **Re-shelve the category:** add Mikla.ai ($149–499, sells to DJs now) to the comparison set — we become the affordable entrant in the AI-answering category, not the feature-poor entrant in the back-office category. Fix stale prices (Vibo now $149–179 only; Check Cherry $29–139). Put outcome math beside every price (~$1.32–1.67/lead handled vs Bark's $28–47 per raw lead; ~50% of couples book the first responder; one saved $1,800 gig = 6 years of Starter).
+
+**Stage 2 — LAUNCH the wedge as built. Gate 1 unchanged (≥10 paying, ≥3 arms-length). No money-path code before that.**
+
+**Stage 3 — AT GATE 1 PASS (~90 days): Money Path v1**, strictly bounded: quote builder (AI pre-fills from Package rate card + parsed lead) → contract-lite e-sign (typed-name + checkbox + SHA-256 doc hash + IP/timestamp audit trail — legally sufficient in US/UK/AU/CA per ESIGN/UETA and equivalents; exactly what Check Cherry ships; paste-your-existing-contract with merge fields, never authored legal advice) → **deposit via the DJ's OWN payment link, zero custody** (HARD CONSTRAINT verified: Stripe Connect is effectively unavailable to Thailand-based platforms — no Express/Custom self-serve onboarding, no destination charges or application fees; the zero-custody design is what Check Cherry uses outside the US, and it means zero PCI/KYC/chargeback/money-transmitter exposure). Ships to ALL tiers. Effort ~2.5–4 weeks. Success gate: ≥30% of active customers send a deposit request within 30 days.
+
+**Permanently fenced (public non-goals list):** music planning, client planning portals, employee scheduling/payroll, accounting/ledgers, website builder, marketplace, payment processing custody. Each named on the site as "use the best tool — we bolt on."
+
+## Pricing decisions
+- Prices stay $25/$79/$149. Lowering signals toy; raising breaks "same price as GigBuilder, but it answers for you."
+- **Success-fee REJECTED**: per-outcome is the most hated mechanic in this niche (Bark's per-lead credits, The Knot's $500–2,000 effective cost per booking); booked-gig is self-reported so a fee would tax our own proof loop. Per-gig economics live as FRAMING + a GUARANTEE: "pays for itself in your first season or full refund" (Mikla precedent).
+- Deposit-processing margin (pricing agent's idea) dies with Connect — we don't process money. Monetization stays subscription.
+
+## Retention physics (why Path B and not Path A)
+Single-trick AI tools churn 50–70% pre-renewal (11x: 70–80%; Jasper $120M→$55M when the platform absorbed the wrapper); The Knot's June 2026 unified inbox app with "automation controls on the roadmap" makes pure reply-speed the most commoditizable layer. Money/back-office control points show the highest gross AND net retention in vertical SMB (Tidemark 2025; embedded-payments retention 2.5x per BCG/Adyen; HoneyBook's moat = $5B+ payments volume). Deposit-chasing also fixes seasonality (deposits/balances come due in execution season when inquiries are quiet).
+
+## Founder-conviction clause
+Founder-led sales run on conviction; the seller must believe the story. The honest story he can sell from today: **"The AI front desk that takes a stranger to a signed, paid booking — chapter one ships today, the rest of Vinyl's playbook is on the public roadmap."**

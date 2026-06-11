@@ -9,7 +9,7 @@ import { DemoWidget } from "@/components/demo-widget";
 export const metadata: Metadata = {
   title: "Bright Ears — stop being the 5th DJ to reply",
   description:
-    "The AI back office for DJ and performer businesses: every inquiry answered in minutes, in your voice, with your real availability — you just tap Approve. 14-day free trial, no card.",
+    "The AI back office that wins you the gig: every inquiry answered in your voice in under 5 minutes, followed up for days, until it's booked or dead — you just tap Approve. 14-day free trial, no card.",
 };
 
 const TRUST_LINE = "14-day free trial · no card · 5-minute setup";
@@ -102,9 +102,10 @@ export default function HomePage() {
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-deep-teal sm:text-5xl lg:text-6xl">
               Stop being the <span className="text-brand-cyan">5th DJ</span> to reply.
             </h1>
+            {/* The one-liner (ADR-003 reposition): outcome, not "answers inbounds". */}
             <p className="mt-5 max-w-xl text-lg text-ink/70">
-              Every inquiry answered in minutes — in your voice, with your real availability and your
-              real prices. You just tap <strong className="text-deep-teal">Approve</strong>.
+              Every inquiry answered in your voice in under 5 minutes, followed up for days, until
+              it’s booked or dead — you just tap <strong className="text-deep-teal">Approve</strong>.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
@@ -164,7 +165,7 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 text-lg text-ink/70">
             Now you can — without touching your phone. Paste an inquiry below and watch the same
-            engine that will answer your leads write the reply, live.
+            engine that will win you the gig write the reply, live.
           </p>
           <div className="mt-8 text-left">
             <DemoWidget />
@@ -239,7 +240,8 @@ export default function HomePage() {
             The unglamorous stuff, handled.
           </h2>
           <p className="mt-3 text-lg text-ink/70">
-            Everything between “new inquiry” and “booked” — without the 2am shift.
+            Everything it takes to carry “new inquiry” all the way to “booked” — included on every
+            plan, without the 2am shift.
           </p>
         </div>
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
@@ -284,8 +286,9 @@ export default function HomePage() {
               “If there were two of me, I would double my business.”
             </blockquote>
             <p className="mx-auto mt-4 max-w-xl text-lg text-white/90">
-              Now there are two of you. One plays the gigs. The other answers every lead in minutes —
-              and always asks before sending.
+              Now there are two of you. One plays the gigs. The other wins them — every lead
+              answered in minutes, followed up for days, carried all the way to booked. And it
+              always asks before sending.
             </p>
             <Link
               href="/onboarding"

@@ -8,10 +8,12 @@ import { PLAN_LEAD_CAPS } from "@/lib/billing/metering";
 
 export const dynamic = "force-dynamic";
 
+// ADR-003 tier recut: every plan is the complete assistant — blurbs gate
+// capacity/autonomy (leads, performers, autopilot, team), never capability.
 const PLAN_CARDS = [
-  { plan: "STARTER" as const, price: "$25", blurb: `${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer` },
-  { plan: "PRO" as const, price: "$79", blurb: `${PLAN_LEAD_CAPS.PRO} leads/mo · follow-up sequences · weekly report` },
-  { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multiple performers · team` },
+  { plan: "STARTER" as const, price: "$25", blurb: `${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer · full follow-up engine` },
+  { plan: "PRO" as const, price: "$79", blurb: `${PLAN_LEAD_CAPS.PRO} leads/mo · auto-send autopilot` },
+  { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
 ];
 
 /** Emoji-accented section title — small tinted tile + heading, marketing-page energy. */
@@ -127,6 +129,7 @@ export default async function SettingsPage() {
               timezone: business.timezone,
               country: business.country,
               websiteUrl: business.websiteUrl,
+              bookingLinkUrl: business.bookingLinkUrl,
               voiceSamples: business.voiceSamples,
               performerKind: business.performerKind,
             }}

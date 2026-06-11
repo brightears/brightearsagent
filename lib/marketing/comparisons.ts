@@ -6,28 +6,45 @@
 // - Be generous to competitors; credibility is the product. Show our own gaps in the same tables.
 // - Re-verify quarterly and bump LAST_VERIFIED (the "dated stamp" AI assistants look for).
 
-export const LAST_VERIFIED = "June 2026";
+export const LAST_VERIFIED = "June 11, 2026";
 
-/** Bright Ears pricing — founder-confirmed. Never improvise changes here. */
+/**
+ * Bright Ears pricing — founder-confirmed. Never improvise changes here.
+ * ADR-003 tier recut: EVERY tier is the complete assistant (replies, sequences,
+ * weekly report, spam filtering, approve-from-phone); tiers gate only capacity
+ * and autonomy — leads, performers, auto-send, team. Never capability-gate copy.
+ */
 export const BRIGHT_EARS_PRICING = {
   range: "$25–149/mo",
   trial: "14-day free trial — full Pro, no card required",
   tiers: [
-    { name: "Starter", price: "$25/mo", includes: "15 leads/mo, 1 performer" },
+    {
+      name: "Starter",
+      price: "$25/mo",
+      includes: "15 leads/mo, 1 performer — the complete assistant, you approve every send",
+    },
     {
       name: "Pro",
       price: "$79/mo",
-      includes: "60 leads/mo, follow-up sequences, auto-send, weekly report",
+      includes: "60 leads/mo, per-source auto-send autopilot",
     },
     {
       name: "Studio",
       price: "$149/mo",
-      includes: "multi-performer, 150 leads/mo, team",
+      includes: "150 leads/mo, multi-performer routing, team seats",
     },
   ],
   overage:
-    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
+    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill. And if it doesn't pay for itself in your first season, full refund.",
 } as const;
+
+/**
+ * One-line roadmap honesty (ADR-003 Stage 1: publish the money path; the
+ * designed boundary is the booking). Rendered directly under the hub roundup
+ * table on /compare.
+ */
+export const ROADMAP_LINE =
+  "On our public roadmap: quote → e-sign → deposit links, shipping next — we stop at the booking today, on purpose.";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -139,7 +156,7 @@ export const ROUNDUP: RoundupEntry[] = [
   },
   {
     name: "Vibo",
-    price: "$99–179/mo",
+    price: "$149–179/mo",
     builtFor: "The client music-planning experience: requests, timelines, must-plays, guest input.",
     shines:
       "Couples genuinely love it, and DJs are proud to send the invite. Best-in-class at what it does.",
@@ -148,7 +165,7 @@ export const ROUNDUP: RoundupEntry[] = [
   },
   {
     name: "Check Cherry",
-    price: "~$30–75/mo",
+    price: "$29–139/mo",
     builtFor: "Modern booking forms, packages, proposals and payments.",
     shines: "The cleanest form-and-package experience in the category — a flow couples actually finish.",
     stops: "It captures inquiries beautifully — then the replying and chasing is still you.",
@@ -164,13 +181,22 @@ export const ROUNDUP: RoundupEntry[] = [
     slug: "honeybook",
   },
   {
+    name: "Mikla.ai",
+    price: "$149–499/mo",
+    builtFor: "AI receptionist for wedding venues — now selling the same answering job to DJs and live bands.",
+    shines:
+      "The proven category leader for venues: sub-minute replies (38–41 seconds), and its $249 tier bundles contracts, e-sign and deposit collection.",
+    stops:
+      "Venue economics. Entry is $149/mo for 50 leads — 6x our price for the same answering job — and it's sold through demo calls, with no self-serve trial.",
+  },
+  {
     name: "Bright Ears",
     price: "$25–149/mo",
-    builtFor: "The AI office that answers your leads — the only tool here that does.",
+    builtFor: "Turning inquiries into bookings — the only tool here that answers and chases leads for you.",
     shines:
       "Median first reply under 5 minutes, in your voice, from your rate card — you approve from your phone, and follow-ups run until booked or dead.",
     stops:
-      "We don't do contracts, invoices or music planning. Keep your favorite tool above for that — we bolt on with one forwarding rule.",
+      "At the booking — by design. Contracts, invoices and music planning stay with your favorite tool above; one forwarding rule bolts us on.",
     isBrightEars: true,
   },
 ];
@@ -179,7 +205,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What's the best DJ booking software in 2026?",
     answer:
-      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry (~$30–75/mo). For client music planning after the booking, Vibo ($99–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). If the thing that hurts is leads going cold before you can reply, that's the one job Bright Ears was built for ($25–149/mo) — and it pairs with any of the above.",
+      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry ($29–139/mo). For client music planning after the booking, Vibo ($149–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). For an AI receptionist at venue budgets, Mikla.ai ($149–499/mo) leads that category for wedding venues and now sells to DJs. If the thing that hurts is leads going cold before you can reply, that's the job Bright Ears was built for ($25–149/mo, self-serve trial) — and it pairs with any of the above.",
   },
   {
     question: "Isn't this comparison biased? You make one of these tools.",
@@ -199,7 +225,12 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "A 14-day free trial with no card, then Starter at $25/mo (15 leads, 1 performer), Pro at $79/mo (60 leads, follow-up sequences, auto-send, weekly report), or Studio at $149/mo (multi-performer, 150 leads, team). Extra leads are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
+      "A 14-day free trial with no card, then Starter at $25/mo (15 leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — instant replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering — the tiers only change how many leads, how many performers and how much autopilot. Extra leads are $10 per 10; at your cap, drafting pauses — never a surprise bill. And if it doesn't pay for itself in your first season, full refund.",
+  },
+  {
+    question: "Does Bright Ears do quotes, contracts or deposits?",
+    answer:
+      "Not yet — we stop at the booking today, on purpose, and hand off to the tools above for paperwork and payments. On our public roadmap: quote → e-sign → deposit links, shipping next. In the meantime you can attach your existing booking, contract or deposit page, and our replies and follow-ups carry that link to the couple.",
   },
 ];
 
@@ -346,7 +377,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
     {
       question: "What does running both cost?",
       answer:
-        "DJ Event Planner runs $20–50/mo depending on tier (verified June 2026). Bright Ears starts at $25/mo for 15 leads, with Pro at $79/mo (60 leads, follow-up sequences, auto-send) and Studio at $149/mo for multi-performer teams. Against a $1,500–3,000 booked wedding, one save covers both for a long time.",
+        "DJ Event Planner runs $20–50/mo depending on tier (verified June 2026). Bright Ears starts at $25/mo for 15 leads — the complete assistant, follow-up sequences and weekly report included — with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). Against a $1,500–3,000 booked wedding, one save covers both for a long time.",
     },
     {
       question: "Can I try Bright Ears without touching my DJEP setup?",
@@ -485,7 +516,7 @@ const GIGBUILDER: ComparisonPage = {
 const VIBO: ComparisonPage = {
   slug: "vibo",
   competitor: "Vibo",
-  competitorPrice: "$99–179/mo",
+  competitorPrice: "$149–179/mo",
   title: "Bright Ears vs Vibo (2026): Before the Booking vs After It",
   metaDescription:
     "Vibo is the best client music-planning experience in the business — after the contract is signed. Bright Ears gets you to that signature by answering every lead in under 5 minutes. Honest comparison.",
@@ -512,7 +543,7 @@ const VIBO: ComparisonPage = {
     {
       point: "Worth its price for the right business",
       detail:
-        "$99–179/mo (verified June 2026) is premium, but it's priced against the client experience it delivers, and steady-volume businesses get their money's worth.",
+        "$149–179/mo (verified June 11, 2026 — the old $99 tier is gone) is premium, but it's priced against the client experience it delivers, and steady-volume businesses get their money's worth.",
     },
   ],
   tableHeading: "Side by side",
@@ -563,8 +594,8 @@ const VIBO: ComparisonPage = {
       us: { mark: "na", note: "An email forwarding rule couples never see." },
     },
     {
-      feature: "Verified pricing (June 2026)",
-      them: { mark: "na", note: "$99–179/mo" },
+      feature: "Verified pricing (June 11, 2026)",
+      them: { mark: "na", note: "$149–179/mo" },
       us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
     },
   ],
@@ -591,7 +622,7 @@ const VIBO: ComparisonPage = {
     {
       question: "Why is Vibo so much more expensive than most DJ software?",
       answer:
-        "It's priced as a client-experience product ($99–179/mo, verified June 2026), and for businesses with steady bookings it earns it. Bright Ears prices on leads handled instead: $25/mo for 15 leads, $79/mo for 60 with sequences and auto-send, $149/mo for multi-performer teams.",
+        "It's priced as a client-experience product ($149–179/mo, verified June 11, 2026 — the old $99 tier is gone), and for businesses with steady bookings it earns it. Bright Ears prices on leads handled instead: $25/mo for 15 leads, $79/mo for 60 with auto-send autopilot, $149/mo for 150 across a multi-performer roster — and every tier includes the full follow-up engine and weekly report.",
     },
     {
       question: "If I can only afford one, which should I buy?",
@@ -606,7 +637,7 @@ const VIBO: ComparisonPage = {
 const CHECK_CHERRY: ComparisonPage = {
   slug: "check-cherry",
   competitor: "Check Cherry",
-  competitorPrice: "~$30–75/mo",
+  competitorPrice: "$29–139/mo",
   title: "Bright Ears vs Check Cherry (2026): Capturing Leads vs Answering Them",
   metaDescription:
     "Check Cherry makes the cleanest booking forms and packages in the category. Bright Ears answers the inquiries that come through them — in under 5 minutes, in your voice. Honest comparison.",
@@ -631,7 +662,8 @@ const CHECK_CHERRY: ComparisonPage = {
     },
     {
       point: "Fair pricing",
-      detail: "Around $30–75/mo (verified June 2026) for a polished booking front-end is reasonable.",
+      detail:
+        "$29–139/mo across its published tiers (verified June 11, 2026) — reasonable for that polished a booking front-end.",
     },
   ],
   tableHeading: "Side by side",
@@ -685,8 +717,8 @@ const CHECK_CHERRY: ComparisonPage = {
       us: { mark: "na", note: "A forwarding rule behind any front-end, including Check Cherry's." },
     },
     {
-      feature: "Verified pricing (June 2026)",
-      them: { mark: "na", note: "~$30–75/mo" },
+      feature: "Verified pricing (June 11, 2026)",
+      them: { mark: "na", note: "$29–139/mo" },
       us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
     },
   ],
@@ -713,7 +745,7 @@ const CHECK_CHERRY: ComparisonPage = {
     {
       question: "Which is cheaper?",
       answer:
-        "They're comparable. Check Cherry runs roughly $30–75/mo (verified June 2026). Bright Ears is $25–149/mo by lead volume — Starter $25 (15 leads), Pro $79 (60 leads, sequences, auto-send), Studio $149 (multi-performer). At your cap, drafting pauses — never a surprise bill.",
+        "They're comparable. Check Cherry runs $29–139/mo across its tiers (verified June 11, 2026). Bright Ears is $25–149/mo by lead volume — Starter $25 (15 leads), Pro $79 (60 leads, auto-send autopilot), Studio $149 (150 leads, multi-performer, team) — with the full follow-up engine and weekly report in every tier. At your cap, drafting pauses — never a surprise bill.",
     },
     {
       question: "Do I still need nice booking forms if replies are instant?",
@@ -842,7 +874,7 @@ const HONEYBOOK: ComparisonPage = {
     {
       question: "How do the prices compare?",
       answer:
-        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (15 leads), $79/mo Pro (60 leads, follow-up sequences, auto-send, weekly report), $149/mo Studio (multi-performer, 150 leads, team), with a 14-day free trial and no card required.",
+        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (15 leads, 1 performer), $79/mo Pro (60 leads, auto-send autopilot), $149/mo Studio (150 leads, multi-performer, team) — every tier includes the complete assistant, follow-up sequences and weekly report — with a 14-day free trial and no card required.",
     },
     {
       question: "What if I'm already mid-migration to HoneyBook?",
@@ -897,7 +929,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     },
     {
       name: "Check Cherry",
-      price: "~$30–75/mo",
+      price: "$29–139/mo",
       take:
         "The modern-feeling option: beautiful booking forms, packages, proposals, payments. Lighter on deep multi-op workflow than DJEP.",
       slug: "check-cherry",
@@ -911,7 +943,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     },
     {
       name: "Vibo",
-      price: "$99–179/mo",
+      price: "$149–179/mo",
       take:
         "Not actually a DJEP alternative — it's client music planning after the booking. Listed because it's often cross-shopped; it replaces nothing in your back office.",
       slug: "vibo",
@@ -939,7 +971,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     {
       question: "What's the closest like-for-like DJ Event Planner alternative?",
       answer:
-        "GigBuilder covers the most similar ground at a similar price ($25–50/mo, verified June 2026), with Check Cherry (~$30–75/mo) as the modern-feeling option if forms and proposals matter more than deep multi-op workflow. Neither is a clean upgrade on every axis — DJEP's depth is real.",
+        "GigBuilder covers the most similar ground at a similar price ($25–50/mo, verified June 2026), with Check Cherry ($29–139/mo) as the modern-feeling option if forms and proposals matter more than deep multi-op workflow. Neither is a clean upgrade on every axis — DJEP's depth is real.",
     },
     {
       question: "Should I switch away from DJ Event Planner at all?",
@@ -954,7 +986,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     {
       question: "What does the bolt-on option cost?",
       answer:
-        "Bright Ears starts at $25/mo (15 leads, 1 performer), with Pro at $79/mo (60 leads, follow-up sequences, auto-send, weekly report) and Studio at $149/mo (multi-performer, 150 leads, team). 14-day free trial, no card. Extra leads $10 per 10 — at your cap, drafting pauses rather than surprise-billing you.",
+        "Bright Ears starts at $25/mo (15 leads, 1 performer — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). 14-day free trial, no card. Extra leads $10 per 10 — at your cap, drafting pauses rather than surprise-billing you.",
     },
   ],
   ctaHeading: "Fix the complaint without the migration",
