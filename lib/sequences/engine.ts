@@ -48,11 +48,11 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       // eventDate), causing a redraft-then-expire loop that burns LLM cost.
       OR: [{ eventDate: null }, { eventDate: { gte: now } }],
     },
-    include: { business: { select: { id: true, plan: true } } },
+    include: { business: { select: { id: true, plan: true, trialEndsAt: true } } },
     take: 50,
   });
   for (const lead of undrafted) {
-    const meter = await meterState(lead.business.id, lead.business.plan, now);
+    const meter = await meterState(lead.business.id, lead.business.plan, now, lead.business.trialEndsAt);
     if (meter.overCap) continue; // still capped — leave NEW, owner already nudged
     try {
       await generateDraftForLead(lead.id);

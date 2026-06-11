@@ -157,7 +157,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   // Lead-cap metering: at cap we still INGEST (never lose a lead) but pause
   // drafting and nudge the owner — never a surprise bill (CLAUDE.md pricing).
   if (!isSpam) {
-    const meter = await meterState(business.id, business.plan);
+    const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
     if (meter.overCap) {
       void pushToBusiness(business.id, {
         title: "Lead cap reached",

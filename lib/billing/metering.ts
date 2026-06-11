@@ -34,8 +34,12 @@ export async function meterState(
   businessId: string,
   plan: PlanTier,
   now = new Date(),
+  trialEndsAt?: Date | null,
 ): Promise<MeterState> {
   const used = await leadsUsedThisMonth(businessId, now);
   const cap = PLAN_LEAD_CAPS[plan];
-  return { used, cap, overCap: used > cap };
+  // Expired trial without a subscription: drafting pauses entirely (cap 0
+  // semantics) — leads still ingest, nothing is lost, resubscribing resumes.
+  const trialExpired = plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
+  return { used, cap, overCap: trialExpired || used > cap };
 }
