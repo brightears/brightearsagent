@@ -43,3 +43,4 @@ Reference added: mustardmusic.com (kinetic editorial type, scroll choreography, 
    - Hover micro-motion: posters get scale-[1.015] + shadow lift; buttons get a 2px translate-y press state. Sticker chips may wiggle ±1° on hover.
 5. **Copy attitude:** section intros may take a stance ("Speed isn't a feature. It's the whole game." / "Replies, not promises."). Never corporate-neutral filler.
 6. **Asymmetry over centering:** alternate left/right alignment per section; let collage pieces bleed off edges; avoid three-equal-cards rhythm twice in a row.
+7. **Empty states are typography-first** (founder-killed the halo-ring + mini-icon composition, June 11): full size = left-aligned statement title in display black with one gradient-painted word + optional mono kicker + vinyl corner bleed; compact = a single mono ALL-CAPS tracked line. No icons, no icon-in-a-ring, ever — type and the show gradient do the work.
