@@ -13,7 +13,7 @@ Rules of engagement for any agent working this file:
 - [x] Acceptance verified: `npm run build` green; `/dashboard` (pipeline columns by status) server-renders all seeded leads + spam-filtered count
 
 ## Phase 1 — Inbound spike (the product's mouth) ✅ (June 10, 2026)
-- [x] ADR-001: **Postmark** (inbound-parse quality + deliverability; provider-agnostic InboundEmail type isolates a future swap) — 🔑 founder Postmark account STILL PENDING (not blocking: everything runs on fixtures locally)
+- [x] ADR-001: **Postmark** (inbound-parse quality + deliverability; provider-agnostic InboundEmail type isolates a future swap) — 🔑 ✅ DONE June 11: account live (server 19519786, token in .env.local), sender signature norbert@brightears.io verified, OUTBOUND_FROM set, REAL email sent & delivered through the full pipeline (webhook → draft → approve → Postmark → inbox). Test mode: ≤100 emails, recipients @brightears.io only. BEFORE LAUNCH: click "Request approval" in Postmark (lifts recipient restriction) + DKIM/Return-Path DNS at Phase 8
 - [x] Inbound webhook `app/api/inbound` (Postmark JSON → InboundEmail), tenant by slug address, shared-secret auth, idempotent on MessageID, error-wrapped (500 → Postmark retries)
 - [x] Fixture library: 14 sanitized fixtures across theknot/weddingwire/bark/gigsalad/generic, structures researched from vendor-support docs + Mailparser/Zapier templates (agents' format evidence in fixture `_researchNotes`)
 - [x] Source parsers ×4 + LLM fallback parser (null-tolerant schema — cheap models return null for empty optionals); reply-matching attaches client replies to their lead → ENGAGED + stops sequences; 46 unit tests green
