@@ -68,13 +68,13 @@ Rules of engagement for any agent working this file:
 - [x] High-effort multi-agent review of all 16 commits (7 finder angles + verify): 10 correctness + security findings fixed (commit 4d060c1) — compliance send-boundary hard-stop, sequence scheduling/retry/redraft robustness, double-draft + invalid-date + idempotency races, triage false-positive split, fail-closed prod auth, tenant-scoped actions, unique constraints + hot-query indexes. Lower-severity cleanup/efficiency/altitude items tracked in docs/REVIEW-DEFERRED.md
 - [x] Local dev secrets added (INBOUND_WEBHOOK_SECRET/CRON_SECRET/OPTOUT_SECRET) so prod fail-closed auth doesn't block local E2E
 
-## Phase 7 — Production deployment 🔑 GitHub repo + push access, Render API key or new service (NOT the existing brightears service)
-- [ ] Founder: install GitHub CLI (`brew install gh && gh auth login`) or provide a repo + token; create private repo `brightears-app`, push; create Render API key (dashboard.render.com → Account Settings → API Keys) so agents can configure the service directly
-- [ ] New Render web service + Postgres (separate from `brightears`/`brightears-db`!), env config, real migrations (`prisma migrate deploy` — NEVER `db push --accept-data-loss`), automated DB backups enabled and documented
-- [ ] Render cron for sequences + weekly reports; health checks; error tracking (Sentry or similar); uptime monitor
-- [ ] Security pass: webhook signature verification (provider + Stripe), rate limiting, tenant isolation audit, secrets audit (nothing committed)
-- [ ] E2E smoke suite against production temp URL
-- [ ] Acceptance: production demo loop green end-to-end on temp URL for 7 consecutive days
+## Phase 7 — Production deployment — ✅ core done (June 11, 2026)
+- [x] GitHub: repo `brightears/brightearsagent`, pushed via existing keychain creds (no new token needed); Render API key provided (⚠️ founder: ROTATE it — it passed through chat)
+- [x] New Render infra via API (scripts/render-deploy.py + render-crons.py, docs/DEPLOYMENT.md): web `brightears-app` (srv-d8l2ni6gvqtc73ag9gsg, starter always-on, Singapore, auto-deploy) + Postgres `brightears-app-db` (dpg-d8l2martqb8s73anqjig-a, basic_256mb) — fully separate from the live brightears stack; migrations via `npm run db:deploy` pre-deploy (never db push); fresh prod secrets (not dev values)
+- [x] 3 crons created + endpoints manually verified with prod secret: sequences */30, weekly report Mon 14:00 UTC, margin guardrail daily 02:00 UTC
+- [x] First deploy LIVE at https://brightears-app.onrender.com — smoke: marketing 200s, dashboard → Clerk redirect, webhook/cron fail-closed 401 without secret, live demo-reply LLM call works from Render
+- [ ] Remaining: error tracking (Sentry) + uptime monitor; DB backup verification on Render plan; Lighthouse pass (Phase 6 leftover); 7-day green soak before launch
+- [ ] STAGING NOTE: runs on test/sandbox keys (Postmark test mode, Clerk dev instance, Stripe test) — see docs/DEPLOYMENT.md "Before launch" for the key-swap + domain + inbound-email cutover list
 
 ## Phase 8 — brightears.io cutover (Vinyl-safe, in this exact order) 🔑 DNS + LINE console + Clerk dashboard
 - [ ] 1. Create `agency.brightears.io` → OLD Render service; verify venue portal + admin load there
