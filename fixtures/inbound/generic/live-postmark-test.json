@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Live Postmark test: client email = founder's own address so test-mode sending works (same domain as verified signature).",
+  "from": "norbert@brightears.io",
+  "fromName": "Test Couple",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Wedding DJ inquiry — testing our new system!",
+  "textBody": "Hi! We're getting married on November 21, 2026 at the Riverside Pavilion, around 110 guests. Are you available that evening, and what would your wedding package cost? We love funk and disco!",
+  "providerMessageId": "live-postmark-test-001"
+}
