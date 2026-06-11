@@ -4,7 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { isoDay } from "@/lib/agent/availability";
 import { deleteGig } from "@/app/actions/gigs";
 import { GigForm } from "@/components/gig-form";
-import { Card, EmptyState, PageHeader, StatPill, buttonStyles } from "@/components/ui";
+import { Card, EmptyState, Kicker, PageHeader, StatPill, buttonStyles } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -102,8 +102,13 @@ export default async function CalendarPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] items-start">
         <Card className="p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">{monthLabel}</h2>
+          <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+            <div>
+              <Kicker onLight>The books</Kicker>
+              <h2 className="mt-1 text-3xl font-black tracking-tighter text-ink-stage">
+                {monthLabel}
+              </h2>
+            </div>
             <div className="flex items-center gap-2">
               <Link
                 href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, -1)}`}
@@ -129,8 +134,8 @@ export default async function CalendarPage({
             {WEEKDAYS.map((d, i) => (
               <p
                 key={d}
-                className={`text-center text-xs font-semibold py-1 ${
-                  i === 0 || i === 6 ? "text-ink-stage/60" : "text-ink-stage/40"
+                className={`text-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] py-1 ${
+                  i === 0 || i === 6 ? "text-ink-stage/60" : "text-ink-stage/35"
                 }`}
               >
                 {d}
@@ -161,14 +166,21 @@ export default async function CalendarPage({
                     isWeekend ? "bg-cream/50" : "bg-white"
                   } ${isToday ? "border-brand-cyan ring-2 ring-brand-cyan/30" : "border-cream"}`}
                 >
-                  <p className="text-xs font-semibold">
+                  <p className="flex items-center justify-between font-mono text-[11px] font-bold">
                     {isToday ? (
                       // Cyan = interface accent; ink text on cyan (~7.5:1 — white fails).
-                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-cyan text-[11px] font-bold text-ink-stage">
+                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-cyan text-ink-stage">
                         {day}
                       </span>
                     ) : (
-                      <span className="text-ink-stage/50">{day}</span>
+                      <span className="text-ink-stage/45">{day}</span>
+                    )}
+                    {dayGigs.length > 0 && (
+                      // Show-voice dot: this date makes noise.
+                      <span
+                        aria-hidden
+                        className="size-1.5 rounded-full bg-gradient-to-r from-neon-magenta to-neon-orange"
+                      />
                     )}
                   </p>
                   {dayGigs.map((gig) => (
@@ -210,18 +222,20 @@ export default async function CalendarPage({
           </div>
 
           {gigs.length === 0 && (
-            <EmptyState
-              compact
-              mark="calendar"
-              title="Nothing booked this month — yet"
-              hint="Add a gig and the AI treats that date as taken."
-            />
+            <div className="mt-3">
+              <EmptyState
+                compact
+                title="Nothing booked this month — yet"
+                hint="Add a gig and the AI treats that date as taken."
+              />
+            </div>
           )}
         </Card>
 
         <Card className="overflow-hidden">
           <div className="bg-cream/60 px-6 py-4">
-            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">Add a gig</h2>
+            <Kicker onLight>New booking</Kicker>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a gig</h2>
             <p className="text-xs text-ink-stage/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
           </div>
           <div className="p-6">

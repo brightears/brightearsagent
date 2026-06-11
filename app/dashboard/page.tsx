@@ -8,7 +8,6 @@ import {
   PageHeader,
   StatPill,
   buttonStyles,
-  type EmptyStateMark,
 } from "@/components/ui";
 import { GradientBlob, StickerChip } from "@/components/collage";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
@@ -38,16 +37,16 @@ const ACCENT_TEXT: Record<string, string> = {
   "bg-cream/40": "text-ink-stage/70",
 };
 
-// Friendly per-column empty copy (docs/DESIGN.md: never a bare dash).
-// Marks are geometric CollageMarks — no emoji in chrome (v2.1 LAW rule 1).
-const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], { mark: EmptyStateMark; line: string }> = {
-  NEW: { mark: "inbox", line: "Quiet right now" },
-  DRAFTED: { mark: "draft", line: "No drafts waiting" },
-  REPLIED: { mark: "inbox", line: "Nothing in flight" },
-  IN_SEQUENCE: { mark: "calendar", line: "No nudges running" },
-  ENGAGED: { mark: "inbox", line: "No one talking yet" },
-  BOOKED: { mark: "report", line: "Your next yes lands here" },
-  DEAD: { mark: "none", line: "Nobody's gone quiet" },
+// Friendly per-column empty copy (docs/DESIGN.md: never a bare dash) —
+// rendered as compact mono sticker-speak lines (v2.1: typography, no icons).
+const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], string> = {
+  NEW: "Quiet right now",
+  DRAFTED: "No drafts waiting",
+  REPLIED: "Nothing in flight",
+  IN_SEQUENCE: "No nudges running",
+  ENGAGED: "No one talking yet",
+  BOOKED: "Your next yes lands here",
+  DEAD: "Nobody's gone quiet",
 };
 
 function fmtDate(d: Date | null) {
@@ -117,8 +116,9 @@ export default async function Dashboard() {
           <GradientBlob tone="show" className="-bottom-8 -right-6 h-32 w-52" />
           <div className="relative">
             <EmptyState
-              mark="inbox"
-              title="No leads yet"
+              kicker="The inbox is listening"
+              title="No leads yet."
+              accent="yet."
               hint="Connect your leads — your forwarding test will land here."
               cta={
                 <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
@@ -171,11 +171,7 @@ export default async function Dashboard() {
                   ))}
                   {columnLeads.length === 0 && (
                     <li>
-                      <EmptyState
-                        compact
-                        mark={COLUMN_EMPTY[status].mark}
-                        title={COLUMN_EMPTY[status].line}
-                      />
+                      <EmptyState compact title={COLUMN_EMPTY[status]} />
                     </li>
                   )}
                 </ul>

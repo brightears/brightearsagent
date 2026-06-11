@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { deletePackage } from "@/app/actions/packages";
 import { PackageForm } from "@/components/package-form";
-import { Badge, Card, EmptyState, PageHeader, StatPill, buttonStyles } from "@/components/ui";
+import { Badge, Card, EmptyState, Kicker, PageHeader, StatPill, buttonStyles } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -98,8 +98,9 @@ export default async function PackagesPage() {
           {packages.length === 0 && (
             <Card className="sm:col-span-2 p-6">
               <EmptyState
-                mark="package"
-                title="Add your first package"
+                kicker="Your rate card"
+                title="Add your first package."
+                accent="package."
                 hint="It's what the AI is allowed to quote — start with the form on the right."
               />
             </Card>
@@ -108,7 +109,8 @@ export default async function PackagesPage() {
 
         <Card className="overflow-hidden">
           <div className="bg-cream/60 px-6 py-4">
-            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">Add a package</h2>
+            <Kicker onLight>New package</Kicker>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a package</h2>
             <p className="text-xs text-ink-stage/60 mt-0.5">Prices in dollars — we&apos;ll handle the cents.</p>
           </div>
           <div className="p-6">

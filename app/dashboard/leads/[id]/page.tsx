@@ -113,7 +113,7 @@ export default async function LeadDetailPage({
           {lead.messages.length === 0 ? (
             <Card>
               <EmptyState
-                mark="inbox"
+                compact
                 title="No messages yet"
                 hint="The conversation with this lead will live here."
               />

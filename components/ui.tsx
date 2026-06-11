@@ -8,8 +8,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
-import { CollageMark, HaloRing, RingsBackdrop, VinylDisc } from "@/components/collage";
-import type { CollageMarkKind } from "@/components/collage";
+import { RingsBackdrop, VinylDisc } from "@/components/collage";
 
 /** White data card floating on the ink canvas. Never tilted (app rule). */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -124,21 +123,7 @@ export function PageHeader({
   accent?: string;
   rings?: boolean;
 }) {
-  let heading: ReactNode = title;
-  if (accent && typeof title === "string") {
-    const at = title.indexOf(accent);
-    if (at !== -1) {
-      heading = (
-        <>
-          {title.slice(0, at)}
-          <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-            {accent}
-          </span>
-          {title.slice(at + accent.length)}
-        </>
-      );
-    }
-  }
+  const heading: ReactNode = typeof title === "string" ? paintAccent(title, accent) : title;
   return (
     <header className="relative overflow-hidden rounded-3xl bg-ink-raised border border-cream/10 px-6 py-6 mb-8">
       {rings && <RingsBackdrop />}
@@ -197,58 +182,73 @@ export function StatPill({ children, tone = "white" }: { children: ReactNode; to
   );
 }
 
+/** Gradient-paints one substring of a title (the v2 signature). */
+function paintAccent(title: string, accent?: string): ReactNode {
+  if (!accent) return title;
+  const at = title.indexOf(accent);
+  if (at === -1) return title;
+  return (
+    <>
+      {title.slice(0, at)}
+      <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
+        {accent}
+      </span>
+      {title.slice(at + accent.length)}
+    </>
+  );
+}
+
 /**
  * Friendly empty state — never render a bare dash (docs/DESIGN.md).
- * v2: a cream poster mini-panel with a small collage piece (halo behind the
- * copy; a dark vinyl bleeding off the corner on the full-size variant).
- * v2.1 (LAW rule 1): no emoji, ever — `mark` picks a geometric CollageMark
- * (components/collage.tsx) drawn above the title, or "none" for copy only.
+ * v2.1 "Edge": typography does the work — no icons, no halo (founder-killed).
+ * Full size = left-aligned cream poster, statement title in display black
+ * with an optional gradient-painted substring (`accent`), optional mono
+ * `kicker` above, dark vinyl bleeding off the corner.
+ * Compact (pipeline columns, in-card strips) = a single mono ALL-CAPS
+ * tracked line — sticker-speak, no ornament.
  */
-export type EmptyStateMark = CollageMarkKind | "none";
-
 export function EmptyState({
-  mark = "none",
+  kicker,
   title,
+  accent,
   hint,
   cta,
   compact = false,
 }: {
-  mark?: EmptyStateMark;
+  /** Mono ALL-CAPS line above the title (full size only). */
+  kicker?: string;
   title: string;
+  /** Substring of `title` to paint with the show gradient. */
+  accent?: string;
   hint?: string;
   cta?: ReactNode;
   compact?: boolean;
 }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-2xl bg-cream text-center ${
-        compact ? "px-3 py-5" : "px-6 py-12"
-      }`}
-    >
-      <HaloRing
-        width={compact ? 110 : 190}
-        height={compact ? 40 : 70}
-        tilt={-12}
-        className={compact ? "left-1/2 top-3 -ml-14" : "left-1/2 top-8 -ml-24"}
-      />
-      {!compact && <VinylDisc size={88} tone="dark" className="-bottom-10 -right-10" />}
-      <div className="relative">
-        {mark !== "none" && (
-          <div className={`flex justify-center ${compact ? "mb-1.5" : "mb-3"}`}>
-            <CollageMark kind={mark} size={compact ? 40 : 52} />
-          </div>
-        )}
-        <p
-          className={
-            compact ? "text-xs font-semibold text-ink-stage/80" : "text-base font-bold text-ink-stage/80"
-          }
-        >
+  if (compact) {
+    return (
+      <div className="rounded-xl bg-cream px-4 py-4">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/50">
           {title}
         </p>
-        {hint && (
-          <p className={`text-ink-stage/55 mt-1 ${compact ? "text-[11px]" : "text-xs"}`}>{hint}</p>
+        {hint && <p className="mt-1 text-[11px] text-ink-stage/55 normal-case">{hint}</p>}
+        {cta && <div className="mt-2.5">{cta}</div>}
+      </div>
+    );
+  }
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-cream px-6 py-10 sm:px-8 text-left">
+      <VinylDisc size={96} tone="dark" className="-bottom-11 -right-11" />
+      <div className="relative">
+        {kicker && (
+          <div className="mb-2">
+            <Kicker onLight>{kicker}</Kicker>
+          </div>
         )}
-        {cta && <div className="mt-3">{cta}</div>}
+        <p className="text-2xl sm:text-3xl font-black tracking-tight text-ink-stage leading-[1.05]">
+          {paintAccent(title, accent)}
+        </p>
+        {hint && <p className="mt-2 max-w-md text-sm text-ink-stage/55">{hint}</p>}
+        {cta && <div className="mt-5">{cta}</div>}
       </div>
     </div>
   );
