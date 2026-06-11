@@ -34,7 +34,7 @@ export async function OnboardingBanner() {
       <div className="relative flex flex-wrap items-center gap-4 overflow-hidden rounded-3xl bg-cream px-6 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
         <HaloRing width={150} height={54} tilt={-10} className="-right-9 -top-4" />
         <StickerChip tone="ink" rotate={-3} className="relative shrink-0">
-          🪄 Soundcheck pending
+          Soundcheck pending
         </StickerChip>
         <p className="relative min-w-48 flex-1 text-sm text-ink-stage/75">
           <span className="font-bold text-ink-stage">Almost there —</span> we still need {missing}{" "}

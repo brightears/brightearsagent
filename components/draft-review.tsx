@@ -101,7 +101,7 @@ export function DraftReview({
 
       <div className="-mt-2.5 flex flex-wrap items-center justify-between gap-2 px-6 pt-4 pb-3">
         <h2 className="text-sm font-extrabold tracking-tight text-ink-stage">
-          <span aria-hidden>✍️</span> Reply ready — written in your voice
+          Reply ready — written in your voice
         </h2>
         <StickerChip tone="magenta" rotate={3}>
           Reply ready
@@ -173,7 +173,7 @@ export function DraftReview({
           </p>
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={onBooked} disabled={busy} className={bookedButtonStyle}>
-              Mark booked 🎉
+              Mark booked
             </button>
             <button type="button" onClick={onDead} disabled={busy} className={buttonStyles.danger}>
               Mark dead

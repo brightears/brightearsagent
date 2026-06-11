@@ -37,3 +37,62 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Motion kit (components/motion.tsx) — design law v2.1 "Edge".
+   All motion is CSS-driven; prefers-reduced-motion turns it off wholesale. */
+@keyframes be-word-rise {
+  from {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.be-kinetic-word {
+  display: inline-block;
+  animation: be-word-rise 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.be-reveal {
+  transition:
+    opacity 600ms ease-out,
+    transform 600ms ease-out;
+}
+
+.be-reveal-hidden {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+@keyframes be-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.be-marquee-track {
+  animation: be-marquee-scroll 40s linear infinite;
+}
+
+.be-marquee:hover .be-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .be-kinetic-word,
+  .be-marquee-track {
+    animation: none;
+  }
+  .be-reveal,
+  .be-reveal-hidden {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

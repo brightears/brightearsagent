@@ -1,6 +1,5 @@
-import type { ReactNode } from "react";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { Card, Badge, buttonStyles, PageHeader } from "@/components/ui";
+import { Card, Badge, buttonStyles, Kicker, PageHeader } from "@/components/ui";
 import { SettingsForm, CopyButton } from "@/components/settings-form";
 import { PushToggle } from "@/components/push-toggle";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
@@ -16,44 +15,17 @@ const PLAN_CARDS = [
   { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
 ];
 
-/**
- * Sticker-chip section title (v2) — mono, uppercase, slightly rotated ink pill
- * on the white card ("💳 PLAN & BILLING"). Replaces the old emoji tiles.
- */
-function SectionTitle({
-  emoji,
-  rotate = -1,
-  className = "",
-  children,
-}: {
-  emoji: string;
-  rotate?: number;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <h2 className={className}>
-      <span
-        className="inline-block rounded-full bg-ink-stage px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-cream"
-        style={{ transform: `rotate(${rotate}deg)` }}
-      >
-        <span aria-hidden className="mr-1.5">
-          {emoji}
-        </span>
-        {children}
-      </span>
-    </h2>
-  );
-}
+// Section titles use the editorial Kicker system (docs/DESIGN.md v2.1 rule 2)
+// — mono ALL-CAPS tracked labels, cyan square prefix, no emoji ever (rule 1).
 
 async function BillingCard() {
   const state = await billingState();
   return (
     <Card className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle emoji="💳">
-          Plan &amp; billing
-        </SectionTitle>
+        <h2>
+          <Kicker onLight>Plan &amp; billing</Kicker>
+        </h2>
         <Badge tone={state.subscribed ? "teal" : "peach"}>
           {state.subscribed ? state.plan : state.trialDaysLeft !== null && state.trialDaysLeft > 0 ? `Trial · ${state.trialDaysLeft} days left` : "Trial ended"}
         </Badge>
@@ -125,9 +97,9 @@ export default async function SettingsPage() {
       <div className="space-y-6">
         <BillingCard />
         <Card className="p-6">
-          <SectionTitle emoji="🏢" rotate={1} className="mb-5">
-            Business profile
-          </SectionTitle>
+          <h2 className="mb-5">
+            <Kicker onLight>Business profile</Kicker>
+          </h2>
           <SettingsForm
             business={{
               name: business.name,
@@ -144,9 +116,9 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <SectionTitle emoji="📬" rotate={-1} className="mb-4">
-            Your lead address
-          </SectionTitle>
+          <h2 className="mb-4">
+            <Kicker onLight>Your lead address</Kicker>
+          </h2>
           <div className="mb-3 flex flex-wrap items-center gap-3">
             {/* Cyan-soft pill, ink text (~12:1) — the interface accent. */}
             <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft px-4 py-2">
@@ -163,9 +135,9 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <SectionTitle emoji="🔔" rotate={1} className="mb-2">
-            Notifications
-          </SectionTitle>
+          <h2 className="mb-2">
+            <Kicker onLight>Notifications</Kicker>
+          </h2>
           <p className="text-sm text-ink-stage/60 mb-4">
             Get a ping the moment a reply is ready, so you can approve it from your phone — even
             from the booth.

@@ -8,6 +8,7 @@ import {
   PageHeader,
   StatPill,
   buttonStyles,
+  type EmptyStateMark,
 } from "@/components/ui";
 import { GradientBlob, StickerChip } from "@/components/collage";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
@@ -38,14 +39,15 @@ const ACCENT_TEXT: Record<string, string> = {
 };
 
 // Friendly per-column empty copy (docs/DESIGN.md: never a bare dash).
-const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], { emoji: string; line: string }> = {
-  NEW: { emoji: "📥", line: "Quiet right now" },
-  DRAFTED: { emoji: "✍️", line: "No drafts waiting" },
-  REPLIED: { emoji: "📤", line: "Nothing in flight" },
-  IN_SEQUENCE: { emoji: "🔁", line: "No nudges running" },
-  ENGAGED: { emoji: "💬", line: "No one talking yet" },
-  BOOKED: { emoji: "🎉", line: "Your next yes lands here" },
-  DEAD: { emoji: "🌙", line: "Nobody's gone quiet" },
+// Marks are geometric CollageMarks — no emoji in chrome (v2.1 LAW rule 1).
+const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], { mark: EmptyStateMark; line: string }> = {
+  NEW: { mark: "inbox", line: "Quiet right now" },
+  DRAFTED: { mark: "draft", line: "No drafts waiting" },
+  REPLIED: { mark: "inbox", line: "Nothing in flight" },
+  IN_SEQUENCE: { mark: "calendar", line: "No nudges running" },
+  ENGAGED: { mark: "inbox", line: "No one talking yet" },
+  BOOKED: { mark: "report", line: "Your next yes lands here" },
+  DEAD: { mark: "none", line: "Nobody's gone quiet" },
 };
 
 function fmtDate(d: Date | null) {
@@ -99,7 +101,7 @@ export default async function Dashboard() {
             <StatPill>{spamCount} spam filtered for you</StatPill>
             {bookedThisMonth > 0 && (
               <StickerChip tone="magenta" rotate={-2}>
-                🎉 {bookedThisMonth} booked this month
+                {bookedThisMonth} booked this month
               </StickerChip>
             )}
           </>
@@ -115,7 +117,7 @@ export default async function Dashboard() {
           <GradientBlob tone="show" className="-bottom-8 -right-6 h-32 w-52" />
           <div className="relative">
             <EmptyState
-              emoji="💌"
+              mark="inbox"
               title="No leads yet"
               hint="Connect your leads — your forwarding test will land here."
               cta={
@@ -171,7 +173,7 @@ export default async function Dashboard() {
                     <li>
                       <EmptyState
                         compact
-                        emoji={COLUMN_EMPTY[status].emoji}
+                        mark={COLUMN_EMPTY[status].mark}
                         title={COLUMN_EMPTY[status].line}
                       />
                     </li>

@@ -27,3 +27,19 @@ Unchanged: warm, brief, second person ("Reply ready", "Gone quiet", "You'll hear
 
 ## Don'ts
 No pastel gradients-on-white (the failed v1). No pure-black (#000) — ink is #17161f. No more than one ring-pattern per page. No tilted/collaged DATA cards in the app. Never use magenta for destructive actions (quiet red outline stays). The cyan/magenta split is law: interface = cyan, show = magenta.
+
+---
+
+## v2.1 "Edge" amendments (June 11 — founder: "contemporary, edgy, cool — not a business look")
+Reference added: mustardmusic.com (kinetic editorial type, scroll choreography, ALL-CAPS kickers, statement copy: "EARS, NOT ALGORITHMS").
+
+1. **NO EMOJI IN UI. EVER.** Not in empty states, not in section titles, not in buttons. Replace with: collage marks (components/collage.tsx), mono kickers, or nothing. (Copy inside AI-drafted *emails* may keep human warmth — this rule is about interface chrome.) The one sanctioned exception: the Booked 🎉 *status label string* dies too — it becomes the gradient treatment doing the celebrating.
+2. **Editorial kickers replace cute labels:** every section opens with a mono ALL-CAPS tracked kicker ("THE PIPELINE", "YOUR SOUND", "PLAN & BILLING") — small, cream/50 on ink or ink/50 on cream, optionally preceded by a 4px cyan square. This is the section-title system everywhere (marketing + app).
+3. **Type goes bigger and tighter than feels safe.** Display moments: text-7xl→9xl, font-black, leading-[0.95], tracking-tighter. Let headlines crop into padding. Statement lines in ALL-CAPS for kickers/quotes only — body text stays sentence case.
+4. **Motion is mandatory, not garnish** (components/motion.tsx): 
+   - `KineticHeadline` — hero words rise+fade in staggered on load (110ms stagger, translateY 110%→0 inside overflow-hidden line wrappers).
+   - `RevealOnScroll` — sections/posters rise 24px + fade as they enter viewport (IntersectionObserver, once, 600ms ease-out; respects prefers-reduced-motion).
+   - `Marquee` — full-bleed ticker strip of mono phrases separated by collage glyphs (vinyl dot), slow linear loop, pausable on hover. One per page max, used as a section divider ("ANSWERED IN 4:51 • BOOKED OR DEAD • YOUR VOICE • NO ALGORITHM SLOP • …").
+   - Hover micro-motion: posters get scale-[1.015] + shadow lift; buttons get a 2px translate-y press state. Sticker chips may wiggle ±1° on hover.
+5. **Copy attitude:** section intros may take a stance ("Speed isn't a feature. It's the whole game." / "Replies, not promises."). Never corporate-neutral filler.
+6. **Asymmetry over centering:** alternate left/right alignment per section; let collage pieces bleed off edges; avoid three-equal-cards rhythm twice in a row.

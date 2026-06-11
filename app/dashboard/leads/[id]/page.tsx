@@ -85,11 +85,11 @@ export default async function LeadDetailPage({
         subtitle={subtitle}
         stats={
           <>
-            <StatPill>📬 {SOURCE_LABELS[lead.source]}</StatPill>
+            <StatPill>{SOURCE_LABELS[lead.source]}</StatPill>
             <Badge tone={status.badgeTone}>{status.label}</Badge>
-            {lead.guestCount != null && <StatPill>👥 {lead.guestCount} guests</StatPill>}
-            {lead.clientEmail && <StatPill>✉️ {lead.clientEmail}</StatPill>}
-            {lead.clientPhone && <StatPill>📞 {lead.clientPhone}</StatPill>}
+            {lead.guestCount != null && <StatPill>{lead.guestCount} guests</StatPill>}
+            {lead.clientEmail && <StatPill>{lead.clientEmail}</StatPill>}
+            {lead.clientPhone && <StatPill>{lead.clientPhone}</StatPill>}
           </>
         }
       />
@@ -99,14 +99,9 @@ export default async function LeadDetailPage({
           /* Orange-soft alert card — opaque fill so it reads on the ink canvas;
              deep-amber #7a4100 lead-in on #ffdfba (~7:1, the checked pairing). */
           <div className="rounded-2xl bg-[#ffdfba] px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
-            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-stage/80">
-              <span className="text-lg" aria-hidden>
-                🛡️
-              </span>
-              <span>
-                <span className="font-semibold text-[#7a4100]">Filtered as spam for you</span> —{" "}
-                {lead.spamReason}
-              </span>
+            <p className="text-sm leading-relaxed text-ink-stage/80">
+              <span className="font-semibold text-[#7a4100]">Filtered as spam for you</span> —{" "}
+              {lead.spamReason}
             </p>
           </div>
         )}
@@ -118,7 +113,7 @@ export default async function LeadDetailPage({
           {lead.messages.length === 0 ? (
             <Card>
               <EmptyState
-                emoji="💌"
+                mark="inbox"
                 title="No messages yet"
                 hint="The conversation with this lead will live here."
               />

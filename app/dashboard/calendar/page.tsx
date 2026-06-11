@@ -94,7 +94,7 @@ export default async function CalendarPage({
         stats={
           gigs.length > 0 ? (
             <StatPill tone="teal">
-              🎶 {gigs.length} {gigs.length === 1 ? "gig" : "gigs"} this month
+              {gigs.length} {gigs.length === 1 ? "gig" : "gigs"} this month
             </StatPill>
           ) : undefined
         }
@@ -212,7 +212,7 @@ export default async function CalendarPage({
           {gigs.length === 0 && (
             <EmptyState
               compact
-              emoji="🗓️"
+              mark="calendar"
               title="Nothing booked this month — yet"
               hint="Add a gig and the AI treats that date as taken."
             />

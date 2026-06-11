@@ -36,24 +36,24 @@ const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-in
 // ---------------------------------------------------------------------------
 
 const STEPS = [
-  { label: "Your business", emoji: "🪩", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "What you sell", emoji: "💸", chip: "bg-neon-magenta text-white" },
-  { label: "Your voice", emoji: "💬", chip: "bg-neon-orange text-ink-stage" },
-  { label: "Your calendar", emoji: "📅", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "Connect leads", emoji: "⚡", chip: "bg-neon-magenta text-white" },
+  { label: "Your business", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "What you sell", chip: "bg-neon-magenta text-white" },
+  { label: "Your voice", chip: "bg-neon-orange text-ink-stage" },
+  { label: "Your calendar", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "Connect leads", chip: "bg-neon-magenta text-white" },
 ] as const;
 
-const KINDS: { kind: PerformerKind; emoji: string; label: string }[] = [
-  { kind: "DJ", emoji: "🎧", label: "DJ" },
-  { kind: "BAND", emoji: "🎸", label: "Band" },
-  { kind: "SINGER", emoji: "🎤", label: "Singer" },
-  { kind: "MAGICIAN", emoji: "🎩", label: "Magician" },
-  { kind: "DANCER", emoji: "🕺", label: "Dancer" },
-  { kind: "MC", emoji: "🎙️", label: "MC / Host" },
-  { kind: "PHOTO_BOOTH", emoji: "📸", label: "Photo booth" },
-  { kind: "MUSICIAN", emoji: "🎻", label: "Musician" },
-  { kind: "COMEDIAN", emoji: "😄", label: "Comedian" },
-  { kind: "OTHER", emoji: "✨", label: "Something else" },
+const KINDS: { kind: PerformerKind; label: string }[] = [
+  { kind: "DJ", label: "DJ" },
+  { kind: "BAND", label: "Band" },
+  { kind: "SINGER", label: "Singer" },
+  { kind: "MAGICIAN", label: "Magician" },
+  { kind: "DANCER", label: "Dancer" },
+  { kind: "MC", label: "MC / Host" },
+  { kind: "PHOTO_BOOTH", label: "Photo booth" },
+  { kind: "MUSICIAN", label: "Musician" },
+  { kind: "COMEDIAN", label: "Comedian" },
+  { kind: "OTHER", label: "Something else" },
 ];
 
 // US/UK/AU/CA first — our launch markets.
@@ -213,13 +213,12 @@ function StepBusiness({
               key={k.kind}
               onClick={() => setKind(k.kind)}
               aria-pressed={kind === k.kind}
-              className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-xs font-semibold transition-all ${
+              className={`flex items-center justify-center rounded-2xl border px-2 py-3 text-center text-xs font-semibold transition-all ${
                 kind === k.kind
                   ? "border-brand-cyan bg-brand-cyan-soft/60 text-ink-stage ring-2 ring-brand-cyan shadow-sm"
                   : "border-cream bg-white text-ink-stage/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
               }`}
             >
-              <span className="text-2xl" aria-hidden>{k.emoji}</span>
               {k.label}
             </button>
           ))}
@@ -349,7 +348,7 @@ function StepPackages({
               key={`${pkg.name}-${i}`}
               className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/40 px-4 py-3"
             >
-              <span aria-hidden>✅</span>
+              <span aria-hidden className="font-bold text-ink-stage">✓</span>
               <span className="font-semibold text-ink-stage">{pkg.name}</span>
               <span className="text-sm text-ink-stage/70">{priceLabel(pkg)}</span>
               <span className="ml-auto flex flex-wrap gap-1">
@@ -618,7 +617,7 @@ function StepCalendar({
 
       {savedCount > 0 && (
         <p className="rounded-2xl bg-brand-cyan-soft/60 px-4 py-2 text-sm font-medium text-ink-stage">
-          ✅ {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
+          ✓ {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
         </p>
       )}
 
@@ -645,7 +644,7 @@ function StepCalendar({
               className="flex-none rounded-full px-2 py-1 text-ink-stage/40 hover:text-red-600 transition-colors"
               aria-label={`Remove row ${i + 1}`}
             >
-              ✕
+              ×
             </button>
           </div>
         ))}
@@ -685,18 +684,17 @@ function StepCalendar({
 // ---------------------------------------------------------------------------
 
 function Walkthrough({
-  icon,
   title,
   children,
 }: {
-  icon: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <details className="group rounded-2xl border border-cream bg-white">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-ink-stage [&::-webkit-details-marker]:hidden">
-        <span aria-hidden>{icon}</span>
+      <summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 py-3 text-sm font-semibold text-ink-stage [&::-webkit-details-marker]:hidden">
+        {/* cyan square anchor — the Kicker system's prefix (v2.1 rule 2), no emoji */}
+        <span aria-hidden className="size-1.5 flex-none bg-brand-cyan" />
         {title}
         <span aria-hidden className="ml-auto text-ink-stage/40 transition-transform group-open:rotate-90">
           ›
@@ -739,7 +737,7 @@ function StepConnect({
       </div>
 
       <div className="space-y-2">
-        <Walkthrough icon="✉️" title="Gmail / Google Workspace">
+        <Walkthrough title="Gmail / Google Workspace">
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>
               In Gmail, click the gear → <strong>See all settings</strong> →{" "}
@@ -769,7 +767,7 @@ function StepConnect({
           </ol>
         </Walkthrough>
 
-        <Walkthrough icon="📮" title="Outlook / Microsoft 365">
+        <Walkthrough title="Outlook / Microsoft 365">
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>
               In Outlook on the web, click the gear → <strong>Mail</strong> →{" "}
@@ -787,7 +785,7 @@ function StepConnect({
           </ol>
         </Walkthrough>
 
-        <Walkthrough icon="💍" title="The Knot & WeddingWire">
+        <Walkthrough title="The Knot & WeddingWire">
           <p className="mb-2">
             Both platforms email you a notification for every new lead — that notification is what
             we read. Two ways to route it:
@@ -806,7 +804,7 @@ function StepConnect({
           </ol>
         </Walkthrough>
 
-        <Walkthrough icon="🌐" title="Your website's contact form">
+        <Walkthrough title="Your website's contact form">
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>
               Open your form’s settings — WPForms / Gravity Forms / Contact Form 7 on WordPress,
@@ -817,7 +815,7 @@ function StepConnect({
               lead address as a recipient. Keep your own email on the list if you like a copy.
             </li>
             <li>
-              Submit your own form once to test — that counts for the live check below. 😉
+              Submit your own form once to test — that counts for the live check below.
             </li>
           </ol>
         </Walkthrough>
@@ -985,9 +983,12 @@ export function OnboardingWizard({
                         : "border-[1.5px] border-cream/25 bg-cream/5 text-cream/45"
                   }`}
                 >
-                  <span aria-hidden>{done ? "✓" : s.emoji}</span>
+                  {/* Step number (typographic ✓ once done) — no emoji (v2.1 LAW). */}
+                  <span aria-hidden className="font-mono font-bold">
+                    {done ? "✓" : i + 1}
+                  </span>
                   <span className="hidden sm:inline">{s.label}</span>
-                  <span className="sm:hidden">{i + 1}</span>
+                  <span className="sr-only sm:hidden">{s.label}</span>
                 </button>
               </li>
             );

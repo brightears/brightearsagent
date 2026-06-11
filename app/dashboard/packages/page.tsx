@@ -98,7 +98,7 @@ export default async function PackagesPage() {
           {packages.length === 0 && (
             <Card className="sm:col-span-2 p-6">
               <EmptyState
-                emoji="📦"
+                mark="package"
                 title="Add your first package"
                 hint="It's what the AI is allowed to quote — start with the form on the right."
               />

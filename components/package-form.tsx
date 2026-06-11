@@ -148,7 +148,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
         // Tiny show-voice celebration — the sanctioned sticker chip (docs/DESIGN.md).
         <p>
           <StickerChip tone="magenta" rotate={-2}>
-            Package added 🎉
+            Package added
           </StickerChip>
         </p>
       )}

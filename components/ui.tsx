@@ -8,7 +8,8 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
-import { HaloRing, RingsBackdrop, VinylDisc } from "@/components/collage";
+import { CollageMark, HaloRing, RingsBackdrop, VinylDisc } from "@/components/collage";
+import type { CollageMarkKind } from "@/components/collage";
 
 /** White data card floating on the ink canvas. Never tilted (app rule). */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -154,6 +155,32 @@ export function PageHeader({
 }
 
 /**
+ * Editorial section kicker (docs/DESIGN.md v2.1 rule 2) — the section-title
+ * system everywhere: mono ALL-CAPS tracked label with a 4px cyan square
+ * prefix. Default styling sits on the ink canvas (cream/50); pass `onLight`
+ * inside white/cream panels (ink/50). Renders an inline span — wrap in
+ * <h2>/<h3> when the label is a real heading.
+ */
+export function Kicker({
+  children,
+  onLight = false,
+}: {
+  children: ReactNode;
+  onLight?: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.25em] ${
+        onLight ? "text-ink-stage/50" : "text-cream/50"
+      }`}
+    >
+      <span aria-hidden className="size-1 flex-none bg-brand-cyan" />
+      {children}
+    </span>
+  );
+}
+
+/**
  * Small stat chip for PageHeader metrics — mono sticker-chip styling.
  * tone="teal" → solid cyan chip (ink text, the interface accent);
  * default → cream chip (ink text). Both opaque: read on ink and on white.
@@ -174,15 +201,19 @@ export function StatPill({ children, tone = "white" }: { children: ReactNode; to
  * Friendly empty state — never render a bare dash (docs/DESIGN.md).
  * v2: a cream poster mini-panel with a small collage piece (halo behind the
  * copy; a dark vinyl bleeding off the corner on the full-size variant).
+ * v2.1 (LAW rule 1): no emoji, ever — `mark` picks a geometric CollageMark
+ * (components/collage.tsx) drawn above the title, or "none" for copy only.
  */
+export type EmptyStateMark = CollageMarkKind | "none";
+
 export function EmptyState({
-  emoji,
+  mark = "none",
   title,
   hint,
   cta,
   compact = false,
 }: {
-  emoji: string;
+  mark?: EmptyStateMark;
   title: string;
   hint?: string;
   cta?: ReactNode;
@@ -202,10 +233,16 @@ export function EmptyState({
       />
       {!compact && <VinylDisc size={88} tone="dark" className="-bottom-10 -right-10" />}
       <div className="relative">
-        <div className={compact ? "text-2xl mb-1" : "text-4xl mb-2"} aria-hidden>
-          {emoji}
-        </div>
-        <p className={`font-semibold text-ink-stage/80 ${compact ? "text-xs" : "text-sm"}`}>
+        {mark !== "none" && (
+          <div className={`flex justify-center ${compact ? "mb-1.5" : "mb-3"}`}>
+            <CollageMark kind={mark} size={compact ? 40 : 52} />
+          </div>
+        )}
+        <p
+          className={
+            compact ? "text-xs font-semibold text-ink-stage/80" : "text-base font-bold text-ink-stage/80"
+          }
+        >
           {title}
         </p>
         {hint && (
@@ -242,7 +279,8 @@ export const LEAD_STATUS_META: Record<
   IN_SEQUENCE: { label: "Following up", accent: "bg-[#ffdfba]", badgeTone: "peach" },
   ENGAGED: { label: "Talking", accent: "bg-[#ffd6ec]", badgeTone: "lavender" },
   BOOKED: {
-    label: "Booked 🎉",
+    // No emoji (v2.1 LAW) — the gradient accent IS the celebration.
+    label: "Booked",
     accent: "bg-gradient-to-r from-neon-magenta to-neon-orange",
     badgeTone: "teal",
   },

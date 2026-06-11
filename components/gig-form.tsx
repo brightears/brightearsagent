@@ -80,7 +80,7 @@ export function GigForm({ performers }: { performers: { id: string; name: string
         // Tiny show-voice celebration — the sanctioned sticker chip (docs/DESIGN.md).
         <p>
           <StickerChip tone="magenta" rotate={-2}>
-            Gig added 🎉
+            Gig added
           </StickerChip>
         </p>
       )}
