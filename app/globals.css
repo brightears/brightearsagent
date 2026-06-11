@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Bright Ears brand — light, colorful, fun (see CLAUDE.md "Brand, voice & design").
-   Deliberately NO dark mode: the product face is bright. */
+/* Bright Ears — "Neon Collage" design language v2 (docs/DESIGN.md).
+   Ink canvas, cream posters, ceylon-cyan interface, magenta→orange show. */
 :root {
+  /* Stays light until every screen is migrated — the reskin applies ink via
+     layout wrappers (bg-ink-stage); flip this root default as the final step. */
   --background: #fdfcfb;
   --foreground: #333333;
 }
@@ -13,9 +15,17 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Brand palette */
-  --color-brand-cyan: #00bbe4;
+  /* v2 palette — Neon Collage */
+  --color-ink-stage: #17161f;
+  --color-ink-raised: #201f2b;
+  --color-cream: #e8e4dc;
+  --color-cream-bright: #f5f2ec;
+  --color-neon-magenta: #ff2dae;
+  --color-neon-orange: #ff8a00;
+  --color-brand-cyan: #00bbe4; /* ceylon blue — the PRODUCT voice */
   --color-brand-cyan-soft: #b6eaff;
+
+  /* Legacy tokens kept so v1 screens render during the migration; remove after reskin */
   --color-deep-teal: #1a5152;
   --color-soft-lavender: #d59ec9;
   --color-warm-peach: #f1bca6;
