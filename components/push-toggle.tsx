@@ -4,10 +4,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { savePushSubscription, removePushSubscription } from "@/app/actions/settings";
 import { buttonStyles } from "@/components/ui";
 
-/** Friendly card row for every push state — colored dot + plain-words microcopy (docs/DESIGN.md). */
+/** Friendly card row for every push state — colored dot + plain-words microcopy (docs/DESIGN.md).
+ *  v2 dots: cyan = on (interface voice), cream = off/quiet. Rows sit on the white card. */
 function StatusRow({
   dot,
-  tint = "border-off-white bg-off-white/30",
+  tint = "border-cream bg-cream/40",
   title,
   hint,
   action,
@@ -22,8 +23,8 @@ function StatusRow({
     <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border px-4 py-3.5 ${tint}`}>
       <span aria-hidden className={`size-2.5 flex-none rounded-full ${dot}`} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-deep-teal">{title}</p>
-        {hint && <p className="mt-0.5 text-xs leading-relaxed text-ink/55">{hint}</p>}
+        <p className="text-sm font-semibold text-ink-stage">{title}</p>
+        {hint && <p className="mt-0.5 text-xs leading-relaxed text-ink-stage/55">{hint}</p>}
       </div>
       {action && <div className="flex-none">{action}</div>}
     </div>
@@ -137,13 +138,13 @@ export function PushToggle() {
   }
 
   if (state === "loading") {
-    return <StatusRow dot="bg-ink/20 animate-pulse" title="Checking this device…" />;
+    return <StatusRow dot="bg-cream ring-1 ring-ink-stage/20 animate-pulse" title="Checking this device…" />;
   }
 
   if (state === "unsupported") {
     return (
       <StatusRow
-        dot="bg-ink/25"
+        dot="bg-ink-stage/25"
         title="Push isn't available in this browser"
         hint={
           <>
@@ -158,8 +159,9 @@ export function PushToggle() {
   if (state === "denied") {
     return (
       <StatusRow
-        dot="bg-warm-peach"
-        tint="border-warm-peach/60 bg-warm-peach/20"
+        // Orange-soft warning fill, ink text (v2 status pairing chart in ui.tsx).
+        dot="bg-neon-orange"
+        tint="border-[#ffdfba] bg-[#ffdfba]/50"
         title="Notifications are blocked for this site"
         hint="Allow them in your browser settings, then come back and try again — no pressure, email still works."
       />
@@ -169,12 +171,13 @@ export function PushToggle() {
   if (state === "subscribed") {
     return (
       <StatusRow
+        // ON = cyan dot on a cyan-soft tint (the interface accent).
         dot="bg-brand-cyan"
-        tint="border-brand-cyan/40 bg-brand-cyan-soft/30"
+        tint="border-brand-cyan/40 bg-brand-cyan-soft/40"
         title="Push is on for this device"
         hint="You'll hear the ping the moment a reply is ready."
         action={
-          <button type="button" onClick={disable} className={buttonStyles.secondary}>
+          <button type="button" onClick={disable} className={buttonStyles.secondaryOnLight}>
             Turn off
           </button>
         }
@@ -185,7 +188,8 @@ export function PushToggle() {
   return (
     <div className="space-y-2">
       <StatusRow
-        dot={state === "busy" ? "bg-brand-cyan animate-pulse" : "bg-ink/25"}
+        // OFF = quiet cream dot; busy = cyan pulse while we set things up.
+        dot={state === "busy" ? "bg-brand-cyan animate-pulse" : "bg-cream ring-1 ring-ink-stage/20"}
         title={state === "busy" ? "Setting up…" : "Push is off on this device"}
         hint="Turn it on and you'll hear the ping the moment a reply is ready — even mid-set."
         action={

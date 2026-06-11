@@ -3,13 +3,13 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { OnboardingBanner } from "@/components/onboarding-banner";
 import {
-  Card,
   EmptyState,
   LEAD_STATUS_META,
   PageHeader,
   StatPill,
   buttonStyles,
 } from "@/components/ui";
+import { GradientBlob, StickerChip } from "@/components/collage";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +26,15 @@ const COLUMN_STATUSES = [
   "DEAD",
 ] as const satisfies readonly LeadStatus[];
 
-// Readable header text per LEAD_STATUS_META accent — soft tints need dark text.
+// Readable header text paired with each v2 LEAD_STATUS_META accent — soft
+// tints (and the magenta→orange BOOKED gradient) need ink text, never white.
 const ACCENT_TEXT: Record<string, string> = {
-  "bg-brand-cyan": "text-white",
-  "bg-soft-lavender": "text-white",
-  "bg-brand-cyan-soft": "text-deep-teal",
-  "bg-warm-peach": "text-ink",
-  "bg-deep-teal": "text-white",
-  "bg-off-white": "text-ink/70",
+  "bg-brand-cyan": "text-ink-stage",
+  "bg-brand-cyan-soft": "text-ink-stage",
+  "bg-[#ffd6ec]": "text-[#9c0f63]",
+  "bg-[#ffdfba]": "text-[#7a4100]",
+  "bg-gradient-to-r from-neon-magenta to-neon-orange": "text-ink-stage",
+  "bg-cream/40": "text-ink-stage/70",
 };
 
 // Friendly per-column empty copy (docs/DESIGN.md: never a bare dash).
@@ -88,13 +89,19 @@ export default async function Dashboard() {
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
       <PageHeader
-        title={business.name}
-        subtitle="Your lead pipeline"
+        title="Your pipeline"
+        accent="pipeline"
+        subtitle={business.name}
+        rings
         stats={
           <>
             <StatPill tone="teal">{business.leads.length} active</StatPill>
             <StatPill>{spamCount} spam filtered for you</StatPill>
-            {bookedThisMonth > 0 && <StatPill>🎉 {bookedThisMonth} booked this month</StatPill>}
+            {bookedThisMonth > 0 && (
+              <StickerChip tone="magenta" rotate={-2}>
+                🎉 {bookedThisMonth} booked this month
+              </StickerChip>
+            )}
           </>
         }
       />
@@ -102,30 +109,41 @@ export default async function Dashboard() {
       <OnboardingBanner />
 
       {business.leads.length === 0 ? (
-        <Card className="mx-auto max-w-xl px-6 py-8">
-          <EmptyState
-            emoji="💌"
-            title="No leads yet"
-            hint="Connect your leads — your forwarding test will land here."
-            cta={
-              <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
-                Connect your leads
-              </Link>
-            }
-          />
-        </Card>
+        // Whole-pipeline welcome: a cream poster floating on the ink, sticker
+        // chip on the corner (empty-state art may use the show voice).
+        <div className="relative mx-auto max-w-xl">
+          <GradientBlob tone="show" className="-bottom-8 -right-6 h-32 w-52" />
+          <div className="relative">
+            <EmptyState
+              emoji="💌"
+              title="No leads yet"
+              hint="Connect your leads — your forwarding test will land here."
+              cta={
+                <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
+                  Connect your leads
+                </Link>
+              }
+            />
+            <StickerChip tone="magenta" rotate={6} className="absolute -top-2.5 right-8">
+              You&apos;ll hear the ping
+            </StickerChip>
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {COLUMN_STATUSES.map((status) => {
             const meta = LEAD_STATUS_META[status];
             const columnLeads = business.leads.filter((l) => l.status === status);
             return (
+              // White data card on the ink stage — never tilted (app rule).
               <section
                 key={status}
-                className="rounded-2xl bg-white shadow-sm border border-off-white overflow-hidden"
+                className="overflow-hidden rounded-3xl border border-cream/10 bg-white shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
               >
                 <h2
-                  className={`flex items-center justify-between rounded-t-2xl px-4 py-2.5 text-sm font-semibold ${meta.accent} ${ACCENT_TEXT[meta.accent] ?? "text-white"}`}
+                  className={`flex items-center justify-between px-4 py-2.5 text-sm ${
+                    status === "BOOKED" ? "font-extrabold" : "font-semibold"
+                  } ${meta.accent} ${ACCENT_TEXT[meta.accent] ?? "text-ink-stage"}`}
                 >
                   <span>{meta.label}</span>
                   <span className="text-xs font-bold opacity-75">{columnLeads.length}</span>
@@ -135,15 +153,17 @@ export default async function Dashboard() {
                     <li key={lead.id}>
                       <Link
                         href={`/dashboard/leads/${lead.id}`}
-                        className="block rounded-xl border border-off-white bg-white p-3 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
+                        className="block rounded-2xl border border-ink-stage/10 bg-white p-3 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-cyan hover:shadow-[0_10px_24px_rgba(0,187,228,0.2)]"
                       >
-                        <p className="text-sm font-semibold text-ink">
+                        <p className="text-sm font-semibold text-ink-stage">
                           {lead.clientName ?? "Unknown"}
                         </p>
-                        <p className="mt-0.5 text-xs text-ink/60">
+                        <p className="mt-0.5 text-xs text-ink-stage/60">
                           {lead.eventType ?? "event"} · {fmtDate(lead.eventDate)}
                         </p>
-                        {lead.venue && <p className="mt-0.5 text-xs text-ink/40">{lead.venue}</p>}
+                        {lead.venue && (
+                          <p className="mt-0.5 text-xs text-ink-stage/45">{lead.venue}</p>
+                        )}
                       </Link>
                     </li>
                   ))}

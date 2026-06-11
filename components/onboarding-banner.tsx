@@ -2,11 +2,15 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { buttonStyles } from "@/components/ui";
+import { GradientBlob, HaloRing, StickerChip } from "@/components/collage";
 
 /**
  * "Resume setup" nudge on the dashboard. Onboarding is considered incomplete
  * while the business has no packages OR no voice samples — the two things the
  * drafter can't work without. Renders nothing once both exist.
+ *
+ * v2 (docs/DESIGN.md): a cream poster band floating on the ink — ink sticker
+ * chip (setup is interface work, not a celebration) + the cyan primary CTA.
  */
 export async function OnboardingBanner() {
   const business = await getCurrentBusiness().catch(() => null);
@@ -25,20 +29,21 @@ export async function OnboardingBanner() {
         : "your voice samples";
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-4 rounded-3xl bg-gradient-to-r from-warm-peach/50 via-soft-lavender/25 to-brand-cyan-soft/40 px-6 py-4">
-      <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-xl shadow-sm"
-        aria-hidden
-      >
-        🪄
-      </span>
-      <p className="min-w-48 flex-1 text-sm text-deep-teal">
-        <span className="font-semibold">Almost there —</span> we still need {missing} before
-        replies can sound like you.
-      </p>
-      <Link href="/onboarding" className={`${buttonStyles.primary} text-sm`}>
-        Resume setup →
-      </Link>
+    <div className="relative mb-6">
+      <GradientBlob tone="cyan" className="-bottom-5 -left-4 h-20 w-40" />
+      <div className="relative flex flex-wrap items-center gap-4 overflow-hidden rounded-3xl bg-cream px-6 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+        <HaloRing width={150} height={54} tilt={-10} className="-right-9 -top-4" />
+        <StickerChip tone="ink" rotate={-3} className="relative shrink-0">
+          🪄 Soundcheck pending
+        </StickerChip>
+        <p className="relative min-w-48 flex-1 text-sm text-ink-stage/75">
+          <span className="font-bold text-ink-stage">Almost there —</span> we still need {missing}{" "}
+          before replies can sound like you.
+        </p>
+        <Link href="/onboarding" className={`relative ${buttonStyles.primary} text-sm`}>
+          Resume setup →
+        </Link>
+      </div>
     </div>
   );
 }

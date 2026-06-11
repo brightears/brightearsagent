@@ -18,26 +18,29 @@ import {
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
 import { buttonStyles, Badge, BrightEarsLogo, Card } from "@/components/ui";
+import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
-// Form styling per docs/DESIGN.md — uppercase micro-labels, cyan focus ring.
+// Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
-const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-ink/60 mb-1";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 // ---------------------------------------------------------------------------
-// Step definitions — chips walk the DESIGN.md palette: cyan → lavender → peach.
+// Step definitions — progress chips walk the v2 spectrum: cyan → magenta →
+// orange (then around again). Text pairings per docs/DESIGN.md: ink on
+// cyan/orange, white on magenta.
 // ---------------------------------------------------------------------------
 
 const STEPS = [
-  { label: "Your business", emoji: "🪩", chip: "bg-brand-cyan text-white" },
-  { label: "What you sell", emoji: "💸", chip: "bg-soft-lavender text-white" },
-  { label: "Your voice", emoji: "💬", chip: "bg-warm-peach text-ink" },
-  { label: "Your calendar", emoji: "📅", chip: "bg-brand-cyan text-white" },
-  { label: "Connect leads", emoji: "⚡", chip: "bg-soft-lavender text-white" },
+  { label: "Your business", emoji: "🪩", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "What you sell", emoji: "💸", chip: "bg-neon-magenta text-white" },
+  { label: "Your voice", emoji: "💬", chip: "bg-neon-orange text-ink-stage" },
+  { label: "Your calendar", emoji: "📅", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "Connect leads", emoji: "⚡", chip: "bg-neon-magenta text-white" },
 ] as const;
 
 const KINDS: { kind: PerformerKind; emoji: string; label: string }[] = [
@@ -110,18 +113,19 @@ function priceLabel(pkg: WizardPackage) {
 function StepHeading({ step, title, blurb }: { step: number; title: string; blurb: string }) {
   return (
     <header className="mb-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-brand-cyan">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
         Step {step + 1} of {STEPS.length}
       </p>
-      <h2 className="text-xl font-bold text-deep-teal">{title}</h2>
-      <p className="mt-1 text-sm text-ink/60">{blurb}</p>
+      <h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink-stage">{title}</h2>
+      <p className="mt-1 text-sm text-ink-stage/60">{blurb}</p>
     </header>
   );
 }
 
 function BackButton({ onBack }: { onBack: () => void }) {
   return (
-    <button type="button" onClick={onBack} className={buttonStyles.secondary}>
+    // Lives inside the white step card — ink-outline ghost (v2).
+    <button type="button" onClick={onBack} className={buttonStyles.secondaryOnLight}>
       ← Back
     </button>
   );
@@ -211,8 +215,8 @@ function StepBusiness({
               aria-pressed={kind === k.kind}
               className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-xs font-semibold transition-all ${
                 kind === k.kind
-                  ? "border-brand-cyan bg-brand-cyan-soft text-deep-teal ring-2 ring-brand-cyan shadow-sm"
-                  : "border-off-white bg-white text-ink/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
+                  ? "border-brand-cyan bg-brand-cyan-soft/60 text-ink-stage ring-2 ring-brand-cyan shadow-sm"
+                  : "border-cream bg-white text-ink-stage/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
               }`}
             >
               <span className="text-2xl" aria-hidden>{k.emoji}</span>
@@ -230,7 +234,7 @@ function StepBusiness({
               <option key={c.code} value={c.code}>{c.label}</option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink/50">Sets the right email rules for your region.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">Sets the right email rules for your region.</p>
         </div>
         <div>
           <label htmlFor="ob-tz" className={labelStyles}>Timezone</label>
@@ -239,7 +243,7 @@ function StepBusiness({
               <option key={tz} value={tz}>{tz.replaceAll("_", " ")}</option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink/50">So “are you free June 14th?” means your June 14th.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">So “are you free June 14th?” means your June 14th.</p>
         </div>
       </div>
 
@@ -346,8 +350,8 @@ function StepPackages({
               className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/40 px-4 py-3"
             >
               <span aria-hidden>✅</span>
-              <span className="font-semibold text-deep-teal">{pkg.name}</span>
-              <span className="text-sm text-ink/70">{priceLabel(pkg)}</span>
+              <span className="font-semibold text-ink-stage">{pkg.name}</span>
+              <span className="text-sm text-ink-stage/70">{priceLabel(pkg)}</span>
               <span className="ml-auto flex flex-wrap gap-1">
                 {pkg.eventTypes.slice(0, 3).map((t) => (
                   <Badge key={t} tone="gray">{t}</Badge>
@@ -359,7 +363,7 @@ function StepPackages({
       )}
 
       {canAddMore ? (
-        <div className="space-y-3 rounded-2xl border border-dashed border-soft-lavender bg-white p-4">
+        <div className="space-y-3 rounded-2xl border border-dashed border-ink-stage/25 bg-cream/30 p-4">
           <div>
             <label htmlFor="ob-pkg-name" className={labelStyles}>Package name</label>
             <input
@@ -408,9 +412,10 @@ function StepPackages({
                   onClick={() => toggleType(t)}
                   aria-pressed={types.includes(t)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    // Selected = cyan (interface voice); ink text on cyan (~7.5:1).
                     types.includes(t)
-                      ? "bg-soft-lavender text-white"
-                      : "border border-off-white bg-white text-ink/60 hover:border-soft-lavender"
+                      ? "bg-brand-cyan text-ink-stage"
+                      : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
                   }`}
                 >
                   {t}
@@ -429,14 +434,14 @@ function StepPackages({
             type="button"
             onClick={handleAdd}
             disabled={pending}
-            className={`${buttonStyles.secondary} w-full`}
+            className={`${buttonStyles.secondaryOnLight} w-full`}
           >
             {pending ? "Adding…" : packages.length === 0 ? "Add this package" : "+ Add another package"}
           </button>
           {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       ) : (
-        <p className="rounded-2xl bg-off-white/50 px-4 py-3 text-sm text-ink/60">
+        <p className="rounded-2xl bg-cream/50 px-4 py-3 text-sm text-ink-stage/60">
           Three’s plenty to start — you can add more anytime under Packages.
         </p>
       )}
@@ -453,7 +458,7 @@ function StepPackages({
         </button>
       </div>
       {packages.length === 0 && (
-        <p className="text-right text-xs text-ink/50">
+        <p className="text-right text-xs text-ink-stage/50">
           Add at least one package so we know what to quote.
         </p>
       )}
@@ -528,9 +533,10 @@ function StepVoice({
               onClick={() => toggleTone(t)}
               aria-pressed={tones.includes(t)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                // Selected = cyan (interface voice); ink text on cyan (~7.5:1).
                 tones.includes(t)
-                  ? "bg-warm-peach text-ink shadow-sm"
-                  : "border border-off-white bg-white text-ink/60 hover:border-warm-peach"
+                  ? "bg-brand-cyan text-ink-stage shadow-sm"
+                  : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
               }`}
             >
               {t}
@@ -611,7 +617,7 @@ function StepCalendar({
       />
 
       {savedCount > 0 && (
-        <p className="rounded-2xl bg-brand-cyan-soft/50 px-4 py-2 text-sm font-medium text-deep-teal">
+        <p className="rounded-2xl bg-brand-cyan-soft/60 px-4 py-2 text-sm font-medium text-ink-stage">
           ✅ {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
         </p>
       )}
@@ -636,7 +642,7 @@ function StepCalendar({
             <button
               type="button"
               onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
-              className="flex-none rounded-full px-2 py-1 text-ink/40 hover:text-red-600 transition-colors"
+              className="flex-none rounded-full px-2 py-1 text-ink-stage/40 hover:text-red-600 transition-colors"
               aria-label={`Remove row ${i + 1}`}
             >
               ✕
@@ -648,7 +654,7 @@ function StepCalendar({
       <button
         type="button"
         onClick={() => setRows([...rows, { date: "", title: "" }])}
-        className={`${buttonStyles.secondary} w-full border-dashed`}
+        className={`${buttonStyles.secondaryOnLight} w-full border-dashed`}
       >
         + Add another date
       </button>
@@ -661,7 +667,7 @@ function StepCalendar({
           <button
             type="button"
             onClick={onDone}
-            className="text-sm text-ink/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
+            className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
           >
             I’ll do this later
           </button>
@@ -688,15 +694,15 @@ function Walkthrough({
   children: React.ReactNode;
 }) {
   return (
-    <details className="group rounded-2xl border border-off-white bg-white">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-deep-teal [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-2xl border border-cream bg-white">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-ink-stage [&::-webkit-details-marker]:hidden">
         <span aria-hidden>{icon}</span>
         {title}
-        <span aria-hidden className="ml-auto text-ink/40 transition-transform group-open:rotate-90">
+        <span aria-hidden className="ml-auto text-ink-stage/40 transition-transform group-open:rotate-90">
           ›
         </span>
       </summary>
-      <div className="border-t border-off-white px-4 py-3 text-sm leading-relaxed text-ink/80">
+      <div className="border-t border-cream px-4 py-3 text-sm leading-relaxed text-ink-stage/75">
         {children}
       </div>
     </details>
@@ -721,11 +727,11 @@ function StepConnect({
       />
 
       <div className="rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/30 p-4">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-deep-teal/70">
+        <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/60">
           Your lead address
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <code className="select-all break-all rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-deep-teal shadow-sm">
+          <code className="select-all break-all rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-ink-stage shadow-sm">
             {leadAddress}
           </code>
           <CopyButton text={leadAddress} />
@@ -750,7 +756,7 @@ function StepConnect({
             </li>
             <li>
               In <strong>From</strong>, list where your leads come from, e.g.{" "}
-              <code className="rounded bg-off-white px-1 font-mono text-xs">
+              <code className="rounded bg-cream px-1 font-mono text-xs">
                 theknot.com OR weddingwire.com OR forms@yoursite.com
               </code>{" "}
               → <strong>Create filter</strong>.
@@ -818,27 +824,39 @@ function StepConnect({
       </div>
 
       {leadDetected ? (
-        <div className="rounded-3xl border-2 border-brand-cyan bg-brand-cyan-soft/60 p-8 text-center shadow-md">
-          <p className="text-3xl tracking-widest" aria-hidden>🎊 ✨ 🎉 ✨ 🎊</p>
-          <p className="mt-3 text-xl font-extrabold text-deep-teal">
+        // The celebration moment — full magenta→orange gradient with sticker
+        // chips (the show voice; ink text — white fails on the orange end).
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <StickerChip tone="cream" rotate={-4}>
+              First lead caught ✓
+            </StickerChip>
+            <StickerChip tone="ink" rotate={3}>
+              Now playing — your reply
+            </StickerChip>
+          </div>
+          <p className="mt-4 text-xl font-extrabold tracking-tight text-ink-stage">
             Your first lead just landed — check your phone.
           </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink/70">
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
             We caught it, parsed it, and a reply is being drafted in your voice right now. That’s
             what happens to every inquiry from here on — even when you’re mid-set.
           </p>
-          <Link href="/dashboard" className={`${buttonStyles.primary} mt-5 inline-block`}>
+          <Link
+            href="/dashboard"
+            className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
+          >
             Take me to my pipeline →
           </Link>
         </div>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
-          <p className="font-bold text-deep-teal">Prove it works — right now</p>
-          <p className="mt-1 text-sm text-ink/70">
+          <p className="font-bold text-ink-stage">Prove it works — right now</p>
+          <p className="mt-1 text-sm text-ink-stage/70">
             Send any email to your lead address from your phone — or forward a real inquiry sitting
             in your inbox. The second it arrives, this box lights up.
           </p>
-          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-brand-cyan">
+          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-stage/65">
             <span className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan" aria-hidden />
             Listening for your first lead… (we check every 5 seconds)
           </p>
@@ -850,7 +868,7 @@ function StepConnect({
         {!leadDetected && (
           <Link
             href="/dashboard"
-            className="text-sm text-ink/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
+            className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
           >
             I’ll test this later — take me to my dashboard
           </Link>
@@ -927,16 +945,22 @@ export function OnboardingWizard({
   }, [step, leadDetected]);
 
   return (
-    // White step cards float on the same soft gradient as PageHeader's band,
-    // stretched into a full-page backdrop (docs/DESIGN.md — one gradient per screen).
-    <div className="relative flex-1 bg-gradient-to-br from-brand-cyan-soft/40 via-soft-lavender/20 to-warm-peach/30">
+    // White step cards float on the ink canvas with the faint concentric rings
+    // (docs/DESIGN.md — at most ONE ring pattern per page).
+    <div className="relative flex-1 overflow-hidden bg-ink-stage">
+      <RingsBackdrop />
       <main className="relative mx-auto w-full max-w-2xl px-6 py-10">
         <header className="mb-8 text-center">
           <div className="mb-3 flex justify-center">
             <BrightEarsLogo size={56} />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-deep-teal">Let’s get you set up</h1>
-          <p className="mt-1 text-sm text-ink/60">
+          <h1 className="text-3xl font-extrabold tracking-tight text-cream-bright">
+            Let’s get you{" "}
+            <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
+              set up
+            </span>
+          </h1>
+          <p className="mt-1 text-sm text-cream/60">
             Five quick steps — under ten minutes — and every inquiry you get starts answering
             itself, in your voice.
           </p>
@@ -955,10 +979,10 @@ export function OnboardingWizard({
                   aria-current={current ? "step" : undefined}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
                     current
-                      ? `${s.chip} shadow-md ring-2 ring-brand-cyan/40 ring-offset-2 ring-offset-background`
+                      ? `${s.chip} shadow-md ring-2 ring-cream/60 ring-offset-2 ring-offset-ink-stage`
                       : done
                         ? `${s.chip} opacity-80 hover:opacity-100`
-                        : "border border-off-white bg-white text-ink/40"
+                        : "border-[1.5px] border-cream/25 bg-cream/5 text-cream/45"
                   }`}
                 >
                   <span aria-hidden>{done ? "✓" : s.emoji}</span>

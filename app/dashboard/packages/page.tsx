@@ -28,7 +28,8 @@ export default async function PackagesPage() {
   const inactiveCount = packages.length - activeCount;
 
   return (
-    <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
+    <main className="flex-1 bg-ink-stage">
+      <div className="mx-auto w-full max-w-7xl px-6 py-8">
       <PageHeader
         title="Packages"
         subtitle="Your rate card — these are the only prices the AI is allowed to quote."
@@ -49,13 +50,14 @@ export default async function PackagesPage() {
           {packages.map((pkg) => (
             <Card key={pkg.id} className={`p-6 ${pkg.active ? "" : "opacity-60"}`}>
               <div className="flex items-start justify-between gap-2">
-                <h2 className="font-bold text-deep-teal">{pkg.name}</h2>
+                <h2 className="font-bold text-ink-stage">{pkg.name}</h2>
                 <Badge tone={pkg.active ? "cyan" : "gray"}>{pkg.active ? "Active" : "Inactive"}</Badge>
               </div>
-              <p className="mt-2 text-3xl font-extrabold tracking-tight text-deep-teal">
+              {/* Price hero — the show voice: magenta→orange gradient paint (v2). */}
+              <p className="mt-2 text-3xl font-extrabold tracking-tight bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
                 {priceLabel(pkg.priceMin, pkg.priceMax)}
               </p>
-              {pkg.description && <p className="mt-2 text-sm text-ink/70">{pkg.description}</p>}
+              {pkg.description && <p className="mt-2 text-sm text-ink-stage/65">{pkg.description}</p>}
               {pkg.eventTypes.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {pkg.eventTypes.map((type) => (
@@ -65,7 +67,7 @@ export default async function PackagesPage() {
                   ))}
                 </div>
               )}
-              <div className="mt-5 flex items-center gap-2 border-t border-off-white pt-4">
+              <div className="mt-5 flex items-center gap-2 border-t border-cream pt-4">
                 <PackageForm
                   initial={{
                     id: pkg.id,
@@ -85,7 +87,7 @@ export default async function PackagesPage() {
                 >
                   <button
                     type="submit"
-                    className={`${pkg.active ? buttonStyles.danger : buttonStyles.secondary} text-sm px-3 py-1.5`}
+                    className={`${pkg.active ? buttonStyles.danger : buttonStyles.secondaryOnLight} text-sm px-3 py-1.5`}
                   >
                     {pkg.active ? "Deactivate" : "Reactivate"}
                   </button>
@@ -105,14 +107,15 @@ export default async function PackagesPage() {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="bg-soft-lavender/20 px-6 py-4">
-            <h2 className="text-lg font-bold text-deep-teal">Add a package</h2>
-            <p className="text-xs text-ink/60 mt-0.5">Prices in dollars — we&apos;ll handle the cents.</p>
+          <div className="bg-cream/60 px-6 py-4">
+            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">Add a package</h2>
+            <p className="text-xs text-ink-stage/60 mt-0.5">Prices in dollars — we&apos;ll handle the cents.</p>
           </div>
           <div className="p-6">
             <PackageForm />
           </div>
         </Card>
+      </div>
       </div>
     </main>
   );

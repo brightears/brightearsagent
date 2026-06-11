@@ -82,10 +82,12 @@ export default async function CalendarPage({
     year: "numeric",
     timeZone: "UTC",
   });
-  const navButton = `${buttonStyles.secondary} text-sm`;
+  // Month-nav pills live INSIDE the white grid card — ink-outline ghost (v2).
+  const navButton = `${buttonStyles.secondaryOnLight} text-sm`;
 
   return (
-    <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
+    <main className="flex-1 bg-ink-stage">
+      <div className="mx-auto w-full max-w-7xl px-6 py-8">
       <PageHeader
         title="Calendar"
         subtitle={`${monthLabel} — the AI checks these dates before it promises anything.`}
@@ -101,7 +103,7 @@ export default async function CalendarPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] items-start">
         <Card className="p-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <h2 className="text-lg font-bold text-deep-teal">{monthLabel}</h2>
+            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">{monthLabel}</h2>
             <div className="flex items-center gap-2">
               <Link
                 href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, -1)}`}
@@ -128,7 +130,7 @@ export default async function CalendarPage({
               <p
                 key={d}
                 className={`text-center text-xs font-semibold py-1 ${
-                  i === 0 || i === 6 ? "text-deep-teal/50" : "text-ink/40"
+                  i === 0 || i === 6 ? "text-ink-stage/60" : "text-ink-stage/40"
                 }`}
               >
                 {d}
@@ -144,7 +146,7 @@ export default async function CalendarPage({
                 return (
                   <div
                     key={`blank-${i}`}
-                    className={`min-h-24 rounded-xl ${isWeekend ? "bg-warm-peach/10" : "bg-off-white/25"}`}
+                    className={`min-h-24 rounded-xl ${isWeekend ? "bg-cream/30" : "bg-cream/15"}`}
                   />
                 );
               }
@@ -155,29 +157,32 @@ export default async function CalendarPage({
                 <div
                   key={dayKey}
                   className={`min-h-24 rounded-xl border p-1.5 space-y-1 ${
-                    isWeekend ? "bg-warm-peach/20" : "bg-white"
-                  } ${isToday ? "border-brand-cyan ring-2 ring-brand-cyan/30" : "border-off-white"}`}
+                    // Weekend = gig days — warm cream tint on the white grid.
+                    isWeekend ? "bg-cream/50" : "bg-white"
+                  } ${isToday ? "border-brand-cyan ring-2 ring-brand-cyan/30" : "border-cream"}`}
                 >
                   <p className="text-xs font-semibold">
                     {isToday ? (
-                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-cyan text-[11px] font-bold text-white">
+                      // Cyan = interface accent; ink text on cyan (~7.5:1 — white fails).
+                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-cyan text-[11px] font-bold text-ink-stage">
                         {day}
                       </span>
                     ) : (
-                      <span className="text-ink/50">{day}</span>
+                      <span className="text-ink-stage/50">{day}</span>
                     )}
                   </p>
                   {dayGigs.map((gig) => (
-                    <div key={gig.id} className="rounded-lg bg-deep-teal px-2 py-1.5 text-white shadow-sm">
+                    // Gig chip — ink-raised tile: cyan time, cream title (v2 brief).
+                    <div key={gig.id} className="rounded-lg bg-ink-raised px-2 py-1.5 shadow-sm">
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
                           {gig.startTime && (
-                            <p className="text-[10px] font-medium text-white/75 leading-tight">
+                            <p className="text-[10px] font-bold text-brand-cyan leading-tight">
                               {gig.startTime}
                               {gig.endTime ? `–${gig.endTime}` : ""}
                             </p>
                           )}
-                          <p className="text-xs font-semibold leading-tight">{gig.title}</p>
+                          <p className="text-xs font-semibold leading-tight text-cream-bright">{gig.title}</p>
                         </div>
                         <form
                           action={async () => {
@@ -189,14 +194,14 @@ export default async function CalendarPage({
                             type="submit"
                             aria-label={`Remove ${gig.title}`}
                             title="Remove gig"
-                            className="text-white/50 hover:text-red-300 leading-none transition-colors"
+                            className="text-cream/50 hover:text-red-300 leading-none transition-colors"
                           >
                             ×
                           </button>
                         </form>
                       </div>
-                      {gig.performer && <p className="text-[10px] text-white/75">{gig.performer.name}</p>}
-                      {gig.venue && <p className="text-[10px] text-white/60">{gig.venue}</p>}
+                      {gig.performer && <p className="text-[10px] text-cream/65">{gig.performer.name}</p>}
+                      {gig.venue && <p className="text-[10px] text-cream/55">{gig.venue}</p>}
                     </div>
                   ))}
                 </div>
@@ -215,14 +220,15 @@ export default async function CalendarPage({
         </Card>
 
         <Card className="overflow-hidden">
-          <div className="bg-brand-cyan-soft/30 px-6 py-4">
-            <h2 className="text-lg font-bold text-deep-teal">Add a gig</h2>
-            <p className="text-xs text-ink/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
+          <div className="bg-cream/60 px-6 py-4">
+            <h2 className="text-lg font-extrabold tracking-tight text-ink-stage">Add a gig</h2>
+            <p className="text-xs text-ink-stage/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
           </div>
           <div className="p-6">
             <GigForm performers={performers} />
           </div>
         </Card>
+      </div>
       </div>
     </main>
   );

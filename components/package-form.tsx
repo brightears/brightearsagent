@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createPackage, updatePackage } from "@/app/actions/packages";
 import { buttonStyles } from "@/components/ui";
+import { StickerChip } from "@/components/collage";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
@@ -16,10 +17,10 @@ export interface PackageFormInitial {
   active: boolean;
 }
 
-// Form styling per docs/DESIGN.md — uppercase muted labels, cyan focus ring.
+// Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
-const labelStyles = "block text-xs font-semibold text-ink/60 uppercase tracking-wide mb-1";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelStyles = "block text-xs font-semibold text-ink-stage/60 uppercase tracking-wide mb-1";
 
 /**
  * Add mode (no `initial`): always-open form that creates a package.
@@ -40,7 +41,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
 
   if (initial && !open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={`${buttonStyles.secondary} text-sm px-3 py-1.5`}>
+      <button type="button" onClick={() => setOpen(true)} className={`${buttonStyles.secondaryOnLight} text-sm px-3 py-1.5`}>
         Edit
       </button>
     );
@@ -120,7 +121,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
       </div>
 
       {initial && (
-        <label className="flex items-center gap-2 text-sm text-ink/80">
+        <label className="flex items-center gap-2 text-sm text-ink-stage/80">
           <input
             type="checkbox"
             name="active"
@@ -136,14 +137,21 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
           {pending ? "Saving…" : initial ? "Save changes" : "Add package"}
         </button>
         {initial && (
-          <button type="button" onClick={() => setOpen(false)} className={buttonStyles.secondary}>
+          <button type="button" onClick={() => setOpen(false)} className={buttonStyles.secondaryOnLight}>
             Cancel
           </button>
         )}
       </div>
 
       {result && !result.ok && <p className="text-xs text-red-600">{result.error}</p>}
-      {!initial && result?.ok && <p className="text-xs font-medium text-deep-teal">Package added 🎉</p>}
+      {!initial && result?.ok && (
+        // Tiny show-voice celebration — the sanctioned sticker chip (docs/DESIGN.md).
+        <p>
+          <StickerChip tone="magenta" rotate={-2}>
+            Package added 🎉
+          </StickerChip>
+        </p>
+      )}
     </form>
   );
 }

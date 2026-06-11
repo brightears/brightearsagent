@@ -68,15 +68,19 @@ export default async function LeadDetailPage({
     .join(" · ");
 
   return (
-    <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
+    // Ink canvas page (docs/DESIGN.md v2); content constrained inside so the
+    // ink runs edge-to-edge under the dashboard chrome.
+    <main className="flex-1 bg-ink-stage">
+      <div className="mx-auto w-full max-w-4xl px-6 py-8">
       <Link
         href="/dashboard"
-        className="mb-4 inline-block text-sm font-semibold text-ink/60 hover:text-brand-cyan transition-colors"
+        className="mb-4 inline-block text-sm font-semibold text-cream/60 hover:text-brand-cyan transition-colors"
       >
         ← Back to pipeline
       </Link>
 
       <PageHeader
+        rings
         title={lead.clientName ?? "Unknown lead"}
         subtitle={subtitle}
         stats={
@@ -92,13 +96,15 @@ export default async function LeadDetailPage({
 
       <div className="space-y-6">
         {lead.spamReason && (
-          <div className="rounded-2xl border border-warm-peach/70 bg-warm-peach/25 px-4 py-3 shadow-sm">
-            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink">
+          /* Orange-soft alert card — opaque fill so it reads on the ink canvas;
+             deep-amber #7a4100 lead-in on #ffdfba (~7:1, the checked pairing). */
+          <div className="rounded-2xl bg-[#ffdfba] px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
+            <p className="flex items-start gap-2.5 text-sm leading-relaxed text-ink-stage/80">
               <span className="text-lg" aria-hidden>
                 🛡️
               </span>
               <span>
-                <span className="font-semibold text-deep-teal">Filtered as spam for you</span> —{" "}
+                <span className="font-semibold text-[#7a4100]">Filtered as spam for you</span> —{" "}
                 {lead.spamReason}
               </span>
             </p>
@@ -106,7 +112,9 @@ export default async function LeadDetailPage({
         )}
 
         <section className="space-y-3">
-          <h2 className="font-bold text-deep-teal">Conversation</h2>
+          <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/60">
+            Conversation
+          </h2>
           {lead.messages.length === 0 ? (
             <Card>
               <EmptyState
@@ -122,19 +130,32 @@ export default async function LeadDetailPage({
                 return (
                   <li key={m.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-prose ${outbound ? "text-right" : "text-left"}`}>
+                      {/* Inbound = white card left (ink text); outbound = your
+                          replies in the interface voice: cyan-soft text on an
+                          ink-raised bubble (#b6eaff on #201f2b, ~11:1). */}
                       <div
-                        className={`rounded-2xl p-4 text-left shadow-sm ${
-                          outbound ? "bg-brand-cyan-soft/40" : "bg-white border border-off-white"
+                        className={`rounded-2xl p-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.35)] ${
+                          outbound ? "bg-ink-raised border border-brand-cyan/25" : "bg-white"
                         }`}
                       >
                         {m.subject && (
-                          <p className="text-sm font-semibold text-deep-teal mb-1">{m.subject}</p>
+                          <p
+                            className={`text-sm font-semibold mb-1 ${
+                              outbound ? "text-brand-cyan-soft" : "text-ink-stage"
+                            }`}
+                          >
+                            {m.subject}
+                          </p>
                         )}
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/90">
+                        <p
+                          className={`text-sm whitespace-pre-wrap leading-relaxed ${
+                            outbound ? "text-brand-cyan-soft/90" : "text-ink-stage/90"
+                          }`}
+                        >
                           {m.body}
                         </p>
                       </div>
-                      <p className="mt-1 px-1 text-[11px] text-ink/40">
+                      <p className="mt-1 px-1 text-[11px] text-cream/50">
                         {outbound ? "You" : (lead.clientName ?? "Them")} ·{" "}
                         {fmtTimestamp(m.createdAt, tz)}
                       </p>
@@ -156,6 +177,7 @@ export default async function LeadDetailPage({
             />
           </section>
         )}
+      </div>
       </div>
     </main>
   );

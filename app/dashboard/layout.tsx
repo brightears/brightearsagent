@@ -14,12 +14,14 @@ const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col">
-      <nav className="border-b border-off-white bg-white">
+    // The app shell owns the ink canvas (docs/DESIGN.md v2): every dashboard
+    // screen floats its white data cards on this stage.
+    <div className="flex-1 flex flex-col bg-ink-stage text-cream-bright">
+      <nav className="border-b border-cream/10 bg-ink-stage">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <BrightEarsLogo size={28} />
-            <span className="font-bold text-deep-teal">Bright Ears</span>
+            <span className="font-black tracking-tight text-cream-bright">Bright Ears</span>
           </Link>
           <DashboardNavLinks links={NAV} />
           {clerkEnabled && (

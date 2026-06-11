@@ -3,10 +3,9 @@
 /* Bright Ears — "Neon Collage" design language v2 (docs/DESIGN.md).
    Ink canvas, cream posters, ceylon-cyan interface, magenta→orange show. */
 :root {
-  /* Stays light until every screen is migrated — the reskin applies ink via
-     layout wrappers (bg-ink-stage); flip this root default as the final step. */
-  --background: #fdfcfb;
-  --foreground: #333333;
+  /* v2: the ink stage is the default canvas (migration complete June 11). */
+  --background: #17161f;
+  --foreground: #f5f2ec;
 }
 
 @theme inline {

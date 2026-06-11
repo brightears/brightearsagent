@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Card } from "@/components/ui";
+import {
+  GradientBlob,
+  HaloRing,
+  RingsBackdrop,
+  StickerChip,
+  VinylDisc,
+} from "@/components/collage";
 
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
@@ -121,6 +127,9 @@ const faqJsonLd = {
   })),
 };
 
+/** The v2 signature: one gradient-painted word in a warm-white/ink headline. */
+const GRAD = "bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent";
+
 function CheckIcon() {
   return (
     <svg
@@ -142,7 +151,7 @@ function CheckIcon() {
 
 export default function PricingPage() {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative isolate overflow-hidden bg-ink-stage text-cream-bright">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -150,32 +159,33 @@ export default function PricingPage() {
         }}
       />
 
-      {/* Playful gradient blobs */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-brand-cyan-soft blur-3xl opacity-60"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute top-40 -right-32 h-96 w-96 rounded-full bg-soft-lavender/30 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute top-[60rem] -left-32 h-96 w-96 rounded-full bg-warm-peach/30 blur-3xl"
-      />
+      {/* one ring pattern per page (LAW) + soft neon vignettes, hero only */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[44rem]">
+        <RingsBackdrop />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(640px circle at 78% 200px, rgba(255,45,174,0.10), transparent 70%), radial-gradient(520px circle at 8% 60px, rgba(255,138,0,0.07), transparent 70%)",
+          }}
+        />
+      </div>
 
-      <section className="relative max-w-6xl mx-auto px-6 pt-16 sm:pt-24 pb-10 text-center">
-        <Badge>Pricing</Badge>
-        <h1 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-deep-teal text-balance">
-          Less than one first dance. Plans priced in leads, not jargon.
+      <section className="relative max-w-6xl mx-auto px-6 pt-16 sm:pt-24 pb-12 text-center">
+        <StickerChip tone="cream" rotate={-2}>
+          Pricing
+        </StickerChip>
+        <h1 className="mt-6 text-4xl sm:text-6xl font-black tracking-tight text-cream-bright text-balance">
+          Less than one first dance. Plans priced in <span className={GRAD}>leads</span>, not
+          jargon.
         </h1>
-        <p className="mt-5 max-w-2xl mx-auto text-lg text-ink/70">
+        <p className="mt-6 max-w-2xl mx-auto text-lg leading-relaxed text-cream/70">
           A booked wedding is worth $1,500–3,000. Bright Ears answers every
           inquiry in under 5 minutes — even from the booth — and follows up
           until it&apos;s booked or dead, for less than a dinner out. Start with
           14 days of full Pro. No card.
         </p>
-        <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-deep-teal">
+        <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
           Every plan is the complete assistant — instant replies in your voice,
           follow-ups until booked-or-dead, weekly report, spam filtering,
           approve from your phone. You only choose leads, performers and
@@ -183,97 +193,125 @@ export default function PricingPage() {
         </p>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-6 pb-8">
-        <div className="grid gap-6 lg:grid-cols-3 lg:items-stretch">
-          {PLANS.map((plan) => (
-            <Card
+      {/* plan cards — cream posters on the ink stage; Pro elevated, magenta ring */}
+      <section className="relative max-w-6xl mx-auto px-6 pb-16 pt-4">
+        <div className="grid gap-8 lg:grid-cols-3 lg:items-stretch">
+          {PLANS.map((plan, i) => (
+            <div
               key={plan.name}
-              className={`relative flex flex-col p-7 ${
-                plan.highlighted
-                  ? "border-2 border-brand-cyan shadow-lg lg:-my-3 lg:py-10"
-                  : ""
-              }`}
+              className={`relative flex ${plan.highlighted ? "lg:-my-3" : ""}`}
             >
               {plan.highlighted && (
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-brand-cyan px-4 py-1 text-xs font-bold text-white shadow-sm">
-                  Most popular
-                </span>
+                <GradientBlob tone="show" className="-bottom-8 -right-6 h-44 w-60" />
               )}
-              <h2 className="text-xl font-bold text-deep-teal">{plan.name}</h2>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="text-4xl font-bold text-ink">{plan.price}</span>
-                <span className="text-ink/50">/month</span>
-              </div>
-              <p className="mt-3 text-sm text-ink/70">{plan.blurb}</p>
-              <ul className="mt-6 space-y-3 text-sm text-ink/80 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex gap-2.5">
-                    <CheckIcon />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/onboarding"
-                className={`mt-8 block text-center ${
+              <div
+                className={`relative flex w-full flex-col rounded-3xl bg-cream p-7 pb-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${
                   plan.highlighted
-                    ? "rounded-xl bg-brand-cyan text-white font-semibold px-4 py-3 hover:opacity-90 transition-opacity"
-                    : "rounded-xl border border-deep-teal/30 text-deep-teal font-semibold px-4 py-3 hover:border-brand-cyan hover:text-brand-cyan transition-colors"
+                    ? "ring-2 ring-neon-magenta lg:py-10"
+                    : i === 0
+                      ? "-rotate-1"
+                      : "rotate-1"
                 }`}
               >
-                Start free
-              </Link>
-              <p className="mt-3 text-center text-xs text-ink/50">
-                14-day free trial of Pro · no card needed
-              </p>
-            </Card>
+                {plan.highlighted && (
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <StickerChip tone="magenta" rotate={-3}>
+                      Most popular
+                    </StickerChip>
+                  </span>
+                )}
+                <h2 className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-ink-stage/60">
+                  {plan.name}
+                </h2>
+                <div className="mt-3 flex items-baseline gap-1.5">
+                  <span className="text-5xl font-black tracking-tight text-ink-stage">
+                    {plan.price}
+                  </span>
+                  <span className="text-ink-stage/50">/month</span>
+                </div>
+                <p className="mt-3 text-sm text-ink-stage/70">{plan.blurb}</p>
+                <ul className="mt-6 space-y-3 text-sm text-ink-stage/80 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex gap-2.5">
+                      <CheckIcon />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/onboarding"
+                  className={`mt-8 block rounded-full text-center font-bold px-4 py-3 transition-opacity ${
+                    plan.highlighted
+                      ? "bg-neon-magenta text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90"
+                      : "border-[1.5px] border-ink-stage/30 text-ink-stage/80 hover:border-ink-stage/60 hover:text-ink-stage transition-colors"
+                  }`}
+                >
+                  Start free
+                </Link>
+                <p className="mt-3 text-center text-xs text-ink-stage/50">
+                  14-day free trial of Pro · no card needed
+                </p>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* Outcome math + guarantee (ADR-003: per-gig economics as framing + guarantee) */}
-      <section className="relative max-w-6xl mx-auto px-6 pb-8">
-        <div className="rounded-3xl border border-off-white bg-white p-8 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-deep-teal">The outcome math</h2>
-          <div className="mx-auto mt-6 grid max-w-3xl gap-8 sm:grid-cols-2">
+      <section className="relative max-w-6xl mx-auto px-6 pb-12">
+        <div className="relative overflow-hidden rounded-3xl bg-ink-raised border border-cream/10 p-8 sm:p-10 text-center">
+          <h2 className="text-2xl font-extrabold tracking-tight text-cream-bright">
+            The outcome math
+          </h2>
+          <div className="mx-auto mt-8 grid max-w-3xl gap-10 sm:grid-cols-2">
             <div>
-              <p className="text-3xl font-bold text-brand-cyan">$1,800</p>
-              <p className="mt-2 text-sm text-ink/70">
+              <div
+                aria-hidden
+                className="mx-auto h-1 w-10 rounded-full"
+                style={{ background: "linear-gradient(90deg, #ff2dae, #ff8a00)" }}
+              />
+              <p className={`mt-4 text-5xl font-black tracking-tight ${GRAD}`}>$1,800</p>
+              <p className="mt-3 text-sm leading-relaxed text-cream/65">
                 One saved $1,800 booking pays for{" "}
-                <strong className="text-deep-teal">6 years of Starter</strong>.
+                <strong className="text-cream-bright">6 years of Starter</strong>.
               </p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-brand-cyan">~$1.67</p>
-              <p className="mt-2 text-sm text-ink/70">
+              <div
+                aria-hidden
+                className="mx-auto h-1 w-10 rounded-full"
+                style={{ background: "linear-gradient(90deg, #ff2dae, #ff8a00)" }}
+              />
+              <p className={`mt-4 text-5xl font-black tracking-tight ${GRAD}`}>~$1.67</p>
+              <p className="mt-3 text-sm leading-relaxed text-cream/65">
                 Per lead handled — one raw Bark lead costs{" "}
-                <strong className="text-deep-teal">$28–47</strong>, and you
+                <strong className="text-cream-bright">$28–47</strong>, and you
                 still have to answer it yourself.
               </p>
             </div>
           </div>
-          <p className="mt-7 inline-block rounded-full bg-brand-cyan-soft px-5 py-2.5 text-sm font-semibold text-deep-teal">
+          <p className="mt-8 inline-block rounded-full bg-cream-bright px-5 py-2.5 text-sm font-bold text-ink-stage">
             If it doesn&apos;t pay for itself in your first season, full refund.
           </p>
         </div>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-6 pb-20">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-brand-cyan-soft/50 border border-off-white p-6">
-            <h3 className="font-semibold text-deep-teal">
+      <section className="relative max-w-6xl mx-auto px-6 pb-24">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] -rotate-1">
+            <h3 className="font-bold text-ink-stage">
               Busy month? Lead packs, not lock-in.
             </h3>
-            <p className="mt-2 text-sm text-ink/70">
+            <p className="mt-2 text-sm text-ink-stage/70">
               Wedding season spikes are real. Add 10 extra leads for $10
               whenever you need them — no plan change, no commitment.
             </p>
           </div>
-          <div className="rounded-2xl bg-warm-peach/40 border border-off-white p-6">
-            <h3 className="font-semibold text-deep-teal">
+          <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] rotate-1">
+            <h3 className="font-bold text-ink-stage">
               At your cap, drafting pauses — never surprise bills.
             </h3>
-            <p className="mt-2 text-sm text-ink/70">
+            <p className="mt-2 text-sm text-ink-stage/70">
               When you hit your monthly leads, we pause and ask before anything
               costs you a cent. Your card is never charged for overages you
               didn&apos;t choose.
@@ -282,47 +320,55 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="relative max-w-3xl mx-auto px-6 pb-20">
+      {/* FAQ — on ink, cream cards */}
+      <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <div className="text-center">
-          <Badge tone="lavender">FAQ</Badge>
-          <h2 className="mt-4 text-3xl font-bold text-deep-teal">
-            Fair questions, straight answers
+          <StickerChip tone="cream" rotate={2}>
+            FAQ
+          </StickerChip>
+          <h2 className="mt-5 text-3xl sm:text-4xl font-black tracking-tight text-cream-bright">
+            Fair questions, <span className={GRAD}>straight</span> answers
           </h2>
-          <p className="mt-3 text-ink/70">
+          <p className="mt-3 text-cream/65">
             The things performers actually ask us before they forward their
             first lead.
           </p>
         </div>
         <div className="mt-10 space-y-4">
           {FAQS.map((f) => (
-            <Card key={f.q} className="p-6">
-              <h3 className="font-semibold text-deep-teal">{f.q}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink/70">{f.a}</p>
-            </Card>
+            <div key={f.q} className="rounded-2xl bg-cream p-6">
+              <h3 className="font-bold text-ink-stage">{f.q}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-stage/70">{f.a}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-6 pb-10">
-        <div className="rounded-3xl bg-deep-teal px-8 py-12 sm:py-16 text-center relative overflow-hidden">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-16 -right-16 h-64 w-64 rounded-full bg-brand-cyan/30 blur-2xl"
-          />
-          <h2 className="relative text-3xl sm:text-4xl font-bold text-white text-balance">
-            Stop being the 5th DJ to reply.
-          </h2>
-          <p className="relative mt-4 text-white/80 max-w-xl mx-auto">
-            Respond in under 5 minutes — even from the booth. 14 days of full
-            Pro, free, no card. And if it doesn&apos;t pay for itself in your
-            first season, full refund.
-          </p>
-          <Link
-            href="/onboarding"
-            className="relative mt-8 inline-block rounded-xl bg-brand-cyan text-white font-semibold px-8 py-3.5 hover:opacity-90 transition-opacity"
-          >
-            Start free
-          </Link>
+      {/* closing CTA — cream poster with collage, the design/b hero echo */}
+      <section className="relative max-w-6xl mx-auto px-6 pb-20">
+        <div className="relative">
+          <GradientBlob tone="show" className="-bottom-9 left-12 h-40 w-80" />
+          <div className="relative overflow-hidden rounded-3xl bg-cream px-8 py-12 sm:py-16 text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)] rotate-[-0.6deg]">
+            <HaloRing width={320} height={116} tilt={-12} className="left-1/2 top-8 -ml-40" />
+            <VinylDisc size={180} tone="orange" spin className="-bottom-14 -right-12" />
+            <span aria-hidden className="absolute left-[14%] top-10 text-2xl text-ink-stage/25">
+              &#10022;
+            </span>
+            <h2 className="relative text-3xl sm:text-4xl font-black tracking-tight text-ink-stage text-balance">
+              Stop being the <span className={GRAD}>5th</span> DJ to reply.
+            </h2>
+            <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
+              Respond in under 5 minutes — even from the booth. 14 days of full
+              Pro, free, no card. And if it doesn&apos;t pay for itself in your
+              first season, full refund.
+            </p>
+            <Link
+              href="/onboarding"
+              className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+            >
+              Start free
+            </Link>
+          </div>
         </div>
       </section>
     </div>

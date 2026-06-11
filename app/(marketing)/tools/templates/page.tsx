@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
+import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 
 export const metadata: Metadata = {
   title: "25 Wedding DJ Inquiry & Follow-Up Templates (Free) — Bright Ears",
   description:
     "Copy-paste email templates for wedding and event DJs: first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
+};
+
+/* One gradient-painted word in the headline — the design/b signature. */
+const gradText: CSSProperties = {
+  background: "linear-gradient(92deg, #ff2dae 5%, #ff8a00 95%)",
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  color: "transparent",
 };
 
 type Template = {
@@ -21,7 +30,7 @@ type Section = {
   id: string;
   heading: string;
   blurb: string;
-  accent: string;
+  accent: "cream" | "magenta";
   templates: Template[];
 };
 
@@ -31,7 +40,7 @@ const SECTIONS: Section[] = [
     heading: "First replies",
     blurb:
       "Speed wins. Couples book whoever replies first — a short, specific reply in 5 minutes beats a perfect one in 5 hours. Every template here names their date and venue, answers what they actually asked, and ends with ONE clear next step.",
-    accent: "bg-brand-cyan-soft",
+    accent: "cream",
     templates: [
       {
         title: "Wedding inquiry — your date is open",
@@ -175,7 +184,7 @@ Fastest route is a quick call — grab any slot here: [scheduling link]. Until t
     heading: "Follow-ups",
     blurb:
       "\"Get an inquiry, immediately respond, and then nothing.\" Sound familiar? Most gigs are won on the follow-up — day 2, day 5, day 9, then stop. Send these as replies in the same email thread so the whole conversation stays in front of them.",
-    accent: "bg-soft-lavender/30",
+    accent: "magenta",
     templates: [
       {
         title: "Day 2 — the gentle bump",
@@ -278,7 +287,7 @@ Either way, happy planning!
     heading: "Booking, money & the big day",
     blurb:
       "The inquiry was the easy part. These keep the paperwork moving, the deposit landing, and the final details locked — without you chasing anyone at midnight.",
-    accent: "bg-warm-peach/40",
+    accent: "cream",
     templates: [
       {
         title: "Sending the contract",
@@ -337,7 +346,7 @@ Go enjoy being married — I'll be in touch in a few days with one tiny favor to
     heading: "Reviews, rebooking & referrals",
     blurb:
       "The booking after the booking. Reviews bring the next couple, corporate gigs renew annually, and happy clients know other people planning parties — if you ask.",
-    accent: "bg-brand-cyan-soft",
+    accent: "magenta",
     templates: [
       {
         title: "The review ask (about a week after)",
@@ -403,7 +412,7 @@ const FAQS = [
 function renderBody(body: string): ReactNode[] {
   return body.split(/(\[[^\]]+\])/g).map((part, i) =>
     part.startsWith("[") && part.endsWith("]") ? (
-      <span key={i} className="rounded bg-brand-cyan-soft/60 px-1 font-medium text-deep-teal">
+      <span key={i} className="rounded bg-brand-cyan-soft px-1 font-medium text-ink-stage">
         {part}
       </span>
     ) : (
@@ -413,42 +422,43 @@ function renderBody(body: string): ReactNode[] {
 }
 
 function TemplateCard({ t, number }: { t: Template; number: number }) {
+  const tilt = number % 2 ? "-rotate-[0.4deg]" : "rotate-[0.4deg]";
   return (
     <article
       id={`template-${number}`}
-      className="rounded-2xl bg-white shadow-sm border border-off-white overflow-hidden"
+      className={`rounded-3xl bg-cream shadow-[0_18px_44px_rgba(0,0,0,0.4)] overflow-hidden ${tilt}`}
     >
-      <div className="flex items-start justify-between gap-4 px-5 sm:px-7 pt-5 sm:pt-6">
+      <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-5">
         <div>
-          <h3 className="font-bold text-deep-teal">
-            <span className="text-brand-cyan mr-2">{number}.</span>
+          <h3 className="font-extrabold tracking-tight text-ink-stage">
+            <span className="text-neon-magenta mr-2">{number}.</span>
             {t.title}
           </h3>
-          <p className="text-xs text-ink/50 mt-1">
+          <p className="text-xs text-ink-stage/55 mt-1">
             <span className="font-semibold">Use when:</span> {t.useWhen}
           </p>
         </div>
         <CopyButton text={t.body} />
       </div>
-      <div className="px-5 sm:px-7 py-4">
-        <div className="rounded-xl bg-background border border-off-white p-4 sm:p-5">
+      <div className="px-5 sm:px-6 py-4">
+        <div className="rounded-xl bg-cream-bright border border-ink-stage/10 p-4 sm:p-5">
           {t.subject ? (
-            <p className="text-sm mb-3 pb-3 border-b border-off-white">
-              <span className="font-semibold text-ink/40">Subject: </span>
-              <span className="font-semibold text-deep-teal">{renderBody(t.subject)}</span>
+            <p className="text-sm mb-3 pb-3 border-b border-ink-stage/10">
+              <span className="font-semibold text-ink-stage/45">Subject: </span>
+              <span className="font-semibold text-ink-stage">{renderBody(t.subject)}</span>
             </p>
           ) : (
-            <p className="text-xs mb-3 pb-3 border-b border-off-white text-ink/40 italic">
+            <p className="text-xs mb-3 pb-3 border-b border-ink-stage/10 text-ink-stage/45 italic">
               Send as a reply in the same email thread — keep the conversation in one place.
             </p>
           )}
-          <p className="text-sm leading-relaxed whitespace-pre-line text-ink/90">
+          <p className="text-sm leading-relaxed whitespace-pre-line text-ink-stage/85">
             {renderBody(t.body)}
           </p>
         </div>
         {t.tip && (
-          <p className="text-xs text-ink/60 mt-3">
-            <span className="font-semibold text-deep-teal">Why it works: </span>
+          <p className="text-xs text-ink-stage/60 mt-3">
+            <span className="font-semibold text-ink-stage">Why it works: </span>
             {t.tip}
           </p>
         )}
@@ -459,23 +469,21 @@ function TemplateCard({ t, number }: { t: Template; number: number }) {
 
 function StartFreeBanner({ heading, sub }: { heading: string; sub: string }) {
   return (
-    <div className="rounded-2xl bg-deep-teal text-white p-7 sm:p-9 text-center relative overflow-hidden">
-      <div
-        aria-hidden
-        className="absolute -top-12 -left-12 h-40 w-40 rounded-full bg-brand-cyan/30 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="absolute -bottom-12 -right-12 h-40 w-40 rounded-full bg-soft-lavender/30 blur-2xl"
-      />
-      <h2 className="text-xl sm:text-2xl font-bold mb-3 relative">{heading}</h2>
-      <p className="text-white/80 text-sm max-w-xl mx-auto mb-6 relative">{sub}</p>
-      <Link
-        href="/onboarding"
-        className="relative inline-block rounded-xl bg-brand-cyan text-white font-semibold px-6 py-3 hover:opacity-90 transition-opacity"
-      >
-        Start free
-      </Link>
+    <div className="relative">
+      <GradientBlob tone="show" className="-bottom-8 left-10 h-36 w-72" />
+      <div className="relative overflow-hidden rounded-3xl bg-cream p-7 sm:p-9 text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)] rotate-[-0.6deg]">
+        <VinylDisc size={120} tone="dark" className="-bottom-12 -right-10" />
+        <h2 className="relative text-xl sm:text-2xl font-extrabold tracking-tight text-ink-stage mb-3">
+          {heading}
+        </h2>
+        <p className="relative text-ink-stage/65 text-sm max-w-xl mx-auto mb-6">{sub}</p>
+        <Link
+          href="/onboarding"
+          className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+        >
+          Start free
+        </Link>
+      </div>
     </div>
   );
 }
@@ -498,30 +506,34 @@ export default function TemplatesPage() {
   };
 
   return (
-    <div className="overflow-hidden">
+    <div className="relative isolate overflow-hidden bg-ink-stage text-cream-bright">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
+      {/* one ring pattern per page + soft neon vignette */}
+      <RingsBackdrop />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(640px circle at 80% 200px, rgba(255,45,174,0.1), transparent 70%), radial-gradient(520px circle at 6% 80px, rgba(255,138,0,0.07), transparent 70%)",
+        }}
+      />
+
       {/* Hero */}
       <section className="relative">
-        <div
-          aria-hidden
-          className="absolute -top-20 -left-24 h-72 w-72 rounded-full bg-warm-peach/40 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="absolute top-32 -right-24 h-64 w-64 rounded-full bg-brand-cyan-soft blur-3xl opacity-70"
-        />
         <div className="relative max-w-3xl mx-auto px-6 pt-16 sm:pt-24 pb-12 text-center">
-          <span className="inline-block rounded-full bg-warm-peach/60 text-ink text-xs font-semibold px-3 py-1 mb-5">
+          <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-cream/75">
+            <span className="h-1.5 w-1.5 rounded-full bg-neon-magenta" />
             Free — no PDF, no paywall, just copy and send
           </span>
-          <h1 className="text-3xl sm:text-5xl font-bold text-deep-teal leading-tight">
-            25 Wedding DJ Inquiry &amp; Follow-Up Templates
+          <h1 className="mt-7 text-4xl sm:text-6xl font-black tracking-tight leading-[1.02]">
+            25 Wedding DJ Inquiry &amp; Follow-Up <span style={gradText}>Templates</span>
           </h1>
-          <p className="mt-5 text-lg text-ink/70">
+          <p className="mt-6 text-lg leading-relaxed text-cream/65">
             &ldquo;Get an inquiry, immediately respond, and then nothing.&rdquo; We&apos;ve run an
             entertainment business for 20 years — these are the emails that actually get answered.
             First replies for every situation, follow-ups that don&apos;t feel desperate, and the
@@ -530,84 +542,87 @@ export default function TemplatesPage() {
         </div>
       </section>
 
-      {/* Ground rules */}
-      <section className="max-w-3xl mx-auto px-6 pb-12">
-        <div className="rounded-2xl bg-white shadow-sm border border-off-white p-6 sm:p-8">
-          <h2 className="font-bold text-deep-teal text-lg mb-4">
-            Three rules that matter more than any template
-          </h2>
-          <ol className="space-y-3 text-sm text-ink/80 leading-relaxed list-none">
-            <li className="flex gap-3">
-              <span className="shrink-0 h-6 w-6 rounded-full bg-brand-cyan-soft text-deep-teal font-bold text-xs flex items-center justify-center">
-                1
-              </span>
-              <span>
-                <strong className="text-deep-teal">Reply in the first 5 minutes.</strong> Couples
-                book whoever replies first, and roughly a third of vendors never reply at all. A
-                short answer now beats a perfect one tonight.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="shrink-0 h-6 w-6 rounded-full bg-soft-lavender/40 text-deep-teal font-bold text-xs flex items-center justify-center">
-                2
-              </span>
-              <span>
-                <strong className="text-deep-teal">Personalize the brackets — always.</strong>{" "}
-                Their name, their date, their venue. One specific detail proves a human read their
-                message; zero details reads as an autoresponder.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="shrink-0 h-6 w-6 rounded-full bg-warm-peach/50 text-deep-teal font-bold text-xs flex items-center justify-center">
-                3
-              </span>
-              <span>
-                <strong className="text-deep-teal">Follow up day 2, day 5, day 9 — then stop.</strong>{" "}
-                Most gigs are won on the follow-up, and almost none after the third. Close
-                gracefully and leave the door open.
-              </span>
-            </li>
-          </ol>
+      {/* Ground rules — cream poster */}
+      <section className="relative max-w-3xl mx-auto px-6 pb-12">
+        <div className="relative">
+          <GradientBlob tone="show" className="-bottom-7 -left-6 h-32 w-56" />
+          <div className="relative overflow-hidden rounded-3xl bg-cream p-6 sm:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] rotate-[-0.5deg]">
+            <h2 className="font-extrabold tracking-tight text-ink-stage text-lg mb-4">
+              Three rules that matter more than any template
+            </h2>
+            <ol className="space-y-3 text-sm text-ink-stage/75 leading-relaxed list-none">
+              <li className="flex gap-3">
+                <span className="shrink-0 h-6 w-6 rounded-full bg-brand-cyan-soft text-ink-stage font-bold text-xs flex items-center justify-center">
+                  1
+                </span>
+                <span>
+                  <strong className="text-ink-stage">Reply in the first 5 minutes.</strong> Couples
+                  book whoever replies first, and roughly a third of vendors never reply at all. A
+                  short answer now beats a perfect one tonight.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 h-6 w-6 rounded-full bg-[#ffd6ec] text-[#9c0f63] font-bold text-xs flex items-center justify-center">
+                  2
+                </span>
+                <span>
+                  <strong className="text-ink-stage">Personalize the brackets — always.</strong>{" "}
+                  Their name, their date, their venue. One specific detail proves a human read their
+                  message; zero details reads as an autoresponder.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="shrink-0 h-6 w-6 rounded-full bg-[#ffdfba] text-[#7a4100] font-bold text-xs flex items-center justify-center">
+                  3
+                </span>
+                <span>
+                  <strong className="text-ink-stage">
+                    Follow up day 2, day 5, day 9 — then stop.
+                  </strong>{" "}
+                  Most gigs are won on the follow-up, and almost none after the third. Close
+                  gracefully and leave the door open.
+                </span>
+              </li>
+            </ol>
+          </div>
         </div>
 
-        {/* TOC */}
-        <nav aria-label="Template sections" className="mt-8 flex flex-wrap gap-2 justify-center">
+        {/* TOC — ghost pills on ink (cyan = clickable) */}
+        <nav aria-label="Template sections" className="mt-10 flex flex-wrap gap-2 justify-center">
           {numbered.map((s) => (
             <a
               key={s.id}
               href={`#${s.id}`}
-              className="rounded-full bg-white border border-off-white text-sm font-semibold text-deep-teal px-4 py-2 hover:border-brand-cyan hover:text-brand-cyan transition-colors"
+              className="rounded-full border-[1.5px] border-cream/30 text-sm font-semibold text-cream/80 px-4 py-2 hover:border-brand-cyan hover:text-brand-cyan transition-colors"
             >
               {s.heading}{" "}
-              <span className="text-ink/40 font-normal">({s.templates.length})</span>
+              <span className="text-cream/40 font-normal">({s.templates.length})</span>
             </a>
           ))}
         </nav>
       </section>
 
-      {/* Sections */}
-      <div className="max-w-3xl mx-auto px-6 space-y-16 pb-16">
+      {/* Sections — the poster wall */}
+      <div className="relative max-w-5xl mx-auto px-6 space-y-20 pb-20">
         {numbered.map((section, idx) => (
           <section key={section.id} id={section.id} className="scroll-mt-24">
-            <div className="mb-6">
-              <span
-                className={`inline-block rounded-full ${section.accent} text-deep-teal text-xs font-semibold px-3 py-1 mb-3`}
-              >
+            <div className="mb-8 max-w-3xl">
+              <StickerChip tone={section.accent} rotate={idx % 2 ? 2 : -2} className="mb-3">
                 Part {idx + 1}
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-deep-teal mb-3">
+              </StickerChip>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-cream-bright mb-3">
                 {section.heading}
               </h2>
-              <p className="text-ink/70 leading-relaxed">{section.blurb}</p>
+              <p className="text-cream/60 leading-relaxed">{section.blurb}</p>
             </div>
-            <div className="space-y-6">
+            <div className="grid gap-6 sm:grid-cols-2 items-start">
               {section.templates.map(({ t, number }) => (
                 <TemplateCard key={number} t={t} number={number} />
               ))}
             </div>
             {/* Mid-page bridge after the follow-ups section */}
             {section.id === "follow-ups" && (
-              <div className="mt-10">
+              <div className="mt-12 max-w-3xl mx-auto">
                 <StartFreeBanner
                   heading="Sending these at 11pm after a gig? There's a better way."
                   sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Median first reply: under 5 minutes. 14-day free trial, no card, from $25/mo."
@@ -619,27 +634,32 @@ export default function TemplatesPage() {
       </div>
 
       {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl sm:text-3xl font-bold text-deep-teal text-center mb-8">
+      <section className="relative max-w-5xl mx-auto px-6 pb-20">
+        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-cream-bright text-center mb-10">
           Quick answers
         </h2>
-        <div className="space-y-4">
-          {FAQS.map((f) => (
-            <div key={f.q} className="rounded-2xl bg-white shadow-sm border border-off-white p-6">
-              <h3 className="font-bold text-deep-teal mb-2">{f.q}</h3>
-              <p className="text-sm text-ink/70 leading-relaxed">{f.a}</p>
+        <div className="grid gap-6 sm:grid-cols-2 items-start">
+          {FAQS.map((f, i) => (
+            <div
+              key={f.q}
+              className={`rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] ${
+                i % 2 ? "rotate-[0.4deg]" : "-rotate-[0.4deg]"
+              }`}
+            >
+              <h3 className="font-extrabold tracking-tight text-ink-stage mb-2">{f.q}</h3>
+              <p className="text-sm text-ink-stage/65 leading-relaxed">{f.a}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="max-w-3xl mx-auto px-6 pb-20">
+      <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <StartFreeBanner
           heading="If there were two of you, you'd double your business."
           sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, and filters the spam before you ever see it — while your clients only ever see you. Try it free for 14 days, no card."
         />
-        <p className="text-center text-sm text-ink/50 mt-8">
+        <p className="text-center text-sm text-cream/50 mt-10">
           More free tools:{" "}
           <Link
             href="/tools/inquiry-reply-generator"

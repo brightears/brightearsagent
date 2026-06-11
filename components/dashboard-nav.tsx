@@ -2,13 +2,16 @@
 
 // Presentational nav links for the dashboard shell. Client component only
 // because the active state needs usePathname() — layout.tsx owns the link list.
+//
+// v2 (docs/DESIGN.md): links sit on the ink nav bar — cream text, and the
+// active page is a solid CYAN pill with ink text (cyan = the interface voice).
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export function DashboardNavLinks({ links }: { links: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
-    <div className="flex items-center gap-1 text-sm">
+    <div className="flex items-center gap-1.5 text-sm">
       {links.map((link) => {
         const active =
           link.href === "/dashboard"
@@ -19,10 +22,10 @@ export function DashboardNavLinks({ links }: { links: { href: string; label: str
             key={link.href}
             href={link.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-full px-3 py-1.5 transition-colors ${
+            className={`rounded-full px-3.5 py-1.5 transition-colors ${
               active
-                ? "bg-brand-cyan-soft/40 font-semibold text-brand-cyan"
-                : "font-medium text-ink/60 hover:text-brand-cyan"
+                ? "bg-brand-cyan font-bold text-ink-stage"
+                : "font-medium text-cream/60 hover:text-cream-bright"
             }`}
           >
             {link.label}

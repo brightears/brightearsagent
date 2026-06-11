@@ -43,10 +43,10 @@ export type BusinessProfile = {
   performerKind: PerformerKind;
 };
 
-// Form styling per docs/DESIGN.md — uppercase micro-labels, cyan focus ring.
+// Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputCls =
-  "w-full rounded-xl border border-off-white bg-white px-3 py-2 text-sm focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
-const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink/60 mb-1";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 export function SettingsForm({ business }: { business: BusinessProfile }) {
   const [state, formAction, pending] = useActionState(
@@ -81,7 +81,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             defaultValue={business.name}
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-ink/50">This is the name your clients see on every reply.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">This is the name your clients see on every reply.</p>
         </div>
         <div>
           <label htmlFor="ownerName" className={labelCls}>
@@ -124,7 +124,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             defaultValue={business.replyToEmail ?? ""}
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-ink/50">When a client hits reply, it lands here.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">When a client hits reply, it lands here.</p>
         </div>
         <div>
           <label htmlFor="timezone" className={labelCls}>
@@ -149,7 +149,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink/50">Sets the right email compliance footer for you.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">Sets the right email compliance footer for you.</p>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="websiteUrl" className={labelCls}>
@@ -177,7 +177,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             defaultValue={business.bookingLinkUrl ?? ""}
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-ink/45">
+          <p className="mt-1 text-xs text-ink-stage/45">
             When a couple is ready, the AI includes this link so they can lock in their date — your existing booking page, contract, or deposit link.
           </p>
         </div>
@@ -201,7 +201,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
           {pending ? "Saving…" : "Save changes"}
         </button>
         {state?.ok && (
-          <span className="rounded-full bg-brand-cyan-soft/50 px-3 py-1 text-sm font-semibold text-deep-teal">
+          <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
             Saved ✓
           </span>
         )}
@@ -219,7 +219,8 @@ export function CopyButton({ text }: { text: string }) {
   return (
     <button
       type="button"
-      className={buttonStyles.secondary}
+      // Lives inside white/cream panels — ink-outline ghost (cream outline is invisible there).
+      className={buttonStyles.secondaryOnLight}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);

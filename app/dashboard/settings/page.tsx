@@ -16,27 +16,32 @@ const PLAN_CARDS = [
   { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
 ];
 
-/** Emoji-accented section title — small tinted tile + heading, marketing-page energy. */
+/**
+ * Sticker-chip section title (v2) — mono, uppercase, slightly rotated ink pill
+ * on the white card ("💳 PLAN & BILLING"). Replaces the old emoji tiles.
+ */
 function SectionTitle({
   emoji,
-  tint,
+  rotate = -1,
   className = "",
   children,
 }: {
   emoji: string;
-  tint: string;
+  rotate?: number;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <h2 className={`flex items-center gap-2.5 text-lg font-bold text-deep-teal ${className}`}>
+    <h2 className={className}>
       <span
-        aria-hidden
-        className={`flex h-9 w-9 flex-none items-center justify-center rounded-xl text-base ${tint}`}
+        className="inline-block rounded-full bg-ink-stage px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-cream"
+        style={{ transform: `rotate(${rotate}deg)` }}
       >
-        {emoji}
+        <span aria-hidden className="mr-1.5">
+          {emoji}
+        </span>
+        {children}
       </span>
-      {children}
     </h2>
   );
 }
@@ -46,7 +51,7 @@ async function BillingCard() {
   return (
     <Card className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle emoji="💳" tint="bg-brand-cyan-soft">
+        <SectionTitle emoji="💳">
           Plan &amp; billing
         </SectionTitle>
         <Badge tone={state.subscribed ? "teal" : "peach"}>
@@ -54,17 +59,17 @@ async function BillingCard() {
         </Badge>
       </div>
       {!state.enabled ? (
-        <p className="text-sm text-ink/60">Billing isn&apos;t configured in this environment yet.</p>
+        <p className="text-sm text-ink-stage/60">Billing isn&apos;t configured in this environment yet.</p>
       ) : state.subscribed ? (
         <form action={openBillingPortal}>
-          <p className="text-sm text-ink/60 mb-3">
+          <p className="text-sm text-ink-stage/60 mb-3">
             Manage your payment method, change plans, or cancel — no emails, no hoops.
           </p>
-          <button className={buttonStyles.secondary}>Manage billing</button>
+          <button className={buttonStyles.secondaryOnLight}>Manage billing</button>
         </form>
       ) : (
         <div>
-          <p className="text-sm text-ink/60 mb-5">
+          <p className="text-sm text-ink-stage/60 mb-5">
             {state.trialDaysLeft !== null && state.trialDaysLeft > 0
               ? "Pick a plan to keep replies flowing after your trial."
               : "Your trial has ended — new inquiries are saved but replies are paused until you subscribe."}
@@ -73,13 +78,14 @@ async function BillingCard() {
             {PLAN_CARDS.map((p) => {
               const popular = p.plan === "PRO";
               return (
+                // Plan cards = cream poster panels; Pro wears the magenta show ring.
                 <form
                   key={p.plan}
                   action={startCheckout.bind(null, p.plan)}
-                  className={`relative flex flex-col gap-2 rounded-2xl bg-white p-5 ${
+                  className={`relative flex flex-col gap-2 rounded-2xl bg-cream p-5 ${
                     popular
-                      ? "border border-transparent ring-2 ring-brand-cyan shadow-md"
-                      : "border border-off-white"
+                      ? "ring-2 ring-neon-magenta shadow-[0_10px_30px_rgba(255,45,174,0.2)]"
+                      : ""
                   }`}
                 >
                   {popular && (
@@ -87,13 +93,13 @@ async function BillingCard() {
                       <Badge tone="teal">Most popular</Badge>
                     </div>
                   )}
-                  <div className="font-bold text-deep-teal">{p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}</div>
-                  <div className="text-3xl font-extrabold text-deep-teal">
+                  <div className="font-bold text-ink-stage">{p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}</div>
+                  <div className="text-3xl font-extrabold tracking-tight text-ink-stage">
                     {p.price}
-                    <span className="text-sm font-normal text-ink/50">/mo</span>
+                    <span className="text-sm font-normal text-ink-stage/50">/mo</span>
                   </div>
-                  <div className="text-xs text-ink/60 flex-1">{p.blurb}</div>
-                  <button className={popular ? buttonStyles.primary : buttonStyles.secondary}>Choose</button>
+                  <div className="text-xs text-ink-stage/60 flex-1">{p.blurb}</div>
+                  <button className={popular ? buttonStyles.primary : buttonStyles.secondaryOnLight}>Choose</button>
                 </form>
               );
             })}
@@ -109,7 +115,8 @@ export default async function SettingsPage() {
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
 
   return (
-    <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
+    <main className="flex-1 bg-ink-stage">
+      <div className="mx-auto w-full max-w-4xl px-6 py-8">
       <PageHeader
         title="Settings"
         subtitle="Your business, your voice, your devices — everything the AI office needs to sound like you."
@@ -118,7 +125,7 @@ export default async function SettingsPage() {
       <div className="space-y-6">
         <BillingCard />
         <Card className="p-6">
-          <SectionTitle emoji="🏢" tint="bg-soft-lavender" className="mb-5">
+          <SectionTitle emoji="🏢" rotate={1} className="mb-5">
             Business profile
           </SectionTitle>
           <SettingsForm
@@ -137,33 +144,35 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="p-6">
-          <SectionTitle emoji="📬" tint="bg-warm-peach" className="mb-4">
+          <SectionTitle emoji="📬" rotate={-1} className="mb-4">
             Your lead address
           </SectionTitle>
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft/30 px-4 py-2">
-              <code className="select-all break-all font-mono text-sm font-semibold text-deep-teal">
+            {/* Cyan-soft pill, ink text (~12:1) — the interface accent. */}
+            <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft px-4 py-2">
+              <code className="select-all break-all font-mono text-sm font-semibold text-ink-stage">
                 {leadAddress}
               </code>
             </span>
             <CopyButton text={leadAddress} />
           </div>
-          <p className="text-sm text-ink/60">
+          <p className="text-sm text-ink-stage/60">
             Forward your inquiry email (and The Knot, WeddingWire, Bark notifications) to this
             address — every lead lands in your pipeline with a reply drafted and waiting.
           </p>
         </Card>
 
         <Card className="p-6">
-          <SectionTitle emoji="🔔" tint="bg-brand-cyan-soft" className="mb-2">
+          <SectionTitle emoji="🔔" rotate={1} className="mb-2">
             Notifications
           </SectionTitle>
-          <p className="text-sm text-ink/60 mb-4">
+          <p className="text-sm text-ink-stage/60 mb-4">
             Get a ping the moment a reply is ready, so you can approve it from your phone — even
             from the booth.
           </p>
           <PushToggle />
         </Card>
+      </div>
       </div>
     </main>
   );

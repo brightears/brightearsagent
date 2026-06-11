@@ -24,14 +24,15 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
     timer.current = setTimeout(() => setState("idle"), 1800);
   }
 
+  // Sticker-chip styled, cyan = the click (interface voice, docs/DESIGN.md).
   return (
     <button
       type="button"
       onClick={copy}
-      className={`rounded-full text-xs font-semibold px-3 py-1.5 transition-colors ${
+      className={`shrink-0 rounded-full px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors ${
         state === "copied"
-          ? "bg-deep-teal text-white"
-          : "bg-brand-cyan-soft text-deep-teal hover:bg-brand-cyan hover:text-white"
+          ? "bg-brand-cyan text-ink-stage"
+          : "bg-ink-stage text-cream hover:bg-brand-cyan hover:text-ink-stage"
       }`}
     >
       {state === "copied" ? "Copied!" : state === "failed" ? "Select & copy manually" : label}
