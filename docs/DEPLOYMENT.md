@@ -19,6 +19,7 @@ Reproduce with `scripts/render-deploy.py` (web) + `scripts/render-crons.py` (cro
 It runs on the temp `onrender.com` URL with **test/sandbox credentials**: Postmark test mode, Clerk Development instance, Stripe test keys. It proves the app runs on production infra (signup, billing, dashboard). It is NOT yet customer-facing.
 
 ## Before launch (Phase 8/9 — the cutover)
+0. **CDN + region note (Lighthouse June 11):** marketing pages score perf 78 / best-practices 73 on staging — NOT code (TBT 0ms, CLS 0.007): causes are (a) Clerk dev-instance cookies/console noise → fixed by the production Clerk instance (step 3), and (b) no CDN in front of the Singapore origin → front the real domain with Cloudflare (free plan: edge-caches static pages, fixes LCP for US/UK buyers). Re-run Lighthouse after cutover; expect ≥90s. If still short, consider recreating the web service in Oregon (US buyers) — region can't be changed in place.
 1. **Postmark:** click "Request approval" (lifts the @brightears.io-only recipient limit); add DKIM + Return-Path DNS.
 2. **Domain + inbound email:** point a domain at the service; set up `in.brightears.io` (MX → Postmark inbound) and `mail.brightears.io` (SPF/DKIM/DMARC); update `APP_URL` and the lead-address domain.
 3. **Clerk:** create a Production instance for the real domain; swap to production keys.

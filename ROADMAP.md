@@ -73,7 +73,11 @@ Rules of engagement for any agent working this file:
 - [x] New Render infra via API (scripts/render-deploy.py + render-crons.py, docs/DEPLOYMENT.md): web `brightears-app` (srv-d8l2ni6gvqtc73ag9gsg, starter always-on, Singapore, auto-deploy) + Postgres `brightears-app-db` (dpg-d8l2martqb8s73anqjig-a, basic_256mb) — fully separate from the live brightears stack; migrations via `npm run db:deploy` pre-deploy (never db push); fresh prod secrets (not dev values)
 - [x] 3 crons created + endpoints manually verified with prod secret: sequences */30, weekly report Mon 14:00 UTC, margin guardrail daily 02:00 UTC
 - [x] First deploy LIVE at https://brightears-app.onrender.com — smoke: marketing 200s, dashboard → Clerk redirect, webhook/cron fail-closed 401 without secret, live demo-reply LLM call works from Render
-- [ ] Remaining: error tracking (Sentry) + uptime monitor; DB backup verification on Render plan; Lighthouse pass (Phase 6 leftover); 7-day green soak before launch
+- [x] Error tracking + health: `/api/health` (DB ping) wired as the Render health check; `instrumentation.ts` onRequestError → structured JSON logs + rate-limited Postmark alerts to OPS_ALERT_EMAIL (norbert@brightears.io) — no third-party account; Sentry optional later. Verified live
+- [x] Lighthouse (staging, homepage): SEO 100 · A11y 96 · Perf 78 · BP 73 — code metrics clean (TBT 0ms, CLS 0.007); both shortfalls are cutover-bound (Clerk dev instance noise → prod instance; no CDN → Cloudflare at real domain). Documented in DEPLOYMENT.md §0; re-audit post-cutover
+- [ ] DB backup verification: paid plan takes daily backups; list was empty at hour 0 — verify `GET /postgres/.../backup` shows a backup after 24h (June 12)
+- [ ] Uptime monitor: external (UptimeRobot free, ~2-min founder signup) at launch — self-ping from the same platform is false comfort
+- [ ] 7-day green soak before launch (started June 11)
 - [ ] STAGING NOTE: runs on test/sandbox keys (Postmark test mode, Clerk dev instance, Stripe test) — see docs/DEPLOYMENT.md "Before launch" for the key-swap + domain + inbound-email cutover list
 
 ## Phase 8 — brightears.io cutover (Vinyl-safe, in this exact order) 🔑 DNS + LINE console + Clerk dashboard
