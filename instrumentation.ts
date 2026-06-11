@@ -11,6 +11,9 @@ const emailedSignatures = new Map<string, number>();
 const HOUR = 3600_000;
 
 export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
+  // Email alerting needs Node APIs — skip on the edge runtime (errors there
+  // still reach the structured console log below in node, and Render captures stdout).
+  if (process.env.NEXT_RUNTIME && process.env.NEXT_RUNTIME !== "nodejs") return;
   const error = err as Error;
   const signature = `${error?.name}:${error?.message?.slice(0, 120)}:${request.path}`;
 

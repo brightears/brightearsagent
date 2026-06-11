@@ -1,6 +1,3 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-
 export interface OutboundEmail {
   fromName: string; // the business name — white-label invariant
   to: string;
@@ -28,6 +25,10 @@ export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
   // EMAIL_TRANSPORT=dev forces the file transport even when a token exists —
   // test scripts set this so they never hit the real Postmark API.
   if (!token || process.env.EMAIL_TRANSPORT === "dev") {
+    // node:fs imported lazily so this module stays Edge-bundle-safe
+    // (instrumentation.ts pulls it into the edge graph).
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
     const dir = join(process.cwd(), ".dev-outbox");
     mkdirSync(dir, { recursive: true });
     const id = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
