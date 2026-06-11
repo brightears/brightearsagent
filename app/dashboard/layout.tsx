@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <nav className="border-b border-off-white bg-white">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/brand/logo.svg" alt="Bright Ears" width={28} height={28} />
+            <Image src="/brand/logo.svg" alt="Bright Ears" width={28} height={28} className="bg-deep-teal rounded-lg p-1" />
             <span className="font-bold text-deep-teal">Bright Ears</span>
           </Link>
           <div className="flex gap-4 text-sm">

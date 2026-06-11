@@ -52,6 +52,9 @@ Rules of engagement for any agent working this file:
 - [x] Margin guardrail: nightly cron + `scripts/margins.ts`; pricing snapshot tied to ADR-002; validated on real data (demo tenant: $0.0034 LLM cost vs $25 plan after a full testing day)
 - [ ] Acceptance: stranger-test (signup → onboard → first drafted reply < 20 min, no help) — needs 🔑 Clerk + 🔑 Stripe; wizard flow verified end-to-end on the dev tenant including the live lead verifier
 
+## Design-polish pass (founder feedback June 11 — do before launch, after Stripe)
+- [ ] Dashboard + app screens don't yet match the royalstreaming-style reference or the marketing site's colorful energy — founder: "it will still need many design adjustments". Bring the dashboard/onboarding up to the same design language: lighter cards on subtle color, playful accents, better spacing/typography. (Logo white-on-white already hot-fixed with teal tiles — a proper two-variant logo treatment belongs in this pass.)
+
 ## Phase 6 — Marketing site + content (the product's face) — ✅ built (June 10, 2026)
 - [x] Landing page `/`: "Stop being the 5th DJ to reply" hero, verbatim pain cards, LIVE demo widget (POST /api/demo-reply, typewriter render, rate-limited 5/IP/day + 500/day global, live-tested with a real inquiry → perfect reply), how-it-works, "We've been there" Vinyl section, feature grid, gradient CTA band
 - [x] Pricing (3 cards, Pro highlighted, 10-question FAQ + FAQPage JSON-LD), `/story` long-form narrative (no personal names, Organization JSON-LD)

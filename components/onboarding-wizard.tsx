@@ -935,7 +935,7 @@ export function OnboardingWizard({
 
       <main className="relative mx-auto w-full max-w-2xl px-6 py-10">
         <header className="mb-8 text-center">
-          <Image src="/brand/logo.svg" alt="Bright Ears" width={56} height={56} className="mx-auto mb-3" priority />
+          <Image src="/brand/logo.svg" alt="Bright Ears" width={56} height={56} className="mx-auto mb-3 bg-deep-teal rounded-xl p-2" priority />
           <h1 className="text-3xl font-bold text-deep-teal">Let’s get you set up</h1>
           <p className="mt-1 text-sm text-ink/60">
             Five quick steps — under ten minutes — and every inquiry you get starts answering

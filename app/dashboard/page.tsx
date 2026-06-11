@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { getCurrentBusiness } from "@/lib/tenant";
 import { OnboardingBanner } from "@/components/onboarding-banner";
 import type { LeadStatus } from "@/app/generated/prisma/enums";
 
@@ -22,28 +23,28 @@ function fmtDate(d: Date | null) {
 }
 
 export default async function Dashboard() {
-  // Single-tenant dev view: the seeded demo business. Auth + tenant resolution arrive in Phase 3.
-  const business = await db.business.findFirst({
-    where: { slug: "demo-dj-co" },
-    include: {
-      leads: { where: { status: { not: "SPAM" } }, orderBy: { createdAt: "desc" } },
-    },
-  });
-
-  if (!business) {
-    return (
-      <main className="p-10">
-        <p className="text-lg">No demo data yet — run <code className="font-mono bg-off-white px-1 rounded">npm run db:seed</code>.</p>
-      </main>
-    );
-  }
-
-  const spamCount = await db.lead.count({ where: { businessId: business.id, status: "SPAM" } });
+  const tenant = await getCurrentBusiness();
+  const [leads, spamCount] = await Promise.all([
+    db.lead.findMany({
+      where: { businessId: tenant.id, status: { not: "SPAM" } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        clientName: true,
+        eventType: true,
+        eventDate: true,
+        venue: true,
+        status: true,
+      },
+    }),
+    db.lead.count({ where: { businessId: tenant.id, status: "SPAM" } }),
+  ]);
+  const business = { ...tenant, leads };
 
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
       <header className="flex items-center gap-4 mb-8">
-        <Image src="/brand/logo.svg" alt="Bright Ears" width={44} height={44} />
+        <Image src="/brand/logo.svg" alt="Bright Ears" width={44} height={44} className="bg-deep-teal rounded-xl p-1.5" />
         <div>
           <h1 className="text-2xl font-bold text-deep-teal">{business.name}</h1>
           <p className="text-sm text-ink/60">
