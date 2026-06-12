@@ -10,6 +10,10 @@ Founder verdict: reactive inquiry-answering alone is "half the circle — nobody
 
 The product is **"your AI sales agent"** — it goes out and gets work. Primary v1 customer: **newcomers and working artists worldwide who burn hours hunting opportunities**, not marketplace power-users. Marketplace alert integration remains supported (it's free demand intake) but is not the identity or the marketing lead.
 
+## Probe finding (June 12, 2026) — engines re-ranked
+
+The city probe (docs/PROBE-CITY-DEMAND.md; Austin / Nashville / Manchester) found **publicly visible posted demand is ~0–1/week in every metro** — scraping public gig posts has no raw material. **Venue-prospecting signals were consistently real** (~1–1.5 hot new venues/week + hundreds of standing venues per metro). Re-scope, pending founder confirmation: **venue prospecting is the PRIMARY engine (the spine)**; public-post scraping is **cut**; posted-demand survives only as a **secondary engine fed by the artist's own marketplace-membership alert emails** (existing reactive parser). Supply of venue targets is proven; venue-pitch *conversion* remains the unproven beta gate.
+
 ## Decision 2 — Two demand engines
 
 1. **Posted-demand speed** (the early-win engine): watch places where clients publicly ask for performers and be first to respond. Alerts-first architecture — marketplace/Craigslist alert emails land in the tenant's existing Bright Ears address and ride the existing parser. Free channels prioritized (newcomer-friendly); paid-marketplace alerts supported for those who have memberships.
