@@ -1,9 +1,9 @@
-// Discovery provider seam (Phase 10.2). Live web scanning needs a search-API
-// key (FOUNDER GATE: SERPER_API_KEY) — until it lands, the stub below feeds
-// deterministic fixture data modeled on the city probe's REAL findings
-// (docs/PROBE-CITY-DEMAND.md), so ingest, scoring and the feed UI are fully
-// buildable and testable today.
+// Discovery provider seam (Phase 10.2). The LIVE scanner (Serper + LLM
+// extraction) lives in serper.ts; the stub below feeds deterministic fixture
+// data modeled on the city probe's REAL findings (docs/PROBE-CITY-DEMAND.md)
+// for dev, tests and demo seeding.
 
+import { SerperDiscoveryProvider } from "@/lib/discovery/serper";
 import type { SignalType, VenueKind } from "@/lib/venues/score";
 
 export type Metro = {
@@ -32,6 +32,8 @@ export type RawSignal = {
 export type DiscoveryOpts = {
   /** Time anchor for "recent" windows — pass through, never Date.now() in providers. */
   now: Date;
+  /** Tenant the scan bills to (LlmUsage); null/absent = unmetered (tests). */
+  businessId?: string | null;
 };
 
 export interface DiscoveryProvider {
@@ -128,18 +130,10 @@ export class StubDiscoveryProvider implements DiscoveryProvider {
   }
 }
 
-/** The live implementation lands when the founder provides a search-API key. */
-export class SerperDiscoveryProvider implements DiscoveryProvider {
-  async searchVenueSignals(): Promise<RawSignal[]> {
-    throw new Error(
-      "Live venue discovery not implemented yet (founder gate: search API key — SERPER_API_KEY)",
-    );
-  }
-}
-
 /**
  * Stub unless a live provider is configured. DISCOVERY_PROVIDER=stub forces
- * the stub even with a key present (demo/dev safety).
+ * the stub even with a key present (demo/dev safety). The live class lives in
+ * serper.ts (which only type-imports from this file — no runtime cycle).
  */
 export function getDiscoveryProvider(): DiscoveryProvider {
   if (process.env.DISCOVERY_PROVIDER === "stub") return new StubDiscoveryProvider();

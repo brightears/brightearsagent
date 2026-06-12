@@ -89,6 +89,9 @@ model Business {
   trialEndsAt          DateTime?
   stripeCustomerId     String?       @unique
   stripeSubscriptionId String?
+  // Phase 10.2b: discovery-scan budget guard — a live scan costs real Serper
+  // queries; refuse a new scan if one ran < 20h ago (manual --force bypasses).
+  lastDiscoveryScanAt  DateTime?
 
   // --- Artist profile (Phase 10.1) — what the sales agent pitches WITH.
   // Lives on Business (not a 1:1 side table): every field is tenant-singular,
