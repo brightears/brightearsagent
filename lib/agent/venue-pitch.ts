@@ -119,6 +119,7 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     `HARD RULES:`,
     `1. Body 90-150 words. Short paragraphs.`,
     `2. Open by referencing the venue's specific situation from the signals given (e.g. "saw you're opening this month") — naturally, like a local who noticed, never like a database.`,
+    `2b. ONLY state facts that appear in the venue facts below, and never claim firsthand experience you don't have: you have NOT visited, seen sets, watched clips, or heard anything — you READ that they're opening/hiring/in the news. "Heard you're opening the rooftop" is honest; "the launch sets looked great" is a lie that kills trust on reply. No invented platforms, dates, names, or details. Vague-but-true beats specific-but-invented, always.`,
     `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
     `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
     `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`,
