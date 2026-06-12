@@ -12,7 +12,7 @@ The product is **"your AI sales agent"** — it goes out and gets work. Primary 
 
 ## Probe finding (June 12, 2026) — engines re-ranked
 
-The city probe (docs/PROBE-CITY-DEMAND.md; Austin / Nashville / Manchester) found **publicly visible posted demand is ~0–1/week in every metro** — scraping public gig posts has no raw material. **Venue-prospecting signals were consistently real** (~1–1.5 hot new venues/week + hundreds of standing venues per metro). Re-scope, pending founder confirmation: **venue prospecting is the PRIMARY engine (the spine)**; public-post scraping is **cut**; posted-demand survives only as a **secondary engine fed by the artist's own marketplace-membership alert emails** (existing reactive parser). Supply of venue targets is proven; venue-pitch *conversion* remains the unproven beta gate.
+The city probe (docs/PROBE-CITY-DEMAND.md; Austin / Nashville / Manchester) found **publicly visible posted demand is ~0–1/week in every metro** — scraping public gig posts has no raw material. **Venue-prospecting signals were consistently real** (~1–1.5 hot new venues/week + hundreds of standing venues per metro). Re-scope **CONFIRMED by founder June 12, 2026**: **venue prospecting is the PRIMARY engine (the spine)**; public-post scraping is **cut**; posted-demand survives only as a **secondary engine fed by the artist's own marketplace-membership alert emails** (existing reactive parser). Supply of venue targets is proven; venue-pitch *conversion* remains the unproven beta gate.
 
 ## Decision 2 — Two demand engines
 
