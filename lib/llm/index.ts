@@ -7,16 +7,19 @@ import { db } from "@/lib/db";
  * All LLM calls go through here (CLAUDE.md rule 10): OpenRouter gateway,
  * per-purpose model map, usage logged to LlmUsage. No call site names a model.
  */
-export type LlmPurpose = "parse" | "triage" | "draft" | "followup";
+export type LlmPurpose = "parse" | "triage" | "draft" | "followup" | "venuePitch";
 
 // Read lazily so scripts (dotenv after import hoisting; eval model overrides)
 // and Next.js runtime env all behave identically.
-function modelFor(purpose: LlmPurpose): string {
+export function modelFor(purpose: LlmPurpose): string {
   const defaults: Record<LlmPurpose, string> = {
     parse: "deepseek/deepseek-v4-flash",
     triage: "deepseek/deepseek-v4-flash",
     draft: "deepseek/deepseek-v4-pro",
     followup: "deepseek/deepseek-v4-pro",
+    // Venue pitches are client-facing prose — same quality tier as draft
+    // (ADR-002 pattern: cheap flash for parsing, pro for anything a human reads).
+    venuePitch: "deepseek/deepseek-v4-pro",
   };
   const envKey = `MODEL_${purpose.toUpperCase()}`;
   return process.env[envKey] ?? defaults[purpose];

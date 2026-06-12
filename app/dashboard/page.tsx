@@ -103,6 +103,22 @@ export default async function Dashboard({
         lastSignalAt: true,
         bookingEmail: true,
         contactSource: true,
+        // The live pitch for the review surface (10.3) — at most one PENDING
+        // or parked APPROVED per venue (action-level dedupe guarantee).
+        pitches: {
+          where: { status: { in: ["PENDING", "APPROVED"] } },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            subject: true,
+            body: true,
+            status: true,
+            jurisdictionMode: true,
+            editedSubject: true,
+            editedBody: true,
+          },
+        },
       },
     }),
     db.venue.count({
@@ -112,6 +128,16 @@ export default async function Dashboard({
     db.gig.count({ where: { businessId: tenant.id } }),
   ]);
   const business = { ...tenant, leads };
+
+  // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
+  // only — the query filtered, so the cast on status is honest).
+  const huntCards = huntVenues.map(({ pitches, ...venue }) => ({
+    ...venue,
+    pitch: pitches[0]
+      ? { ...pitches[0], status: pitches[0].status as "PENDING" | "APPROVED" }
+      : null,
+  }));
+  const homeCity = tenant.serviceCities[0] ?? "";
 
   // The hunting license — gates the Draft-pitch button (re-checked server-side
   // in app/actions/venues.ts; this copy only drives honest UI).
@@ -157,11 +183,13 @@ export default async function Dashboard({
           whole-pipeline welcome primary; the Hunt moves below it then. */}
       {!(business.leads.length === 0 && huntCount === 0) && (
         <HuntSection
-          venues={huntVenues}
+          venues={huntCards}
           totalCount={huntCount}
           expanded={huntExpanded}
           canPitch={strength.canPitch}
           profilePercent={strength.percent}
+          businessName={tenant.name}
+          homeCity={homeCity}
         />
       )}
 
@@ -190,11 +218,13 @@ export default async function Dashboard({
           {huntCount === 0 && (
             <div className="mt-10">
               <HuntSection
-                venues={huntVenues}
+                venues={huntCards}
                 totalCount={huntCount}
                 expanded={huntExpanded}
                 canPitch={strength.canPitch}
                 profilePercent={strength.percent}
+                businessName={tenant.name}
+                homeCity={homeCity}
               />
             </div>
           )}

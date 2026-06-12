@@ -5,8 +5,10 @@
 // app/actions/venues.ts (the license is re-checked there; the UI gate here is
 // just honest signage).
 import Link from "next/link";
-import { Badge, Card, EmptyState, Kicker, StatPill, buttonStyles } from "@/components/ui";
-import { draftVenuePitchForm, skipVenueForm } from "@/app/actions/venues";
+import { Card, EmptyState, Kicker, StatPill, buttonStyles } from "@/components/ui";
+import { skipVenueForm } from "@/app/actions/venues";
+import { DraftPitchButton, VenuePitchReview, type HuntPitch } from "@/components/venue-pitch-review";
+import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
 import { SKIP_REASONS, fitScoreTone, signalAgeLabel, type SkipReason } from "@/lib/venues/feed";
 import type { VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
 
@@ -24,6 +26,8 @@ export type HuntVenue = {
   lastSignalAt: Date | null;
   bookingEmail: string | null;
   contactSource: string | null;
+  /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
+  pitch: HuntPitch | null;
 };
 
 // Fit-score chip per temperature — interface voice only (cyan/cream), the
@@ -48,14 +52,22 @@ function VenueCard({
   venue,
   canPitch,
   profilePercent,
+  businessName,
+  homeCity,
   now,
 }: {
   venue: HuntVenue;
   canPitch: boolean;
   profilePercent: number;
+  businessName: string;
+  homeCity: string;
   now: Date;
 }) {
   const score = venue.fitScore ?? 0;
+  // Jurisdiction is recipient-side (the venue's country, ADR-004 D4). The mode
+  // snapshot on the pitch wins (drafted under those rules); the live map covers
+  // the note + footer for fresh renders.
+  const jurisdiction = jurisdictionFor(venue.country);
   return (
     // White data card on the ink stage — never tilted (app rule).
     <Card className="flex flex-col p-5">
@@ -108,29 +120,38 @@ function VenueCard({
         )}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-stage/10 pt-3">
-        {venue.status === "PITCH_DRAFTED" ? (
-          <Badge tone="lavender">Pitch queued</Badge>
-        ) : canPitch ? (
-          <form action={draftVenuePitchForm.bind(null, venue.id)}>
-            <button type="submit" className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}>
-              Draft pitch
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            disabled
-            aria-disabled
-            className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
-            title="Finish your profile to unlock pitching"
-          >
-            Pitch locked
-          </button>
-        )}
+      {/* The review surface (10.3): a drafted pitch auto-opens on the card —
+          subject, body, jurisdiction note, Approve/Edit/Discard. */}
+      {venue.status === "PITCH_DRAFTED" && venue.pitch && (
+        <VenuePitchReview
+          pitch={venue.pitch}
+          jurisdictionNote={jurisdiction.note}
+          footer={pitchFooter({
+            mode: jurisdiction.mode,
+            businessName,
+            city: homeCity,
+            venueName: venue.name,
+          })}
+        />
+      )}
 
-        {venue.status !== "PITCH_DRAFTED" && (
-          // One-tap skip reason picker — native <details> popover, no JS.
+      {venue.status !== "PITCH_DRAFTED" && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-ink-stage/10 pt-3">
+          {canPitch ? (
+            <DraftPitchButton venueId={venue.id} />
+          ) : (
+            <button
+              type="button"
+              disabled
+              aria-disabled
+              className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
+              title="Finish your profile to unlock pitching"
+            >
+              Pitch locked
+            </button>
+          )}
+
+          {/* One-tap skip reason picker — native <details> popover, no JS. */}
           <details className="relative">
             <summary
               className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
@@ -153,8 +174,8 @@ function VenueCard({
               ))}
             </div>
           </details>
-        )}
-      </div>
+        </div>
+      )}
 
       {!canPitch && venue.status !== "PITCH_DRAFTED" && (
         <p className="mt-2 text-[11px] text-ink-stage/55">
@@ -177,6 +198,8 @@ export function HuntSection({
   expanded,
   canPitch,
   profilePercent,
+  businessName,
+  homeCity,
 }: {
   /** Already capped (or full when expanded), fitScore desc. */
   venues: HuntVenue[];
@@ -184,6 +207,10 @@ export function HuntSection({
   expanded: boolean;
   canPitch: boolean;
   profilePercent: number;
+  /** Footer identity (jurisdiction compliance close): real business name… */
+  businessName: string;
+  /** …plus home-base city (first service city; empty string when unset). */
+  homeCity: string;
 }) {
   const now = new Date();
   return (
@@ -220,6 +247,8 @@ export function HuntSection({
                 venue={venue}
                 canPitch={canPitch}
                 profilePercent={profilePercent}
+                businessName={businessName}
+                homeCity={homeCity}
                 now={now}
               />
             ))}

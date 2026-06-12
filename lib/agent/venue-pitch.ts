@@ -1,0 +1,246 @@
+// Venue-pitch generator (Phase 10.3, ADR-004) — mirrors drafter.ts: pure
+// prompt assembly + zod schema + deterministic post-normalization, with the
+// LLM call isolated behind lib/llm (per-purpose model map, LlmUsage metering).
+//
+// The pitch is the artist's cold introduction to a venue's booking contact.
+// Hard product rules live in the prompt; the rules that MUST hold live in
+// deterministic code (EPK link exactly once, white-label leak check, subject
+// length). The jurisdiction footer is appended at approval time by the action
+// layer — never here, never in the editable body.
+
+import { z } from "zod";
+import { llmObject, modelFor } from "@/lib/llm";
+
+export interface PitchBusinessProfile {
+  id: string | null; // null in evals (no usage logging)
+  name: string;
+  ownerName: string;
+  performerKind: string;
+  voiceSamples?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  genres: string[];
+  eventTypes: string[];
+  serviceCities: string[];
+  feeFloor?: number | null; // cents — NEVER quoted below; prefer no price at all
+  feeSweetSpot?: number | null;
+  reviewQuotes: string[];
+  notableVenues: string[];
+}
+
+export interface PitchVenueInfo {
+  name: string;
+  city: string;
+  country: string; // ISO-2
+  kind: string; // VenueKind
+  /** Plain-language signal lines, e.g. "Rooftop bar opened May 28 per MEN". */
+  signals: string[];
+  fitReasons: string[];
+}
+
+export interface VenuePitchRequest {
+  business: PitchBusinessProfile;
+  venue: PitchVenueInfo;
+  /** Hosted press kit URL — the proof link, must appear exactly once. */
+  epkUrl: string;
+  /** BCP-ish lowercase code, e.g. "en", "de". */
+  language: string;
+}
+
+export interface VenuePitchResult {
+  subject: string;
+  body: string;
+}
+
+export const VenuePitchSchema = z.object({
+  subject: z
+    .string()
+    .min(1)
+    .describe(
+      "email subject, 7 words or fewer, specific and human (e.g. 'DJ for your rooftop opening?') — no clickbait, no exclamation marks",
+    ),
+  body: z
+    .string()
+    .min(1)
+    .describe("the email body, plain text, 90-150 words, no signature placeholders"),
+});
+
+/** The hosted EPK link for a tenant — APP_URL env with the deployed fallback. */
+export function epkUrlFor(slug: string): string {
+  const base = process.env.APP_URL ?? "https://brightears-app.onrender.com";
+  return `${base.replace(/\/$/, "")}/epk/${slug}`;
+}
+
+// Country → primary pitch language. The action picks this ONLY when the
+// business lists it in pitchLanguages; default is en. Conservative map —
+// multilingual countries default to en rather than guessing.
+const COUNTRY_LANGUAGE: Record<string, string> = {
+  DE: "de",
+  AT: "de",
+  FR: "fr",
+  ES: "es",
+  MX: "es",
+  AR: "es",
+  IT: "it",
+  NL: "nl",
+  PT: "pt",
+  BR: "pt",
+  TH: "th",
+  JP: "ja",
+};
+
+export function pitchLanguageFor(countryISO2: string, pitchLanguages: string[]): string {
+  const wanted = COUNTRY_LANGUAGE[countryISO2.trim().toUpperCase()];
+  return wanted && pitchLanguages.includes(wanted) ? wanted : "en";
+}
+
+/** Pure system-prompt assembly — the artist's voice + the hard pitch rules. */
+export function buildVenuePitchSystem(req: VenuePitchRequest): string {
+  const b = req.business;
+  const ammo = [
+    b.headline && `Headline: ${b.headline}`,
+    b.bio && `Bio: ${b.bio}`,
+    b.genres.length > 0 && `Genres/vibe: ${b.genres.join(", ")}`,
+    b.eventTypes.length > 0 && `Plays: ${b.eventTypes.join(", ")}`,
+    b.serviceCities.length > 0 && `Based around: ${b.serviceCities.join(", ")}`,
+    b.notableVenues.length > 0 && `Rooms played: ${b.notableVenues.join(", ")}`,
+    b.reviewQuotes.length > 0 &&
+      `What clients say:\n${b.reviewQuotes.map((q) => `- "${q}"`).join("\n")}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return [
+    `You write a COLD INTRODUCTION email to a venue's booking contact on behalf of ${b.ownerName}, who performs as ${b.name} (${b.performerKind.toLowerCase().replace(/_/g, " ")}). You ARE ${b.ownerName} — first person, their voice. A venue manager skims this in five seconds; sound like a working artist who knows their room, never like marketing.`,
+    b.voiceSamples
+      ? `VOICE — match the tone, warmth and phrasing of these real messages by ${b.ownerName}:\n"""${b.voiceSamples}"""`
+      : `VOICE — warm, direct, professional; plain language; confident without bragging.`,
+    `THE ARTIST (the only facts you may use):\n${ammo || "(minimal profile — keep it short and honest)"}`,
+    `HARD RULES:`,
+    `1. Body 90-150 words. Short paragraphs.`,
+    `2. Open by referencing the venue's specific situation from the signals given (e.g. "saw you're opening this month") — naturally, like a local who noticed, never like a database.`,
+    `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
+    `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
+    `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`,
+    `6. NEVER mention prices, fees or rates in this first email — pricing comes when they reply.`,
+    `7. Never mention AI, software, automation, agents or assistants, or any company or brand other than the artist's own business. You are simply ${b.ownerName} writing.`,
+    `8. Subject line: 7 words or fewer, specific to this venue. No exclamation marks anywhere; no "I hope this finds you well"; no placeholder brackets like [date].`,
+    `9. Sign off with the artist's first name and act name.`,
+    `10. Write the entire email in this language: ${req.language}.`,
+  ].join("\n\n");
+}
+
+/** Pure user-prompt assembly — the venue facts + the task. */
+export function buildVenuePitchPrompt(req: VenuePitchRequest): string {
+  const v = req.venue;
+  return [
+    `THE VENUE:`,
+    `Name: ${v.name}`,
+    `City: ${v.city}, ${v.country}`,
+    `Type: ${v.kind.toLowerCase().replace(/_/g, " ")}`,
+    v.signals.length > 0 ? `What we know (signals):\n${v.signals.map((s) => `- ${s}`).join("\n")}` : "",
+    v.fitReasons.length > 0 ? `Why this room fits:\n${v.fitReasons.map((r) => `- ${r}`).join("\n")}` : "",
+    ``,
+    `TASK: write the first pitch email to this venue's booking contact.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+// White-label LAW (CLAUDE.md rule 7): if any of these surface in copy a venue
+// would read, the generation is invalid — regenerate once, then fail loudly.
+const LEAK_PATTERN =
+  /\bA\.?I\.?\b|artificial intelligence|\bassistants?\b|\bbots?\b|automat(?:ed|ion|ically)|bright\s*ears|language model|\bLLM\b|\bchatbot\b/i;
+
+/**
+ * The leaked token, or null when the copy is clean. The EPK URL is excised
+ * before matching — it legitimately contains "brightears" in its hostname
+ * (the interim hosted-EPK domain) and must never count as a leak.
+ */
+export function detectLeak(result: VenuePitchResult, epkUrl?: string): string | null {
+  let text = `${result.subject}\n${result.body}`;
+  if (epkUrl) text = text.split(epkUrl).join(" ");
+  const match = text.match(LEAK_PATTERN);
+  return match ? match[0] : null;
+}
+
+const MAX_SUBJECT_WORDS = 7;
+
+/**
+ * Deterministic normalization (the normalizeStatement discipline): the rules
+ * that MUST hold are enforced in code, not trusted to the model.
+ * - EPK link appears EXACTLY once: inject before the sign-off if dropped;
+ *   strip duplicates if repeated.
+ * - Subject: collapse whitespace, strip exclamation marks, cap at 7 words.
+ * - Strip an echoed "Subject: …" line the model sometimes prepends to the body
+ *   (seen live with deepseek-v4-pro).
+ */
+export function normalizeVenuePitch(req: VenuePitchRequest, result: VenuePitchResult): VenuePitchResult {
+  let body = result.body.trim().replace(/^subject:[^\n]*\n+/i, "");
+
+  // EPK link exactly once.
+  const occurrences = body.split(req.epkUrl).length - 1;
+  if (occurrences === 0) {
+    // Inject as its own line before the final paragraph (the sign-off) so the
+    // proof lands ahead of the goodbye; append when there's only one block.
+    const proofLine = `Here's a one-page look at what I do: ${req.epkUrl}`;
+    const paragraphs = body.split(/\n\n+/);
+    if (paragraphs.length >= 2) {
+      paragraphs.splice(paragraphs.length - 1, 0, proofLine);
+      body = paragraphs.join("\n\n");
+    } else {
+      body = `${body}\n\n${proofLine}`;
+    }
+  } else if (occurrences > 1) {
+    // Keep the first occurrence; drop the rest (and tidy emptied lines).
+    const [first, ...rest] = body.split(req.epkUrl);
+    body = (first + req.epkUrl + rest.join("")).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
+  }
+
+  let subject = result.subject.replace(/\s+/g, " ").replace(/!/g, "").trim();
+  const words = subject.split(" ");
+  if (words.length > MAX_SUBJECT_WORDS) {
+    subject = words.slice(0, MAX_SUBJECT_WORDS).join(" ").replace(/[,;:–—-]+$/, "");
+  }
+
+  return { subject, body };
+}
+
+/**
+ * Generate a venue pitch: LLM call (purpose "venuePitch", metered) →
+ * white-label leak check (regenerate ONCE on a leak, then fail loudly) →
+ * deterministic normalization. Returns the clean editable copy — the
+ * jurisdiction footer is the caller's job at approval time.
+ */
+export async function generateVenuePitch(
+  req: VenuePitchRequest,
+): Promise<VenuePitchResult & { model: string }> {
+  const system = buildVenuePitchSystem(req);
+  const prompt = buildVenuePitchPrompt(req);
+
+  let result = await llmObject<VenuePitchResult>({
+    purpose: "venuePitch",
+    businessId: req.business.id,
+    system,
+    prompt,
+    schema: VenuePitchSchema,
+  });
+
+  let leak = detectLeak(result, req.epkUrl);
+  if (leak) {
+    // One retry with the violation called out — cheap models occasionally slip.
+    result = await llmObject<VenuePitchResult>({
+      purpose: "venuePitch",
+      businessId: req.business.id,
+      system,
+      prompt: `${prompt}\n\nIMPORTANT: your previous attempt mentioned "${leak}" — that word class is forbidden. The email must read as written personally by the artist; never reference tools, software, automation or any other brand.`,
+      schema: VenuePitchSchema,
+    });
+    leak = detectLeak(result, req.epkUrl);
+    if (leak) {
+      throw new Error(`venue pitch white-label leak after regeneration: "${leak}"`);
+    }
+  }
+
+  return { ...normalizeVenuePitch(req, result), model: modelFor("venuePitch") };
+}

@@ -120,6 +120,7 @@ model Business {
   llmUsage   LlmUsage[]
   pushSubscriptions PushSubscription[]
   venues               Venue[]
+  venuePitches         VenuePitch[]
   outreachSuppressions OutreachSuppression[]
 }
 
@@ -371,6 +372,7 @@ model Venue {
   suppressedReason   String?
 
   signals VenueSignal[]
+  pitches VenuePitch[]
 
   @@unique([businessId, name, city]) // dedup key for ingest upserts
   @@index([businessId, status])
@@ -389,6 +391,46 @@ model VenueSignal {
   createdAt  DateTime   @default(now())
 
   @@index([venueId])
+}
+
+enum VenuePitchStatus {
+  PENDING   // drafted, awaiting owner review
+  APPROVED  // owner approved — parked until a mailbox is connected (10.5)
+  DISCARDED // owner killed it; venue returns to DISCOVERED
+  SENT      // 10.5: delivered via the artist's own mailbox
+  EXPIRED   // went stale before a decision
+}
+
+// One generated venue pitch (Phase 10.3, ADR-004). NOT unique per venue —
+// a discarded pitch may be followed by a fresh draft later; history stays.
+// The dedupe rule (max one PENDING per venue) is enforced in the action, not
+// the schema.
+model VenuePitch {
+  id         String           @id @default(cuid())
+  venueId    String
+  venue      Venue            @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  subject    String
+  body       String // clean editable copy — the jurisdiction footer is NEVER stored here
+  language   String           @default("en")
+  status     VenuePitchStatus @default(PENDING)
+  // Snapshot of lib/outreach/jurisdiction.ts mode at draft time ("STANDARD" |
+  // "CONSENT" | "STRICT") — drives the review card's handoff/auto-send rules.
+  jurisdictionMode String
+  // LLM provenance (optional — LlmUsage holds the token ledger).
+  model        String?
+  inputTokens  Int?
+  outputTokens Int?
+  // Owner edits (voice-tuning signal, same pattern as Draft.editedBody).
+  editedSubject String?
+  editedBody    String?
+  decidedAt     DateTime?
+
+  @@index([venueId])
+  @@index([businessId, status])
 }
 
 // Master per-tenant do-not-contact list (ADR-004 hard cap). Checked at ingest
