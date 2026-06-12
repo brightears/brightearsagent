@@ -119,6 +119,8 @@ model Business {
   sequences  SequenceTemplate[]
   llmUsage   LlmUsage[]
   pushSubscriptions PushSubscription[]
+  venues               Venue[]
+  outreachSuppressions OutreachSuppression[]
 }
 
 // One row per (business, device) the owner approved push on. Scoped by business
@@ -303,6 +305,103 @@ model LlmUsage {
   outputTokens Int
 
   @@index([businessId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Venue discovery (Phase 10.2, ADR-004) — the sales agent's prospect list.
+// ---------------------------------------------------------------------------
+
+enum VenueKind {
+  BAR
+  ROOFTOP
+  HOTEL
+  RESTAURANT
+  EVENT_SPACE
+  CLUB
+  OTHER
+}
+
+enum VenueStatus {
+  DISCOVERED      // found by a scanner or seed — not yet judged
+  QUALIFIED       // scored + fit — eligible for pitching (10.3)
+  PITCH_DRAFTED   // pitch awaiting owner approval
+  PITCHED         // pitch sent to the venue's published contact
+  REPLIED         // venue answered — conversation begins
+  IN_CONVERSATION // active back-and-forth
+  BOOKED          // won — hard-stops all automation
+  DEAD            // lost/unresponsive — hard-stops all automation
+  SUPPRESSED      // never contact again (opt-out, C&D, owner kill) — never resurrected
+}
+
+enum SignalType {
+  NEW_OPENING  // venue just opened (press/roundup/new listing)
+  OPENING_SOON // announced/under construction/staffing up to open
+  HIRING       // hiring events/bar staff — activity proxy
+  NEW_SOCIAL   // brand-new venue social account
+  PRESS        // other press coverage
+  MANUAL       // owner added it by hand
+}
+
+// One prospect venue, TENANT-SCOPED: every artist gets their own venue rows
+// for v1 — simpler isolation (status/score/suppression are inherently
+// per-artist anyway). FUTURE REFACTOR: a global venue graph (one canonical
+// Venue + per-tenant VenueProspect join) once multiple tenants hunt the same
+// metros and discovery cost is worth sharing.
+model Venue {
+  id                 String      @id @default(cuid())
+  businessId         String
+  business           Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  name               String
+  city               String
+  country            String // ISO-2, recipient-side — drives the 10.3 jurisdiction rules
+  kind               VenueKind   @default(OTHER)
+  website            String?
+  instagram          String?
+  bookingEmail       String?
+  bookingContactName String?
+  contactSource      String? // where the email was found (venue site/press/...) — provenance for trust
+  status             VenueStatus @default(DISCOVERED)
+  fitScore           Int? // 0-100 from lib/venues/score.ts
+  fitReasons         String[]    @default([]) // <=3 plain-language reasons (feed card)
+  caution            String? // <=1 plain-language caution
+  lastSignalAt       DateTime?
+  pitchedAt          DateTime?
+  suppressedReason   String?
+
+  signals VenueSignal[]
+
+  @@unique([businessId, name, city]) // dedup key for ingest upserts
+  @@index([businessId, status])
+  @@index([businessId, fitScore])
+}
+
+// One observed piece of evidence about a venue (append-only provenance trail).
+model VenueSignal {
+  id         String     @id @default(cuid())
+  venueId    String
+  venue      Venue      @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  type       SignalType
+  summary    String // one plain-language line, e.g. "Rooftop bar opened May 28 per Manchester Evening News"
+  sourceUrl  String // dedup key per venue — same URL never appended twice
+  observedAt DateTime // when the signal was true (publish date), not when we saw it
+  createdAt  DateTime   @default(now())
+
+  @@index([venueId])
+}
+
+// Master per-tenant do-not-contact list (ADR-004 hard cap). Checked at ingest
+// (never create a venue around a suppressed email) and again before any send.
+model OutreachSuppression {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email      String // ALWAYS lowercased before write/compare
+  reason     String // "unsubscribe" | "cease-and-desist" | "owner" | ...
+  createdAt  DateTime @default(now())
+
+  @@unique([businessId, email])
 }
 
 // Marketing email captures (free tools, templates download, waitlist-ish).
