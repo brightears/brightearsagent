@@ -9,10 +9,13 @@ vi.mock("@/lib/llm", () => ({
 import { llmObject } from "@/lib/llm";
 import {
   buildQueryBattery,
+  buildWarmQueryBattery,
   filterCandidates,
   inferSignalTypeFromSummary,
   MAX_QUERIES_PER_METRO,
+  MAX_WARM_QUERIES_PER_METRO,
   MIN_CONFIDENCE,
+  reconcileTemperature,
   SerperDiscoveryProvider,
   type ExtractedCandidate,
 } from "@/lib/discovery/serper";
@@ -26,7 +29,11 @@ const candidate = (over: Partial<ExtractedCandidate> = {}): ExtractedCandidate =
   venueName: "The Vault",
   kind: "BAR",
   signalType: "NEW_OPENING",
+  temperature: "HOT",
   summary: "Cocktail bar opened on Deansgate in June 2026",
+  entertainmentEvidence: [],
+  contactName: null,
+  contactRole: null,
   sourceUrl: "https://news.example/the-vault-opens",
   observedAtISO: null,
   confidence: 0.9,
@@ -234,5 +241,115 @@ describe("SerperDiscoveryProvider", () => {
   it("refuses to scan without an API key", async () => {
     const provider = new SerperDiscoveryProvider({ apiKey: "" });
     await expect(provider.searchVenueSignals(MANCHESTER, { now: NOW })).rejects.toThrow(/SERPER_API_KEY/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10.2c — temperature model
+// ---------------------------------------------------------------------------
+
+describe("buildWarmQueryBattery", () => {
+  it("never exceeds the warm cap (8/metro) and stays metro-specific", () => {
+    const battery = buildWarmQueryBattery(MANCHESTER);
+    expect(battery.length).toBeLessThanOrEqual(MAX_WARM_QUERIES_PER_METRO);
+    for (const q of battery) expect(q.q).toContain("Manchester");
+  });
+
+  it("hunts entertainment-buying evidence, with at most ONE instagram query", () => {
+    const battery = buildWarmQueryBattery(MANCHESTER);
+    const text = battery.map((q) => q.q).join(" || ");
+    expect(text).toMatch(/DJ nights|live music/i);
+    expect(text).toMatch(/wedding venue/i);
+    const igQueries = battery.filter((q) => q.q.includes("site:instagram.com"));
+    expect(igQueries.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("reconcileTemperature", () => {
+  it("opening signals are HOT no matter what the model said", () => {
+    expect(reconcileTemperature("NEW_OPENING", "WARM")).toBe("HOT");
+    expect(reconcileTemperature("OPENING_SOON", "SEED")).toBe("HOT");
+  });
+
+  it("existing-program evidence is never HOT — WARM (or SEED when the model says so)", () => {
+    expect(reconcileTemperature("HOSTS_ENTERTAINMENT", "HOT")).toBe("WARM");
+    expect(reconcileTemperature("EVENT_PROGRAM", "HOT")).toBe("WARM");
+    expect(reconcileTemperature("HOSTS_ENTERTAINMENT", "SEED")).toBe("SEED");
+  });
+
+  it("a bare team contact is a SEED unless the model saw a real program", () => {
+    expect(reconcileTemperature("TEAM_CONTACT", "HOT")).toBe("SEED");
+    expect(reconcileTemperature("TEAM_CONTACT", "WARM")).toBe("WARM");
+  });
+
+  it("ambiguous classes keep the model's read", () => {
+    expect(reconcileTemperature("HIRING", "WARM")).toBe("WARM");
+    expect(reconcileTemperature("PRESS", "HOT")).toBe("HOT");
+  });
+});
+
+describe("filterCandidates — 10.2c fields", () => {
+  it("carries temperature + capped evidence (≤3, each ≤140 chars) onto the signal", () => {
+    const long = "x".repeat(200);
+    const [sig] = filterCandidates(
+      [
+        candidate({
+          signalType: "HOSTS_ENTERTAINMENT",
+          temperature: "WARM",
+          entertainmentEvidence: ["Runs Friday DJ nights", long, "Hosts live bands", "a 4th fact"],
+        }),
+      ],
+      NOW,
+    );
+    expect(sig.temperature).toBe("WARM");
+    expect(sig.entertainmentEvidence).toHaveLength(3);
+    expect(sig.entertainmentEvidence![1]).toHaveLength(140);
+  });
+
+  it("rescues warm-evidence cop-outs from NONE via the summary", () => {
+    expect(inferSignalTypeFromSummary("Hotel bar hosts DJ nights every Friday")).toBe(
+      "HOSTS_ENTERTAINMENT",
+    );
+    expect(inferSignalTypeFromSummary("Venue publishes a what's on events calendar")).toBe(
+      "EVENT_PROGRAM",
+    );
+    expect(inferSignalTypeFromSummary("Maria Lopez is the events manager for the hotel")).toBe(
+      "TEAM_CONTACT",
+    );
+  });
+
+  it("keeps a contact name from a NON-LinkedIn public snippet, with provenance", () => {
+    const [sig] = filterCandidates(
+      [
+        candidate({
+          signalType: "TEAM_CONTACT",
+          temperature: "SEED",
+          contactName: "Maria Lopez",
+          contactRole: "events manager",
+          sourceUrl: "https://venue.example/team",
+        }),
+      ],
+      NOW,
+    );
+    expect(sig.bookingContactName).toBe("Maria Lopez");
+    expect(sig.contactSource).toContain("events manager");
+    expect(sig.linkedinUrl).toBeUndefined();
+  });
+
+  it("NEVER stores a name sourced from linkedin.com — the URL goes on the handoff card", () => {
+    const [sig] = filterCandidates(
+      [
+        candidate({
+          signalType: "TEAM_CONTACT",
+          temperature: "SEED",
+          contactName: "Maria Lopez",
+          contactRole: "events manager",
+          sourceUrl: "https://www.linkedin.com/in/maria-lopez-events",
+        }),
+      ],
+      NOW,
+    );
+    expect(sig.bookingContactName).toBeUndefined();
+    expect(sig.linkedinUrl).toBe("https://www.linkedin.com/in/maria-lopez-events");
   });
 });

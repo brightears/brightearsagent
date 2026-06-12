@@ -10,6 +10,7 @@
 
 import { z } from "zod";
 import { llmObject, modelFor } from "@/lib/llm";
+import type { VenueTemperature } from "@/lib/venues/timing";
 
 export interface PitchBusinessProfile {
   id: string | null; // null in evals (no usage logging)
@@ -33,8 +34,16 @@ export interface PitchVenueInfo {
   city: string;
   country: string; // ISO-2
   kind: string; // VenueKind
+  /**
+   * 10.2c: temperature drives the TEMPLATE — HOT asks for a date, WARM asks
+   * for a slot in an existing rotation, SEED plants the relationship with no
+   * ask and NO follow-up promise. Defaults to HOT for older callers.
+   */
+  temperature?: VenueTemperature;
   /** Plain-language signal lines, e.g. "Rooftop bar opened May 28 per MEN". */
   signals: string[];
+  /** Grounded facts proving the venue buys entertainment (10.2c, WARM/SEED). */
+  entertainmentEvidence?: string[];
   fitReasons: string[];
 }
 
@@ -97,6 +106,7 @@ export function pitchLanguageFor(countryISO2: string, pitchLanguages: string[]):
 /** Pure system-prompt assembly — the artist's voice + the hard pitch rules. */
 export function buildVenuePitchSystem(req: VenuePitchRequest): string {
   const b = req.business;
+  const temperature = req.venue.temperature ?? "HOT";
   const ammo = [
     b.headline && `Headline: ${b.headline}`,
     b.bio && `Bio: ${b.bio}`,
@@ -117,12 +127,19 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
       : `VOICE — warm, direct, professional; plain language; confident without bragging.`,
     `THE ARTIST (the only facts you may use):\n${ammo || "(minimal profile — keep it short and honest)"}`,
     `HARD RULES:`,
-    `1. Body 90-150 words. Short paragraphs.`,
+    // 10.2c: SEED is the shortest form — a calling card, not a pitch.
+    temperature === "SEED" ? `1. Body 60-90 words. Short paragraphs.` : `1. Body 90-150 words. Short paragraphs.`,
     `2. Open by referencing the venue's specific situation from the signals given (e.g. "saw you're opening this month") — naturally, like a local who noticed, never like a database.`,
     `2b. ONLY state facts that appear in the venue facts below, and never claim firsthand experience you don't have: you have NOT visited, seen sets, watched clips, or heard anything — you READ that they're opening/hiring/in the news. "Heard you're opening the rooftop" is honest; "the launch sets looked great" is a lie that kills trust on reply. No invented platforms, dates, names, or details. Vague-but-true beats specific-but-invented, always.`,
     `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
     `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
-    `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`,
+    // 10.2c: the CTA shape follows the temperature (the TASK section in the
+    // user prompt carries the detail; this rule keeps the count at ONE).
+    temperature === "HOT"
+      ? `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`
+      : temperature === "WARM"
+        ? `5. End with ONE low-friction call to action — keeping the one-pager on file or a slot in their rotation. Never ask to hold a date (nothing says they're booking right now), and never two asks.`
+        : `5. End with NO call to action beyond "file me away for when you need entertainment" — no call, no meeting, no date, and NEVER a promise to follow up.`,
     `6. NEVER mention prices, fees or rates in this first email — pricing comes when they reply.`,
     `7. Never mention AI, software, automation, agents or assistants, or any company or brand other than the artist's own business. You are simply ${b.ownerName} writing.`,
     `8. Subject line: 7 words or fewer, specific to this venue. No exclamation marks anywhere; no "I hope this finds you well"; no placeholder brackets like [date].`,
@@ -131,18 +148,55 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
   ].join("\n\n");
 }
 
-/** Pure user-prompt assembly — the venue facts + the task. */
+/**
+ * The temperature-specific TASK section (10.2c). Exported for tests — the
+ * template choice is a product decision and must be assertable.
+ * - HOT: the current behavior — they're deciding entertainment NOW; close
+ *   with a date-shaped ask ("shall I hold a date?").
+ * - WARM: they already buy entertainment but posted no need — an introduction
+ *   that references their EXISTING program (grounding rule 2b: evidence facts
+ *   only) and asks for a place in the rotation / the one-pager on file.
+ * - SEED: relationship planting — shortest (60-90 words), pure introduction
+ *   for future reference, explicitly NO ask beyond "file me away", and NEVER
+ *   a promise to follow up (the no-follow-up guard enforces this in code).
+ */
+export function buildPitchTask(temperature: VenueTemperature): string {
+  switch (temperature) {
+    case "WARM":
+      return [
+        `TASK: write an INTRODUCTION email to this venue's booking contact. They already book entertainment (see the evidence above) but have NOT posted any need — do not pretend they did.`,
+        `- Open by referencing their EXISTING entertainment program, using ONLY the evidence facts above (e.g. "saw you run Friday DJ sets").`,
+        `- Be plainly honest that this is an introduction for their roster/future slots, not a response to anything.`,
+        `- The single call to action: ask them to keep the one-pager on file / consider the act for a slot in their rotation when one opens.`,
+      ].join("\n");
+    case "SEED":
+      return [
+        `TASK: write the SHORTEST possible introduction email (60-90 words total) to this contact, purely so they know the act exists when they next need wedding/event entertainment.`,
+        `- No ask beyond "file me away for when you need entertainment" — do not request a call, a meeting, a date, or a reply.`,
+        `- NEVER promise to follow up, check back, or touch base — this is a one-time introduction.`,
+        `- Tone: polite, brief, zero pressure.`,
+      ].join("\n");
+    default:
+      return `TASK: write the first pitch email to this venue's booking contact.`;
+  }
+}
+
+/** Pure user-prompt assembly — the venue facts + the temperature's task. */
 export function buildVenuePitchPrompt(req: VenuePitchRequest): string {
   const v = req.venue;
+  const evidence = v.entertainmentEvidence ?? [];
   return [
     `THE VENUE:`,
     `Name: ${v.name}`,
     `City: ${v.city}, ${v.country}`,
     `Type: ${v.kind.toLowerCase().replace(/_/g, " ")}`,
     v.signals.length > 0 ? `What we know (signals):\n${v.signals.map((s) => `- ${s}`).join("\n")}` : "",
+    evidence.length > 0
+      ? `Their entertainment program (verified facts — the ONLY program claims you may reference):\n${evidence.map((e) => `- ${e}`).join("\n")}`
+      : "",
     v.fitReasons.length > 0 ? `Why this room fits:\n${v.fitReasons.map((r) => `- ${r}`).join("\n")}` : "",
     ``,
-    `TASK: write the first pitch email to this venue's booking contact.`,
+    buildPitchTask(v.temperature ?? "HOT"),
   ]
     .filter(Boolean)
     .join("\n");
@@ -162,6 +216,19 @@ export function detectLeak(result: VenuePitchResult, epkUrl?: string): string | 
   let text = `${result.subject}\n${result.body}`;
   if (epkUrl) text = text.split(epkUrl).join(" ");
   const match = text.match(LEAK_PATTERN);
+  return match ? match[0] : null;
+}
+
+// SEED sequencing law (10.2c): one polite intro, then silence — a re-touch is
+// allowed only after 180 days (re-touch engine deferred). Any follow-up
+// promise in a SEED pitch is therefore a lie. Deterministic guard, same
+// pattern as the white-label leak check.
+const FOLLOW_UP_PATTERN =
+  /follow(?:ing)?[ -]up|i'?ll (?:check|circle|chase|be in touch|reach out again|get back)|check back|touch base|circle back|speak soon|talk soon|follow along/i;
+
+/** The follow-up promise found in a SEED pitch, or null when clean. */
+export function detectFollowUpPromise(result: VenuePitchResult): string | null {
+  const match = `${result.subject}\n${result.body}`.match(FOLLOW_UP_PATTERN);
   return match ? match[0] : null;
 }
 
@@ -240,6 +307,26 @@ export async function generateVenuePitch(
     leak = detectLeak(result, req.epkUrl);
     if (leak) {
       throw new Error(`venue pitch white-label leak after regeneration: "${leak}"`);
+    }
+  }
+
+  // SEED no-follow-up guard (10.2c): a promised follow-up that never comes is
+  // worse than no pitch. Regenerate once, then fail loudly — same discipline
+  // as the leak check.
+  if ((req.venue.temperature ?? "HOT") === "SEED") {
+    let promise = detectFollowUpPromise(result);
+    if (promise) {
+      result = await llmObject<VenuePitchResult>({
+        purpose: "venuePitch",
+        businessId: req.business.id,
+        system,
+        prompt: `${prompt}\n\nIMPORTANT: your previous attempt said "${promise}" — this is a ONE-TIME introduction; never promise any follow-up, check-in or future contact of any kind.`,
+        schema: VenuePitchSchema,
+      });
+      promise = detectFollowUpPromise(result);
+      if (promise) {
+        throw new Error(`SEED pitch promised a follow-up after regeneration: "${promise}"`);
+      }
     }
   }
 

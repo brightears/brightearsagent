@@ -2,8 +2,10 @@
 // LLM extraction → ingest → contact pass) for one tenant and prints what the
 // scan found, with cost accounting (Serper queries + LLM tokens).
 //
-//   DEV_TENANT_SLUG=demo-dj-co npx tsx --env-file=.env.local scripts/scan-venues.ts --force
+//   DEV_TENANT_SLUG=demo-dj-co npx tsx --env-file=.env.local scripts/scan-venues.ts --force [--warm]
 //
+// --warm forces the WARM battery on (10.2c) regardless of the every-3rd-scan
+// wheel — for manual runs and demos.
 // --force bypasses the 20h scan-budget guard (the cron never does). Without
 // --force a recent scan makes this print the refusal and exit — that's the
 // guard working, not a bug.
@@ -12,6 +14,7 @@ config({ path: [".env.local", ".env"] });
 
 const SLUG = process.env.DEV_TENANT_SLUG ?? "demo-dj-co";
 const FORCE = process.argv.includes("--force");
+const WARM = process.argv.includes("--warm");
 
 // Flash-tier pricing for the cost line (CLAUDE.md rule 10 defaults).
 const PARSE_IN_PER_M = 0.098;
@@ -33,11 +36,12 @@ async function main() {
 
   console.log(
     `Live scan for "${SLUG}" — cities [${business.serviceCities.join(", ")}], country ${business.country}` +
-      (FORCE ? " (--force: budget guard bypassed)" : ""),
+      (FORCE ? " (--force: budget guard bypassed)" : "") +
+      (WARM ? " (--warm: warm battery forced on)" : ""),
   );
 
   const started = new Date();
-  const result = await runDiscoveryScan(business.id, { force: FORCE });
+  const result = await runDiscoveryScan(business.id, { force: FORCE, forceWarm: WARM });
 
   if (!result.ran) {
     console.log(`Scan refused: ${result.reason}`);
@@ -59,16 +63,19 @@ async function main() {
 
   const venues = await db.venue.findMany({
     where: { businessId: business.id },
-    orderBy: { fitScore: "desc" },
+    orderBy: [{ temperature: "asc" }, { fitScore: "desc" }],
     include: { signals: { select: { type: true } } },
   });
   console.log(`\n${venues.length} venue rows for "${SLUG}":`);
   for (const v of venues) {
     console.log(
-      `  [${String(v.fitScore).padStart(3)}] ${v.name} — ${v.kind}, ${v.city} ${v.country} ` +
+      `  [${v.temperature.padEnd(4)} fit ${String(v.fitScore).padStart(3)} timing ${String(v.timingScore ?? "-").padStart(2)}] ` +
+        `${v.name} — ${v.kind}, ${v.city} ${v.country} ` +
         `(${v.signals.map((s) => s.type).join(", ") || "no signals"}, ${v.status})`,
     );
     for (const r of v.fitReasons) console.log(`        + ${r}`);
+    for (const e of v.entertainmentEvidence) console.log(`        ~ ${e}`);
+    if (v.linkedinUrl) console.log(`        in ${v.linkedinUrl}`);
     if (v.caution) console.log(`        ! ${v.caution}`);
     if (v.bookingEmail) console.log(`        @ ${v.bookingEmail} (${v.contactSource ?? "unknown source"})`);
   }

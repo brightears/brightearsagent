@@ -5,6 +5,7 @@
 
 import { SerperDiscoveryProvider } from "@/lib/discovery/serper";
 import type { SignalType, VenueKind } from "@/lib/venues/score";
+import type { VenueTemperature } from "@/lib/venues/timing";
 
 export type Metro = {
   city: string;
@@ -27,6 +28,16 @@ export type RawSignal = {
   bookingContactName?: string;
   /** Provenance of the booking email — trust signal shown on the card. */
   contactSource?: string;
+  // --- 10.2c temperature model ---
+  /** Scanner's temperature read; ingest merges per venue (HOT > WARM > SEED). */
+  temperature?: VenueTemperature;
+  /** ≤3 short grounded facts proving the venue buys entertainment. */
+  entertainmentEvidence?: string[];
+  /**
+   * LinkedIn profile URL for the handoff card when the ONLY source naming a
+   * contact is linkedin.com — a name is NEVER stored from LinkedIn (ADR-004).
+   */
+  linkedinUrl?: string;
 };
 
 export type DiscoveryOpts = {
@@ -34,6 +45,12 @@ export type DiscoveryOpts = {
   now: Date;
   /** Tenant the scan bills to (LlmUsage); null/absent = unmetered (tests). */
   businessId?: string | null;
+  /**
+   * 10.2c: fire the WARM query battery too (existing venues that already buy
+   * entertainment). The hot battery runs every scan; scan.ts puts warm on a
+   * slower wheel — every 3rd scan per tenant (Business.discoveryScanCount).
+   */
+  warm?: boolean;
 };
 
 export interface DiscoveryProvider {

@@ -87,8 +87,16 @@ export default async function Dashboard({
     }),
     db.lead.count({ where: { businessId: tenant.id, status: "SPAM" } }),
     db.venue.findMany({
-      where: { businessId: tenant.id, status: { in: [...HUNT_STATUSES] } },
-      orderBy: { fitScore: "desc" },
+      where: {
+        businessId: tenant.id,
+        status: { in: [...HUNT_STATUSES] },
+        // 10.2c: the default feed shows HOT + WARM; SEED (relationship
+        // planting, no urgency) lives behind the ?hunt=all expansion.
+        ...(huntExpanded ? {} : { temperature: { in: ["HOT", "WARM"] } }),
+      },
+      // Temperature buckets first (enum declaration order: HOT < WARM < SEED),
+      // fitScore desc within each bucket.
+      orderBy: [{ temperature: "asc" }, { fitScore: "desc" }],
       ...(huntExpanded ? {} : { take: HUNT_CAP }),
       select: {
         id: true,
@@ -97,6 +105,10 @@ export default async function Dashboard({
         country: true,
         kind: true,
         status: true,
+        temperature: true,
+        timingScore: true,
+        entertainmentEvidence: true,
+        linkedinUrl: true,
         fitScore: true,
         fitReasons: true,
         caution: true,

@@ -12,6 +12,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { profileStrength } from "@/lib/profile/strength";
 import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
 import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
+import { capError, capFor, startOfTenantDay } from "@/lib/outreach/caps";
 import {
   epkUrlFor,
   generateVenuePitch,
@@ -86,6 +87,20 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
   });
   if (existingLive) return { ok: true };
 
+  // Daily pitch-creation cap by temperature (10.2c, ADR-004 spam discipline):
+  // count = VenuePitch rows created today in the TENANT's timezone (CLAUDE.md
+  // rule 9). Checked before the LLM spends tokens.
+  const createdToday = await db.venuePitch.count({
+    where: {
+      businessId: business.id,
+      temperature: venue.temperature,
+      createdAt: { gte: startOfTenantDay(new Date(), business.timezone) },
+    },
+  });
+  if (createdToday >= capFor(venue.temperature)) {
+    return { ok: false, error: capError(venue.temperature) };
+  }
+
   const jurisdiction = jurisdictionFor(venue.country);
   const req: VenuePitchRequest = {
     business: {
@@ -109,7 +124,11 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
       city: venue.city,
       country: venue.country,
       kind: venue.kind,
+      // 10.2c: temperature picks the template (HOT date-ask / WARM rotation
+      // intro / SEED file-me-away); evidence is the only program grounding.
+      temperature: venue.temperature,
       signals: venue.signals.map((s) => s.summary),
+      entertainmentEvidence: venue.entertainmentEvidence,
       fitReasons: venue.fitReasons,
     },
     epkUrl: epkUrlFor(business.slug),
@@ -123,6 +142,13 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
     return { ok: false, error: "The pitch didn't come together — give it another try in a moment" };
   }
 
+  // SEQUENCING GUARD (10.2c): WARM and SEED pitches NEVER enter any follow-up
+  // sequence. The existing reactive sequences (SequenceRun) are lead-bound, so
+  // a venue pitch can't ride them today — but the rule is product law, not an
+  // accident of schema: one polite intro, then silence (one re-touch allowed
+  // after 180 days; that engine is deferred — we only store the temperature
+  // snapshot here so it can enforce the rule later). Any future venue-side
+  // sequence engine MUST refuse temperature !== HOT.
   await db.$transaction([
     db.venuePitch.create({
       data: {
@@ -132,6 +158,7 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
         body: pitch.body,
         language: req.language,
         jurisdictionMode: jurisdiction.mode,
+        temperature: venue.temperature, // snapshot at draft time (caps + guard)
         model: pitch.model,
       },
     }),

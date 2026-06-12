@@ -18,7 +18,11 @@ export type SignalType =
   | "HIRING"
   | "NEW_SOCIAL"
   | "PRESS"
-  | "MANUAL";
+  | "MANUAL"
+  // 10.2c WARM-battery evidence classes:
+  | "HOSTS_ENTERTAINMENT"
+  | "EVENT_PROGRAM"
+  | "TEAM_CONTACT";
 
 export type ScorableSignal = {
   type: SignalType;
@@ -184,6 +188,11 @@ export function scoreVenue(
     NEW_SOCIAL: 0.5,
     PRESS: 0.4,
     MANUAL: 0.4,
+    // 10.2c: evidence of an EXISTING entertainment program is solid but not a
+    // "deciding now" moment — timing lives in lib/venues/timing.ts, not here.
+    HOSTS_ENTERTAINMENT: 0.55,
+    EVENT_PROGRAM: 0.55,
+    TEAM_CONTACT: 0.35,
   };
   let bestHeat = 0;
   let bestSignal: ScorableSignal | null = null;
@@ -204,6 +213,9 @@ export function scoreVenue(
       NEW_SOCIAL: `New on social ${when} — building its program`,
       PRESS: `In the press ${when}`,
       MANUAL: `You flagged this one ${when}`,
+      HOSTS_ENTERTAINMENT: `Books DJs/live acts (seen ${when})`,
+      EVENT_PROGRAM: `Runs a public events program (seen ${when})`,
+      TEAM_CONTACT: `Events contact named publicly ${when}`,
     };
     reasons.push(SIGNAL_PHRASE[bestSignal.type]);
   }

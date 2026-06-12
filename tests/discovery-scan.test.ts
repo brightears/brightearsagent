@@ -38,6 +38,7 @@ const business = (over: Record<string, unknown> = {}) => ({
   country: "GB",
   serviceCities: ["Manchester", "Leeds"],
   lastDiscoveryScanAt: null,
+  discoveryScanCount: 1, // not the warm wheel's turn (warm = count % 3 === 0)
   ...over,
 });
 
@@ -67,7 +68,7 @@ describe("runDiscoveryScan budget guard", () => {
     expect(result.ran).toBe(true);
     expect(mockDb.business.update).toHaveBeenCalledWith({
       where: { id: "biz1" },
-      data: { lastDiscoveryScanAt: NOW },
+      data: { lastDiscoveryScanAt: NOW, discoveryScanCount: { increment: 1 } },
     });
   });
 
@@ -121,5 +122,49 @@ describe("runDiscoveryScan orchestration", () => {
     expect(ingestSignals).toHaveBeenCalledTimes(2);
     expect(runContactPass).toHaveBeenCalledWith("biz1", expect.objectContaining({ gl: "gb" }));
     expect(result.serperQueries).toBe(7 * 2 + 3); // discovery + contact pass
+  });
+});
+
+describe("runDiscoveryScan warm wheel (10.2c)", () => {
+  const warmSeenBy = async (count: number, forceWarm = false) => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({ discoveryScanCount: count, serviceCities: ["Manchester"] }),
+    );
+    let warmSeen: boolean | undefined;
+    const provider: DiscoveryProvider = {
+      async searchVenueSignals(_metro, opts) {
+        warmSeen = opts.warm;
+        return [];
+      },
+    };
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider });
+    return { warmSeen, result };
+  };
+
+  it("fires the WARM battery on every 3rd scan (count % 3 === 0), including the first ever", async () => {
+    expect((await warmSeenBy(0)).warmSeen).toBe(true);
+    expect((await warmSeenBy(3)).warmSeen).toBe(true);
+  });
+
+  it("keeps the other scans hot-only and reports warm on the result", async () => {
+    const { warmSeen, result } = await warmSeenBy(1);
+    expect(warmSeen).toBe(false);
+    expect(result.warm).toBe(false);
+  });
+
+  it("forceWarm (--warm) overrides the wheel", async () => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({ discoveryScanCount: 1, serviceCities: ["Manchester"] }),
+    );
+    let warmSeen: boolean | undefined;
+    const provider: DiscoveryProvider = {
+      async searchVenueSignals(_metro, opts) {
+        warmSeen = opts.warm;
+        return [];
+      },
+    };
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider, forceWarm: true });
+    expect(warmSeen).toBe(true);
+    expect(result.warm).toBe(true);
   });
 });

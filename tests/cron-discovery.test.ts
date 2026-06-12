@@ -17,6 +17,7 @@ const req = (secret?: string) =>
 const ranResult = (businessId: string) => ({
   businessId,
   ran: true,
+  warm: false,
   metros: [{ city: "Manchester", country: "GB", rawSignals: 2, created: 1, updated: 1, skipped: 0 }],
   contacts: { eligible: 1, attempted: 1, serperQueries: 1, found: [], suppressed: [] },
   serperQueries: 8,
@@ -72,6 +73,7 @@ describe("GET /api/cron/discovery", () => {
       businessId: "b1",
       ran: false,
       reason: "scan budget: last scan ... is < 20h ago",
+      warm: false,
       metros: [],
       contacts: null,
       serperQueries: 0,

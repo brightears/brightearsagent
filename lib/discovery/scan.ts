@@ -27,6 +27,8 @@ export type ScanResult = {
   businessId: string;
   ran: boolean;
   reason?: string; // when ran=false
+  /** 10.2c: did this scan include the WARM battery (the slow wheel)? */
+  warm: boolean;
   metros: MetroScanSummary[];
   contacts: ContactPassResult | null;
   /** Total Serper queries consumed (discovery + contact pass). */
@@ -35,15 +37,36 @@ export type ScanResult = {
 
 export async function runDiscoveryScan(
   businessId: string,
-  opts: { now?: Date; force?: boolean; provider?: DiscoveryProvider } = {},
+  opts: { now?: Date; force?: boolean; forceWarm?: boolean; provider?: DiscoveryProvider } = {},
 ): Promise<ScanResult> {
   const now = opts.now ?? new Date();
   const business = await db.business.findUniqueOrThrow({
     where: { id: businessId },
-    select: { id: true, country: true, serviceCities: true, lastDiscoveryScanAt: true },
+    select: {
+      id: true,
+      country: true,
+      serviceCities: true,
+      lastDiscoveryScanAt: true,
+      discoveryScanCount: true,
+    },
   });
 
-  const base: ScanResult = { businessId, ran: false, metros: [], contacts: null, serperQueries: 0 };
+  // 10.2c warm wheel: the hot battery runs every scan; the WARM battery (8
+  // more queries/metro) fires every 3rd scan. A COUNTER over date-modulo:
+  // scans run irregularly (manual --force, missed crons), so date-modulo on
+  // lastDiscoveryScanAt could starve the warm wheel for weeks — the counter
+  // guarantees exactly 1-in-3 regardless of cadence. count 0 (first ever
+  // scan) is warm, so new tenants see WARM venues from day one.
+  const warm = opts.forceWarm || business.discoveryScanCount % 3 === 0;
+
+  const base: ScanResult = {
+    businessId,
+    ran: false,
+    warm,
+    metros: [],
+    contacts: null,
+    serperQueries: 0,
+  };
 
   if (business.serviceCities.length === 0) {
     return { ...base, reason: "no service cities on the artist profile" };
@@ -60,10 +83,11 @@ export async function runDiscoveryScan(
   }
 
   // Stamp BEFORE scanning: a crash mid-scan has already spent queries, and a
-  // hot retry loop must not double-spend the budget.
+  // hot retry loop must not double-spend the budget. The wheel counter
+  // advances here too — a crashed warm scan still counts as the warm turn.
   await db.business.update({
     where: { id: businessId },
-    data: { lastDiscoveryScanAt: now },
+    data: { lastDiscoveryScanAt: now, discoveryScanCount: { increment: 1 } },
   });
 
   const provider = opts.provider ?? getDiscoveryProvider();
@@ -75,7 +99,7 @@ export async function runDiscoveryScan(
   const queriesBefore = queriesUsed(provider);
 
   for (const metro of metros) {
-    const raw = await provider.searchVenueSignals(metro, { now, businessId });
+    const raw = await provider.searchVenueSignals(metro, { now, businessId, warm });
     const plan = await ingestSignals(businessId, metro, raw, now);
     result.metros.push({
       city: metro.city,

@@ -9,8 +9,14 @@ import { Card, EmptyState, Kicker, StatPill, buttonStyles } from "@/components/u
 import { skipVenueForm } from "@/app/actions/venues";
 import { DraftPitchButton, VenuePitchReview, type HuntPitch } from "@/components/venue-pitch-review";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
-import { SKIP_REASONS, fitScoreTone, signalAgeLabel, type SkipReason } from "@/lib/venues/feed";
-import type { VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
+import {
+  SKIP_REASONS,
+  TEMPERATURE_CHIP,
+  fitScoreTone,
+  signalAgeLabel,
+  type SkipReason,
+} from "@/lib/venues/feed";
+import type { VenueKind, VenueStatus, VenueTemperature } from "@/app/generated/prisma/enums";
 
 /** The slice of a Venue row the feed card renders. */
 export type HuntVenue = {
@@ -20,6 +26,13 @@ export type HuntVenue = {
   country: string;
   kind: VenueKind;
   status: VenueStatus;
+  /** 10.2c TIMING half: HOT (deciding now) / WARM (books entertainment) / SEED. */
+  temperature: VenueTemperature;
+  timingScore: number | null;
+  /** Grounded facts proving they buy entertainment — first one leads the card. */
+  entertainmentEvidence: string[];
+  /** Find-only LinkedIn handoff (ADR-004) — link, never a stored name. */
+  linkedinUrl: string | null;
   fitScore: number | null;
   fitReasons: string[];
   caution: string | null;
@@ -74,6 +87,13 @@ function VenueCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-bold leading-tight text-ink-stage">{venue.name}</p>
+          {/* Temperature chip (10.2c) — mono, no emoji (v2.1 LAW): timing is
+              data, the card says the truth plainly. */}
+          <span
+            className={`mt-1.5 inline-block rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${TEMPERATURE_CHIP[venue.temperature].className}`}
+          >
+            {TEMPERATURE_CHIP[venue.temperature].label}
+          </span>
           <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
             {KIND_LABEL[venue.kind]}
           </p>
@@ -88,6 +108,16 @@ function VenueCard({
           {score}
         </span>
       </div>
+
+      {/* The honest line (10.2c): WARM/SEED cards lead with the proof that
+          this venue actually buys entertainment — "Not currently looking —
+          but books DJs regularly", grounded in the first evidence fact. */}
+      {venue.temperature !== "HOT" && venue.entertainmentEvidence.length > 0 && (
+        <p className="mt-3 flex items-start gap-2 text-xs font-semibold text-ink-stage/80">
+          <span aria-hidden className="mt-1.5 size-1 flex-none bg-brand-cyan" />
+          Not currently looking — {venue.entertainmentEvidence[0]}
+        </p>
+      )}
 
       {venue.fitReasons.length > 0 && (
         <ul className="mt-3 space-y-1.5">
@@ -107,15 +137,33 @@ function VenueCard({
       )}
 
       <div className="mt-3 space-y-0.5">
-        {venue.lastSignalAt && (
+        {(venue.lastSignalAt || venue.timingScore != null) && (
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-            Signal: {signalAgeLabel(venue.lastSignalAt, now)}
+            {venue.timingScore != null && <>{venue.timingScore}% short-term</>}
+            {venue.timingScore != null && venue.lastSignalAt && " · "}
+            {venue.lastSignalAt && <>Signal: {signalAgeLabel(venue.lastSignalAt, now)}</>}
           </p>
         )}
         {venue.bookingEmail && (
           // Provenance builds trust — where the agent found the contact.
           <p className="text-[11px] text-ink-stage/45">
             Contact: {venue.contactSource ?? "published booking contact"}
+          </p>
+        )}
+        {venue.linkedinUrl && (
+          // LinkedIn is find-only (ADR-004): the handoff card gets the link,
+          // never a name scraped from it. The artist takes over personally.
+          <p className="text-[11px] text-ink-stage/45">
+            Events contact on{" "}
+            <a
+              href={venue.linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-brand-cyan hover:opacity-80"
+            >
+              LinkedIn
+            </a>{" "}
+            — you take over
           </p>
         )}
       </div>

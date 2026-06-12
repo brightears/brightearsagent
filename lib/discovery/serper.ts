@@ -46,6 +46,34 @@ export function buildQueryBattery(metro: Metro, now: Date): BatteryQuery[] {
   return battery.slice(0, MAX_QUERIES_PER_METRO);
 }
 
+/** Hard cap for the WARM battery — never more than this per metro. */
+export const MAX_WARM_QUERIES_PER_METRO = 8;
+
+/**
+ * The WARM battery (10.2c): EXISTING venues that already buy entertainment —
+ * hotel bars with DJ nights, venues with live-music pages or event calendars,
+ * wedding venues with entertainment programs. These aren't "deciding now";
+ * the pitch is an introduction for their roster. Runs on the slow wheel
+ * (every 3rd scan — see scan.ts), so its cost amortizes to ~2.7 queries per
+ * scan per metro on top of the hot battery.
+ */
+export function buildWarmQueryBattery(metro: Metro): BatteryQuery[] {
+  const city = metro.city.trim();
+  const battery: BatteryQuery[] = [
+    // Venues advertising a standing entertainment program.
+    { endpoint: "search", q: `"${city}" hotel bar "live music" OR "DJ nights"` },
+    { endpoint: "search", q: `"${city}" rooftop bar DJ events` },
+    { endpoint: "search", q: `"${city}" wedding venue "entertainment" OR "live band"` },
+    { endpoint: "search", q: `"${city}" venue "what's on" live music` },
+    { endpoint: "search", q: `"${city}" bar "every friday" OR "every saturday" DJ` },
+    // Relationship seeds: people who book eventually.
+    { endpoint: "search", q: `"${city}" hotel "events manager" OR "wedding coordinator" entertainment` },
+    // Instagram surface (1 max — logged-out public data only, ADR-004).
+    { endpoint: "search", q: `site:instagram.com "${city}" bar DJ` },
+  ];
+  return battery.slice(0, MAX_WARM_QUERIES_PER_METRO);
+}
+
 /** One search hit, normalized across /search, /news and /places. */
 export type SerperItem = {
   title: string;
@@ -62,14 +90,42 @@ export type SerperItem = {
 //    entire batches (observed live — a whole scan filtered to zero). Required
 //    enum + .catch() sentinel = forced output, salvageable garbage.
 const VENUE_KINDS = ["BAR", "ROOFTOP", "HOTEL", "RESTAURANT", "EVENT_SPACE", "CLUB", "OTHER"] as const;
-const SIGNAL_TYPES = ["NEW_OPENING", "OPENING_SOON", "HIRING", "NEW_SOCIAL", "PRESS"] as const;
+const SIGNAL_TYPES = [
+  "NEW_OPENING",
+  "OPENING_SOON",
+  "HIRING",
+  "NEW_SOCIAL",
+  "PRESS",
+  // 10.2c WARM-battery evidence classes:
+  "HOSTS_ENTERTAINMENT",
+  "EVENT_PROGRAM",
+  "TEAM_CONTACT",
+] as const;
+const TEMPERATURES = ["HOT", "WARM", "SEED"] as const;
 
 const candidateSchema = z.object({
   venueName: z.string(),
   kind: z.enum(VENUE_KINDS).catch("OTHER"),
   /** NONE = the model couldn't justify a signal — dropped by the filter. */
   signalType: z.enum([...SIGNAL_TYPES, "NONE"]).catch("NONE"),
+  /**
+   * 10.2c DECISION field (required + .catch, same footgun as signalType):
+   * HOT = opening/just-opened · WARM = existing venue that demonstrably buys
+   * entertainment · SEED = relationship-planting contact/venue. The filter
+   * reconciles it against signalType deterministically — the model's word is
+   * never the last word. timingScore is NOT asked of the model: a probability
+   * invented by a flash model is noise; lib/venues/timing.ts computes it.
+   */
+  temperature: z.enum(TEMPERATURES).catch("HOT"),
   summary: z.string(),
+  /**
+   * ≤3 short facts proving the venue buys entertainment, each traceable to a
+   * snippet (same grounding discipline as summary). Empty for plain HOT finds.
+   */
+  entertainmentEvidence: z.array(z.string()).catch([]),
+  /** Named events manager/coordinator WHEN a snippet names one; null otherwise. */
+  contactName: z.string().nullish(),
+  contactRole: z.string().nullish(),
   sourceUrl: z.string(),
   /** ISO date (YYYY-MM-DD) when the source states one; null otherwise. */
   observedAtISO: z.string().nullish(),
@@ -99,7 +155,37 @@ export function inferSignalTypeFromSummary(text: string): (typeof SIGNAL_TYPES)[
   if (/now open|newly opened|just opened|has opened|opened\b|doors open/.test(t)) return "NEW_OPENING";
   if (/hiring|recruit|vacanc|staff wanted|jobs?\b/.test(t)) return "HIRING";
   if (/new (instagram|tiktok|facebook|social)/.test(t)) return "NEW_SOCIAL";
+  // 10.2c warm-evidence rescues — same cop-out, new classes.
+  if (/what'?s on|event (calendar|listings|page|program)|events (calendar|listings|page|program)/.test(t)) {
+    return "EVENT_PROGRAM";
+  }
+  if (/dj nights?|live (music|band|act)s?|resident dj|residenc|open mic|entertainment program|hosts? (djs?|bands?|entertainment)|every (friday|saturday|weekend)/.test(t)) {
+    return "HOSTS_ENTERTAINMENT";
+  }
+  if (/events? (manager|coordinator|director)|wedding (coordinator|planner)|booking manager/.test(t)) {
+    return "TEAM_CONTACT";
+  }
   return null;
+}
+
+/**
+ * Deterministic temperature reconciliation (10.2c): the signal class outranks
+ * the model's temperature label wherever the class IS the timing fact —
+ * an opening signal is HOT by definition; evidence of an existing program is
+ * never HOT (nothing says they're deciding now); a bare team contact is a
+ * SEED unless the model saw a real program (WARM allowed). For the ambiguous
+ * classes (HIRING/NEW_SOCIAL/PRESS) the model's read stands.
+ */
+export function reconcileTemperature(
+  signalType: (typeof SIGNAL_TYPES)[number],
+  modelTemp: (typeof TEMPERATURES)[number],
+): (typeof TEMPERATURES)[number] {
+  if (signalType === "NEW_OPENING" || signalType === "OPENING_SOON") return "HOT";
+  if (signalType === "HOSTS_ENTERTAINMENT" || signalType === "EVENT_PROGRAM") {
+    return modelTemp === "SEED" ? "SEED" : "WARM";
+  }
+  if (signalType === "TEAM_CONTACT") return modelTemp === "WARM" ? "WARM" : "SEED";
+  return modelTemp;
 }
 
 /** Listicle/roundup page titles masquerading as venue names — cheap regex guard. */
@@ -170,19 +256,50 @@ export function filterCandidates(
   return out;
 }
 
+const LINKEDIN_URL = /(^|\.)linkedin\.com/i;
+
+function isLinkedInUrl(url: string): boolean {
+  try {
+    return LINKEDIN_URL.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function toRawSignal(c: ExtractedCandidate, scanNow: Date): RawSignal {
   let observedAt: Date | undefined;
   if (c.observedAtISO) {
     const d = new Date(c.observedAtISO);
     if (!Number.isNaN(d.getTime())) observedAt = d;
   }
+  const signalType = c.signalType as Exclude<typeof c.signalType, "NONE">;
+  const temperature = reconcileTemperature(signalType, c.temperature);
+
+  // Grounded evidence facts: ≤3, each trimmed to summary length discipline.
+  const evidence = (c.entertainmentEvidence ?? [])
+    .map((e) => e.trim().slice(0, 140))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  // TEAM_CONTACT handling (ADR-004: LinkedIn is find-only). A name sourced
+  // from linkedin.com is NEVER stored — the profile URL goes on the handoff
+  // card instead. Names from non-LinkedIn public snippets are kept.
+  const fromLinkedIn = isLinkedInUrl(c.sourceUrl);
+  const contactName = !fromLinkedIn && c.contactName?.trim() ? c.contactName.trim() : undefined;
+
   return {
     venueName: c.venueName.trim(),
     kindGuess: c.kind,
-    type: c.signalType as Exclude<typeof c.signalType, "NONE">,
+    type: signalType,
     summary: c.summary.trim().slice(0, 140),
     sourceUrl: c.sourceUrl,
     ...(observedAt ? { observedAt } : {}),
+    temperature,
+    ...(evidence.length > 0 ? { entertainmentEvidence: evidence } : {}),
+    ...(contactName
+      ? { bookingContactName: contactName, contactSource: `named in public snippet (${c.contactRole?.trim() || "events contact"})` }
+      : {}),
+    ...(fromLinkedIn && c.contactName ? { linkedinUrl: c.sourceUrl } : {}),
   };
 }
 
@@ -190,7 +307,7 @@ export function buildExtractionSystem(metro: Metro, now: Date): string {
   return [
     `You extract venue prospects for a performing artist's booking agent from web search results about ${metro.city} (${metro.country}).`,
     `Today is ${now.toISOString().slice(0, 10)}.`,
-    `Return ONLY real, individual venues (a specific bar, rooftop, hotel, restaurant, event space or club) that are newly opened, opening soon, hiring, newly on social, or covered in the press.`,
+    `Return ONLY real, individual venues (a specific bar, rooftop, hotel, restaurant, event space or club) that are newly opened, opening soon, hiring, newly on social, covered in the press, OR existing venues that demonstrably book entertainment (DJ nights, live-music programs, event calendars, wedding entertainment).`,
     `Rules:`,
     `- NEVER return a listicle or roundup page itself ("10 best bars in ...") as a venue. If a roundup snippet NAMES specific venues, extract those venues (each with the roundup URL as sourceUrl). If no venue is clearly named, skip it.`,
     `- ONLY hospitality and event venues (places that could book a DJ or live act). Retail shops, fast-food chains, gyms, offices and showrooms are NOT venues — skip them.`,
@@ -201,7 +318,10 @@ export function buildExtractionSystem(metro: Metro, now: Date): string {
     `- observedAtISO: the publish/opening date as YYYY-MM-DD when stated or clearly derivable from the result's date; otherwise null.`,
     `- isInMetro: true only if the venue is in or immediately around ${metro.city}. Results about other cities: isInMetro false.`,
     `- confidence: 0-1 that this is a real single venue with the stated signal. Be conservative — vague or ambiguous snippets get < 0.6.`,
-    `- signalType: NEW_OPENING (just opened), OPENING_SOON (announced/under construction/launching), HIRING (staffing up), NEW_SOCIAL (brand-new social account), PRESS (other coverage). Use NONE only when no signal clearly applies.`,
+    `- signalType: NEW_OPENING (just opened), OPENING_SOON (announced/under construction/launching), HIRING (staffing up), NEW_SOCIAL (brand-new social account), PRESS (other coverage), HOSTS_ENTERTAINMENT (existing venue that books DJs/live acts — DJ nights, live music program), EVENT_PROGRAM (a live events page / "what's on" calendar), TEAM_CONTACT (a snippet NAMES an events manager/coordinator). Use NONE only when no signal clearly applies.`,
+    `- temperature: HOT = the venue is opening or just opened (deciding entertainment NOW). WARM = an existing venue that already buys entertainment but isn't posting a need. SEED = a relationship-planting target (hotel event teams, wedding coordinators — books eventually). Openings are always HOT; evidence of an existing program is WARM, never HOT.`,
+    `- entertainmentEvidence: up to 3 SHORT facts proving the venue buys entertainment (e.g. "Runs Friday DJ nights per its events page"). Every fact must be traceable to a snippet given below — never inferred, never invented. Empty array when there is no such evidence.`,
+    `- contactName/contactRole: ONLY when a snippet literally names an events manager / booking contact / wedding coordinator; otherwise null. NEVER take a name from a linkedin.com result.`,
     `- Include EVERY field on EVERY candidate.`,
     `- One candidate per (venue, source URL). The same venue across different URLs = multiple candidates.`,
   ].join("\n");
@@ -238,7 +358,12 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
 
   async searchVenueSignals(metro: Metro, opts: DiscoveryOpts): Promise<RawSignal[]> {
     if (!this.apiKey) throw new Error("SERPER_API_KEY is not set — cannot run a live scan");
-    const battery = buildQueryBattery(metro, opts.now).slice(0, MAX_QUERIES_PER_METRO);
+    // Hot battery every scan; the WARM battery rides along only when scan.ts
+    // says it's the warm wheel's turn (every 3rd scan — cost discipline).
+    const battery = [
+      ...buildQueryBattery(metro, opts.now).slice(0, MAX_QUERIES_PER_METRO),
+      ...(opts.warm ? buildWarmQueryBattery(metro).slice(0, MAX_WARM_QUERIES_PER_METRO) : []),
+    ];
     const gl = metro.country.trim().toLowerCase();
 
     const items: SerperItem[] = [];
@@ -286,6 +411,7 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
       JSON.stringify({
         kind: "discovery_scan",
         city: metro.city,
+        warm: !!opts.warm,
         queries: battery.length,
         results: items.length,
         candidates: candidateCount,

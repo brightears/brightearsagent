@@ -20,6 +20,7 @@ import {
   type VenueKind,
 } from "@/lib/venues/score";
 import type { Metro, RawSignal } from "@/lib/discovery/provider";
+import { computeTimingScore, type VenueTemperature } from "@/lib/venues/timing";
 
 export type PlannedSignal = {
   type: SignalType;
@@ -33,6 +34,9 @@ export type PlannedScore = {
   fitReasons: string[];
   caution: string | null;
   lastSignalAt: Date;
+  // 10.2c TIMING (kept separate from fit):
+  temperature: VenueTemperature;
+  timingScore: number;
 };
 
 export type PlannedCreate = {
@@ -45,6 +49,10 @@ export type PlannedCreate = {
   bookingEmail: string | null; // lowercased
   bookingContactName: string | null;
   contactSource: string | null;
+  /** Grounded facts proving the venue buys entertainment (10.2c). */
+  entertainmentEvidence: string[];
+  /** LinkedIn handoff URL (find-only — never a name from LinkedIn). */
+  linkedinUrl: string | null;
   signals: PlannedSignal[];
   score: PlannedScore;
 };
@@ -54,8 +62,10 @@ export type PlannedUpdate = {
   newSignals: PlannedSignal[];
   /** Contact enrichment — only fields the venue is currently missing. */
   enrich: Partial<
-    Pick<PlannedCreate, "website" | "instagram" | "bookingEmail" | "bookingContactName" | "contactSource">
+    Pick<PlannedCreate, "website" | "instagram" | "bookingEmail" | "bookingContactName" | "contactSource" | "linkedinUrl">
   >;
+  /** Merged evidence list (existing ∪ new, deduped) — full replacement value. */
+  entertainmentEvidence: string[];
   score: PlannedScore;
 };
 
@@ -78,6 +88,9 @@ export type ExistingVenue = {
   bookingEmail: string | null;
   bookingContactName: string | null;
   contactSource: string | null;
+  temperature: VenueTemperature;
+  entertainmentEvidence: string[];
+  linkedinUrl: string | null;
   signals: { type: SignalType; sourceUrl: string; observedAt: Date }[];
 };
 
@@ -91,6 +104,28 @@ export type IngestContext = {
 
 const norm = (s: string) => s.trim().toLowerCase();
 const venueKey = (name: string, city: string) => `${norm(name)}|${norm(city)}`;
+
+// 10.2c temperature merge: heat up, never cool down — a WARM venue that
+// announces a relaunch becomes HOT; a HOT venue never demotes because warm
+// evidence arrived later. Rank follows enum declaration order.
+const TEMP_RANK: Record<VenueTemperature, number> = { HOT: 0, WARM: 1, SEED: 2 };
+const hottest = (a: VenueTemperature, b: VenueTemperature): VenueTemperature =>
+  TEMP_RANK[a] <= TEMP_RANK[b] ? a : b;
+
+/** Evidence union, case-insensitively deduped, capped (card shows the first). */
+const MAX_EVIDENCE = 6;
+function mergeEvidence(existing: string[], incoming: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const e of [...existing, ...incoming]) {
+    const k = norm(e);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(e.trim());
+    if (out.length >= MAX_EVIDENCE) break;
+  }
+  return out;
+}
 
 export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): IngestPlan {
   const suppressed = new Set(ctx.suppressedEmails.map(norm));
@@ -125,6 +160,18 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
     const rawEmail = pick("bookingEmail");
     const email = rawEmail ? norm(rawEmail) : null;
 
+    // 10.2c: the group's temperature read (hottest signal wins; signals from
+    // the hot scanner default to HOT) + its grounded evidence facts.
+    const groupTemp = group.signals.reduce<VenueTemperature>(
+      (acc, s) => hottest(acc, s.temperature ?? "HOT"),
+      "SEED",
+    );
+    const groupEvidence = mergeEvidence(
+      [],
+      group.signals.flatMap((s) => s.entertainmentEvidence ?? []),
+    );
+    const groupLinkedin = pick("linkedinUrl");
+
     if (existing) {
       if (existing.status === "SUPPRESSED") {
         plan.skipped.push({
@@ -141,13 +188,19 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
       const enrich: PlannedUpdate["enrich"] = {};
       if (!existing.website && pick("website")) enrich.website = pick("website");
       if (!existing.instagram && pick("instagram")) enrich.instagram = pick("instagram");
+      if (!existing.linkedinUrl && groupLinkedin) enrich.linkedinUrl = groupLinkedin;
       if (!existing.bookingEmail && email && !suppressed.has(email)) {
         enrich.bookingEmail = email;
         if (pick("contactSource")) enrich.contactSource = pick("contactSource");
         if (pick("bookingContactName")) enrich.bookingContactName = pick("bookingContactName");
       }
 
-      if (newSignals.length === 0 && Object.keys(enrich).length === 0) continue; // idempotent no-op
+      const mergedEvidence = mergeEvidence(existing.entertainmentEvidence, groupEvidence);
+      const evidenceChanged = mergedEvidence.length !== existing.entertainmentEvidence.length;
+
+      if (newSignals.length === 0 && Object.keys(enrich).length === 0 && !evidenceChanged) {
+        continue; // idempotent no-op
+      }
 
       const allSignals: ScorableSignal[] = [...existing.signals, ...newSignals];
       const score = scoreVenue(
@@ -162,15 +215,22 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
         ctx.profile,
         ctx.now,
       );
+      const temperature = hottest(existing.temperature, groupTemp);
       plan.updates.push({
         venueId: existing.id,
         newSignals,
         enrich,
+        entertainmentEvidence: mergedEvidence,
         score: {
           fitScore: score.fitScore,
           fitReasons: score.reasons,
           caution: score.caution ?? null,
           lastSignalAt: maxDate(allSignals.map((s) => s.observedAt)),
+          temperature,
+          timingScore: computeTimingScore(
+            { temperature, signals: allSignals, entertainmentEvidence: mergedEvidence },
+            ctx.now,
+          ),
         },
       });
       continue;
@@ -204,12 +264,19 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
       bookingEmail: email,
       bookingContactName: pick("bookingContactName"),
       contactSource: pick("contactSource"),
+      entertainmentEvidence: groupEvidence,
+      linkedinUrl: groupLinkedin,
       signals,
       score: {
         fitScore: score.fitScore,
         fitReasons: score.reasons,
         caution: score.caution ?? null,
         lastSignalAt: maxDate(signals.map((s) => s.observedAt)),
+        temperature: groupTemp,
+        timingScore: computeTimingScore(
+          { temperature: groupTemp, signals, entertainmentEvidence: groupEvidence },
+          ctx.now,
+        ),
       },
     });
   }
@@ -250,6 +317,9 @@ export async function ingestSignals(
         bookingEmail: true,
         bookingContactName: true,
         contactSource: true,
+        temperature: true,
+        entertainmentEvidence: true,
+        linkedinUrl: true,
         signals: { select: { type: true, sourceUrl: true, observedAt: true } },
       },
     }),
@@ -281,6 +351,10 @@ export async function ingestSignals(
           bookingEmail: c.bookingEmail,
           bookingContactName: c.bookingContactName,
           contactSource: c.contactSource,
+          temperature: c.score.temperature,
+          timingScore: c.score.timingScore,
+          entertainmentEvidence: c.entertainmentEvidence,
+          linkedinUrl: c.linkedinUrl,
           fitScore: c.score.fitScore,
           fitReasons: c.score.fitReasons,
           caution: c.score.caution,
@@ -294,6 +368,9 @@ export async function ingestSignals(
         where: { id: u.venueId },
         data: {
           ...u.enrich,
+          temperature: u.score.temperature,
+          timingScore: u.score.timingScore,
+          entertainmentEvidence: u.entertainmentEvidence,
           fitScore: u.score.fitScore,
           fitReasons: u.score.fitReasons,
           caution: u.score.caution,

@@ -92,6 +92,12 @@ model Business {
   // Phase 10.2b: discovery-scan budget guard — a live scan costs real Serper
   // queries; refuse a new scan if one ran < 20h ago (manual --force bypasses).
   lastDiscoveryScanAt  DateTime?
+  // 10.2c: warm-battery wheel — total scans run; the WARM query battery fires
+  // on every 3rd scan (count % 3 === 0). A COUNTER, not date-modulo on
+  // lastDiscoveryScanAt: scans run irregularly (manual --force, missed crons),
+  // so a date-modulo could starve the warm wheel for weeks; a counter
+  // guarantees exactly 1-in-3 regardless of cadence.
+  discoveryScanCount   Int       @default(0)
 
   // --- Artist profile (Phase 10.1) — what the sales agent pitches WITH.
   // Lives on Business (not a 1:1 side table): every field is tenant-singular,
@@ -338,12 +344,24 @@ enum VenueStatus {
 }
 
 enum SignalType {
-  NEW_OPENING  // venue just opened (press/roundup/new listing)
-  OPENING_SOON // announced/under construction/staffing up to open
-  HIRING       // hiring events/bar staff — activity proxy
-  NEW_SOCIAL   // brand-new venue social account
-  PRESS        // other press coverage
-  MANUAL       // owner added it by hand
+  NEW_OPENING         // venue just opened (press/roundup/new listing)
+  OPENING_SOON        // announced/under construction/staffing up to open
+  HIRING              // hiring events/bar staff — activity proxy
+  NEW_SOCIAL          // brand-new venue social account
+  PRESS               // other press coverage
+  MANUAL              // owner added it by hand
+  HOSTS_ENTERTAINMENT // 10.2c: existing venue demonstrably books DJs/live acts
+  EVENT_PROGRAM       // 10.2c: live events page / "what's on" calendar found
+  TEAM_CONTACT        // 10.2c: a named events manager/coordinator in a public snippet
+}
+
+// Phase 10.2c: opportunity temperature — TIMING, kept separate from fit.
+// Declaration order matters: Postgres sorts enum values by definition order,
+// so `orderBy: { temperature: "asc" }` yields HOT → WARM → SEED in the feed.
+enum VenueTemperature {
+  HOT  // opening/just-opened — deciding entertainment NOW
+  WARM // existing venue that already buys entertainment, not posting a need
+  SEED // relationship-planting — books eventually; one polite intro, no follow-ups
 }
 
 // One prospect venue, TENANT-SCOPED: every artist gets their own venue rows
@@ -367,6 +385,18 @@ model Venue {
   bookingContactName String?
   contactSource      String? // where the email was found (venue site/press/...) — provenance for trust
   status             VenueStatus @default(DISCOVERED)
+  // 10.2c: FIT (fitScore) and TIMING (temperature/timingScore) stay separate —
+  // a perfect-fit hotel bar can still be months from a booking decision.
+  temperature        VenueTemperature @default(HOT) // existing rows = the hot scanner's finds
+  timingScore        Int? // 0-100 short-term-booking likelihood (lib/venues/timing.ts)
+  // The facts proving this venue buys entertainment ("runs Friday DJ sets per
+  // its events page") — each traceable to a search snippet; feeds pitch
+  // grounding (rule 2b) and the honest line on WARM/SEED cards.
+  entertainmentEvidence String[] @default([])
+  // When the ONLY source naming an events contact is linkedin.com we store the
+  // URL for the handoff card and NEVER a name from it (ADR-004: LinkedIn is
+  // find-only; profile data stays on LinkedIn).
+  linkedinUrl        String?
   fitScore           Int? // 0-100 from lib/venues/score.ts
   fitReasons         String[]    @default([]) // <=3 plain-language reasons (feed card)
   caution            String? // <=1 plain-language caution
@@ -420,6 +450,10 @@ model VenuePitch {
   body       String // clean editable copy — the jurisdiction footer is NEVER stored here
   language   String           @default("en")
   status     VenuePitchStatus @default(PENDING)
+  // 10.2c: temperature SNAPSHOT at draft time — drives the daily caps count
+  // (lib/outreach/caps.ts) and the sequencing guard: WARM/SEED pitches must
+  // NEVER enter any follow-up sequence (one polite intro is the whole play).
+  temperature VenueTemperature @default(HOT)
   // Snapshot of lib/outreach/jurisdiction.ts mode at draft time ("STANDARD" |
   // "CONSENT" | "STRICT") — drives the review card's handoff/auto-send rules.
   jurisdictionMode String

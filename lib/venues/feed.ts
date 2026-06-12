@@ -17,6 +17,20 @@ export const SKIP_REASONS = {
 
 export type SkipReason = keyof typeof SKIP_REASONS;
 
+/**
+ * Temperature chip per card (10.2c) — mono, no emoji (v2.1 LAW). Interface
+ * voice only: HOT is the one solid-cyan moment (deciding now); WARM/SEED are
+ * cream — temperature is timing data, never the show gradient. The label says
+ * the truth plainly: a WARM venue "books entertainment", it is NOT looking.
+ */
+export const TEMPERATURE_CHIP = {
+  HOT: { label: "HOT — deciding now", className: "bg-brand-cyan text-ink-stage" },
+  WARM: { label: "WARM — books entertainment", className: "bg-cream text-ink-stage" },
+  SEED: { label: "INTRO — for their file", className: "bg-cream/40 text-ink-stage/70" },
+} as const;
+
+export type FeedTemperature = keyof typeof TEMPERATURE_CHIP;
+
 export function isSkipReason(value: string): value is SkipReason {
   return value in SKIP_REASONS;
 }

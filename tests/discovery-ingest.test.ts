@@ -30,6 +30,9 @@ const asExisting = (c: PlannedCreate, id: string): ExistingVenue => ({
   bookingEmail: c.bookingEmail,
   bookingContactName: c.bookingContactName,
   contactSource: c.contactSource,
+  temperature: c.score.temperature,
+  entertainmentEvidence: c.entertainmentEvidence,
+  linkedinUrl: c.linkedinUrl,
   signals: c.signals.map((s) => ({ type: s.type, sourceUrl: s.sourceUrl, observedAt: s.observedAt })),
 });
 
@@ -132,6 +135,9 @@ describe("planIngest", () => {
       bookingEmail: null,
       bookingContactName: null,
       contactSource: null,
+      temperature: "HOT",
+      entertainmentEvidence: [],
+      linkedinUrl: null,
       signals: [],
     };
     const incoming: RawSignal = {

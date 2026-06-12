@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  buildPitchTask,
   buildVenuePitchPrompt,
   buildVenuePitchSystem,
+  detectFollowUpPromise,
   detectLeak,
   generateVenuePitch,
   normalizeVenuePitch,
@@ -191,5 +193,116 @@ describe("generateVenuePitch", () => {
     llmMock.mockResolvedValue({ subject: "x", body: "I'm an AI assistant" });
     await expect(generateVenuePitch(req)).rejects.toThrow(/white-label leak/);
     expect(llmMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 10.2c — temperature templates + the SEED no-follow-up guard
+// ---------------------------------------------------------------------------
+
+const warmReq: VenuePitchRequest = {
+  ...req,
+  venue: {
+    ...req.venue,
+    temperature: "WARM",
+    signals: [],
+    entertainmentEvidence: ["Runs Friday DJ nights per its events page", "Hosts live bands monthly"],
+  },
+};
+
+const seedReq: VenuePitchRequest = {
+  ...req,
+  venue: { ...req.venue, temperature: "SEED", signals: [], entertainmentEvidence: [] },
+};
+
+describe("temperature template selection (buildPitchTask)", () => {
+  it("HOT (and legacy callers without temperature) keep the date-shaped ask", () => {
+    expect(buildPitchTask("HOT")).toContain("first pitch email");
+    expect(buildVenuePitchPrompt(req)).toContain("first pitch email");
+    expect(buildVenuePitchSystem(req)).toContain("shall I hold a date?");
+  });
+
+  it("WARM is an introduction referencing their EXISTING program, rotation/on-file CTA", () => {
+    const task = buildPitchTask("WARM");
+    expect(task).toContain("INTRODUCTION");
+    expect(task).toContain("have NOT posted any need");
+    expect(task).toMatch(/rotation|on file/i);
+    // The evidence facts land in the prompt as the only program grounding.
+    const prompt = buildVenuePitchPrompt(warmReq);
+    expect(prompt).toContain("Runs Friday DJ nights per its events page");
+    expect(prompt).toContain("verified facts");
+    // The system CTA rule bans the date-ask for WARM.
+    const system = buildVenuePitchSystem(warmReq);
+    expect(system).toMatch(/[Nn]ever ask to hold a date/);
+    expect(system).not.toContain("shall I hold a date?");
+  });
+
+  it("SEED is the shortest pure introduction — 60-90 words, no ask, never a follow-up promise", () => {
+    const task = buildPitchTask("SEED");
+    expect(task).toContain("60-90 words");
+    expect(task).toContain("file me away");
+    expect(task).toMatch(/NEVER promise to follow up/i);
+    expect(buildVenuePitchSystem(seedReq)).toContain("1. Body 60-90 words.");
+  });
+});
+
+describe("detectFollowUpPromise (SEED no-follow-up guard)", () => {
+  it("catches the classic follow-up promises", () => {
+    for (const line of [
+      "I'll follow up next month.",
+      "I will be following up soon",
+      "I'll check back in a few weeks",
+      "Happy to touch base after the summer",
+      "I'll circle back once you've settled in",
+      "I'll reach out again in the autumn",
+    ]) {
+      expect(detectFollowUpPromise({ subject: "Hi", body: line })).toBeTruthy();
+    }
+  });
+
+  it("does not flag clean file-me-away copy", () => {
+    expect(
+      detectFollowUpPromise({
+        subject: "Wedding DJ for your venue files",
+        body: "Keep this on file for when you next need wedding entertainment. No reply needed.",
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("generateVenuePitch — SEED guard wiring", () => {
+  it("regenerates ONCE when a SEED pitch promises a follow-up, then succeeds", async () => {
+    llmMock
+      .mockResolvedValueOnce({
+        subject: "Hello from Sapphire Sounds",
+        body: `Just introducing myself. ${EPK} I'll follow up next month. Maya — Sapphire Sounds`,
+      })
+      .mockResolvedValueOnce({
+        subject: "Hello from Sapphire Sounds",
+        body: `Just introducing myself — file me away for when you need wedding entertainment. ${EPK}\n\nMaya — Sapphire Sounds`,
+      });
+    const out = await generateVenuePitch(seedReq);
+    expect(llmMock).toHaveBeenCalledTimes(2);
+    const retryPrompt = llmMock.mock.calls[1][0].prompt;
+    expect(retryPrompt).toContain("ONE-TIME introduction");
+    expect(detectFollowUpPromise(out)).toBeNull();
+  });
+
+  it("fails loudly when the follow-up promise survives regeneration", async () => {
+    llmMock.mockResolvedValue({
+      subject: "Hello",
+      body: `Intro. ${EPK} I'll check back soon. Maya`,
+    });
+    await expect(generateVenuePitch(seedReq)).rejects.toThrow(/follow-up/);
+  });
+
+  it("HOT pitches are NOT subject to the follow-up guard (sequences may follow)", async () => {
+    llmMock.mockResolvedValue({
+      subject: "DJ for The Vault",
+      body: `Saw you opened. ${EPK} I'll follow up next week if easier. Maya — Sapphire Sounds`,
+    });
+    const out = await generateVenuePitch(req);
+    expect(llmMock).toHaveBeenCalledTimes(1);
+    expect(out.body).toContain("follow up");
   });
 });

@@ -1,11 +1,18 @@
 // Live smoke (Phase 10.3): generate ONE real venue pitch via OpenRouter for
 // the dev tenant's top-scored venue and print it — the founder judges the
 // voice. No rows are written besides LlmUsage (the pitch is NOT persisted).
-// Usage: npx tsx scripts/test-venue-pitch.ts
+// Usage: npx tsx scripts/test-venue-pitch.ts [--warm | --seed]
+//   --warm / --seed: pick the top venue of that temperature instead of the
+//   overall top (10.2c — founder judges each template on a real venue).
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
 const SLUG = process.env.DEV_TENANT_SLUG ?? "demo-dj-co";
+const TEMPERATURE = process.argv.includes("--warm")
+  ? "WARM"
+  : process.argv.includes("--seed")
+    ? "SEED"
+    : null;
 
 async function main() {
   const { db } = await import("../lib/db");
@@ -21,19 +28,27 @@ async function main() {
   }
 
   const venue = await db.venue.findFirst({
-    where: { businessId: business.id, status: { in: ["DISCOVERED", "QUALIFIED"] } },
+    where: {
+      businessId: business.id,
+      status: { in: ["DISCOVERED", "QUALIFIED"] },
+      ...(TEMPERATURE ? { temperature: TEMPERATURE } : {}),
+    },
     orderBy: { fitScore: "desc" },
     include: { signals: { orderBy: { observedAt: "desc" }, take: 5 } },
   });
   if (!venue) {
-    console.error("No pitchable venue — run scripts/seed-venues.ts first.");
+    console.error(
+      TEMPERATURE
+        ? `No pitchable ${TEMPERATURE} venue — run a scan with --warm first.`
+        : "No pitchable venue — run scripts/seed-venues.ts first.",
+    );
     process.exit(1);
   }
 
   const jurisdiction = jurisdictionFor(venue.country);
   const language = pitchLanguageFor(venue.country, business.pitchLanguages);
   console.log(
-    `Pitching ${venue.name} (${venue.city}, ${venue.country}) — fit ${venue.fitScore}, mode ${jurisdiction.mode}, language ${language}\n`,
+    `Pitching ${venue.name} (${venue.city}, ${venue.country}) — ${venue.temperature}, fit ${venue.fitScore}, timing ${venue.timingScore ?? "-"}, mode ${jurisdiction.mode}, language ${language}\n`,
   );
 
   const started = Date.now();
@@ -59,7 +74,9 @@ async function main() {
       city: venue.city,
       country: venue.country,
       kind: venue.kind,
+      temperature: venue.temperature,
       signals: venue.signals.map((s) => s.summary),
+      entertainmentEvidence: venue.entertainmentEvidence,
       fitReasons: venue.fitReasons,
     },
     epkUrl: epkUrlFor(business.slug),
