@@ -1,0 +1,16 @@
+-- AlterTable
+ALTER TABLE "Business" ADD COLUMN     "genres" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "eventTypes" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "serviceCities" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "travelPolicy" TEXT,
+ADD COLUMN     "feeFloor" INTEGER,
+ADD COLUMN     "feeSweetSpot" INTEGER,
+ADD COLUMN     "pitchLanguages" TEXT[] DEFAULT ARRAY['en']::TEXT[],
+ADD COLUMN     "insured" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "headline" TEXT,
+ADD COLUMN     "bio" TEXT,
+ADD COLUMN     "videoLinks" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "photoUrls" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "reviewQuotes" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "notableVenues" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "epkEnabled" BOOLEAN NOT NULL DEFAULT true;

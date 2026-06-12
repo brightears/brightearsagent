@@ -7,6 +7,7 @@ const NAV = [
   { href: "/dashboard", label: "Pipeline" },
   { href: "/dashboard/calendar", label: "Calendar" },
   { href: "/dashboard/packages", label: "Packages" },
+  { href: "/dashboard/profile", label: "Profile" },
   { href: "/dashboard/settings", label: "Settings" },
 ];
 

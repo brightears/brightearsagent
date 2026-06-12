@@ -90,6 +90,27 @@ model Business {
   stripeCustomerId     String?       @unique
   stripeSubscriptionId String?
 
+  // --- Artist profile (Phase 10.1) — what the sales agent pitches WITH.
+  // Lives on Business (not a 1:1 side table): every field is tenant-singular,
+  // read together with the rest of the tenant row on every pitch/EPK render.
+  // Matching fields (who/where the agent may pitch):
+  genres         String[] @default([]) // genre/vibe tags, free-form (~5-10)
+  eventTypes     String[] @default([]) // weddings, corporate, club nights...
+  serviceCities  String[] @default([]) // named cities/areas served
+  travelPolicy   String? // "within 100km included, beyond at cost" etc.
+  feeFloor       Int? // cents — the agent NEVER pitches below this
+  feeSweetSpot   Int? // cents — the fee the agent aims for
+  pitchLanguages String[] @default(["en"])
+  insured        Boolean  @default(false)
+  // Pitching fields (the ammunition):
+  headline     String? // <=80 chars, the one-liner venues read first
+  bio          String? // 40-120 words, artist voice
+  videoLinks   String[] @default([]) // YouTube/Vimeo URLs
+  photoUrls    String[] @default([]) // external URLs for v1 — no upload infra yet
+  reviewQuotes String[] @default([]) // 1-3 short client quotes
+  notableVenues String[] @default([])
+  epkEnabled   Boolean  @default(true) // hosted press kit at /epk/{slug}
+
   members    Member[]
   performers Performer[]
   packages   Package[]
