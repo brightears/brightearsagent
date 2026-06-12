@@ -10,6 +10,7 @@ import { llmObject } from "@/lib/llm";
 import {
   buildQueryBattery,
   buildWarmQueryBattery,
+  EXTRACTION_CHUNK_SIZE,
   filterCandidates,
   inferSignalTypeFromSummary,
   MAX_QUERIES_PER_METRO,
@@ -351,5 +352,62 @@ describe("filterCandidates — 10.2c fields", () => {
     );
     expect(sig.bookingContactName).toBeUndefined();
     expect(sig.linkedinUrl).toBe("https://www.linkedin.com/in/maria-lopez-events");
+  });
+});
+
+describe("SerperDiscoveryProvider — warm battery + chunked extraction (10.2c)", () => {
+  const tenResults = {
+    organic: Array.from({ length: 10 }, (_, i) => ({
+      title: `Venue ${i}`,
+      snippet: "Hotel bar with Friday DJ nights",
+      link: `https://example.com/venue-${i}`,
+    })),
+  };
+  const bigFetch = () =>
+    vi.fn(
+      async () =>
+        new Response(JSON.stringify(tenResults), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+
+  it("warm=true fires hot + warm batteries; results are extracted in chunks", async () => {
+    const fetchFn = bigFetch();
+    const provider = new SerperDiscoveryProvider({ apiKey: "k", fetchFn });
+    llmMock.mockResolvedValue({ candidates: [candidate()] });
+
+    await provider.searchVenueSignals(MANCHESTER, { now: NOW, warm: true });
+
+    const expectedQueries =
+      buildQueryBattery(MANCHESTER, NOW).length + buildWarmQueryBattery(MANCHESTER).length;
+    expect(fetchFn).toHaveBeenCalledTimes(expectedQueries);
+    // 10 items/query → chunked: never one giant call (the live 46k-token
+    // output blowup), one call per EXTRACTION_CHUNK_SIZE items.
+    const expectedChunks = Math.ceil((expectedQueries * 10) / EXTRACTION_CHUNK_SIZE);
+    expect(expectedChunks).toBeGreaterThan(1);
+    expect(llmMock).toHaveBeenCalledTimes(expectedChunks);
+  });
+
+  it("warm=false keeps the hot battery only (the slow wheel's off-turn)", async () => {
+    const fetchFn = bigFetch();
+    const provider = new SerperDiscoveryProvider({ apiKey: "k", fetchFn });
+    llmMock.mockResolvedValue({ candidates: [] });
+    await provider.searchVenueSignals(MANCHESTER, { now: NOW, warm: false });
+    expect(fetchFn).toHaveBeenCalledTimes(buildQueryBattery(MANCHESTER, NOW).length);
+  });
+
+  it("a chunk that errors twice is dropped — the other chunks still land", async () => {
+    const fetchFn = bigFetch();
+    const provider = new SerperDiscoveryProvider({ apiKey: "k", fetchFn });
+    llmMock
+      .mockResolvedValueOnce({ candidates: [candidate()] }) // chunk 1 ok
+      .mockRejectedValueOnce(new Error("output limit")) // chunk 2, attempt 1
+      .mockRejectedValueOnce(new Error("output limit")) // chunk 2, attempt 2 — dropped
+      .mockResolvedValue({ candidates: [candidate({ venueName: "Survivor Bar" })] }); // rest
+
+    const signals = await provider.searchVenueSignals(MANCHESTER, { now: NOW, warm: true });
+    expect(signals.map((s) => s.venueName)).toContain("The Vault");
+    expect(signals.map((s) => s.venueName)).toContain("Survivor Bar");
   });
 });

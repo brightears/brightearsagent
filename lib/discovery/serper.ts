@@ -23,6 +23,13 @@ export type BatteryQuery = { endpoint: SerperEndpoint; q: string };
 export const MAX_QUERIES_PER_METRO = 10;
 
 /**
+ * Max search results per LLM extraction call. ~180 results in one call blew
+ * the flash tier's output budget live (June 12: 46k output tokens,
+ * finish_reason "error"); ~50 results ≈ 12-15k output tokens — safe margin.
+ */
+export const EXTRACTION_CHUNK_SIZE = 50;
+
+/**
  * The query battery: tuned for "venue that will need entertainment soon"
  * signal density (new openings, opening-soon announcements, venue hiring).
  * Exported for tests — the cap is asserted there, and enforced again at
@@ -378,33 +385,51 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
       }
     }
 
-    let accepted: RawSignal[] = [];
+    // CHUNKED extraction (observed live, June 12 with the warm battery on):
+    // 18 queries → ~180 results in ONE call drove the flash tier past its
+    // output budget (46k tokens, finish_reason "error" → AI_NoObjectGenerated,
+    // whole metro lost). Chunks keep each call's output comfortably inside the
+    // limit; a broken/failed chunk costs only that chunk, never the metro.
+    const accepted: RawSignal[] = [];
     let candidateCount = 0;
-    let attempts = 0;
-    let drops: Record<string, number> = {};
-    // The flash tier sometimes omits the decision fields on an ENTIRE batch
-    // (observed live: every candidate caught to NONE). One retry of the LLM
-    // call reuses the already-paid Serper results — pennies, no new queries.
-    while (items.length > 0 && attempts < 2) {
-      attempts++;
-      drops = {};
-      const { candidates } = await llmObject({
-        purpose: "parse",
-        businessId: opts.businessId ?? null,
-        system: buildExtractionSystem(metro, opts.now),
-        prompt: buildExtractionPrompt(items),
-        schema: extractionSchema,
-      });
-      candidateCount = candidates.length;
-      accepted = filterCandidates(candidates, opts.now, drops);
-      // Zero accepted out of a non-empty batch = the model probably broke the
-      // format wholesale (observed live). One retry; never more.
-      const batchBroken = candidateCount > 0 && accepted.length === 0;
-      if (!batchBroken) break;
-      console.error(
-        `extraction batch broken for ${metro.city} (attempt ${attempts}) — sample:`,
-        JSON.stringify(candidates.slice(0, 3)),
-      );
+    let chunksFailed = 0;
+    const drops: Record<string, number> = {};
+    for (let i = 0; i < items.length; i += EXTRACTION_CHUNK_SIZE) {
+      const chunk = items.slice(i, i + EXTRACTION_CHUNK_SIZE);
+      let attempts = 0;
+      // The flash tier sometimes omits the decision fields on an ENTIRE batch
+      // (observed live: every candidate caught to NONE). One retry of the LLM
+      // call reuses the already-paid Serper results — pennies, no new queries.
+      while (attempts < 2) {
+        attempts++;
+        try {
+          const { candidates } = await llmObject({
+            purpose: "parse",
+            businessId: opts.businessId ?? null,
+            system: buildExtractionSystem(metro, opts.now),
+            prompt: buildExtractionPrompt(chunk),
+            schema: extractionSchema,
+          });
+          candidateCount += candidates.length;
+          const chunkAccepted = filterCandidates(candidates, opts.now, drops);
+          // Zero accepted out of a non-empty batch = the model probably broke
+          // the format wholesale (observed live). One retry; never more.
+          if (candidates.length > 0 && chunkAccepted.length === 0 && attempts < 2) {
+            console.error(
+              `extraction chunk broken for ${metro.city} (attempt ${attempts}) — sample:`,
+              JSON.stringify(candidates.slice(0, 3)),
+            );
+            continue;
+          }
+          accepted.push(...chunkAccepted);
+          break;
+        } catch (err) {
+          // A chunk that errors twice is dropped — the rest of the metro's
+          // results still land (one bad chunk must never kill the scan).
+          console.error(`extraction chunk failed for ${metro.city} (attempt ${attempts})`, err);
+          if (attempts >= 2) chunksFailed++;
+        }
+      }
     }
 
     console.log(
@@ -414,9 +439,10 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
         warm: !!opts.warm,
         queries: battery.length,
         results: items.length,
+        chunks: Math.ceil(items.length / EXTRACTION_CHUNK_SIZE),
+        chunksFailed,
         candidates: candidateCount,
         accepted: accepted.length,
-        attempts,
         drops,
       }),
     );
