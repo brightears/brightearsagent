@@ -10,7 +10,9 @@ import {
   buttonStyles,
 } from "@/components/ui";
 import { GradientBlob, StickerChip } from "@/components/collage";
-import type { LeadStatus } from "@/app/generated/prisma/enums";
+import { HUNT_CAP, HuntSection } from "@/components/hunt-feed";
+import { profileStrength } from "@/lib/profile/strength";
+import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +56,22 @@ function fmtDate(d: Date | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default async function Dashboard() {
+// Hunt-feed statuses: the proactive cards still awaiting action. Everything
+// from PITCHED onward lives in the reply/pipeline flow, not the rail.
+const HUNT_STATUSES = [
+  "DISCOVERED",
+  "QUALIFIED",
+  "PITCH_DRAFTED",
+] as const satisfies readonly VenueStatus[];
+
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ hunt?: string | string[] }>;
+}) {
+  const huntExpanded = (await searchParams).hunt === "all";
   const tenant = await getCurrentBusiness();
-  const [leads, spamCount] = await Promise.all([
+  const [leads, spamCount, huntVenues, huntCount, activePackages, gigs] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -71,8 +86,36 @@ export default async function Dashboard() {
       },
     }),
     db.lead.count({ where: { businessId: tenant.id, status: "SPAM" } }),
+    db.venue.findMany({
+      where: { businessId: tenant.id, status: { in: [...HUNT_STATUSES] } },
+      orderBy: { fitScore: "desc" },
+      ...(huntExpanded ? {} : { take: HUNT_CAP }),
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        country: true,
+        kind: true,
+        status: true,
+        fitScore: true,
+        fitReasons: true,
+        caution: true,
+        lastSignalAt: true,
+        bookingEmail: true,
+        contactSource: true,
+      },
+    }),
+    db.venue.count({
+      where: { businessId: tenant.id, status: { in: [...HUNT_STATUSES] } },
+    }),
+    db.package.count({ where: { businessId: tenant.id, active: true } }),
+    db.gig.count({ where: { businessId: tenant.id } }),
   ]);
   const business = { ...tenant, leads };
+
+  // The hunting license — gates the Draft-pitch button (re-checked server-side
+  // in app/actions/venues.ts; this copy only drives honest UI).
+  const strength = profileStrength(tenant, { activePackages, gigs });
 
   // "Booked this month" from the rows already fetched — month boundary in the
   // business's timezone (CLAUDE.md rule 9: all date logic in tenant timezone).
@@ -109,6 +152,19 @@ export default async function Dashboard() {
 
       <OnboardingBanner />
 
+      {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
+          pipeline. Brand-new tenants (zero leads AND zero venues) keep the
+          whole-pipeline welcome primary; the Hunt moves below it then. */}
+      {!(business.leads.length === 0 && huntCount === 0) && (
+        <HuntSection
+          venues={huntVenues}
+          totalCount={huntCount}
+          expanded={huntExpanded}
+          canPitch={strength.canPitch}
+          profilePercent={strength.percent}
+        />
+      )}
+
       {business.leads.length === 0 ? (
         // Whole-pipeline welcome: a cream poster floating on the ink, sticker
         // chip on the corner (empty-state art may use the show voice).
@@ -130,6 +186,18 @@ export default async function Dashboard() {
               You&apos;ll hear the ping
             </StickerChip>
           </div>
+          {/* Brand-new tenant: the Hunt sits below the welcome (no double-shout). */}
+          {huntCount === 0 && (
+            <div className="mt-10">
+              <HuntSection
+                venues={huntVenues}
+                totalCount={huntCount}
+                expanded={huntExpanded}
+                canPitch={strength.canPitch}
+                profilePercent={strength.percent}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

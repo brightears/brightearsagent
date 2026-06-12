@@ -7,7 +7,7 @@
 // canvas (bg-ink-stage); content lives on white/cream rounded-3xl panels.
 import Image from "next/image";
 import type { ReactNode } from "react";
-import type { LeadStatus } from "@/app/generated/prisma/enums";
+import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 import { RingsBackdrop, VinylDisc } from "@/components/collage";
 
 /** White data card floating on the ink canvas. Never tilted (app rule). */
@@ -285,4 +285,29 @@ export const LEAD_STATUS_META: Record<
     badgeTone: "teal",
   },
   DEAD: { label: "Gone quiet", accent: "bg-cream/40", badgeTone: "gray" },
+};
+
+/**
+ * Single source of truth for venue-prospect statuses (the Hunt feed, ADR-004 /
+ * Phase 10.4) — same conventions and TEXT-PAIRING RULES as LEAD_STATUS_META
+ * above (soft tints need dark text; the gradient celebrates BOOKED).
+ */
+export const VENUE_STATUS_META: Record<
+  VenueStatus,
+  { label: string; accent: string; badgeTone: "cyan" | "teal" | "lavender" | "peach" | "gray" }
+> = {
+  DISCOVERED: { label: "Found", accent: "bg-brand-cyan-soft", badgeTone: "cyan" },
+  QUALIFIED: { label: "Worth a look", accent: "bg-brand-cyan", badgeTone: "cyan" },
+  PITCH_DRAFTED: { label: "Pitch queued", accent: "bg-[#ffd6ec]", badgeTone: "lavender" },
+  PITCHED: { label: "Pitched", accent: "bg-[#ffdfba]", badgeTone: "peach" },
+  REPLIED: { label: "Talking", accent: "bg-[#ffd6ec]", badgeTone: "lavender" },
+  IN_CONVERSATION: { label: "Talking", accent: "bg-[#ffd6ec]", badgeTone: "lavender" },
+  BOOKED: {
+    // No emoji (v2.1 LAW) — the gradient accent IS the celebration.
+    label: "Booked",
+    accent: "bg-gradient-to-r from-neon-magenta to-neon-orange",
+    badgeTone: "teal",
+  },
+  DEAD: { label: "Gone quiet", accent: "bg-cream/40", badgeTone: "gray" },
+  SUPPRESSED: { label: "Skipped", accent: "bg-cream/40", badgeTone: "gray" },
 };
