@@ -67,6 +67,7 @@ function VenueCard({
   profilePercent,
   businessName,
   homeCity,
+  mailboxConnected,
   now,
 }: {
   venue: HuntVenue;
@@ -74,6 +75,8 @@ function VenueCard({
   profilePercent: number;
   businessName: string;
   homeCity: string;
+  /** 10.5: a sending mailbox is connected — gates the "Send now" button. */
+  mailboxConnected: boolean;
   now: Date;
 }) {
   const score = venue.fitScore ?? 0;
@@ -174,6 +177,7 @@ function VenueCard({
         <VenuePitchReview
           pitch={venue.pitch}
           jurisdictionNote={jurisdiction.note}
+          mailboxConnected={mailboxConnected}
           footer={pitchFooter({
             mode: jurisdiction.mode,
             businessName,
@@ -248,6 +252,7 @@ export function HuntSection({
   profilePercent,
   businessName,
   homeCity,
+  mailboxConnected = false,
 }: {
   /** Already capped (or full when expanded), fitScore desc. */
   venues: HuntVenue[];
@@ -259,6 +264,8 @@ export function HuntSection({
   businessName: string;
   /** …plus home-base city (first service city; empty string when unset). */
   homeCity: string;
+  /** 10.5: a sending mailbox is connected — gates "Send now" on STANDARD cards. */
+  mailboxConnected?: boolean;
 }) {
   const now = new Date();
   return (
@@ -297,6 +304,7 @@ export function HuntSection({
                 profilePercent={profilePercent}
                 businessName={businessName}
                 homeCity={homeCity}
+                mailboxConnected={mailboxConnected}
                 now={now}
               />
             ))}

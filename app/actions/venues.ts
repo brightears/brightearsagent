@@ -11,14 +11,15 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { profileStrength } from "@/lib/profile/strength";
 import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
-import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
-import { capError, capFor, startOfTenantDay } from "@/lib/outreach/caps";
+import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
+import { capError, capFor, sentCapFor, sendCapError, startOfTenantDay } from "@/lib/outreach/caps";
 import {
   epkUrlFor,
   generateVenuePitch,
   pitchLanguageFor,
   type VenuePitchRequest,
 } from "@/lib/agent/venue-pitch";
+import { sendGmail, MailboxError } from "@/lib/outbound/gmail";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -203,6 +204,130 @@ export async function approveVenuePitch(pitchId: string): Promise<ActionResult> 
     data: { status: "APPROVED", decidedAt: new Date() },
   });
   if (updated.count === 0) return { ok: false, error: "Pitch not pending" };
+
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Send an APPROVED pitch from the artist's OWN connected mailbox (Phase 10.5,
+ * Gmail OAuth). EVERY guard runs server-side, in this exact order, each a hard
+ * stop with a friendly error — the UI is never trusted:
+ *
+ *   1. tenant-scoped pitch lookup; status must be APPROVED (only APPROVED
+ *      pitches send). Already-SENT → idempotent no-op success.
+ *   2. mailbox CONNECTED for this tenant ("Connect your mailbox first").
+ *   3. jurisdiction MUST be STANDARD — CONSENT/STRICT (Canada/Germany/…) are
+ *      copy-and-send only; auto-send is REFUSED (the legal handoff guarantee,
+ *      ADR-004 D4 / lib/outreach/jurisdiction.ts).
+ *   4. suppression re-check: the venue's bookingEmail must not be on the master
+ *      do-not-contact list (re-checked here, not just at draft).
+ *   5. daily SEND cap by temperature (count SENT today, tenant tz).
+ *   6. build the email — body + the jurisdiction pitchFooter appended NOW (at
+ *      send, never stored in the editable body) — send via lib/outbound/gmail.
+ *   7. on success: pitch → SENT (sentAt, providerMessageId), venue → PITCHED
+ *      (pitchedAt). No LlmUsage write (no LLM here). revalidate.
+ */
+export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
+  const parsed = pitchIdSchema.safeParse(pitchId);
+  if (!parsed.success) return { ok: false, error: "No pitch given" };
+
+  const business = await getCurrentBusiness();
+
+  // (1) Tenant-scoped lookup + status gate.
+  const pitch = await db.venuePitch.findFirst({
+    where: { id: parsed.data, businessId: business.id },
+    include: { venue: true },
+  });
+  if (!pitch) return { ok: false, error: "Pitch not found" };
+  if (pitch.status === "SENT") return { ok: true }; // idempotent re-send
+  if (pitch.status !== "APPROVED") {
+    return { ok: false, error: "Approve the pitch before sending" };
+  }
+  const venue = pitch.venue;
+  if (!venue.bookingEmail) {
+    return { ok: false, error: "No booking email on file for this venue" };
+  }
+
+  // (2) Mailbox connected.
+  const mailbox = await db.mailboxConnection.findUnique({
+    where: { businessId: business.id },
+    select: { status: true },
+  });
+  if (!mailbox || mailbox.status !== "CONNECTED") {
+    return { ok: false, error: "Connect your mailbox first" };
+  }
+
+  // (3) Jurisdiction: STANDARD only — CONSENT/STRICT are copy-and-send by law.
+  const jurisdiction = jurisdictionFor(venue.country);
+  if (jurisdiction.mode !== "STANDARD") {
+    return {
+      ok: false,
+      error: "Canada/Germany are copy-and-send only — use the Copy button",
+    };
+  }
+
+  // (4) Suppression re-check (email always lowercased — schema contract).
+  const email = venue.bookingEmail.toLowerCase();
+  const suppressed = await db.outreachSuppression.findUnique({
+    where: { businessId_email: { businessId: business.id, email } },
+    select: { id: true },
+  });
+  if (suppressed) {
+    return { ok: false, error: "This contact is on your do-not-contact list" };
+  }
+
+  // (5) Daily SEND cap by temperature — count SENT today in the tenant's tz.
+  const sentToday = await db.venuePitch.count({
+    where: {
+      businessId: business.id,
+      temperature: pitch.temperature,
+      status: "SENT",
+      sentAt: { gte: startOfTenantDay(new Date(), business.timezone) },
+    },
+  });
+  if (sentToday >= sentCapFor(pitch.temperature)) {
+    return { ok: false, error: sendCapError(pitch.temperature) };
+  }
+
+  // (6) Build + send. The owner's edits win; the jurisdiction footer is
+  // appended HERE (at send), never stored in the editable body.
+  const subject = pitch.editedSubject ?? pitch.subject;
+  const body = (pitch.editedBody ?? pitch.body) +
+    pitchFooter({
+      mode: jurisdiction.mode,
+      businessName: business.name,
+      city: business.serviceCities[0] ?? "",
+      venueName: venue.name,
+    });
+
+  let messageId: string;
+  try {
+    const result = await sendGmail(business.id, {
+      toEmail: venue.bookingEmail,
+      toName: venue.bookingContactName ?? undefined,
+      subject,
+      body,
+      replyToEmail: business.replyToEmail ?? business.ownerEmail,
+    });
+    messageId = result.messageId;
+  } catch (err) {
+    if (err instanceof MailboxError) return { ok: false, error: err.message };
+    return { ok: false, error: "The send didn't go through — try again in a moment" };
+  }
+
+  // (7) Mark SENT + venue PITCHED. Status guards in the WHERE keep this safe
+  // against a concurrent double-send (only an APPROVED row flips to SENT).
+  await db.$transaction([
+    db.venuePitch.updateMany({
+      where: { id: pitch.id, businessId: business.id, status: "APPROVED" },
+      data: { status: "SENT", sentAt: new Date(), providerMessageId: messageId },
+    }),
+    db.venue.updateMany({
+      where: { id: venue.id, businessId: business.id, status: "PITCH_DRAFTED" },
+      data: { status: "PITCHED", pitchedAt: new Date() },
+    }),
+  ]);
 
   revalidatePath("/dashboard");
   return { ok: true };

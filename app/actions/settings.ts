@@ -99,3 +99,22 @@ export async function removePushSubscription(endpoint: string): Promise<ActionRe
   });
   return { ok: true };
 }
+
+/**
+ * Disconnect the tenant's sending mailbox (Phase 10.5). We DELETE the row so
+ * the encrypted tokens leave the database entirely (the cleanest revocation —
+ * a REVOKED-but-kept row would still hold ciphertext). Tenant-scoped; one
+ * tenant can never touch another's connection. Idempotent.
+ */
+export async function disconnectMailbox(): Promise<ActionResult> {
+  const business = await getCurrentBusiness();
+  await db.mailboxConnection.deleteMany({ where: { businessId: business.id } });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/** Form-friendly wrapper (a <form action> must return void). */
+export async function disconnectMailboxForm(): Promise<void> {
+  await disconnectMailbox();
+}

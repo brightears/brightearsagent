@@ -3,10 +3,17 @@ import { NextResponse } from "next/server";
 
 // Signed-in-only surfaces. Marketing pages, the demo API, the inbound webhook,
 // crons and opt-out stay public (the latter are shared-secret-gated instead).
+//
+// /api/oauth/google/* is tenant-scoped (start + callback both resolve the
+// signed-in artist via getCurrentBusiness) — protect it so the OAuth flow runs
+// under the Clerk session. The Google round-trip is a normal top-level GET
+// redirect (no preflight), so Clerk protection doesn't break it: the browser
+// returns to /callback carrying the session cookie.
 const isProtected = createRouteMatcher([
   "/dashboard(.*)",
   "/onboarding(.*)",
   "/api/onboarding(.*)",
+  "/api/oauth(.*)",
 ]);
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

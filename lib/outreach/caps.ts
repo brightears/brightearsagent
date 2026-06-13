@@ -24,6 +24,23 @@ export function capFor(temperature: VenueTemperature): number {
   return DAILY_PITCH_CAPS[temperature];
 }
 
+/**
+ * Max pitch SENDS per tenant per tenant-local day (Phase 10.5 — the ADR-004
+ * "10-20 outbound/day per artist" hard cap). Counts VenuePitch rows that went
+ * SENT today, re-checked at send time so a stale UI or a burst of approvals
+ * can't blow past the daily send budget. Mirrors the draft caps per
+ * temperature (HOT room is widest; total across temperatures stays ≤ 18/day).
+ */
+export const DAILY_SEND_CAPS: Record<VenueTemperature, number> = {
+  HOT: 10,
+  WARM: 5,
+  SEED: 3,
+};
+
+export function sentCapFor(temperature: VenueTemperature): number {
+  return DAILY_SEND_CAPS[temperature];
+}
+
 /** The friendly refusal shown on the card when today's cap is hit. */
 export function capError(temperature: VenueTemperature): string {
   const label: Record<VenueTemperature, string> = {
@@ -32,6 +49,16 @@ export function capError(temperature: VenueTemperature): string {
     SEED: "intro",
   };
   return `Daily ${label[temperature]}-pitch cap reached — quality beats volume`;
+}
+
+/** The friendly refusal when today's SEND cap (not draft cap) is hit. */
+export function sendCapError(temperature: VenueTemperature): string {
+  const label: Record<VenueTemperature, string> = {
+    HOT: "hot",
+    WARM: "warm",
+    SEED: "intro",
+  };
+  return `Daily ${label[temperature]}-send cap reached — quality beats volume`;
 }
 
 /**

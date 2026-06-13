@@ -1,7 +1,10 @@
+import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { Card, Badge, buttonStyles, Kicker, PageHeader } from "@/components/ui";
 import { SettingsForm, CopyButton } from "@/components/settings-form";
 import { PushToggle } from "@/components/push-toggle";
+import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
+import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS } from "@/lib/billing/metering";
 
@@ -82,7 +85,45 @@ async function BillingCard() {
   );
 }
 
-export default async function SettingsPage() {
+// "Your sending mailbox" (Phase 10.5) — resolves the connection state server-
+// side. If OAuth isn't enabled on this environment (no client secret — local),
+// the card shows a muted note instead of a dead Connect button.
+async function MailboxSection({
+  businessId,
+  mailbox,
+  reason,
+}: {
+  businessId: string;
+  mailbox: string | null;
+  reason: string | null;
+}) {
+  let state: MailboxState;
+  if (!isMailboxConfigured()) {
+    state = { kind: "unconfigured" };
+  } else {
+    const conn = await db.mailboxConnection.findUnique({
+      where: { businessId },
+      select: { email: true, status: true, lastError: true },
+    });
+    if (!conn || conn.status === "REVOKED") {
+      state = { kind: "disconnected" };
+    } else if (conn.status === "ERROR") {
+      state = { kind: "error", email: conn.email, lastError: conn.lastError };
+    } else {
+      state = { kind: "connected", email: conn.email };
+    }
+  }
+  return <MailboxCard state={state} mailbox={mailbox} reason={reason} />;
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mailbox?: string | string[]; reason?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const mailbox = Array.isArray(sp.mailbox) ? sp.mailbox[0] : sp.mailbox ?? null;
+  const reason = Array.isArray(sp.reason) ? sp.reason[0] : sp.reason ?? null;
   const business = await getCurrentBusiness();
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
 
@@ -133,6 +174,8 @@ export default async function SettingsPage() {
             address — every lead lands in your pipeline with a reply drafted and waiting.
           </p>
         </Card>
+
+        <MailboxSection businessId={business.id} mailbox={mailbox} reason={reason} />
 
         <Card className="p-6">
           <h2 className="mb-2">
