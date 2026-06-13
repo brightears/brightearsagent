@@ -13,6 +13,7 @@ import {
   discardVenuePitch,
   draftVenuePitch,
   editVenuePitch,
+  sendVenuePitch,
 } from "@/app/actions/venues";
 
 /** The slice of a VenuePitch row the review card renders. */
@@ -24,6 +25,8 @@ export type HuntPitch = {
   jurisdictionMode: string; // "STANDARD" | "CONSENT" | "STRICT"
   editedSubject: string | null;
   editedBody: string | null;
+  /** 10.5: set once the pitch sent from the artist's own mailbox. */
+  sentAt: Date | string | null;
 };
 
 /** "Draft pitch" with an inline error line (LLM hiccups deserve words, not silence). */
@@ -58,22 +61,40 @@ export function VenuePitchReview({
   jurisdictionNote,
   /** Compliance close, precomputed server-side — appended on copy, never editable. */
   footer,
+  /** 10.5: a sending mailbox is connected — gates "Send now" on STANDARD cards. */
+  mailboxConnected = false,
 }: {
   pitch: HuntPitch;
   jurisdictionNote: string;
   footer: string;
+  mailboxConnected?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Optimistic sent flag — the action also flips the venue to PITCHED (it then
+  // leaves the hunt feed), but this gives instant feedback on the card.
+  const [sentAt, setSentAt] = useState<Date | string | null>(pitch.sentAt);
 
   const subject = pitch.editedSubject ?? pitch.subject;
   const body = pitch.editedBody ?? pitch.body;
   const [draftSubject, setDraftSubject] = useState(subject);
   const [draftBody, setDraftBody] = useState(body);
 
+  // Handoff jurisdictions (CONSENT/STRICT) are copy-and-send by law — NEVER a
+  // send button (the legal handoff guarantee). STANDARD + connected mailbox =
+  // the auto-send path.
   const handoff = pitch.jurisdictionMode !== "STANDARD";
+  const canSend = !handoff && pitch.status === "APPROVED" && mailboxConnected && !sentAt;
+  const sentLabel = sentAt
+    ? new Date(sentAt).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
 
   const run = (action: () => Promise<{ ok: boolean } | { ok: false; error: string }>) =>
     startTransition(async () => {
@@ -96,7 +117,11 @@ export function VenuePitchReview({
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/50">
           Draft pitch
         </p>
-        {pitch.status === "APPROVED" && <Badge tone="cyan">Ready to send</Badge>}
+        {sentAt ? (
+          <Badge tone="teal">Sent</Badge>
+        ) : (
+          pitch.status === "APPROVED" && <Badge tone="cyan">Ready to send</Badge>
+        )}
       </div>
 
       {editing ? (
@@ -159,15 +184,33 @@ export function VenuePitchReview({
         </p>
       )}
 
-      {pitch.status === "APPROVED" && (
+      {sentAt && sentLabel && (
         <p className="mt-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-          {handoff
-            ? "Copy it and send it from your own email"
-            : "Connect your mailbox to send — coming next update"}
+          Sent {sentLabel} from your mailbox
         </p>
       )}
 
-      {!editing && (
+      {!sentAt && pitch.status === "APPROVED" && (
+        <p className="mt-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
+          {handoff ? (
+            "Copy it and send it from your own email"
+          ) : mailboxConnected ? (
+            "Sends from your own inbox — venues hear from you"
+          ) : (
+            <>
+              <a
+                href="/dashboard/settings"
+                className="text-brand-cyan hover:opacity-80"
+              >
+                Connect your mailbox
+              </a>{" "}
+              to send
+            </>
+          )}
+        </p>
+      )}
+
+      {!editing && !sentAt && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {pitch.status === "PENDING" && (
             <>
@@ -192,6 +235,24 @@ export function VenuePitchReview({
                 Edit
               </button>
             </>
+          )}
+          {/* 10.5: the auto-send path — STANDARD jurisdiction + connected
+              mailbox. CONSENT/STRICT never reach here (handoff = Copy only). */}
+          {canSend && (
+            <button
+              type="button"
+              disabled={pending}
+              className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
+              onClick={() =>
+                run(async () => {
+                  const result = await sendVenuePitch(pitch.id);
+                  if (result.ok) setSentAt(new Date());
+                  return result;
+                })
+              }
+            >
+              {pending ? "Sending…" : "Send now"}
+            </button>
           )}
           {handoff && (
             <button

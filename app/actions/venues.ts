@@ -11,14 +11,22 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { profileStrength } from "@/lib/profile/strength";
 import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
-import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
-import { capError, capFor, startOfTenantDay } from "@/lib/outreach/caps";
+import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
+import {
+  capError,
+  capFor,
+  sentCapFor,
+  sendCapError,
+  startOfTenantDay,
+  SEND_CAP_STATUSES,
+} from "@/lib/outreach/caps";
 import {
   epkUrlFor,
   generateVenuePitch,
   pitchLanguageFor,
   type VenuePitchRequest,
 } from "@/lib/agent/venue-pitch";
+import { sendGmail, MailboxError } from "@/lib/outbound/gmail";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -203,6 +211,176 @@ export async function approveVenuePitch(pitchId: string): Promise<ActionResult> 
     data: { status: "APPROVED", decidedAt: new Date() },
   });
   if (updated.count === 0) return { ok: false, error: "Pitch not pending" };
+
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Send an APPROVED pitch from the artist's OWN connected mailbox (Phase 10.5,
+ * Gmail OAuth). EVERY guard runs server-side, in this exact order, each a hard
+ * stop with a friendly error — the UI is never trusted:
+ *
+ *   1. tenant-scoped pitch lookup; status must be APPROVED (only APPROVED
+ *      pitches send). Already-SENT or in-flight SENDING → idempotent no-op
+ *      success (NEVER a second real email).
+ *   2. mailbox CONNECTED for this tenant ("Connect your mailbox first").
+ *   3. jurisdiction MUST be STANDARD — CONSENT/STRICT (Canada/Germany/…) are
+ *      copy-and-send only; auto-send is REFUSED (the legal handoff guarantee,
+ *      ADR-004 D4 / lib/outreach/jurisdiction.ts).
+ *   4. suppression re-check: the venue's bookingEmail must not be on the master
+ *      do-not-contact list (re-checked here, not just at draft).
+ *   5. daily SEND cap by temperature (count SENT + SENDING today, tenant tz —
+ *      in-flight claims count so a burst can't blow the cap).
+ *   6. ATOMIC CLAIM: APPROVED → SENDING via updateMany where status=APPROVED;
+ *      count===1 wins, count===0 means someone else already claimed/sent it →
+ *      friendly no-op (closes the double-send / TOCTOU window — only the winner
+ *      crosses the network).
+ *   7. build the email — body + the jurisdiction pitchFooter appended NOW (at
+ *      send, never stored in the editable body) — send via lib/outbound/gmail.
+ *   8. on success: pitch SENDING → SENT (sentAt, providerMessageId), venue →
+ *      PITCHED (pitchedAt). On a send throw: revert SENDING → APPROVED so the
+ *      owner can retry (except auth/permanent errors, where the transport has
+ *      already flagged the mailbox ERROR — the pitch is left APPROVED to retry
+ *      after reconnect). No LlmUsage write (no LLM here). revalidate.
+ */
+export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
+  const parsed = pitchIdSchema.safeParse(pitchId);
+  if (!parsed.success) return { ok: false, error: "No pitch given" };
+
+  const business = await getCurrentBusiness();
+
+  // (1) Tenant-scoped lookup + status gate.
+  const pitch = await db.venuePitch.findFirst({
+    where: { id: parsed.data, businessId: business.id },
+    include: { venue: true },
+  });
+  if (!pitch) return { ok: false, error: "Pitch not found" };
+  // Idempotency: an already-SENT pitch — or one currently SENDING (claimed by a
+  // concurrent call) — is a friendly no-op, never a second real email.
+  if (pitch.status === "SENT" || pitch.status === "SENDING") return { ok: true };
+  if (pitch.status !== "APPROVED") {
+    return { ok: false, error: "Approve the pitch before sending" };
+  }
+  const venue = pitch.venue;
+  if (!venue.bookingEmail) {
+    return { ok: false, error: "No booking email on file for this venue" };
+  }
+
+  // (2) Mailbox connected.
+  const mailbox = await db.mailboxConnection.findUnique({
+    where: { businessId: business.id },
+    select: { status: true },
+  });
+  if (!mailbox || mailbox.status !== "CONNECTED") {
+    return { ok: false, error: "Connect your mailbox first" };
+  }
+
+  // (3) Jurisdiction: STANDARD only — CONSENT/STRICT are copy-and-send by law.
+  const jurisdiction = jurisdictionFor(venue.country);
+  if (jurisdiction.mode !== "STANDARD") {
+    return {
+      ok: false,
+      error: "Canada/Germany are copy-and-send only — use the Copy button",
+    };
+  }
+
+  // (4) Suppression re-check (email always lowercased — schema contract).
+  const email = venue.bookingEmail.toLowerCase();
+  const suppressed = await db.outreachSuppression.findUnique({
+    where: { businessId_email: { businessId: business.id, email } },
+    select: { id: true },
+  });
+  if (suppressed) {
+    return { ok: false, error: "This contact is on your do-not-contact list" };
+  }
+
+  // (5) Daily SEND cap by temperature — count SENT + SENDING today in the
+  // tenant's tz. Counting in-flight SENDING (not just delivered SENT) means a
+  // burst of concurrent claims can't each pass a SENT-only check and blow the
+  // cap. We bound the window with createdAt for SENDING rows (sentAt is null
+  // until they land); a row counts if EITHER timestamp is today.
+  const dayStart = startOfTenantDay(new Date(), business.timezone);
+  const sentToday = await db.venuePitch.count({
+    where: {
+      businessId: business.id,
+      temperature: pitch.temperature,
+      status: { in: [...SEND_CAP_STATUSES] },
+      OR: [{ sentAt: { gte: dayStart } }, { sentAt: null, updatedAt: { gte: dayStart } }],
+    },
+  });
+  if (sentToday >= sentCapFor(pitch.temperature)) {
+    return { ok: false, error: sendCapError(pitch.temperature) };
+  }
+
+  // (6) ATOMIC CLAIM — the heart of the double-send fix. Flip APPROVED →
+  // SENDING in a single conditional write IMMEDIATELY before the network send.
+  // Only one concurrent caller's updateMany matches (count===1); the loser sees
+  // count===0 and returns a friendly no-op WITHOUT crossing the network, so a
+  // TOCTOU race or a stale double-click can never send two real emails.
+  const claim = await db.venuePitch.updateMany({
+    where: { id: pitch.id, businessId: business.id, status: "APPROVED" },
+    data: { status: "SENDING" },
+  });
+  if (claim.count === 0) {
+    // Someone else claimed/sent it between our read and this write — no-op.
+    return { ok: true };
+  }
+
+  // (7) Build + send. The owner's edits win; the jurisdiction footer is
+  // appended HERE (at send), never stored in the editable body.
+  const subject = pitch.editedSubject ?? pitch.subject;
+  const body = (pitch.editedBody ?? pitch.body) +
+    pitchFooter({
+      mode: jurisdiction.mode,
+      businessName: business.name,
+      city: business.serviceCities[0] ?? "",
+      venueName: venue.name,
+    });
+
+  let messageId: string;
+  try {
+    const result = await sendGmail(business.id, {
+      toEmail: venue.bookingEmail,
+      toName: venue.bookingContactName ?? undefined,
+      subject,
+      body,
+      replyToEmail: business.replyToEmail ?? business.ownerEmail,
+    });
+    messageId = result.messageId;
+  } catch (err) {
+    // Send threw BEFORE any successful delivery — release the claim so the
+    // owner can retry. (On an auth/permanent MailboxError the transport has
+    // already flagged the mailbox ERROR; reverting to APPROVED is still correct
+    // — the pitch waits, ready to retry once the mailbox is reconnected.)
+    await db.venuePitch.updateMany({
+      where: { id: pitch.id, businessId: business.id, status: "SENDING" },
+      data: { status: "APPROVED" },
+    });
+    if (err instanceof MailboxError) return { ok: false, error: err.message };
+    return { ok: false, error: "The send didn't go through — try again in a moment" };
+  }
+
+  // (8) Send SUCCEEDED — record it: pitch SENDING → SENT, venue → PITCHED.
+  //
+  // RESIDUAL WINDOW (documented honestly): if the process dies AFTER a
+  // successful Gmail send but BEFORE this write lands, the pitch is stuck
+  // SENDING — the email was delivered but not recorded. That is the SAFE
+  // direction: a retry sees SENDING (step 1 idempotency guard) and REFUSES to
+  // re-send, so we never double-email a venue. A SENDING pitch older than a few
+  // minutes is a human-recoverable state (an operator can mark it SENT or
+  // re-open it). We do NOT build a reaper here — just flag the recovery point.
+  // TODO(reaper): sweep pitches SENDING > N minutes → surface for manual review.
+  await db.$transaction([
+    db.venuePitch.updateMany({
+      where: { id: pitch.id, businessId: business.id, status: "SENDING" },
+      data: { status: "SENT", sentAt: new Date(), providerMessageId: messageId },
+    }),
+    db.venue.updateMany({
+      where: { id: venue.id, businessId: business.id, status: "PITCH_DRAFTED" },
+      data: { status: "PITCHED", pitchedAt: new Date() },
+    }),
+  ]);
 
   revalidatePath("/dashboard");
   return { ok: true };

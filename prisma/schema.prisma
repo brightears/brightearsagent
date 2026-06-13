@@ -131,6 +131,7 @@ model Business {
   venues               Venue[]
   venuePitches         VenuePitch[]
   outreachSuppressions OutreachSuppression[]
+  mailboxConnection    MailboxConnection?
 }
 
 // One row per (business, device) the owner approved push on. Scoped by business
@@ -429,6 +430,7 @@ model VenueSignal {
 enum VenuePitchStatus {
   PENDING   // drafted, awaiting owner review
   APPROVED  // owner approved — parked until a mailbox is connected (10.5)
+  SENDING   // 10.5: claimed for send (atomic APPROVED→SENDING) — in flight, no second send
   DISCARDED // owner killed it; venue returns to DISCOVERED
   SENT      // 10.5: delivered via the artist's own mailbox
   EXPIRED   // went stale before a decision
@@ -465,6 +467,11 @@ model VenuePitch {
   editedSubject String?
   editedBody    String?
   decidedAt     DateTime?
+  // 10.5: own-mailbox send (Gmail OAuth). sentAt is the delivery moment;
+  // providerMessageId is the Gmail message id — kept for future reply
+  // threading AND as the idempotency anchor (a SENT pitch never re-sends).
+  sentAt            DateTime?
+  providerMessageId String?
 
   @@index([venueId])
   @@index([businessId, status])
@@ -481,6 +488,44 @@ model OutreachSuppression {
   createdAt  DateTime @default(now())
 
   @@unique([businessId, email])
+}
+
+// ---------------------------------------------------------------------------
+// Own-mailbox sending (Phase 10.5, ADR-004 Decision 4) — proactive venue
+// pitches send from the ARTIST'S own Gmail/Microsoft inbox via OAuth, never
+// from shared Postmark infrastructure (one artist's cold mail must never
+// endanger the reactive product's deliverability). gmail.send scope ONLY —
+// reply capture (readonly/modify) is a later phase.
+// ---------------------------------------------------------------------------
+
+enum MailboxProvider {
+  GOOGLE
+  MICROSOFT // schema-ready; Phase 10.5 ships GOOGLE only
+}
+
+enum MailboxStatus {
+  CONNECTED // tokens valid, sends allowed
+  REVOKED   // owner disconnected (or provider revoked) — reconnect to send
+  ERROR     // a send hit a dead/expired token — reconnect to clear
+}
+
+// One connected sending mailbox per tenant. Tokens are stored ENCRYPTED ONLY
+// (AES-256-GCM via lib/crypto/tokens.ts) — the plaintext never touches the DB
+// or a log. 1:1 with Business (businessId @unique): one sending identity.
+model MailboxConnection {
+  id              String          @id @default(cuid())
+  businessId      String          @unique
+  business        Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  provider        MailboxProvider @default(GOOGLE)
+  email           String // the connected address (From + Reply-To on sends)
+  accessTokenEnc  String // AES-256-GCM ciphertext — never plaintext
+  refreshTokenEnc String // AES-256-GCM ciphertext — never plaintext
+  expiresAt       DateTime // access-token expiry; refreshed when within 60s
+  scope           String // granted scopes (audit: must include gmail.send)
+  status          MailboxStatus   @default(CONNECTED)
+  lastError       String? // friendly reason when status = ERROR
+  connectedAt     DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 // Marketing email captures (free tools, templates download, waitlist-ish).

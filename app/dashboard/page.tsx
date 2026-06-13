@@ -71,7 +71,7 @@ export default async function Dashboard({
 }) {
   const huntExpanded = (await searchParams).hunt === "all";
   const tenant = await getCurrentBusiness();
-  const [leads, spamCount, huntVenues, huntCount, activePackages, gigs] = await Promise.all([
+  const [leads, spamCount, huntVenues, huntCount, activePackages, gigs, mailbox] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -129,6 +129,7 @@ export default async function Dashboard({
             jurisdictionMode: true,
             editedSubject: true,
             editedBody: true,
+            sentAt: true,
           },
         },
       },
@@ -138,6 +139,12 @@ export default async function Dashboard({
     }),
     db.package.count({ where: { businessId: tenant.id, active: true } }),
     db.gig.count({ where: { businessId: tenant.id } }),
+    // 10.5: is a sending mailbox connected? Drives the "Send now" vs "connect"
+    // hint on approved-pitch cards (the action re-checks server-side anyway).
+    db.mailboxConnection.findUnique({
+      where: { businessId: tenant.id },
+      select: { status: true },
+    }),
   ]);
   const business = { ...tenant, leads };
 
@@ -150,6 +157,7 @@ export default async function Dashboard({
       : null,
   }));
   const homeCity = tenant.serviceCities[0] ?? "";
+  const mailboxConnected = mailbox?.status === "CONNECTED";
 
   // The hunting license — gates the Draft-pitch button (re-checked server-side
   // in app/actions/venues.ts; this copy only drives honest UI).
@@ -202,6 +210,7 @@ export default async function Dashboard({
           profilePercent={strength.percent}
           businessName={tenant.name}
           homeCity={homeCity}
+          mailboxConnected={mailboxConnected}
         />
       )}
 
@@ -237,6 +246,7 @@ export default async function Dashboard({
                 profilePercent={strength.percent}
                 businessName={tenant.name}
                 homeCity={homeCity}
+                mailboxConnected={mailboxConnected}
               />
             </div>
           )}
