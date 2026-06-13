@@ -22,8 +22,13 @@ const USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
 export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 const SCOPES = [GMAIL_SEND_SCOPE, "openid", "email"];
 
-/** Deployed fallback mirrors epkUrlFor — APP_URL drives both. */
-function appUrl(): string {
+/**
+ * The app's PUBLIC base URL — APP_URL with the deployed fallback (mirrors
+ * epkUrlFor). Use this for every absolute redirect: behind Render's proxy
+ * `req.url` is the internal `http://localhost:10000`, so building redirects
+ * from the request host sends the browser to an unreachable address.
+ */
+export function appUrl(): string {
   return (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, "");
 }
 

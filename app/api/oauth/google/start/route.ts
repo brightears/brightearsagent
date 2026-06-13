@@ -7,14 +7,15 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { buildAuthUrl, isConfigured } from "@/lib/oauth/google";
+import { appUrl, buildAuthUrl, isConfigured } from "@/lib/oauth/google";
 import { createState, OAUTH_STATE_COOKIE } from "@/lib/oauth/state";
 import { isTokenCryptoConfigured } from "@/lib/crypto/tokens";
 
 export const dynamic = "force-dynamic";
 
-function settingsUrl(req: Request, query: string): URL {
-  const url = new URL("/dashboard/settings", req.url);
+function settingsUrl(_req: Request, query: string): URL {
+  // PUBLIC base URL, never req.url (Render's internal host is localhost:10000).
+  const url = new URL("/dashboard/settings", appUrl());
   url.search = query;
   return url;
 }

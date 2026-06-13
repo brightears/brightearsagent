@@ -6,14 +6,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { exchangeCode, GMAIL_SEND_SCOPE, isConfigured } from "@/lib/oauth/google";
+import { appUrl, exchangeCode, GMAIL_SEND_SCOPE, isConfigured } from "@/lib/oauth/google";
 import { OAUTH_STATE_COOKIE, verifyState } from "@/lib/oauth/state";
 import { encryptToken, isTokenCryptoConfigured } from "@/lib/crypto/tokens";
 
 export const dynamic = "force-dynamic";
 
-function settingsRedirect(req: Request, query: string): NextResponse {
-  const url = new URL("/dashboard/settings", req.url);
+function settingsRedirect(_req: Request, query: string): NextResponse {
+  // Build from the PUBLIC base URL, never req.url — behind Render's proxy that
+  // resolves to the internal localhost:10000 and the browser can't reach it.
+  const url = new URL("/dashboard/settings", appUrl());
   url.search = query;
   const res = NextResponse.redirect(url);
   // One-shot state cookie — clear it whatever the outcome.
