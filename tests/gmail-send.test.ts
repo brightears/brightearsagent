@@ -149,6 +149,121 @@ describe("sendGmail — send + error mapping", () => {
   });
 });
 
+// (Phase 10.5 hardening — FIX 1) CRLF / email-header injection. The To display
+// name is a SCRAPED venue name, the From display name is business.name, the
+// Subject is LLM output, and the addresses are venue-supplied — all
+// attacker-influenceable. Control chars MUST be stripped before assembly, and
+// addresses validated, so no header line can be injected and no second
+// recipient smuggled in.
+describe("buildMimeMessage — header-injection hardening", () => {
+  // The header block is everything before the blank line that precedes the body.
+  function headerLines(rawB64url: string): string[] {
+    const decoded = Buffer.from(rawB64url, "base64url").toString("utf8");
+    return decoded.split("\r\n\r\n")[0].split("\r\n");
+  }
+
+  it("strips a CRLF-injected Subject so no Bcc header line appears", async () => {
+    const { buildMimeMessage } = await import("@/lib/outbound/gmail");
+    const raw = buildMimeMessage({
+      fromEmail: "maya@gmail.com",
+      fromName: "Sapphire Sounds",
+      toEmail: "events@velvet.co",
+      replyToEmail: "maya@gmail.com",
+      subject: "Quick intro\r\nBcc: evil@x.com",
+      body: "hi",
+    });
+    const lines = headerLines(raw);
+    // The injected text is NOT a real header line — it's flattened into the
+    // Subject value. No standalone Bcc header exists.
+    expect(lines.some((l) => /^Bcc:/i.test(l))).toBe(false);
+    // The Subject is a single, control-char-free line (the CR/LF was stripped,
+    // so the would-be header is now harmless subject text).
+    const subject = lines.find((l) => l.startsWith("Subject:"))!;
+    expect(subject).toBe("Subject: Quick introBcc: evil@x.com");
+    expect(subject).not.toMatch(/[\r\n]/);
+  });
+
+  it("strips CRLF embedded in a scraped venue (To display) name", async () => {
+    const { buildMimeMessage } = await import("@/lib/outbound/gmail");
+    const raw = buildMimeMessage({
+      fromEmail: "maya@gmail.com",
+      fromName: "Sapphire Sounds",
+      toEmail: "events@velvet.co",
+      toName: "Velvet Lounge\r\nBcc: evil@x.com",
+      replyToEmail: "maya@gmail.com",
+      subject: "Intro",
+      body: "hi",
+    });
+    const lines = headerLines(raw);
+    expect(lines.some((l) => /^Bcc:/i.test(l))).toBe(false);
+    // The To line is single and carries no injected newline.
+    const toLines = lines.filter((l) => l.startsWith("To:"));
+    expect(toLines).toHaveLength(1);
+    expect(toLines[0]).not.toMatch(/[\r\n]/);
+  });
+
+  it("throws on a To address carrying CRLF / an extra recipient", async () => {
+    const { buildMimeMessage, MailboxError } = await import("@/lib/outbound/gmail");
+    expect(() =>
+      buildMimeMessage({
+        fromEmail: "maya@gmail.com",
+        fromName: "Sapphire Sounds",
+        toEmail: "events@velvet.co\r\nBcc: evil@x.com",
+        replyToEmail: "maya@gmail.com",
+        subject: "Intro",
+        body: "hi",
+      }),
+    ).toThrow(MailboxError);
+  });
+
+  it("throws on a multi-recipient (comma / angle-bracket) address", async () => {
+    const { buildMimeMessage } = await import("@/lib/outbound/gmail");
+    expect(() =>
+      buildMimeMessage({
+        fromEmail: "maya@gmail.com",
+        fromName: "Sapphire Sounds",
+        toEmail: "events@velvet.co, evil@x.com",
+        replyToEmail: "maya@gmail.com",
+        subject: "Intro",
+        body: "hi",
+      }),
+    ).toThrow(/invalid email/i);
+    expect(() =>
+      buildMimeMessage({
+        fromEmail: "maya@gmail.com",
+        fromName: "Sapphire Sounds",
+        toEmail: "victim@x.com> <evil@x.com",
+        replyToEmail: "maya@gmail.com",
+        subject: "Intro",
+        body: "hi",
+      }),
+    ).toThrow(/invalid email/i);
+  });
+
+  it("still RFC 2047-encodes a non-ASCII display name AFTER stripping controls", async () => {
+    const { buildMimeMessage } = await import("@/lib/outbound/gmail");
+    const raw = buildMimeMessage({
+      fromEmail: "maya@gmail.com",
+      fromName: "Café Sapphire\r\nX-Injected: 1", // non-ASCII + injection
+      toEmail: "events@velvet.co",
+      replyToEmail: "maya@gmail.com",
+      subject: "Intro",
+      body: "hi",
+    });
+    const lines = headerLines(raw);
+    // No injected header survived.
+    expect(lines.some((l) => /^X-Injected:/i.test(l))).toBe(false);
+    // The From display name is RFC 2047 base64 encoded-word (UTF-8).
+    const from = lines.find((l) => l.startsWith("From:"))!;
+    expect(from).toMatch(/=\?UTF-8\?B\?.+\?=/);
+    // The control chars were stripped BEFORE encoding (decoding yields no CRLF).
+    const b64 = from.match(/=\?UTF-8\?B\?(.+?)\?=/)![1];
+    const name = Buffer.from(b64, "base64").toString("utf8");
+    expect(name).toBe("Café SapphireX-Injected: 1");
+    expect(name).not.toMatch(/[\r\n]/);
+  });
+});
+
 describe("lib/oauth/google — exchange + refresh", () => {
   it("exchangeCode returns tokens + the connected email, requires a refresh token", async () => {
     const { exchangeCode } = await import("@/lib/oauth/google");

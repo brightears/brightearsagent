@@ -430,6 +430,7 @@ model VenueSignal {
 enum VenuePitchStatus {
   PENDING   // drafted, awaiting owner review
   APPROVED  // owner approved — parked until a mailbox is connected (10.5)
+  SENDING   // 10.5: claimed for send (atomic APPROVED→SENDING) — in flight, no second send
   DISCARDED // owner killed it; venue returns to DISCOVERED
   SENT      // 10.5: delivered via the artist's own mailbox
   EXPIRED   // went stale before a decision

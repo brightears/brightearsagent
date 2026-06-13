@@ -27,6 +27,9 @@ const REASON_COPY: Record<string, string> = {
   missing: "Google didn't return what we needed — please try again.",
   exchange: "Google declined the connection — please try again.",
   scope: "Sending permission wasn't granted — reconnect and allow sending.",
+  // Server-side misconfiguration (encryption key missing/malformed) — NOT the
+  // owner's fault and NOT a "feature off" state. Honest, non-actionable line.
+  config: "Mailbox sending is temporarily misconfigured on our end — we're on it. Please try again shortly.",
   access_denied: "You declined the permission — reconnect to send from your inbox.",
 };
 

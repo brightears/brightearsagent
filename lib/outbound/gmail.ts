@@ -82,17 +82,58 @@ export interface GmailSendInput {
   replyToEmail?: string;
 }
 
-/** RFC 2047 encoded-word for a header value when it contains non-ASCII. */
-export function encodeHeaderValue(value: string): string {
-  // ASCII-only (code points < 128) → no encoding needed.
-  if (![...value].some((ch) => ch.charCodeAt(0) > 127)) return value;
-  return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
+/**
+ * Strip every control character (CR, LF, and the rest of \x00-\x1F + DEL) from
+ * a header component BEFORE it is assembled into the MIME message. This is the
+ * header-injection guard: the To display name is a SCRAPED venue name, the From
+ * display name is business.name, the Subject is LLM output — all
+ * attacker-influenceable. An ASCII value carrying "\r\nBcc: evil@x.com" would
+ * otherwise inject a real header line. Applied to EVERY component regardless of
+ * ASCII/non-ASCII, and BEFORE any RFC 2047 encoding.
+ */
+export function sanitizeHeaderValue(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\x00-\x1F\x7F]/g, "");
 }
 
-/** "Display Name <addr>" with the name RFC 2047-encoded when non-ASCII. */
+/**
+ * Validate a bare email ADDRESS for use in a To/From/Reply-To header. Beyond
+ * stripping control chars we reject anything that could smuggle a second
+ * recipient or break out of the address: whitespace, commas, angle brackets,
+ * quotes, semicolons. A value failing the basic shape throws — we will NOT send
+ * to a malformed/injected address.
+ */
+function sanitizeEmailAddress(email: string): string {
+  const clean = sanitizeHeaderValue(email).trim();
+  // Basic shape: local@domain with no whitespace, commas, angle brackets,
+  // quotes or semicolons — so no "a@b.co, evil@x.com" / "<...>" injection.
+  if (!/^[^\s,<>"';@]+@[^\s,<>"';@]+\.[^\s,<>"';@]+$/.test(clean)) {
+    throw new MailboxError(`Invalid email address — refusing to send (${clean.slice(0, 40)})`);
+  }
+  return clean;
+}
+
+/**
+ * RFC 2047 encoded-word for a header value when it contains non-ASCII. Control
+ * chars are stripped FIRST (sanitizeHeaderValue) so an injected CRLF can never
+ * survive into either the raw or the base64-encoded form.
+ */
+export function encodeHeaderValue(value: string): string {
+  const safe = sanitizeHeaderValue(value);
+  // ASCII-only (code points < 128) → no encoding needed.
+  if (![...safe].some((ch) => ch.charCodeAt(0) > 127)) return safe;
+  return `=?UTF-8?B?${Buffer.from(safe, "utf8").toString("base64")}?=`;
+}
+
+/**
+ * "Display Name <addr>" — the address is validated (throws on anything that
+ * could inject a header or a second recipient), the name has control chars
+ * stripped then RFC 2047-encoded when non-ASCII.
+ */
 function formatAddress(email: string, name?: string): string {
-  if (!name) return email;
-  return `${encodeHeaderValue(name)} <${email}>`;
+  const addr = sanitizeEmailAddress(email);
+  if (!name) return addr;
+  return `${encodeHeaderValue(name)} <${addr}>`;
 }
 
 /**
@@ -114,7 +155,8 @@ export function buildMimeMessage(opts: {
   const headers = [
     `From: ${formatAddress(opts.fromEmail, opts.fromName)}`,
     `To: ${formatAddress(opts.toEmail, opts.toName)}`,
-    `Reply-To: ${opts.replyToEmail}`,
+    // Reply-To is a bare address — validated (no CRLF / extra-recipient inject).
+    `Reply-To: ${formatAddress(opts.replyToEmail)}`,
     `Subject: ${encodeHeaderValue(opts.subject)}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=UTF-8",

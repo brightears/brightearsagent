@@ -83,9 +83,15 @@ describe("sendVenuePitch — happy path", () => {
     const result = await sendVenuePitch("p1");
     expect(result).toEqual({ ok: true });
     expect(sendGmail).toHaveBeenCalledOnce();
-    // Pitch flips APPROVED → SENT with sentAt + providerMessageId.
-    const pitchUpdate = mockDb.venuePitch.updateMany.mock.calls[0][0];
-    expect(pitchUpdate.where.status).toBe("APPROVED");
+    // (Phase 10.5 hardening) FIRST updateMany is the atomic CLAIM
+    // APPROVED → SENDING, written BEFORE the network send.
+    const claim = mockDb.venuePitch.updateMany.mock.calls[0][0];
+    expect(claim.where.status).toBe("APPROVED");
+    expect(claim.data.status).toBe("SENDING");
+    // After a successful send the pitch flips SENDING → SENT with sentAt +
+    // providerMessageId (second updateMany call).
+    const pitchUpdate = mockDb.venuePitch.updateMany.mock.calls[1][0];
+    expect(pitchUpdate.where.status).toBe("SENDING");
     expect(pitchUpdate.data.status).toBe("SENT");
     expect(pitchUpdate.data.providerMessageId).toBe("gmail-123");
     expect(pitchUpdate.data.sentAt).toBeInstanceOf(Date);
@@ -181,27 +187,38 @@ describe("sendVenuePitch — other guards", () => {
     expect(sendGmail).not.toHaveBeenCalled();
   });
 
-  it("enforces the daily SEND cap (counts SENT today) before sending", async () => {
+  it("enforces the daily SEND cap (counts SENT + SENDING today) before sending", async () => {
     mockDb.venuePitch.count.mockResolvedValue(5); // WARM send cap = 5
     const result = await sendVenuePitch("p1");
     expect(result).toEqual({
       ok: false,
       error: "Daily warm-send cap reached — quality beats volume",
     });
-    // The cap query counts SENT rows today in the tenant tz.
+    // The cap query counts SENT + SENDING rows today in the tenant tz so
+    // in-flight (claimed) sends can't blow the cap.
     const where = mockDb.venuePitch.count.mock.calls[0][0].where;
-    expect(where.status).toBe("SENT");
+    expect(where.status).toEqual({ in: ["SENT", "SENDING"] });
     expect(where.temperature).toBe("WARM");
-    expect(where.sentAt.gte).toBeInstanceOf(Date);
     expect(sendGmail).not.toHaveBeenCalled();
   });
 
-  it("surfaces a MailboxError from the transport as a friendly form error", async () => {
+  it("surfaces a MailboxError from the transport as a friendly form error and reverts the claim", async () => {
     const { MailboxError } = await import("@/lib/outbound/gmail");
     sendGmail.mockRejectedValueOnce(new MailboxError("Reconnect your mailbox"));
     const result = await sendVenuePitch("p1");
     expect(result).toEqual({ ok: false, error: "Reconnect your mailbox" });
-    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
+    // (Phase 10.5 hardening) The send threw AFTER the claim, so the claim is
+    // released: the LAST updateMany reverts SENDING → APPROVED (retry-able),
+    // and the pitch is NEVER marked SENT on a failed send.
+    const calls = mockDb.venuePitch.updateMany.mock.calls;
+    const claim = calls[0][0];
+    expect(claim.data.status).toBe("SENDING");
+    const revert = calls[calls.length - 1][0];
+    expect(revert.where.status).toBe("SENDING");
+    expect(revert.data.status).toBe("APPROVED");
+    expect(
+      calls.some((c) => (c[0] as { data: { status: string } }).data.status === "SENT"),
+    ).toBe(false);
   });
 
   it("refuses when the venue has no booking email", async () => {
@@ -211,5 +228,61 @@ describe("sendVenuePitch — other guards", () => {
     const result = await sendVenuePitch("p1");
     expect(result.ok).toBe(false);
     expect(sendGmail).not.toHaveBeenCalled();
+  });
+});
+
+// (Phase 10.5 hardening — FIX 2) Double-send / TOCTOU / partial-failure. The
+// send is atomically CLAIMED (APPROVED → SENDING) immediately before the
+// network call, so a concurrent second caller (or a partial failure) can never
+// produce a second REAL email.
+describe("sendVenuePitch — atomic claim closes the double-send window", () => {
+  it("a second concurrent call sees the claim already taken (count 0) and no-ops — no second email", async () => {
+    // Simulate the race: the claim updateMany matches ZERO rows because a
+    // concurrent caller already flipped APPROVED → SENDING.
+    mockDb.venuePitch.updateMany.mockResolvedValueOnce({ count: 0 });
+    const result = await sendVenuePitch("p1");
+    // Friendly no-op success — NOT an error.
+    expect(result).toEqual({ ok: true });
+    // The loser never crosses the network and never records a SENT.
+    expect(sendGmail).not.toHaveBeenCalled();
+    // Only the claim attempt happened; no finalize write.
+    expect(mockDb.venuePitch.updateMany).toHaveBeenCalledOnce();
+  });
+
+  it("the winning claim (count 1) proceeds to send exactly once", async () => {
+    // Default beforeEach claim resolves count 1 → the winner sends.
+    const result = await sendVenuePitch("p1");
+    expect(result).toEqual({ ok: true });
+    expect(sendGmail).toHaveBeenCalledOnce();
+    // Claim was APPROVED → SENDING, finalize was SENDING → SENT.
+    const claim = mockDb.venuePitch.updateMany.mock.calls[0][0];
+    expect(claim.where.status).toBe("APPROVED");
+    expect(claim.data.status).toBe("SENDING");
+  });
+
+  it("an in-flight SENDING pitch is an idempotent no-op (never a second send)", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(approvedPitch({ status: "SENDING" }));
+    const result = await sendVenuePitch("p1");
+    expect(result).toEqual({ ok: true });
+    expect(sendGmail).not.toHaveBeenCalled();
+    // No claim write — we bailed at the status guard.
+    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("a NON-MailboxError send throw also reverts the claim SENDING → APPROVED", async () => {
+    sendGmail.mockRejectedValueOnce(new Error("network blip"));
+    const result = await sendVenuePitch("p1");
+    expect(result).toEqual({
+      ok: false,
+      error: "The send didn't go through — try again in a moment",
+    });
+    const calls = mockDb.venuePitch.updateMany.mock.calls;
+    const revert = calls[calls.length - 1][0];
+    expect(revert.where.status).toBe("SENDING");
+    expect(revert.data.status).toBe("APPROVED");
+    // Never marked SENT on a failed send.
+    expect(
+      calls.some((c) => (c[0] as { data: { status: string } }).data.status === "SENT"),
+    ).toBe(false);
   });
 });

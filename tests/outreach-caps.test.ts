@@ -37,4 +37,24 @@ describe("startOfTenantDay (CLAUDE.md rule 9: tenant timezone)", () => {
     expect(lateYesterdayBangkok.getTime()).toBeLessThan(start.getTime());
     expect(earlyTodayBangkok.getTime()).toBeGreaterThanOrEqual(start.getTime());
   });
+
+  // (Phase 10.5 hardening — FIX 4) DST-correct boundary. The old impl subtracted
+  // the time-of-day measured with the offset at `now`, so on a DST-flip day the
+  // midnight boundary drifted by ±1h. We now resolve the offset AT MIDNITE.
+  it("is exact across the US spring-forward (offset at midnight ≠ offset now)", () => {
+    // 2026-03-08: clocks jump 02:00 EST → 03:00 EDT. Local midnight is still EST
+    // (UTC-5) → 05:00Z. `now` is 10:00 EDT (UTC-4, after the jump): the old code
+    // would have computed 06:00Z (off by 1h). The fix yields exactly 05:00Z.
+    const now = new Date("2026-03-08T14:00:00Z"); // 10:00 EDT, post-jump
+    const start = startOfTenantDay(now, "America/New_York");
+    expect(start.toISOString()).toBe("2026-03-08T05:00:00.000Z");
+  });
+
+  it("is exact across the US fall-back day", () => {
+    // 2026-11-01: clocks fall 02:00 EDT → 01:00 EST. Local midnight is EDT
+    // (UTC-4) → 04:00Z. `now` 13:00 EST (post-fallback) still resolves to 04:00Z.
+    const now = new Date("2026-11-01T18:00:00Z");
+    const start = startOfTenantDay(now, "America/New_York");
+    expect(start.toISOString()).toBe("2026-11-01T04:00:00.000Z");
+  });
 });

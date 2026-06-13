@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { buildAuthUrl, isConfigured } from "@/lib/oauth/google";
 import { createState, OAUTH_STATE_COOKIE } from "@/lib/oauth/state";
+import { isTokenCryptoConfigured } from "@/lib/crypto/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,30 @@ export async function GET(req: Request) {
     return NextResponse.redirect(settingsUrl(req, "?mailbox=error&reason=auth"));
   }
 
+  // "Feature not enabled here" — no OAuth client (the LOCAL case). Muted note.
   if (!isConfigured()) {
     return NextResponse.redirect(settingsUrl(req, "?mailbox=unavailable"));
   }
 
-  const state = createState(business.id);
+  // SERVER MISCONFIG (distinct from "unavailable"): OAuth IS configured but the
+  // token-encryption key is missing/malformed, so createState() (which HMACs on
+  // that key) and the callback's encryptToken() would throw a raw 500. Bounce
+  // with a DISTINCT error reason instead — honest "server misconfigured", not
+  // the "feature off" wording.
+  if (!isTokenCryptoConfigured()) {
+    return NextResponse.redirect(settingsUrl(req, "?mailbox=error&reason=config"));
+  }
+
+  // Defensive: even with both guards green, anything key-dependent could throw
+  // unexpectedly — redirect with the config error rather than surface a 500.
+  // NEVER log tokens/secrets/codes in this catch.
+  let state: string;
+  try {
+    state = createState(business.id);
+  } catch {
+    return NextResponse.redirect(settingsUrl(req, "?mailbox=error&reason=config"));
+  }
+
   const res = NextResponse.redirect(buildAuthUrl(state));
   // Short-lived, httpOnly, lax (survives the top-level redirect back from
   // Google). Secure in production only (localhost is http).
