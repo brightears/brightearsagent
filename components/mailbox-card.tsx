@@ -11,9 +11,10 @@
 //
 // The ?mailbox=connected|error|unavailable query flags become a one-line toast.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Badge, Card, Kicker, buttonStyles } from "@/components/ui";
 import { disconnectMailboxForm } from "@/app/actions/settings";
+import { sendTestEmail } from "@/app/actions/venues";
 
 export type MailboxState =
   | { kind: "unconfigured" }
@@ -64,6 +65,47 @@ function Toast({ mailbox, reason }: { mailbox: string; reason: string | null }) 
     >
       {m.text}
     </p>
+  );
+}
+
+// "Send test email" — sends a SAMPLE pitch (in the owner's voice) to their OWN
+// connected address: proves sending works end-to-end and doubles as a permanent
+// "verify your mailbox" affordance. No venue is contacted; no rows are written.
+// Inline confirmation, on-brand (no emoji), ink-outline ghost on the white card.
+function SendTestEmailButton() {
+  const [pending, startTransition] = useTransition();
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function onClick() {
+    setResult(null);
+    startTransition(async () => {
+      const res = await sendTestEmail();
+      setResult(
+        res.ok
+          ? { ok: true, text: `Test sent to ${res.sentTo} — check your inbox.` }
+          : { ok: false, text: res.error },
+      );
+    });
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={pending}
+        className={buttonStyles.secondaryOnLight}
+      >
+        {pending ? "Sending…" : "Send test email"}
+      </button>
+      {result && (
+        <p
+          className={`text-sm font-medium ${result.ok ? "text-ink-stage/70" : "text-red-600"}`}
+        >
+          {result.text}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -120,15 +162,20 @@ export function MailboxCard({
       )}
 
       {state.kind === "connected" && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft px-4 py-2">
-            <code className="select-all break-all font-mono text-sm font-semibold text-ink-stage">
-              {state.email}
-            </code>
-          </span>
-          <form action={disconnectMailboxForm}>
-            <button className={buttonStyles.secondaryOnLight}>Disconnect</button>
-          </form>
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft px-4 py-2">
+              <code className="select-all break-all font-mono text-sm font-semibold text-ink-stage">
+                {state.email}
+              </code>
+            </span>
+            <div className="flex flex-wrap items-start gap-3">
+              <SendTestEmailButton />
+              <form action={disconnectMailboxForm}>
+                <button className={buttonStyles.secondaryOnLight}>Disconnect</button>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 

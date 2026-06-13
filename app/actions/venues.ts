@@ -27,6 +27,11 @@ import {
   type VenuePitchRequest,
 } from "@/lib/agent/venue-pitch";
 import { sendGmail, MailboxError } from "@/lib/outbound/gmail";
+import {
+  TEST_EMAIL_BANNER,
+  TEST_EMAIL_STATIC_SAMPLE,
+  testSendAllowed,
+} from "@/lib/outreach/test-email";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -491,4 +496,126 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
 /** Form-friendly wrapper (form `action` must return void). */
 export async function skipVenueForm(venueId: string, reason: string): Promise<void> {
   await skipVenue(venueId, reason);
+}
+
+// ---------------------------------------------------------------------------
+// Send test email (mailbox onboarding affordance) — proves the whole send path
+// works end-to-end on prod and gives the owner a permanent "verify my mailbox"
+// button. It generates a REALISTIC SAMPLE venue pitch in the owner's own voice
+// (the real generator, metered as "venuePitch" per CLAUDE.md rule 8) and sends
+// it through the real Gmail path to the owner's OWN connected address. It
+// NEVER creates Venue/VenuePitch rows and NEVER emails a real venue. Constants
+// + the in-memory rate limiter live in lib/outreach/test-email (a "use server"
+// module may only export async functions).
+
+type TestEmailResult = { ok: true; sentTo: string } | { ok: false; error: string };
+
+/**
+ * Send a SAMPLE venue pitch to the owner's OWN connected mailbox (onboarding /
+ * "verify your mailbox" affordance). Guards, in order:
+ *   1. tenant-scoped via getCurrentBusiness.
+ *   2. mailbox must be CONNECTED ("Connect your mailbox first").
+ *   3. light per-tenant rate limit (5/hour).
+ *   4. build a SAMPLE VenuePitchRequest: a built-in rooftop-bar sample venue in
+ *      the tenant's first serviceCity (else "your city"), country = the tenant's
+ *      own country so the jurisdiction footer resolves, temperature HOT, plain
+ *      sample signals + fitReasons — paired with the tenant's REAL profile.
+ *   5. generate via the real generator (metered "venuePitch"); on ANY throw fall
+ *      back to STATIC_SAMPLE so the transport is still exercised.
+ *   6. prepend the TEST banner, append the same jurisdiction pitchFooter a real
+ *      send would, prefix the subject "[Test] ".
+ *   7. send via sendGmail to the OWNER'S OWN connected address (To + Reply-To).
+ * NEVER touches Venue or VenuePitch.
+ */
+export async function sendTestEmail(): Promise<TestEmailResult> {
+  const business = await getCurrentBusiness();
+
+  // (2) Mailbox must be connected.
+  const connection = await db.mailboxConnection.findUnique({
+    where: { businessId: business.id },
+    select: { email: true, status: true },
+  });
+  if (!connection || connection.status !== "CONNECTED") {
+    return { ok: false, error: "Connect your mailbox first" };
+  }
+
+  // (3) Abuse guard.
+  if (!testSendAllowed(business.id)) {
+    return { ok: false, error: "You've sent a few test emails recently — try again in a little while." };
+  }
+
+  // (4) Build a SAMPLE request from a built-in sample venue + the REAL profile.
+  const sampleCity = business.serviceCities[0] ?? "your city";
+  const req: VenuePitchRequest = {
+    business: {
+      id: business.id, // logs LlmUsage per rule 8 — intended
+      name: business.name,
+      ownerName: business.ownerName,
+      performerKind: business.performerKind,
+      voiceSamples: business.voiceSamples,
+      headline: business.headline,
+      bio: business.bio,
+      genres: business.genres,
+      eventTypes: business.eventTypes,
+      serviceCities: business.serviceCities,
+      feeFloor: business.feeFloor,
+      feeSweetSpot: business.feeSweetSpot,
+      reviewQuotes: business.reviewQuotes,
+      notableVenues: business.notableVenues,
+    },
+    venue: {
+      name: "The Sample Rooftop",
+      city: sampleCity,
+      country: business.country, // tenant's own country → footer/jurisdiction resolve
+      kind: "BAR",
+      temperature: "HOT",
+      signals: [
+        `New rooftop bar in ${sampleCity} now booking entertainment`,
+        "Hosts weekend events and private parties",
+      ],
+      fitReasons: ["Rooftop bar — your sound fits the room", "Books live entertainment for events"],
+    },
+    epkUrl: epkUrlFor(business.slug),
+    language: pitchLanguageFor(business.country, business.pitchLanguages),
+  };
+
+  // (5) Generate in the owner's voice; fall back to the static sample on ANY
+  // failure so the test still proves sending works.
+  let subject: string;
+  let pitchBody: string;
+  try {
+    const pitch = await generateVenuePitch(req);
+    subject = pitch.subject;
+    pitchBody = pitch.body;
+  } catch {
+    subject = TEST_EMAIL_STATIC_SAMPLE.subject;
+    pitchBody = TEST_EMAIL_STATIC_SAMPLE.body;
+  }
+
+  // (6) Banner + the same jurisdiction footer a real send appends.
+  const jurisdiction = jurisdictionFor(business.country);
+  const body =
+    `${TEST_EMAIL_BANNER}\n\n${pitchBody}` +
+    pitchFooter({
+      mode: jurisdiction.mode,
+      businessName: business.name,
+      city: sampleCity,
+      venueName: req.venue.name,
+    });
+
+  // (7) Send to the OWNER'S OWN connected address (To + Reply-To). NEVER a venue.
+  try {
+    await sendGmail(business.id, {
+      toEmail: connection.email,
+      toName: business.name,
+      subject: `[Test] ${subject}`,
+      body,
+      replyToEmail: connection.email,
+    });
+  } catch (err) {
+    if (err instanceof MailboxError) return { ok: false, error: err.message };
+    return { ok: false, error: "The test email didn't go through — try again in a moment" };
+  }
+
+  return { ok: true, sentTo: connection.email };
 }
