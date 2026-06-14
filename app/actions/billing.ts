@@ -55,17 +55,16 @@ export async function openBillingPortal() {
   redirect(session.url);
 }
 
-/** Settings page helper: current billing state in one shape. */
+/** Settings page helper: current billing state in one shape.
+ *  NO free trial (founder decision 2026-06-14): a tenant is either subscribed
+ *  (active paid plan) or unsubscribed (agent paused — "Subscribe to activate").
+ *  There is no trial countdown to surface anymore. */
 export async function billingState() {
   const business = await getCurrentBusiness();
-  const trialDaysLeft = business.trialEndsAt
-    ? Math.max(0, Math.ceil((business.trialEndsAt.getTime() - Date.now()) / 86400000))
-    : null;
   return {
     enabled: stripeEnabled,
     plan: business.plan,
     subscribed: !!business.stripeSubscriptionId,
-    trialDaysLeft,
   };
 }
 

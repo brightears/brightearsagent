@@ -11,8 +11,20 @@ function slugify(input: string): string {
     .slice(0, 30) || "business";
 }
 
-/** First sign-in: provision the tenant — business, owner membership, 14-day
- *  trial, and the default follow-up sequence so the engine works from day one. */
+/** First sign-in: provision the tenant — business, owner membership, the
+ *  unsubscribed gating state, and the default follow-up sequence so the engine
+ *  works the moment they subscribe.
+ *
+ *  NO FREE TRIAL (founder decision, 2026-06-14): the risk-reversal is a 30-day
+ *  money-back guarantee, not a free window — see lib/marketing/guarantee.ts.
+ *  New tenants may ONBOARD and set up for free (profile, packages, voice,
+ *  calendar), but the live agent — drafting replies, generating/sending venue
+ *  pitches — requires an ACTIVE PAID subscription. We represent "unsubscribed"
+ *  with the existing TRIAL enum value + `trialEndsAt` in the PAST, which the
+ *  metering layer already reads as "agent paused, no free lead allowance"
+ *  (lib/billing/metering.ts: trialExpired → overCap). Reusing the expired-trial
+ *  path keeps the change minimal and fully reversible: a successful Stripe
+ *  checkout flips `plan` to the paid tier and clears `trialEndsAt`. */
 async function createBusinessForUser(clerkUserId: string, email: string, name: string) {
   const base = slugify(email.split("@")[0]);
   // Find a free slug (base, base-2, base-3...).
@@ -27,7 +39,9 @@ async function createBusinessForUser(clerkUserId: string, email: string, name: s
       ownerEmail: email,
       ownerName: name || email.split("@")[0],
       plan: "TRIAL",
-      trialEndsAt: new Date(Date.now() + 14 * 24 * 3600 * 1000),
+      // Unsubscribed from day one: epoch is unambiguously in the past, so the
+      // agent is paused (subscribe to activate) while onboarding stays free.
+      trialEndsAt: new Date(0),
       members: { create: { email, name: name || email, isOwner: true, clerkUserId } },
       sequences: { create: { stepsDays: [2, 5, 9] } },
     },

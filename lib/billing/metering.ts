@@ -7,7 +7,11 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
  * a friendly upsell push — never a surprise bill. Lead packs raise the cap.
  */
 export const PLAN_LEAD_CAPS: Record<PlanTier, number> = {
-  TRIAL: 60, // full Pro experience for 14 days
+  // TRIAL is the "unsubscribed" state (NO free trial — founder decision
+  // 2026-06-14): `trialEndsAt` is provisioned in the past, so meterState()
+  // forces overCap regardless of this number and the agent stays paused until
+  // they subscribe. Kept non-zero only so the cap math/UI has a sane divisor.
+  TRIAL: 60,
   STARTER: 15,
   PRO: 60,
   STUDIO: 150,
@@ -38,8 +42,9 @@ export async function meterState(
 ): Promise<MeterState> {
   const used = await leadsUsedThisMonth(businessId, now);
   const cap = PLAN_LEAD_CAPS[plan];
-  // Expired trial without a subscription: drafting pauses entirely (cap 0
-  // semantics) — leads still ingest, nothing is lost, resubscribing resumes.
-  const trialExpired = plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
-  return { used, cap, overCap: trialExpired || used > cap };
+  // Unsubscribed (TRIAL + trialEndsAt in the past — the no-free-trial default):
+  // the agent is paused entirely (no free lead allowance) — leads still ingest,
+  // nothing is lost, and subscribing resumes drafting immediately.
+  const unsubscribed = plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
+  return { used, cap, overCap: unsubscribed || used > cap };
 }

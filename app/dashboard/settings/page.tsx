@@ -7,6 +7,7 @@ import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
+import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ async function BillingCard({ meter }: { meter: MeterState }) {
           <Kicker onLight>Plan &amp; billing</Kicker>
         </h2>
         <Badge tone={state.subscribed ? "teal" : "peach"}>
-          {state.subscribed ? state.plan : state.trialDaysLeft !== null && state.trialDaysLeft > 0 ? `Trial · ${state.trialDaysLeft} days left` : "Trial ended"}
+          {state.subscribed ? state.plan : "Not active"}
         </Badge>
       </div>
 
@@ -53,8 +54,18 @@ async function BillingCard({ meter }: { meter: MeterState }) {
         </div>
         {meter.overCap && (
           <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
-            <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
-            still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
+            {state.subscribed ? (
+              <>
+                <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
+                still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
+              </>
+            ) : (
+              <>
+                <span className="font-semibold text-[#7a4100]">Agent paused</span> — your setup is
+                saved and new leads still arrive, but replies and venue pitches start once you
+                subscribe below.
+              </>
+            )}
           </p>
         )}
       </div>
@@ -70,9 +81,8 @@ async function BillingCard({ meter }: { meter: MeterState }) {
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
-            {state.trialDaysLeft !== null && state.trialDaysLeft > 0
-              ? "Pick a plan to keep replies flowing after your trial."
-              : "Your trial has ended — new inquiries are saved but replies are paused until you subscribe."}
+            Your setup is saved and new inquiries are being collected — subscribe to activate the
+            agent and it starts replying in your voice and finding venues for you.
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
             {PLAN_CARDS.map((p) => {
@@ -105,7 +115,8 @@ async function BillingCard({ meter }: { meter: MeterState }) {
             })}
           </div>
           <p className="mt-4 text-xs text-ink-stage/60">
-            Renews automatically each month until you cancel. Cancel anytime in Settings &rarr; Manage billing; no charge after you cancel.
+            {RISK_REVERSAL.short} Renews automatically each month until you cancel. Cancel anytime in
+            Settings &rarr; Manage billing; no charge after you cancel.
           </p>
         </div>
       )}

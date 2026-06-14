@@ -857,11 +857,12 @@ function StepConnect({
             </StickerChip>
           </div>
           <p className="mt-4 text-xl font-extrabold tracking-tight text-ink-stage">
-            Your first lead just landed — check your phone.
+            Your first lead just landed — forwarding works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it, parsed it, and a reply is being drafted in your voice right now. That’s
-            what happens to every inquiry from here on — even when you’re mid-set.
+            We caught it and parsed it. Subscribe to activate the agent and it starts drafting
+            replies in your voice for every inquiry from here on — even when you’re mid-set. 30-day
+            money-back guarantee.
           </p>
           <Link
             href="/dashboard"
@@ -982,8 +983,8 @@ export function OnboardingWizard({
             </span>
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Five quick steps — under ten minutes — and every inquiry you get starts answering
-            itself, in your voice.
+            Five quick steps — under ten minutes — to set up free. Subscribe when you’re ready and
+            every inquiry starts getting answered in your voice.
           </p>
         </header>
 
