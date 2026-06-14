@@ -3,12 +3,17 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
 
 export const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
 
+// Pin the API version (audit B7) so a future `stripe` SDK bump can't silently
+// change the request/response contract under us. Matches the version this SDK
+// (v19, "dahlia") is built against; bump deliberately alongside SDK upgrades.
+const STRIPE_API_VERSION = "2026-05-27.dahlia";
+
 let _stripe: Stripe | null = null;
 export function stripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new Error("STRIPE_SECRET_KEY not configured");
-    _stripe = new Stripe(key);
+    _stripe = new Stripe(key, { apiVersion: STRIPE_API_VERSION });
   }
   return _stripe;
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { getSetupStatus } from "@/lib/onboarding-status";
 import { buttonStyles } from "@/components/ui";
 import { GradientBlob, HaloRing, StickerChip } from "@/components/collage";
 
@@ -16,10 +16,8 @@ export async function OnboardingBanner() {
   const business = await getCurrentBusiness().catch(() => null);
   if (!business) return null;
 
-  const packageCount = await db.package.count({ where: { businessId: business.id } });
-  const needsPackages = packageCount === 0;
-  const needsVoice = !business.voiceSamples?.trim();
-  if (!needsPackages && !needsVoice) return null;
+  const { needsPackages, needsVoice, incomplete } = await getSetupStatus(business);
+  if (!incomplete) return null;
 
   const missing =
     needsPackages && needsVoice

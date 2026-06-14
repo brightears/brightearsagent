@@ -7,7 +7,12 @@ import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 function appUrl(): string {
-  return process.env.APP_URL ?? "http://localhost:3057";
+  // Fail-closed in production (audit B7-NF): a localhost fallback would send
+  // Stripe success/cancel redirects to a dead URL if APP_URL were unset.
+  const url = process.env.APP_URL;
+  if (url) return url;
+  if (process.env.NODE_ENV === "production") throw new Error("APP_URL must be set in production");
+  return "http://localhost:3057";
 }
 
 /** Start a subscription checkout for the chosen plan (Stripe-hosted page). */
