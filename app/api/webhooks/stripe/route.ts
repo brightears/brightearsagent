@@ -67,9 +67,7 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findFirst({
-        where: { stripeSubscriptionId: sub.id },
-      });
+      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
       if (!business) break;
 
       if (sub.status === "active" || sub.status === "past_due") {
@@ -88,9 +86,7 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findFirst({
-        where: { stripeSubscriptionId: sub.id },
-      });
+      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
       if (!business) break;
       // Subscription gone → expired-trial state: leads still ingest, drafting
       // pauses (metering), owner sees resubscribe prompts. Never delete data.

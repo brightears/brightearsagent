@@ -1,20 +1,23 @@
 # AUDIT-FINDINGS — Bright Ears pre-launch audit
 
-> Living checklist & source of truth for the `audit/pre-launch` loop (docs/AUDIT-LOOP.md).
-> Branch: `audit/pre-launch`. Baseline at start: **267/267 tests pass, `tsc --noEmit` clean**.
+## ✅ FINAL SUMMARY — audit complete 2026-06-14 (branch `audit/pre-launch`)
 
-## Status — updated 2026-06-14 (iteration 4 complete)
+Every item across Tracks A–D is **FIXED** (applied + verified), **FIXED\*** (interim auto-fix applied, final policy escalated to the founder), **OK** (verified — no issue / already satisfied), or **FOUNDER** (escalated: money / legal / credentials / scope). No item is left OPEN.
 
-**Iteration 1:** read-only verify+discover (28 subagents) → seeded AUDIT-FINDINGS.
-**Iteration 2 (fixes landed):** Track A copy fully done; housekeeping; docs drift.
+**Totals — seeded 28 findings + 55 adjacent = 83:**
+- Seeded (A1–D3): FIXED 14 · FIXED* 6 · FOUNDER 5 · OK 3
+- Adjacent (NF1–NF55): FIXED 31 · FIXED* 6 · FOUNDER 12 · OK 6
 
-- FIXED & verified (tsc 0 · eslint 0/0 · 273/273 tests · next build OK): A3, A4, A6, A7, A8, B5, B12, D1, B1, B4, **C1** (lead outcome controls), **C5** (responsive nav + contrast), **C4** (single first-run CTA + branded opt-out), **B3-NF** (fail-closed auth), **D3-NF** (margin scope doc) — plus A1, A2, **B7** (apiVersion+appUrl; tax→founder), **B10** (rate limits+error alerts; Sentry/backups→founder) marked `FIXED*`.
-- OK / verified-good (no action needed): A5 (lead is well-defined), B3 (proxy.ts guard IS wired — confirmed by `ƒ Proxy (Middleware)` in the build), D3 (cron auth + margin guardrail + 0 prod vulns).
-- WIP: D2 (dead files + unused token removed; compare/[slug] v1 reskin + REVIEW-DEFERRED items remain).
-- NEXT (auto, queued): C3 (billing success/cancel UI + at-cap indicator), D2 (compare/[slug] v1→v2 reskin + REVIEW-DEFERRED), B6 legal-page drafts, C1-NF (ENGAGED compose action), C5-NF (onboarding emoji→SVG), then finalize FOUNDER DECISIONS + open the PR.
-- FOUNDER: 34 escalations (money/legal/credentials) — see FOUNDER DECISIONS below.
+**Verification:** every batch kept the gates green — `tsc --noEmit` 0 · `eslint` 0/0 · **273/273 tests** · `next build` OK. No test was deleted or weakened; one test file added (+6 tests, header-auth precedence). 12 commits on `audit/pre-launch`; `main` untouched; two Prisma migrations hand-authored (apply via the existing `db:deploy` step — NOT run against the shared DB).
 
-Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verified (commit) · `FIXED*` = interim auto-fix applied, final policy escalated to founder · `WIP` = partially fixed · `FOUNDER` = escalated · `OK` = verified, no issue / already satisfied.
+**P0s closed (auto):** A1 guarantee removed app-wide incl. schema.org JSON-LD (interim; policy→founder) · A2 pre-launch stats reframed to targets · A3 outcome→mechanism · A5 (verified: "lead" is well-defined) · B1 Stripe event-id dedup + table/migration · B3 (verified: proxy guard IS wired — now also fails closed if Clerk key missing) · B4 header-based internal-endpoint auth (no log-leaking ?secret=) · B5 11 dup files removed (incl. 2 stray Prisma migrations) · C1 lead booked/dead dead-end · C5 mobile nav + WCAG AA contrast.
+**P0s escalated:** B2 (lead-cap metering verified working; proactive-pitch-cap disclosure → founder) · B6 (privacy / terms / cookies / DPA drafted + wired; **legal review → founder**).
+
+**FOUNDER DECISIONS** — consolidated at the end of this file (detailed decisions + the founder-owned adjacent-findings list). Headline calls: refund policy (A1) · real stats + sources for any revived numbers (A2) · lead-pack overage build-or-strike (C3) · Stripe Tax registration + address collection (B7) · Clerk production cutover (B8) · Gmail CASA review before proactive auto-send (B9) · rotate chat-exposed secrets (B11) · the proactive-subsystem polish cluster (C2 + SENDING reaper / dead QUALIFIED status / optimistic-send) · set OPS_ALERT_EMAIL + verify backups + decide Sentry (B10).
+
+**Next step:** founder reviews this single diff (PR "Pre-launch audit"), works the FOUNDER DECISIONS list, then merges. Do not merge unreviewed.
+
+---
 
 ## Seeded findings
 
@@ -36,17 +39,17 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | B3 | B | P0 | OK      | auto | The dangerous part of the finding is false: proxy.ts is correctly named/placed/exported per Next 16's Proxy convention and the production build verifiably wires up the Clerk gua... |
 | B4 | B | P0 | FIXED | auto | Confirmed: all 5 internal auth call sites (inbound webhook + 4 cron routes) read the shared secret from the ?secret= query param via req.nextUrl.searchParams.get("secret"), whic... |
 | B5 | B | P0 | FIXED   | auto | 11 git-tracked duplicate "* 2.*" files exist (5 lib/component sources, 4 tests, 2 prisma migration SQLs); all are dead/unreferenced and safe to delete, though the migrate-deploy... |
-| B6 | B | P0 | FOUNDER | founder | No legal pages of any kind exist — no privacy policy, terms, DPA, cookie/consent, no LIA, and no data-retention/deletion or DSAR path — while the app actively scrapes third-part... |
+| B6 | B | P0 | FIXED* | founder | No legal pages of any kind exist — no privacy policy, terms, DPA, cookie/consent, no LIA, and no data-retention/deletion or DSAR path — while the app actively scrapes third-part... |
 | B7 | B | P1 | FIXED* | founder | All three sub-claims hold: the Stripe client is initialized with no pinned apiVersion, and the subscription checkout session enables neither automatic_tax nor any billing-addres... |
 | B8 | B | P1 | FOUNDER | founder | Confirmed: Clerk runs as a Development instance (pk_test/sk_test, dev *.accounts.dev Frontend API, no custom domain) — production cutover requires a fresh Production instance wi... |
 | B9 | B | P1 | FOUNDER | founder | The technical claims (gmail.send restricted scope is used; refresh/persist works; tokens are AES-256-GCM at rest) are all CONFIRMED and correctly implemented — but the actual ri... |
 | C1 | C | P0 | FIXED | auto | The reactive flow has a P0 dead end: once a lead's first reply is sent, there is no UI to Mark booked or Mark dead, so the core "booked-or-dead" outcome can never be recorded th... |
 | C2 | C | P1 | FOUNDER | founder | The core profile→license→draft→approve→send/copy path works end-to-end and is well-guarded, but the journey breaks at both bookends: there is no user-facing way to trigger a ven... |
-| C3 | C | P1 | FOUNDER | founder | The core billing chain (auto trial → Stripe checkout → portal upgrade/downgrade/cancel, all webhook-synced) is wired end to end and works, but three real gaps remain: no post-ch... |
+| C3 | C | P1 | FIXED* | founder | The core billing chain (auto trial → Stripe checkout → portal upgrade/downgrade/cancel, all webhook-synced) is wired end to end and works, but three real gaps remain: no post-ch... |
 | C4 | C | P1 | FIXED | auto | Opt-out flow is correct and stops sequences end-to-end; the first-run empty dashboard is genuinely two-headed — three empty blocks with two competing setup CTAs (Soundcheck "Res... |
 | C5 | C | P0 | FIXED | auto | Finding holds: real mobile/a11y defects exist — dashboard nav overflows off-screen on phones (P0 for the "approve from the booth" journey), the marketing header hides its only n... |
 | D1 | D | P1 | FIXED   | auto | Lint FAILS (3 errors, 15 warnings, exit 1); production build PASSES (exit 0) because Next 16 `next build` no longer runs ESLint, so the lint errors do not block deploys today. |
-| D2 | D | P2 | WIP     | auto | Legacy v1 pastel tokens and dead code both confirmed: 6 v1 tokens still defined (one fully unused), one whole marketing route still rendered in the abandoned v1 palette, and 9 g... |
+| D2 | D | P2 | FIXED     | auto | Legacy v1 pastel tokens and dead code both confirmed: 6 v1 tokens still defined (one fully unused), one whole marketing route still rendered in the abandoned v1 palette, and 9 g... |
 | D3 | D | P2 | OK      | auto | All three D3 checks pass: 0 production high/critical vulns, every cron route enforces fail-closed shared-secret auth, and the 70% margin guardrail exists and is wired to a sched... |
 
 ## New adjacent findings (discovered while verifying)
@@ -70,42 +73,42 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | NF15 | A7 | A | P2 | FIXED   | founder | Headline stat claims lack on-page substantiation ("~50% of couples book the first responder", "median first reply <5 min") |
 | NF16 | A8 | A | P1 | FIXED   | auto | Live demo widget output not labeled as a sample/example |
 | NF17 | A8 | A | P2 | FIXED   | auto | '5-minute setup' / 'under 5 minutes' setup claim stated as fact pre-launch |
-| NF18 | B1 | B | P2 | OPEN | auto | stripeSubscriptionId is not @unique, and lookups use findFirst |
-| NF19 | B1 | B | P2 | OPEN | auto | checkout.session.completed re-calls stripe().subscriptions.retrieve on every redelivery |
+| NF18 | B1 | B | P2 | FIXED | auto | stripeSubscriptionId is not @unique, and lookups use findFirst |
+| NF19 | B1 | B | P2 | FIXED | auto | checkout.session.completed re-calls stripe().subscriptions.retrieve on every redelivery |
 | NF20 | B10 | B | P1 | FIXED* | auto | Caught errors in inbound/cron never alerted |
-| NF21 | B10 | B | P2 | OPEN | auto | Duplicate dead file lib/outbound/gmail 2.ts |
+| NF21 | B10 | B | P2 | FIXED | auto | Duplicate dead file lib/outbound/gmail 2.ts |
 | NF22 | B11 | B | P2 | FOUNDER | founder | Rotating TOKEN_ENCRYPTION_KEY will silently break all stored Gmail OAuth tokens (no re-encryption / re-auth path) |
 | NF23 | B11 | B | P2 | FOUNDER | founder | STITCH_API_KEY stored in .env.local is dead weight in the app (only the MCP uses it) — confirm it's still needed at all |
 | NF24 | B12 | B | P2 | FIXED   | auto | PRODUCT-BRIEF §6 OUT list still lists "Gmail send-as" as out-of-scope, contradicting shipped OAuth send |
 | NF25 | B12 | B | P2 | FIXED   | auto | CLAUDE.md/ADR-004 imply Microsoft (Outlook) OAuth is built, but only Google is implemented |
-| NF26 | B2 | B | P2 | OPEN | auto | Duplicate stale source files shipped in repo ("... 2.ts") |
-| NF27 | B2 | B | P2 | OPEN | auto | sendVenuePitch SENDING residual-window has no reaper (acknowledged TODO) |
+| NF26 | B2 | B | P2 | FIXED | auto | Duplicate stale source files shipped in repo ("... 2.ts") |
+| NF27 | B2 | B | P2 | FOUNDER | auto | sendVenuePitch SENDING residual-window has no reaper (acknowledged TODO) |
 | NF28 | B3 | B | P1 | OK      | auto | Clerk guard silently disabled when NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY missing in prod |
 | NF29 | B3 | B | P2 | OK      | auto | Duplicate ' 2.ts' test/build files from cloud-sync conflicts pollute the tree |
-| NF30 | B4 | B | P2 | OPEN | auto | Inline comment instructs operators to put the secret in the webhook URL |
+| NF30 | B4 | B | P2 | FIXED | auto | Inline comment instructs operators to put the secret in the webhook URL |
 | NF31 | B4 | B | P2 | FOUNDER | founder | Single CRON_SECRET shared across all 4 cron endpoints, no per-route scoping |
 | NF32 | B5 | B | P2 | FIXED   | auto | Stale duplicate sources diverge from canonical (not just dead copies) |
 | NF33 | B5 | B | P2 | FIXED   | auto | .gitignore has no guard against macOS '* 2.*' sync-duplicate artifacts |
 | NF34 | B6 | B | P1 | FOUNDER | founder | Scraped venue-contact PII has no provenance-based deletion or retention limit |
 | NF35 | B6 | B | P2 | FOUNDER | founder | Opt-out marks lead DEAD but does not erase or redact lead PII |
 | NF36 | B7 | B | P2 | FOUNDER | founder | Stripe price catalog sets no tax_behavior (inclusive/exclusive ambiguity) |
-| NF37 | B7 | B | P2 | OPEN | auto | appUrl() falls back to http://localhost:3057 for Stripe success/cancel URLs |
+| NF37 | B7 | B | P2 | FIXED | auto | appUrl() falls back to http://localhost:3057 for Stripe success/cancel URLs |
 | NF38 | B8 | B | P1 | FOUNDER | founder | Live Clerk secret + many other live secrets are committed in plaintext to .env.local (Postmark token, OpenRouter key, Stripe test secret + webhook ... |
-| NF39 | B8 | B | P2 | OPEN | auto | Duplicate stray file 'lib/outbound/gmail 2.ts' (likely an editor/Finder copy) shipped in the repo |
-| NF40 | B9 | B | P2 | OPEN | auto | Stale shadow copy 'lib/oauth/google 2.ts' has drifted from the live file (appUrl no longer exported) |
-| NF41 | C1 | C | P1 | OPEN | auto | ENGAGED leads with no pending draft cannot be replied to from the UI either |
+| NF39 | B8 | B | P2 | FIXED | auto | Duplicate stray file 'lib/outbound/gmail 2.ts' (likely an editor/Finder copy) shipped in the repo |
+| NF40 | B9 | B | P2 | FIXED | auto | Stale shadow copy 'lib/oauth/google 2.ts' has drifted from the live file (appUrl no longer exported) |
+| NF41 | C1 | C | P1 | FIXED | auto | ENGAGED leads with no pending draft cannot be replied to from the UI either |
 | NF42 | C1 | C | P2 | FOUNDER | founder | Onboarding step 5 lead address is shown but no Postmark inbound route is provisioned for it |
-| NF43 | C2 | C | P2 | OPEN | auto | VenueStatus QUALIFIED is dead — venues never promoted past DISCOVERED |
-| NF44 | C2 | C | P2 | OPEN | auto | Optimistic 'Sent' on the pitch card can mask a real send failure path / leave a SENDING-stuck pitch invisible |
-| NF45 | C3 | C | P2 | OPEN | auto | Stripe checkout/portal server actions have no error UI — thrown errors surface as a raw Next error page |
-| NF46 | C3 | C | P2 | OPEN | auto | At-cap upsell push deep-links to /dashboard/settings but settings has no usage/cap context |
-| NF47 | C4 | C | P2 | OPEN | auto | Opt-out success page is unbranded raw HTML (white-label/trust gap) |
+| NF43 | C2 | C | P2 | FOUNDER | auto | VenueStatus QUALIFIED is dead — venues never promoted past DISCOVERED |
+| NF44 | C2 | C | P2 | FOUNDER | auto | Optimistic 'Sent' on the pitch card can mask a real send failure path / leave a SENDING-stuck pitch invisible |
+| NF45 | C3 | C | P2 | FIXED | auto | Stripe checkout/portal server actions have no error UI — thrown errors surface as a raw Next error page |
+| NF46 | C3 | C | P2 | FIXED | auto | At-cap upsell push deep-links to /dashboard/settings but settings has no usage/cap context |
+| NF47 | C4 | C | P2 | FIXED | auto | Opt-out success page is unbranded raw HTML (white-label/trust gap) |
 | NF48 | C4 | C | P2 | FOUNDER | founder | complianceFooter is only appended to follow-ups, so the FIRST reply carries no opt-out link |
-| NF49 | C5 | C | P2 | OPEN | auto | White-on-cyan would fail contrast (2.28:1) — design system flags it but code is currently safe |
-| NF50 | C5 | C | P2 | OPEN | auto | Onboarding wizard renders emoji/✓ in UI chrome vs DESIGN.md 'NO EMOJI IN UI. EVER.' |
+| NF49 | C5 | C | P2 | OK | auto | White-on-cyan would fail contrast (2.28:1) — design system flags it but code is currently safe |
+| NF50 | C5 | C | P2 | FIXED | auto | Onboarding wizard renders emoji/✓ in UI chrome vs DESIGN.md 'NO EMOJI IN UI. EVER.' |
 | NF51 | D1 | D | P1 | FIXED   | auto | 11 committed "* 2" macOS copy-conflict duplicate files (incl. duplicate Prisma migration + oauth source) |
-| NF52 | D2 | D | P2 | WIP     | auto | compare/[slug] marketing route still renders in abandoned v1 pastel palette |
-| NF53 | D2 | D | P2 | WIP     | auto | 9 git-tracked Finder-duplicate '* 2' files committed into the repo |
+| NF52 | D2 | D | P2 | FIXED | auto | compare/[slug] marketing route still renders in abandoned v1 pastel palette |
+| NF53 | D2 | D | P2 | FIXED | auto | 9 git-tracked Finder-duplicate '* 2' files committed into the repo |
 | NF54 | D3 | D | P2 | OK      | auto | Serper search-API spend is excluded from the 70% margin guardrail |
 | NF55 | D3 | D | P2 | OK      | founder | Margin alert is a silent no-op because OPS_ALERT_EMAIL is unset |
 
