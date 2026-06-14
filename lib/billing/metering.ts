@@ -34,6 +34,17 @@ export interface MeterState {
   overCap: boolean;
 }
 
+/**
+ * Pure "agent paused / unsubscribed" check (no DB) — the no-free-trial gate.
+ * A new/unsubscribed tenant is plan=TRIAL with `trialEndsAt` in the past
+ * (see lib/tenant.ts); a subscribed tenant has a paid plan and trialEndsAt
+ * cleared. Used by meterState (drafting gate) and the venue-pitch actions
+ * (generate/send gate) so the live agent only works on an active paid plan.
+ */
+export function isUnsubscribed(plan: PlanTier, trialEndsAt?: Date | null, now = new Date()): boolean {
+  return plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
+}
+
 export async function meterState(
   businessId: string,
   plan: PlanTier,
@@ -45,6 +56,5 @@ export async function meterState(
   // Unsubscribed (TRIAL + trialEndsAt in the past — the no-free-trial default):
   // the agent is paused entirely (no free lead allowance) — leads still ingest,
   // nothing is lost, and subscribing resumes drafting immediately.
-  const unsubscribed = plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
-  return { used, cap, overCap: unsubscribed || used > cap };
+  return { used, cap, overCap: isUnsubscribed(plan, trialEndsAt, now) || used > cap };
 }

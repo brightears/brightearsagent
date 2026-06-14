@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { isUnsubscribed } from "@/lib/billing/metering";
 import { profileStrength } from "@/lib/profile/strength";
 import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
@@ -43,6 +44,14 @@ async function findTenantVenue(businessId: string, venueId: string) {
   return db.venue.findFirst({ where: { id: venueId, businessId } });
 }
 
+// Subscription gate copy (founder decision 2026-06-14: NO free trial — the
+// live agent requires an active paid plan). isUnsubscribed() is a pure check
+// (no DB): TRIAL + trialEndsAt-in-past = "agent paused". Applied to the two
+// paths that ACTIVATE the agent — generating a pitch and sending one — so an
+// unsubscribed tenant can browse the feed but the agent does no LLM/outbound
+// work until they subscribe.
+const SUBSCRIBE_TO_ACTIVATE = "Subscribe to activate the agent before it can pitch venues";
+
 /**
  * Draft a REAL pitch for a venue (Phase 10.3): license check → suppression
  * check → dedupe → generate in the artist's voice (lib/agent/venue-pitch,
@@ -55,6 +64,11 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "No venue given" };
 
   const business = await getCurrentBusiness();
+
+  // No free trial: the agent only works on an active paid plan.
+  if (isUnsubscribed(business.plan, business.trialEndsAt)) {
+    return { ok: false, error: SUBSCRIBE_TO_ACTIVATE };
+  }
 
   // The hunting license, enforced server-side (never trust the UI): a weak
   // pitch burns the venue contact forever, so no license = no pitch.
@@ -254,6 +268,11 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: "No pitch given" };
 
   const business = await getCurrentBusiness();
+
+  // No free trial: the agent only sends on an active paid plan.
+  if (isUnsubscribed(business.plan, business.trialEndsAt)) {
+    return { ok: false, error: SUBSCRIBE_TO_ACTIVATE };
+  }
 
   // (1) Tenant-scoped lookup + status gate.
   const pitch = await db.venuePitch.findFirst({
