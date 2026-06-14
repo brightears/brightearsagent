@@ -187,6 +187,9 @@ export function DemoWidget() {
               {result.body.slice(0, Math.max(0, typed - result.subject.length))}
               {phase === "typing" && typed > result.subject.length && <Caret />}
             </p>
+            <p className="border-t border-ink-stage/10 px-4 py-2 text-[11px] italic text-ink-stage/55">
+              Sample reply — generated live, never sent.
+            </p>
           </div>
 
           {phase === "done" && (

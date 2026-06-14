@@ -119,7 +119,7 @@ export default function InquiryReplyGeneratorPage() {
             <p className="relative text-ink-stage/70 max-w-xl mx-auto mb-3">
               Bright Ears watches your inbox, The Knot, WeddingWire, Bark and your website form —
               filters the spam, drafts the reply in <em>your</em> voice from <em>your</em> rate card
-              and real availability, and pings your phone to approve. Median first reply: under 5
+              and real availability, and pings your phone to approve. Designed to reply in under 5
               minutes. Then it follows up until the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">

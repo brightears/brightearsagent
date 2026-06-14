@@ -171,7 +171,7 @@ export function GradientBlob({
 }
 
 /* ------------------------------------------------------------------ */
-/* StickerChip — small rotated mono-font pill ("REPLIED IN 4:51").     */
+/* StickerChip — small rotated mono-font pill ("ANSWERED IN MINUTES").  */
 /* Tones + their checked text pairings:                                */
 /*   magenta — bg #ff2dae / white text (the design/b show sticker)     */
 /*   cream   — bg cream-bright / ink text (for ink surfaces)           */
@@ -245,7 +245,7 @@ export function HeroCollage({ className = "" }: { className?: string }) {
           Now playing &mdash; your reply
         </StickerChip>
         <StickerChip tone="magenta" rotate={6} className="absolute right-6 top-6">
-          Replied in 4:51
+          Answered in minutes
         </StickerChip>
 
         {/* collage: halo behind, orange vinyl bleeding bottom-left, speaker right */}

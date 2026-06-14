@@ -207,7 +207,7 @@ function PosterCard({
 const NAV = ["Pricing", "Compare", "Free tools", "Our story"];
 
 const STATS = [
-  { n: "<5 min", l: "median first reply" },
+  { n: "<5 min", l: "first-reply target, once you tap Approve" },
   { n: "~50%", l: "of couples book the first responder" },
   { n: "$1,800", l: "the booking you stop losing" },
 ];
@@ -319,7 +319,7 @@ export default function DesignDirectionB() {
                   Now playing &mdash; your reply
                 </span>
                 <span className="absolute right-6 top-6 rounded-full bg-[#ff2dae] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(255,45,174,0.35)] rotate-[6deg]">
-                  Replied in 4:51
+                  Answered in minutes
                 </span>
 
                 {/* collage: halo behind, orange vinyl bleeding bottom-left, speaker right */}
@@ -436,7 +436,7 @@ export default function DesignDirectionB() {
                 ))}
               </blockquote>
               <figcaption className="mt-7 text-xs font-bold uppercase tracking-[0.18em] text-[#17161f]/55">
-                &mdash; a beta DJ
+                &mdash; how it&rsquo;s meant to feel
               </figcaption>
             </figure>
           </div>

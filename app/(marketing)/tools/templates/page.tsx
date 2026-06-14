@@ -404,7 +404,7 @@ const FAQS = [
   },
   {
     q: "Can these templates be automated?",
-    a: "Yes — that's literally why we built Bright Ears. It watches your inbox and lead sources, drafts replies like these in your own voice with your real availability and rates, sends you a push notification, and you approve from your phone. Follow-ups run on the day 2/5/9 cadence automatically until the gig is booked or dead. Median first reply: under five minutes.",
+    a: "Yes — that's literally why we built Bright Ears. It watches your inbox and lead sources, drafts replies like these in your own voice with your real availability and rates, sends you a push notification, and you approve from your phone. Follow-ups run on the day 2/5/9 cadence automatically until the gig is booked or dead. Designed to get your first reply out in under five minutes.",
   },
 ];
 
@@ -625,7 +625,7 @@ export default function TemplatesPage() {
               <div className="mt-12 max-w-3xl mx-auto">
                 <StartFreeBanner
                   heading="Sending these at 11pm after a gig? There's a better way."
-                  sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Median first reply: under 5 minutes. 14-day free trial, no card, from $25/mo."
+                  sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Designed to reply in under 5 minutes. 14-day free trial, no card, from $25/mo."
                 />
               </div>
             )}
@@ -656,7 +656,7 @@ export default function TemplatesPage() {
       {/* Final CTA */}
       <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <StartFreeBanner
-          heading="If there were two of you, you'd double your business."
+          heading={'"If there were two of you, you\'d double your business."'}
           sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, and filters the spam before you ever see it — while your clients only ever see you. Try it free for 14 days, no card."
         />
         <p className="text-center text-sm text-cream/50 mt-10">

@@ -7,11 +7,12 @@ import {
   StickerChip,
   VinylDisc,
 } from "@/components/collage";
+import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete assistant — instant replies, follow-ups until booked-or-dead, weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. If it doesn't pay for itself in your first season, full refund.",
+    "Every plan is the complete assistant — instant replies, follow-ups until booked-or-dead, weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
 };
 
 type Plan = {
@@ -72,8 +73,8 @@ const FAQS: { q: string; a: string }[] = [
     a: "Capacity and autonomy — never features. Every plan includes the complete assistant: instant replies in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 leads with multi-performer routing and team seats.",
   },
   {
-    q: "What if it doesn't pay for itself?",
-    a: "Then you shouldn't be paying for it: if Bright Ears doesn't pay for itself in your first season, full refund. The math we're betting on — one saved $1,800 booking covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    q: "What if it isn't working for me?",
+    a: "Start with 14 days of full Pro — free, no card. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
   },
   {
     q: "Is email forwarding safe? Do I have to share my password?",
@@ -180,10 +181,10 @@ export default function PricingPage() {
           jargon.
         </h1>
         <p className="mt-6 max-w-2xl mx-auto text-lg leading-relaxed text-cream/70">
-          A booked wedding is worth $1,500–3,000. Bright Ears answers every
-          inquiry in under 5 minutes — even from the booth — and follows up
-          until it&apos;s booked or dead, for less than a dinner out. Start with
-          14 days of full Pro. No card.
+          A booked wedding is often worth $1,500–3,000. Bright Ears is designed
+          to answer every inquiry in minutes — even from the booth — and follows
+          up until it&apos;s booked or dead, for less than a dinner out. Start
+          with 14 days of full Pro. No card.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
           Every plan is the complete assistant — instant replies in your voice,
@@ -272,7 +273,7 @@ export default function PricingPage() {
               />
               <p className={`mt-4 text-5xl font-black tracking-tight ${GRAD}`}>$1,800</p>
               <p className="mt-3 text-sm leading-relaxed text-cream/65">
-                One saved $1,800 booking pays for{" "}
+                One saved example $1,800 booking (illustrative) pays for{" "}
                 <strong className="text-cream-bright">6 years of Starter</strong>.
               </p>
             </div>
@@ -291,7 +292,7 @@ export default function PricingPage() {
             </div>
           </div>
           <p className="mt-8 inline-block rounded-full bg-cream-bright px-5 py-2.5 text-sm font-bold text-ink-stage">
-            If it doesn&apos;t pay for itself in your first season, full refund.
+            {RISK_REVERSAL.short}
           </p>
         </div>
       </section>
@@ -358,9 +359,8 @@ export default function PricingPage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply.
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
-              Respond in under 5 minutes — even from the booth. 14 days of full
-              Pro, free, no card. And if it doesn&apos;t pay for itself in your
-              first season, full refund.
+              Designed to reply in minutes — even from the booth. 14 days of full
+              Pro, free, no card. Cancel anytime.
             </p>
             <Link
               href="/onboarding"

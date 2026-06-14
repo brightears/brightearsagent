@@ -79,6 +79,9 @@ async function BillingCard() {
               );
             })}
           </div>
+          <p className="mt-4 text-xs text-ink-stage/60">
+            Renews automatically each month until you cancel. Cancel anytime in Settings &rarr; Manage billing; no charge after you cancel.
+          </p>
         </div>
       )}
     </Card>

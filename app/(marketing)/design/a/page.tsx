@@ -42,7 +42,7 @@ const NAV_LINKS = [
 ];
 
 const STATS = [
-  { big: "<5 min", small: "median first reply" },
+  { big: "<5 min", small: "the reply speed we design for" },
   { big: "~50%", small: "of couples book the first responder" },
   { big: "$1,800", small: "the booking you stop losing" },
 ];
@@ -281,7 +281,7 @@ export default function DesignAPage() {
               style={{ animation: "ea-float 6s ease-in-out infinite" }}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Replied in 4 min 51 s
+              Answered in minutes
             </div>
             <div
               className="absolute bottom-[16%] right-[10%] rounded-full p-[1.5px] shadow-[0_0_24px_rgba(255,45,174,0.45)]"
@@ -356,7 +356,7 @@ export default function DesignAPage() {
             ))}
           </blockquote>
           <figcaption className="mt-7 text-sm font-medium uppercase tracking-[0.2em] text-white/40">
-            — a beta DJ
+            What it feels like to use it
           </figcaption>
         </figure>
       </section>

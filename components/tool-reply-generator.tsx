@@ -212,7 +212,7 @@ export function ToolReplyGenerator() {
                     </StickerChip>
                   </div>
                   <h3 className="font-extrabold tracking-tight text-ink-stage text-lg">
-                    Get our 25 proven inquiry &amp; follow-up templates
+                    Get our 25 ready-to-send inquiry &amp; follow-up templates
                   </h3>
                   <p className="text-sm text-ink-stage/65">
                     First replies for every situation, day 2/5/9 follow-ups, rebooking and review

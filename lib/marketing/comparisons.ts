@@ -35,7 +35,7 @@ export const BRIGHT_EARS_PRICING = {
     },
   ],
   overage:
-    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill. And if it doesn't pay for itself in your first season, full refund.",
+    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
 } as const;
 
 /**
@@ -194,7 +194,7 @@ export const ROUNDUP: RoundupEntry[] = [
     price: "$25–149/mo",
     builtFor: "Turning inquiries into bookings — the only tool here that answers and chases leads for you.",
     shines:
-      "Median first reply under 5 minutes, in your voice, from your rate card — you approve from your phone, and follow-ups run until booked or dead.",
+      "Designed to reply in under 5 minutes, in your voice, from your rate card — you approve from your phone, and follow-ups run until booked or dead.",
     stops:
       "At the booking — by design. Contracts, invoices and music planning stay with your favorite tool above; one forwarding rule bolts us on.",
     isBrightEars: true,
@@ -225,7 +225,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "A 14-day free trial with no card, then Starter at $25/mo (15 leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — instant replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering — the tiers only change how many leads, how many performers and how much autopilot. Extra leads are $10 per 10; at your cap, drafting pauses — never a surprise bill. And if it doesn't pay for itself in your first season, full refund.",
+      "A 14-day free trial with no card, then Starter at $25/mo (15 leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — instant replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering — the tiers only change how many leads, how many performers and how much autopilot. Extra leads are $10 per 10; at your cap, drafting pauses — never a surprise bill.",
   },
   {
     question: "Does Bright Ears do quotes, contracts or deposits?",
@@ -251,7 +251,7 @@ const DJEP_ROWS: ComparisonRow[] = [
   {
     feature: "Speed to first reply",
     them: { mark: "no", note: "As fast as you can get to a keyboard." },
-    us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+    us: { mark: "yes", note: "In minutes once you tap Approve." },
   },
   {
     feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
@@ -350,7 +350,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
   rows: DJEP_ROWS,
   fitHeading: "Where Bright Ears fits",
   fitParagraphs: [
-    "Bright Ears is not a DJ Event Planner replacement, and we don't want to be one. We don't do contracts, invoices or event workflow. We do exactly one job: when an inquiry arrives — from your website form, plain email, or a The Knot / WeddingWire / Bark / GigSalad notification — we filter the spam, draft a reply in your voice from your rate card and real availability, and you approve it from your phone. Median first reply: under 5 minutes. Then follow-ups run until the lead is booked or dead, with one-tap opt-out compliance.",
+    "Bright Ears is not a DJ Event Planner replacement, and we don't want to be one. We don't do contracts, invoices or event workflow. We do exactly one job: when an inquiry arrives — from your website form, plain email, or a The Knot / WeddingWire / Bark / GigSalad notification — we filter the spam, draft a reply in your voice from your rate card and real availability, and you approve it from your phone. Designed to reply in under 5 minutes. Then follow-ups run until the lead is booked or dead, with one-tap opt-out compliance.",
     "Setup is a single forwarding rule — no password sharing, no OAuth, and nothing about your DJEP setup changes. When the gig books, you run it in DJ Event Planner exactly the way you do today.",
   ],
   fitPullQuote: {
@@ -432,7 +432,7 @@ const GIGBUILDER: ComparisonPage = {
     {
       feature: "Speed to first reply",
       them: { mark: "no", note: "Still limited by when you can get to a keyboard." },
-      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+      us: { mark: "yes", note: "In minutes once you tap Approve." },
     },
     {
       feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
@@ -480,7 +480,7 @@ const GIGBUILDER: ComparisonPage = {
   ],
   fitHeading: "Where Bright Ears fits",
   fitParagraphs: [
-    "An AI writing helper still needs you at the keyboard — and the whole problem is that the inquiry lands while you're at a gig, asleep, or at your day job. Couples book whoever replies first. Bright Ears watches the inbox itself: spam filtered out, a reply drafted in your voice from your rate card and real availability, pushed to your phone. You tap Approve. Median first reply: under 5 minutes.",
+    "An AI writing helper still needs you at the keyboard — and the whole problem is that the inquiry lands while you're at a gig, asleep, or at your day job. Couples book whoever replies first. Bright Ears watches the inbox itself: spam filtered out, a reply drafted in your voice from your rate card and real availability, pushed to your phone. You tap Approve. Designed to reply in under 5 minutes.",
     "And it doesn't stop at one reply — follow-ups run until the lead is booked or dead, with hard stops the moment they answer and one-tap opt-out compliance. GigBuilder stays a fine place to run your website and booking flow; we sit in front of any inbox with one forwarding rule. No migration, no password sharing, no OAuth.",
   ],
   fitPullQuote: {
@@ -556,7 +556,7 @@ const VIBO: ComparisonPage = {
     {
       feature: "Speed to first reply",
       them: { mark: "no", note: "Not its job." },
-      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+      us: { mark: "yes", note: "In minutes once you tap Approve." },
     },
     {
       feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
@@ -601,7 +601,7 @@ const VIBO: ComparisonPage = {
   ],
   fitHeading: "Where Bright Ears fits",
   fitParagraphs: [
-    "Vibo's product begins at the contract. Everything before that — the inquiry from The Knot at 11pm, the spam, the price-shoppers, the follow-up nobody has time to send — is exactly the part Bright Ears does. Replies drafted in your voice from your rate card and real availability, approved from your phone, median first reply under 5 minutes, then follow-ups until the lead is booked or dead.",
+    "Vibo's product begins at the contract. Everything before that — the inquiry from The Knot at 11pm, the spam, the price-shoppers, the follow-up nobody has time to send — is exactly the part Bright Ears does. Replies drafted in your voice from your rate card and real availability, approved from your phone, designed to reply in under 5 minutes, then follow-ups until the lead is booked or dead.",
     "Run both and the handoff is clean: we chase the lead until it books; you send the Vibo invite the moment it does. More signed contracts in, more great parties out.",
   ],
   fitPullQuote: {
@@ -631,7 +631,7 @@ const VIBO: ComparisonPage = {
     },
   ],
   ctaHeading: "Get more contracts for Vibo to plan",
-  ctaSub: "14-day free trial, no card. Median first reply under 5 minutes.",
+  ctaSub: "14-day free trial, no card. Designed to reply in under 5 minutes.",
 };
 
 const CHECK_CHERRY: ComparisonPage = {
@@ -676,7 +676,7 @@ const CHECK_CHERRY: ComparisonPage = {
     {
       feature: "Speed to first reply",
       them: { mark: "no", note: "Whenever you next sit down." },
-      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+      us: { mark: "yes", note: "In minutes once you tap Approve." },
     },
     {
       feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
@@ -750,7 +750,7 @@ const CHECK_CHERRY: ComparisonPage = {
     {
       question: "Do I still need nice booking forms if replies are instant?",
       answer:
-        "Yes — they do different jobs. Forms qualify and convert; speed wins the shortlist. Around a third of vendors never respond to inquiries at all, and couples book whoever replies first. Fast and polished together beat either one alone.",
+        "Yes — they do different jobs. Forms qualify and convert; speed wins the shortlist. Many vendors never respond to inquiries at all, and couples book whoever replies first. Fast and polished together beat either one alone.",
     },
   ],
   ctaHeading: "Make the fastest reply also the best-looking booking",
@@ -802,7 +802,7 @@ const HONEYBOOK: ComparisonPage = {
     {
       feature: "Speed to first reply",
       them: { mark: "partial", note: "As fast as you work the HoneyBook inbox." },
-      us: { mark: "yes", note: "Median under 5 minutes once you tap Approve." },
+      us: { mark: "yes", note: "In minutes once you tap Approve." },
     },
     {
       feature: "Reads The Knot / WeddingWire / Bark / GigSalad lead emails",
@@ -854,7 +854,7 @@ const HONEYBOOK: ComparisonPage = {
   fitHeading: "Where Bright Ears fits",
   fitParagraphs: [
     "The difference is architectural, not cosmetic. HoneyBook's AI lives inside HoneyBook: to get drafted replies, your leads, templates, contracts and habits all move in, and you work from its inbox. That's a real migration — and for some businesses it's exactly the right call.",
-    "Bright Ears took the opposite bet: stay out of your way. One forwarding rule from the email you already use — no password sharing, no OAuth — and inquiries from your website, plain email, The Knot, WeddingWire, Bark and GigSalad get spam-filtered, drafted in your voice from your rate card, and pushed to your phone for approval. Median first reply under 5 minutes, follow-ups until booked or dead, and clients never see anything but you.",
+    "Bright Ears took the opposite bet: stay out of your way. One forwarding rule from the email you already use — no password sharing, no OAuth — and inquiries from your website, plain email, The Knot, WeddingWire, Bark and GigSalad get spam-filtered, drafted in your voice from your rate card, and pushed to your phone for approval. Designed to reply in under 5 minutes, follow-ups until booked or dead, and clients never see anything but you.",
   ],
   fitPullQuote: {
     quote: "Falling asleep with the laptop on.",
@@ -960,7 +960,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
   fitHeading: "The option nobody mentions: keep DJEP, fix the real complaint",
   fitParagraphs: [
     "Ask what's actually driving the switch. If it's contracts or invoicing — DJEP already does those well. The complaint underneath most 'alternatives' threads is time: inquiries arriving at all hours, replies going out too late, follow-ups never happening. \"Get an inquiry, immediately respond, and then nothing.\" Switching CRMs doesn't fix that, because no CRM on this page answers a lead for you.",
-    "Bright Ears does exactly that one job. One forwarding rule sends your lead notifications — website form, plain email, The Knot, WeddingWire, Bark, GigSalad — to your Bright Ears address. Spam gets filtered, a reply is drafted in your voice from your rate card and real availability, and you approve it from your phone. Median first reply under 5 minutes; follow-ups run until booked or dead with one-tap opt-out compliance. DJEP stays your system of record. You stop being the bottleneck.",
+    "Bright Ears does exactly that one job. One forwarding rule sends your lead notifications — website form, plain email, The Knot, WeddingWire, Bark, GigSalad — to your Bright Ears address. Spam gets filtered, a reply is drafted in your voice from your rate card and real availability, and you approve it from your phone. Designed to reply in under 5 minutes; follow-ups run until booked or dead with one-tap opt-out compliance. DJEP stays your system of record. You stop being the bottleneck.",
   ],
   fitPullQuote: {
     quote:
