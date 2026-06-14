@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Design A — Electric Stage",
@@ -122,13 +123,13 @@ export default function DesignAPage() {
 
       {/* ============================== NAV ============================== */}
       <nav className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <a href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <span
             className="inline-block h-3.5 w-3.5 rounded-full"
             style={{ backgroundImage: `linear-gradient(135deg, ${MAGENTA}, ${ORANGE})` }}
           />
           <span className="text-lg font-bold tracking-tight text-white">Bright Ears</span>
-        </a>
+        </Link>
         <div className="flex items-center gap-7 text-sm">
           {NAV_LINKS.map((n) => (
             <a key={n.href} href={n.href} className="hidden text-white/60 transition-colors hover:text-white sm:inline">

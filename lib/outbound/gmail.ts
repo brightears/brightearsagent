@@ -92,7 +92,6 @@ export interface GmailSendInput {
  * ASCII/non-ASCII, and BEFORE any RFC 2047 encoding.
  */
 export function sanitizeHeaderValue(value: string): string {
-  // eslint-disable-next-line no-control-regex
   return value.replace(/[\x00-\x1F\x7F]/g, "");
 }
 
