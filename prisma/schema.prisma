@@ -537,3 +537,13 @@ model MarketingContact {
 
   @@unique([email, source])
 }
+
+// Idempotency ledger for Stripe webhooks (audit B1). Stripe retries a delivery
+// for up to ~3 days until it gets a 2xx; the webhook checks this table on
+// `event.id` BEFORE applying side effects and records it after, so a retried
+// delivery can never double-apply a plan/subscription change.
+model ProcessedStripeEvent {
+  id          String   @id // Stripe event.id (evt_...)
+  type        String // event.type, for debugging/audit
+  processedAt DateTime @default(now())
+}

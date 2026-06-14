@@ -31,3 +31,9 @@ External keys carried from `.env.local`; **internal secrets regenerated fresh** 
 
 ## Security note
 The Render API key used for setup was shared in chat — **rotate it** in Render → Account Settings → API Keys once setup is confirmed.
+
+### Internal endpoint auth — use a header, not `?secret=` (audit B4)
+The cron pings (`/api/cron/*`) and the Postmark inbound webhook (`/api/inbound`) authenticate with a shared secret. **Send it as a header, not a query param** — a `?secret=` value leaks into Render/Postmark access logs, proxies and browser history. The code accepts (in order): `Authorization: Bearer <secret>`, then `x-webhook-secret`, then the legacy `?secret=` query param (kept only for backward-compat).
+- **Render crons:** configure the job to `curl -H "Authorization: Bearer $CRON_SECRET" https://…/api/cron/<name>` instead of putting `?secret=` in the URL (update `scripts/render-crons.py`).
+- **Postmark inbound:** set the webhook's custom HTTP header `Authorization: Bearer <INBOUND_WEBHOOK_SECRET>` instead of `?secret=` in the URL.
+Until those external configs are switched to the header, the query-param path still works but the secret keeps leaking into logs — switch them at cutover.

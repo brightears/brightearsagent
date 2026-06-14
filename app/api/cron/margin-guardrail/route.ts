@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeMargins } from "@/lib/billing/margin";
 import { sendEmail } from "@/lib/outbound/send";
-import { checkSharedSecret } from "@/lib/auth-secret";
+import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 
 export const maxDuration = 300;
 
 /** Nightly: flag any tenant whose month-to-date LLM cost eats below 70% gross margin. */
 export async function GET(req: NextRequest) {
-  if (!checkSharedSecret(process.env.CRON_SECRET, req.nextUrl.searchParams.get("secret"))) {
+  if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
