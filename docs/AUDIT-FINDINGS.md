@@ -3,15 +3,15 @@
 > Living checklist & source of truth for the `audit/pre-launch` loop (docs/AUDIT-LOOP.md).
 > Branch: `audit/pre-launch`. Baseline at start: **267/267 tests pass, `tsc --noEmit` clean**.
 
-## Status — updated 2026-06-14 (iteration 3 complete)
+## Status — updated 2026-06-14 (iteration 4 complete)
 
 **Iteration 1:** read-only verify+discover (28 subagents) → seeded AUDIT-FINDINGS.
 **Iteration 2 (fixes landed):** Track A copy fully done; housekeeping; docs drift.
 
-- FIXED & verified (tsc 0 · eslint 0/0 · 273/273 tests · next build OK): A3, A4, A6, A7, A8, B5, B12, D1, **B1** (Stripe event dedup + migration), **B4** (header-based internal auth + tests) — plus A1, A2 interim-fixed (`FIXED*`, final call escalated).
+- FIXED & verified (tsc 0 · eslint 0/0 · 273/273 tests · next build OK): A3, A4, A6, A7, A8, B5, B12, D1, B1, B4, **C1** (lead outcome controls), **C5** (responsive nav + contrast), **C4** (single first-run CTA + branded opt-out), **B3-NF** (fail-closed auth), **D3-NF** (margin scope doc) — plus A1, A2, **B7** (apiVersion+appUrl; tax→founder), **B10** (rate limits+error alerts; Sentry/backups→founder) marked `FIXED*`.
 - OK / verified-good (no action needed): A5 (lead is well-defined), B3 (proxy.ts guard IS wired — confirmed by `ƒ Proxy (Middleware)` in the build), D3 (cron auth + margin guardrail + 0 prod vulns).
 - WIP: D2 (dead files + unused token removed; compare/[slug] v1 reskin + REVIEW-DEFERRED items remain).
-- NEXT (auto, queued): C1 (mark booked/dead — P0), C5 (mobile nav + contrast — P0), C3 (billing UI gaps), C4 (empty-dashboard + opt-out page), B7 apiVersion pin, B10 rate limiter + error alerting, B3-NF Clerk-key health assert, D3-NF Serper margin, B6 legal-page drafts, D2 compare/[slug] reskin.
+- NEXT (auto, queued): C3 (billing success/cancel UI + at-cap indicator), D2 (compare/[slug] v1→v2 reskin + REVIEW-DEFERRED), B6 legal-page drafts, C1-NF (ENGAGED compose action), C5-NF (onboarding emoji→SVG), then finalize FOUNDER DECISIONS + open the PR.
 - FOUNDER: 34 escalations (money/legal/credentials) — see FOUNDER DECISIONS below.
 
 Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verified (commit) · `FIXED*` = interim auto-fix applied, final policy escalated to founder · `WIP` = partially fixed · `FOUNDER` = escalated · `OK` = verified, no issue / already satisfied.
@@ -29,7 +29,7 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | A7 | A | P1 | FIXED   | auto | A fabricated product testimonial ("— a beta DJ") exists only on three noindexed internal design-preview pages; the live production marketing pages contain no fake testimonials, ... |
 | A8 | A | P1 | FIXED   | auto | The landing page describes the mechanism well (forward leads, drafts in your voice, you tap Approve, follow-up until booked-or-dead, nothing sends without approval), but it fram... |
 | B1 | B | P0 | FIXED | auto | Signature verification is correct and fails closed, but there is NO event.id dedup anywhere — no ProcessedStripeEvent table in the schema and the handler never reads event.id, s... |
-| B10 | B | P1 | FOUNDER | founder | short summary |
+| B10 | B | P1 | FIXED* | founder | short summary |
 | B11 | B | P2 | FOUNDER | founder | The finding holds: .env* is correctly gitignored and untracked, but the project uses ~10 live secrets (one — the Render API key — is explicitly documented in-repo as having pass... |
 | B12 | B | P2 | FIXED   | auto | Confirmed: CLAUDE.md and PRODUCT-BRIEF both still claim "Prisma 7" (actual: 6.19.3) and "no OAuth at MVP / deferred to Phase 1.5 via Unipile/Nylas", while Gmail OAuth is fully b... |
 | B2 | B | P0 | FOUNDER | founder | Lead-cap metering genuinely pauses drafting at both the webhook and cron paths (the pricing promise holds), but proactive venue PITCHES run on a completely separate per-temperat... |
@@ -37,14 +37,14 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | B4 | B | P0 | FIXED | auto | Confirmed: all 5 internal auth call sites (inbound webhook + 4 cron routes) read the shared secret from the ?secret= query param via req.nextUrl.searchParams.get("secret"), whic... |
 | B5 | B | P0 | FIXED   | auto | 11 git-tracked duplicate "* 2.*" files exist (5 lib/component sources, 4 tests, 2 prisma migration SQLs); all are dead/unreferenced and safe to delete, though the migrate-deploy... |
 | B6 | B | P0 | FOUNDER | founder | No legal pages of any kind exist — no privacy policy, terms, DPA, cookie/consent, no LIA, and no data-retention/deletion or DSAR path — while the app actively scrapes third-part... |
-| B7 | B | P1 | FOUNDER | founder | All three sub-claims hold: the Stripe client is initialized with no pinned apiVersion, and the subscription checkout session enables neither automatic_tax nor any billing-addres... |
+| B7 | B | P1 | FIXED* | founder | All three sub-claims hold: the Stripe client is initialized with no pinned apiVersion, and the subscription checkout session enables neither automatic_tax nor any billing-addres... |
 | B8 | B | P1 | FOUNDER | founder | Confirmed: Clerk runs as a Development instance (pk_test/sk_test, dev *.accounts.dev Frontend API, no custom domain) — production cutover requires a fresh Production instance wi... |
 | B9 | B | P1 | FOUNDER | founder | The technical claims (gmail.send restricted scope is used; refresh/persist works; tokens are AES-256-GCM at rest) are all CONFIRMED and correctly implemented — but the actual ri... |
-| C1 | C | P0 | OPEN | auto | The reactive flow has a P0 dead end: once a lead's first reply is sent, there is no UI to Mark booked or Mark dead, so the core "booked-or-dead" outcome can never be recorded th... |
+| C1 | C | P0 | FIXED | auto | The reactive flow has a P0 dead end: once a lead's first reply is sent, there is no UI to Mark booked or Mark dead, so the core "booked-or-dead" outcome can never be recorded th... |
 | C2 | C | P1 | FOUNDER | founder | The core profile→license→draft→approve→send/copy path works end-to-end and is well-guarded, but the journey breaks at both bookends: there is no user-facing way to trigger a ven... |
 | C3 | C | P1 | FOUNDER | founder | The core billing chain (auto trial → Stripe checkout → portal upgrade/downgrade/cancel, all webhook-synced) is wired end to end and works, but three real gaps remain: no post-ch... |
-| C4 | C | P1 | OPEN | auto | Opt-out flow is correct and stops sequences end-to-end; the first-run empty dashboard is genuinely two-headed — three empty blocks with two competing setup CTAs (Soundcheck "Res... |
-| C5 | C | P0 | OPEN | auto | Finding holds: real mobile/a11y defects exist — dashboard nav overflows off-screen on phones (P0 for the "approve from the booth" journey), the marketing header hides its only n... |
+| C4 | C | P1 | FIXED | auto | Opt-out flow is correct and stops sequences end-to-end; the first-run empty dashboard is genuinely two-headed — three empty blocks with two competing setup CTAs (Soundcheck "Res... |
+| C5 | C | P0 | FIXED | auto | Finding holds: real mobile/a11y defects exist — dashboard nav overflows off-screen on phones (P0 for the "approve from the booth" journey), the marketing header hides its only n... |
 | D1 | D | P1 | FIXED   | auto | Lint FAILS (3 errors, 15 warnings, exit 1); production build PASSES (exit 0) because Next 16 `next build` no longer runs ESLint, so the lint errors do not block deploys today. |
 | D2 | D | P2 | WIP     | auto | Legacy v1 pastel tokens and dead code both confirmed: 6 v1 tokens still defined (one fully unused), one whole marketing route still rendered in the abandoned v1 palette, and 9 g... |
 | D3 | D | P2 | OK      | auto | All three D3 checks pass: 0 production high/critical vulns, every cron route enforces fail-closed shared-secret auth, and the 70% margin guardrail exists and is wired to a sched... |
@@ -72,7 +72,7 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | NF17 | A8 | A | P2 | FIXED   | auto | '5-minute setup' / 'under 5 minutes' setup claim stated as fact pre-launch |
 | NF18 | B1 | B | P2 | OPEN | auto | stripeSubscriptionId is not @unique, and lookups use findFirst |
 | NF19 | B1 | B | P2 | OPEN | auto | checkout.session.completed re-calls stripe().subscriptions.retrieve on every redelivery |
-| NF20 | B10 | B | P1 | OPEN | auto | Caught errors in inbound/cron never alerted |
+| NF20 | B10 | B | P1 | FIXED* | auto | Caught errors in inbound/cron never alerted |
 | NF21 | B10 | B | P2 | OPEN | auto | Duplicate dead file lib/outbound/gmail 2.ts |
 | NF22 | B11 | B | P2 | FOUNDER | founder | Rotating TOKEN_ENCRYPTION_KEY will silently break all stored Gmail OAuth tokens (no re-encryption / re-auth path) |
 | NF23 | B11 | B | P2 | FOUNDER | founder | STITCH_API_KEY stored in .env.local is dead weight in the app (only the MCP uses it) — confirm it's still needed at all |
