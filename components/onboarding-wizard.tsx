@@ -110,6 +110,28 @@ function priceLabel(pkg: WizardPackage) {
     : `${usd.format(pkg.priceMinDollars)}–${usd.format(pkg.priceMaxDollars)}`;
 }
 
+// Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
+// glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
+// EMOJI IN UI). Inherits color via currentColor; size with className per spot.
+function CheckMark({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M5 10.5l3.5 3.5L15 6.5"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function StepHeading({ step, title, blurb }: { step: number; title: string; blurb: string }) {
   return (
     <header className="mb-5">
@@ -348,7 +370,7 @@ function StepPackages({
               key={`${pkg.name}-${i}`}
               className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/40 px-4 py-3"
             >
-              <span aria-hidden className="font-bold text-ink-stage">✓</span>
+              <CheckMark className="size-4 flex-none text-brand-cyan" />
               <span className="font-semibold text-ink-stage">{pkg.name}</span>
               <span className="text-sm text-ink-stage/70">{priceLabel(pkg)}</span>
               <span className="ml-auto flex flex-wrap gap-1">
@@ -616,8 +638,9 @@ function StepCalendar({
       />
 
       {savedCount > 0 && (
-        <p className="rounded-2xl bg-brand-cyan-soft/60 px-4 py-2 text-sm font-medium text-ink-stage">
-          ✓ {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
+        <p className="flex items-center gap-2 rounded-2xl bg-brand-cyan-soft/60 px-4 py-2 text-sm font-medium text-ink-stage">
+          <CheckMark className="size-4 flex-none text-brand-cyan" />
+          {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
         </p>
       )}
 
@@ -983,10 +1006,14 @@ export function OnboardingWizard({
                         : "border-[1.5px] border-cream/25 bg-cream/5 text-cream/65"
                   }`}
                 >
-                  {/* Step number (typographic ✓ once done) — no emoji (v2.1 LAW). */}
-                  <span aria-hidden className="font-mono font-bold">
-                    {done ? "✓" : i + 1}
-                  </span>
+                  {/* Step number, or a stroked-SVG check once done — no emoji (v2.1 LAW). */}
+                  {done ? (
+                    <CheckMark className="size-3.5 flex-none" />
+                  ) : (
+                    <span aria-hidden className="font-mono font-bold">
+                      {i + 1}
+                    </span>
+                  )}
                   <span className="hidden sm:inline">{s.label}</span>
                   <span className="sr-only sm:hidden">{s.label}</span>
                 </button>

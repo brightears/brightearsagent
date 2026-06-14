@@ -21,7 +21,7 @@ The founder's instinct is **right about the symptom, right about the story, wron
 
 ## Pricing decisions
 - Prices stay $25/$79/$149. Lowering signals toy; raising breaks "same price as GigBuilder, but it answers for you."
-- **Success-fee REJECTED**: per-outcome is the most hated mechanic in this niche (Bark's per-lead credits, The Knot's $500–2,000 effective cost per booking); booked-gig is self-reported so a fee would tax our own proof loop. Per-gig economics live as FRAMING + a GUARANTEE: "pays for itself in your first season or full refund" (Mikla precedent).
+- **Success-fee REJECTED**: per-outcome is the most hated mechanic in this niche (Bark's per-lead credits, The Knot's $500–2,000 effective cost per booking); booked-gig is self-reported so a fee would tax our own proof loop. Per-gig economics live as FRAMING + a GUARANTEE: "pays for itself in your first season or full refund" (Mikla precedent). **[Superseded — audit A1, 2026-06-14: this guarantee wording was unenforceable/unverifiable and has been pulled from all customer surfaces + JSON-LD; interim live wording is the true risk-reversal only. The final refund policy is an open FOUNDER decision.]**
 - Deposit-processing margin (pricing agent's idea) dies with Connect — we don't process money. Monetization stays subscription.
 
 ## Retention physics (why Path B and not Path A)

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
 import { complianceFooter } from "@/lib/optout";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
@@ -156,5 +157,32 @@ export async function markDead(leadId: string) {
     data: { stoppedAt: new Date(), stopReason: "marked_dead" },
   });
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Manually draft a reply for a lead (audit C1-NF). The inbound pipeline stops
+ * sequences and sets ENGAGED when a prospect replies but generates no new draft,
+ * so an owner had no way to respond in-app. This reuses generateDraftForLead
+ * (which drafts off the latest inbound message and dedupes on an existing
+ * PENDING draft); the resulting draft then appears in DraftReview for approval.
+ * Also a retry when the automatic draft failed for a NEW lead.
+ */
+export async function draftReplyForLead(leadId: string) {
+  const business = await getCurrentBusiness();
+  const lead = await db.lead.findFirst({
+    where: { id: leadId, businessId: business.id },
+    select: { id: true, status: true, optedOut: true },
+  });
+  if (!lead) return { ok: false, error: "lead not found" };
+  if (lead.optedOut || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") {
+    return { ok: false, error: "this lead is closed — no reply to draft" };
+  }
+  try {
+    await generateDraftForLead(leadId);
+  } catch {
+    return { ok: false, error: "couldn't draft a reply just now — try again in a moment" };
+  }
+  revalidatePath(`/dashboard/leads/${leadId}`);
   return { ok: true };
 }
