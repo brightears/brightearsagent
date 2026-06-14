@@ -15,7 +15,7 @@ Make Bright Ears honest, correct, and production-grade: truthful copy, correctly
 3. **Never send real emails/outreach to real third parties** during the audit. Test sends go only to the founder's own connected address.
 4. **Never weaken a true claim into a stronger/false one.** Rewrites move toward *more* honest, never less.
 5. **Refund/guarantee & pricing-promise wording:** remove the legal risk immediately (kill vague/unverifiable triggers), implement the safest honest interim wording, and **escalate the final policy choice to the founder** — do not unilaterally set a refund policy.
-6. Push to `main` is allowed (auto-deploys to the staging Render on test keys) — but keep each commit scoped and reversible. Keep all 267+ tests green; never delete a test to make the suite pass.
+6. **Work on a dedicated branch, NEVER on `main`.** First run: `git checkout -b audit/pre-launch` (or check it out if it already exists). Commit every fix there with scoped, reversible messages; push the *branch* (not main). Do **not** merge to `main` and do **not** let half-done audit states auto-deploy. At the end (stop condition), push the branch and open a PR (`gh pr create`) titled "Pre-launch audit" whose body is the summary + the FOUNDER DECISIONS list — the founder reviews the single diff and merges when ready. Keep all 267+ tests green; never delete a test to make the suite pass.
 7. `docs/DESIGN.md` (v2.1) is law for any UI change. Plain language for the founder — no unexplained jargon.
 
 ## How to work
@@ -69,4 +69,4 @@ Each broken/confusing flow → a finding with a fix.
 Typecheck, lint, full test suite, production build — all green. Clear `docs/REVIEW-DEFERRED.md` items. Remove dead code and legacy v1 design tokens (after confirming no usage). Dependency/vuln sanity check. Confirm cron auth + the discovery cost guardrail (70% margin) hold.
 
 ## Stop condition
-When every item across A–D in `docs/AUDIT-FINDINGS.md` is `FIXED` (verified: tests/build green, change committed) or `FOUNDER` (escalated with options + recommendation), write a final summary at the top of `docs/AUDIT-FINDINGS.md` (counts, the P0s closed, the founder-decision list) and **end the loop**. Do not invent busywork to keep looping.
+When every item across A–D in `docs/AUDIT-FINDINGS.md` is `FIXED` (verified: tests/build green, change committed) or `FOUNDER` (escalated with options + recommendation), write a final summary at the top of `docs/AUDIT-FINDINGS.md` (counts, the P0s closed, the founder-decision list), push the `audit/pre-launch` branch, open the "Pre-launch audit" PR (per rule 6), and **end the loop**. Do not invent busywork to keep looping. Do not merge — that's the founder's call after review.
