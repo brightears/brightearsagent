@@ -3,15 +3,15 @@
 > Living checklist & source of truth for the `audit/pre-launch` loop (docs/AUDIT-LOOP.md).
 > Branch: `audit/pre-launch`. Baseline at start: **267/267 tests pass, `tsc --noEmit` clean**.
 
-## Status — updated 2026-06-14 (iteration 2 complete)
+## Status — updated 2026-06-14 (iteration 3 complete)
 
 **Iteration 1:** read-only verify+discover (28 subagents) → seeded AUDIT-FINDINGS.
 **Iteration 2 (fixes landed):** Track A copy fully done; housekeeping; docs drift.
 
-- FIXED & verified (tsc 0 · eslint 0/0 · 267/267 tests · next build OK): A3, A4, A6, A7, A8, B5, B12, D1 — plus A1, A2 interim-fixed (marked `FIXED*`, final call escalated).
+- FIXED & verified (tsc 0 · eslint 0/0 · 273/273 tests · next build OK): A3, A4, A6, A7, A8, B5, B12, D1, **B1** (Stripe event dedup + migration), **B4** (header-based internal auth + tests) — plus A1, A2 interim-fixed (`FIXED*`, final call escalated).
 - OK / verified-good (no action needed): A5 (lead is well-defined), B3 (proxy.ts guard IS wired — confirmed by `ƒ Proxy (Middleware)` in the build), D3 (cron auth + margin guardrail + 0 prod vulns).
 - WIP: D2 (dead files + unused token removed; compare/[slug] v1 reskin + REVIEW-DEFERRED items remain).
-- NEXT (auto, queued): B1 (Stripe event dedup), B4 (header secret), C1 (mark booked/dead), C3 (billing UI gaps), C4 (empty-dashboard + opt-out page), C5 (mobile nav + contrast), B7 apiVersion pin, B10 rate limiter, B6 legal-page drafts.
+- NEXT (auto, queued): C1 (mark booked/dead — P0), C5 (mobile nav + contrast — P0), C3 (billing UI gaps), C4 (empty-dashboard + opt-out page), B7 apiVersion pin, B10 rate limiter + error alerting, B3-NF Clerk-key health assert, D3-NF Serper margin, B6 legal-page drafts, D2 compare/[slug] reskin.
 - FOUNDER: 34 escalations (money/legal/credentials) — see FOUNDER DECISIONS below.
 
 Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verified (commit) · `FIXED*` = interim auto-fix applied, final policy escalated to founder · `WIP` = partially fixed · `FOUNDER` = escalated · `OK` = verified, no issue / already satisfied.
@@ -28,13 +28,13 @@ Status legend: `OPEN` = auto-fixable, not yet done · `FIXED` = applied + verifi
 | A6 | A | P1 | FIXED   | auto | The in-app trial-conversion/upgrade screen shows price + "/mo" and a "Choose" button that redirects straight to Stripe checkout, with NO "auto-renews monthly until cancelled" st... |
 | A7 | A | P1 | FIXED   | auto | A fabricated product testimonial ("— a beta DJ") exists only on three noindexed internal design-preview pages; the live production marketing pages contain no fake testimonials, ... |
 | A8 | A | P1 | FIXED   | auto | The landing page describes the mechanism well (forward leads, drafts in your voice, you tap Approve, follow-up until booked-or-dead, nothing sends without approval), but it fram... |
-| B1 | B | P0 | OPEN | auto | Signature verification is correct and fails closed, but there is NO event.id dedup anywhere — no ProcessedStripeEvent table in the schema and the handler never reads event.id, s... |
+| B1 | B | P0 | FIXED | auto | Signature verification is correct and fails closed, but there is NO event.id dedup anywhere — no ProcessedStripeEvent table in the schema and the handler never reads event.id, s... |
 | B10 | B | P1 | FOUNDER | founder | short summary |
 | B11 | B | P2 | FOUNDER | founder | The finding holds: .env* is correctly gitignored and untracked, but the project uses ~10 live secrets (one — the Render API key — is explicitly documented in-repo as having pass... |
 | B12 | B | P2 | FIXED   | auto | Confirmed: CLAUDE.md and PRODUCT-BRIEF both still claim "Prisma 7" (actual: 6.19.3) and "no OAuth at MVP / deferred to Phase 1.5 via Unipile/Nylas", while Gmail OAuth is fully b... |
 | B2 | B | P0 | FOUNDER | founder | Lead-cap metering genuinely pauses drafting at both the webhook and cron paths (the pricing promise holds), but proactive venue PITCHES run on a completely separate per-temperat... |
 | B3 | B | P0 | OK      | auto | The dangerous part of the finding is false: proxy.ts is correctly named/placed/exported per Next 16's Proxy convention and the production build verifiably wires up the Clerk gua... |
-| B4 | B | P0 | OPEN | auto | Confirmed: all 5 internal auth call sites (inbound webhook + 4 cron routes) read the shared secret from the ?secret= query param via req.nextUrl.searchParams.get("secret"), whic... |
+| B4 | B | P0 | FIXED | auto | Confirmed: all 5 internal auth call sites (inbound webhook + 4 cron routes) read the shared secret from the ?secret= query param via req.nextUrl.searchParams.get("secret"), whic... |
 | B5 | B | P0 | FIXED   | auto | 11 git-tracked duplicate "* 2.*" files exist (5 lib/component sources, 4 tests, 2 prisma migration SQLs); all are dead/unreferenced and safe to delete, though the migrate-deploy... |
 | B6 | B | P0 | FOUNDER | founder | No legal pages of any kind exist — no privacy policy, terms, DPA, cookie/consent, no LIA, and no data-retention/deletion or DSAR path — while the app actively scrapes third-part... |
 | B7 | B | P1 | FOUNDER | founder | All three sub-claims hold: the Stripe client is initialized with no pinned apiVersion, and the subscription checkout session enables neither automatic_tax nor any billing-addres... |
