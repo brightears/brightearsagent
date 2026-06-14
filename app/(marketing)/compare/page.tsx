@@ -172,7 +172,7 @@ export default function ComparePage() {
           </div>
         </div>
         <p className="mt-5 text-sm font-semibold text-cream/85">{ROADMAP_LINE}</p>
-        <p className="mt-3 text-xs text-cream/45">
+        <p className="mt-3 text-xs text-cream/65">
           Spot a stale number? Tell us — we&apos;ll re-verify and update the stamp. Being wrong about a
           competitor&apos;s pricing helps nobody, least of all us.
         </p>

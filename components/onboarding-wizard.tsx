@@ -980,7 +980,7 @@ export function OnboardingWizard({
                       ? `${s.chip} shadow-md ring-2 ring-cream/60 ring-offset-2 ring-offset-ink-stage`
                       : done
                         ? `${s.chip} opacity-80 hover:opacity-100`
-                        : "border-[1.5px] border-cream/25 bg-cream/5 text-cream/45"
+                        : "border-[1.5px] border-cream/25 bg-cream/5 text-cream/65"
                   }`}
                 >
                   {/* Step number (typographic ✓ once done) — no emoji (v2.1 LAW). */}

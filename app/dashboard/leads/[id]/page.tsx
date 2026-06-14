@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { Badge, Card, EmptyState, LEAD_STATUS_META, PageHeader, StatPill } from "@/components/ui";
 import { DraftReview } from "@/components/draft-review";
+import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,10 @@ export default async function LeadDetailPage({
   const pendingDraft = lead.drafts[0];
   const tz = business.timezone;
   const status = LEAD_STATUS_META[lead.status];
+  // BOOKED/DEAD/SPAM are terminal; for anything else with no pending draft (the
+  // DraftReview panel carries its own outcome buttons), surface standalone
+  // booked/dead controls so the outcome is always recordable (audit C1).
+  const terminal = lead.status === "BOOKED" || lead.status === "DEAD" || lead.status === "SPAM";
 
   const subtitle = [lead.eventType ?? "event", fmtEventDate(lead.eventDate, tz), lead.venue]
     .filter(Boolean)
@@ -150,7 +155,7 @@ export default async function LeadDetailPage({
                           {m.body}
                         </p>
                       </div>
-                      <p className="mt-1 px-1 text-[11px] text-cream/50">
+                      <p className="mt-1 px-1 text-[11px] text-cream/65">
                         {outbound ? "You" : (lead.clientName ?? "Them")} ·{" "}
                         {fmtTimestamp(m.createdAt, tz)}
                       </p>
@@ -170,6 +175,12 @@ export default async function LeadDetailPage({
               subject={pendingDraft.subject}
               body={pendingDraft.body}
             />
+          </section>
+        )}
+
+        {!pendingDraft && !terminal && (
+          <section>
+            <LeadOutcomeControls leadId={lead.id} />
           </section>
         )}
       </div>

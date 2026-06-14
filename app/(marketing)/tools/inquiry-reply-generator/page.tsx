@@ -133,7 +133,7 @@ export default function InquiryReplyGeneratorPage() {
             </Link>
           </div>
         </div>
-        <p className="text-center text-sm text-cream/50 mt-10">
+        <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}
           <Link href="/tools/templates" className="text-brand-cyan font-semibold hover:underline">
             25 inquiry &amp; follow-up templates

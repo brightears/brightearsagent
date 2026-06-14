@@ -11,7 +11,10 @@ import { usePathname } from "next/navigation";
 export function DashboardNavLinks({ links }: { links: { href: string; label: string }[] }) {
   const pathname = usePathname();
   return (
-    <div className="flex items-center gap-1.5 text-sm">
+    // w-max so the row keeps its natural width and scrolls inside the layout's
+    // overflow-x-auto container on narrow phones (audit C5) instead of pushing
+    // the UserButton off-screen.
+    <div className="flex w-max items-center gap-1.5 text-sm">
       {links.map((link) => {
         const active =
           link.href === "/dashboard"

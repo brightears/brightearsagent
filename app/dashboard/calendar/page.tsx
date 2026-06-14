@@ -206,7 +206,7 @@ export default async function CalendarPage({
                             type="submit"
                             aria-label={`Remove ${gig.title}`}
                             title="Remove gig"
-                            className="text-cream/50 hover:text-red-300 leading-none transition-colors"
+                            className="text-cream/65 hover:text-red-300 leading-none transition-colors"
                           >
                             ×
                           </button>

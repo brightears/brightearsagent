@@ -166,7 +166,7 @@ export default function HomePage() {
                   Watch it write a reply
                 </a>
               </div>
-              <p className="mt-6 text-sm text-cream/45">{TRUST_LINE}</p>
+              <p className="mt-6 text-sm text-cream/65">{TRUST_LINE}</p>
             </div>
             <HeroCollage />
           </div>
@@ -190,7 +190,7 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <p className="mt-8 max-w-2xl text-xs leading-relaxed text-cream/45">
+          <p className="mt-8 max-w-2xl text-xs leading-relaxed text-cream/65">
             Results depend on demand in your area — we make sure every real lead gets a fast,
             personal reply.
           </p>
@@ -424,7 +424,7 @@ export default function HomePage() {
               </span>
             ))}
           </div>
-          <p className="mt-3 text-center text-xs text-cream/45">
+          <p className="mt-3 text-center text-xs text-cream/65">
             Simple email forwarding — no password sharing, no OAuth.
           </p>
         </RevealOnScroll>
@@ -462,7 +462,7 @@ export default function HomePage() {
                 Start free
               </Link>
               <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
-              <p className="mt-1 text-xs text-cream/50">
+              <p className="mt-1 text-xs text-cream/65">
                 Then from $25/mo. At your lead cap we pause — never a surprise bill.
               </p>
             </div>

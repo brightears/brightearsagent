@@ -3,6 +3,7 @@
 // links with cyan hover (interface voice), magenta "Start free" pill (show voice).
 import Link from "next/link";
 import { BrightEarsLogo } from "@/components/ui";
+import { MarketingMobileMenu } from "@/components/marketing-mobile-menu";
 
 const NAV = [
   { href: "/pricing", label: "Pricing" },
@@ -37,11 +38,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               Start free
             </Link>
           </nav>
+          <MarketingMobileMenu links={NAV} />
         </div>
       </header>
       <main className="flex-1">{children}</main>
       <footer className="mt-24 border-t border-cream/10">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-6 px-6 py-10 text-sm text-cream/45">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-6 px-6 py-10 text-sm text-cream/65">
           <div className="flex items-center gap-2.5">
             <BrightEarsLogo size={20} />
             <span>Bright Ears — 20 years in entertainment, now working for your business.</span>

@@ -596,7 +596,7 @@ export default function TemplatesPage() {
               className="rounded-full border-[1.5px] border-cream/30 text-sm font-semibold text-cream/80 px-4 py-2 hover:border-brand-cyan hover:text-brand-cyan transition-colors"
             >
               {s.heading}{" "}
-              <span className="text-cream/40 font-normal">({s.templates.length})</span>
+              <span className="text-cream/65 font-normal">({s.templates.length})</span>
             </a>
           ))}
         </nav>
@@ -659,7 +659,7 @@ export default function TemplatesPage() {
           heading={'"If there were two of you, you\'d double your business."'}
           sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, and filters the spam before you ever see it — while your clients only ever see you. Try it free for 14 days, no card."
         />
-        <p className="text-center text-sm text-cream/50 mt-10">
+        <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}
           <Link
             href="/tools/inquiry-reply-generator"

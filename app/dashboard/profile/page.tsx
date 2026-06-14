@@ -31,7 +31,7 @@ function StrengthMeter({
             Hunting license: active
           </StickerChip>
         ) : (
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/40">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/65">
             Hunting license: not yet
           </span>
         )}
