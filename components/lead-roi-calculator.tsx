@@ -273,7 +273,7 @@ export function LeadRoiCalculator() {
             <p className="text-sm text-ink-stage/65 max-w-xl mx-auto">
               Bright Ears replies to every inquiry in under 5 minutes — in your voice, from your
               rate card, with your real availability — then follows up until it&apos;s booked or
-              dead. You approve from your phone, even from the booth. 14-day free trial, no card.
+              dead. You approve from your phone, even from the booth. 30-day money-back guarantee.
             </p>
             <Link
               href="/onboarding"

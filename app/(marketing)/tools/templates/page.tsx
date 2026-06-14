@@ -625,7 +625,7 @@ export default function TemplatesPage() {
               <div className="mt-12 max-w-3xl mx-auto">
                 <StartFreeBanner
                   heading="Sending these at 11pm after a gig? There's a better way."
-                  sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Designed to reply in under 5 minutes. 14-day free trial, no card, from $25/mo."
+                  sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Designed to reply in under 5 minutes. From $25/mo, with a 30-day money-back guarantee."
                 />
               </div>
             )}
@@ -657,7 +657,7 @@ export default function TemplatesPage() {
       <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <StartFreeBanner
           heading={'"If there were two of you, you\'d double your business."'}
-          sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, and filters the spam before you ever see it — while your clients only ever see you. Try it free for 14 days, no card."
+          sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, filters the spam before you ever see it, and proactively hunts new venues — while your clients only ever see you. Subscribe to activate, with a 30-day money-back guarantee."
         />
         <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}

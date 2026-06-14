@@ -60,7 +60,7 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
     n.medianFirstReplyMinutes === null
       ? "No new inquiries needed a first reply this week."
       : n.medianFirstReplyMinutes < 60
-        ? `Median first reply: ${n.medianFirstReplyMinutes} minutes. (Most businesses take a day or more — replying first is what couples reward.)`
+        ? `Median first reply: ${n.medianFirstReplyMinutes} minutes. (Most businesses take a day or more — replying first is what clients reward.)`
         : `Median first reply: ${Math.round(n.medianFirstReplyMinutes / 60)} hours.`;
 
   return {

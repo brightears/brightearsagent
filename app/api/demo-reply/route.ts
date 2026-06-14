@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const used = entry?.day === day ? entry.count : 0;
   if (used >= 5) {
     return NextResponse.json(
-      { error: "You've used today's 5 demo replies — start a free trial to get unlimited." },
+      { error: "You've used today's 5 demo replies — subscribe to get unlimited." },
       { status: 429 },
     );
   }

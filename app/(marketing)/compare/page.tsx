@@ -83,8 +83,9 @@ export default function ComparePage() {
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-cream/70 max-w-2xl">
             Every tool below earns its keep somewhere — and yes, we sell one of them, so judge for
-            yourself: verified pricing, real strengths, real gaps. Spoiler: we&apos;re the only one
-            that answers your leads, and we&apos;re the wrong choice for contracts.
+            yourself: verified pricing, real strengths, real gaps. Spoiler: we&apos;re the one that
+            answers your leads — for any event, not just weddings — and proactively hunts venues for
+            you, and we&apos;re the wrong choice for contracts.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/onboarding" className={buttonStyles.show}>
@@ -277,7 +278,8 @@ export default function ComparePage() {
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-sm text-ink-stage/70">{BRIGHT_EARS_PRICING.overage}</p>
+            <p className="mt-4 text-sm text-ink-stage/70">{BRIGHT_EARS_PRICING.hunt}</p>
+            <p className="mt-2 text-sm text-ink-stage/70">{BRIGHT_EARS_PRICING.overage}</p>
           </div>
         </div>
       </section>
@@ -311,8 +313,8 @@ export default function ComparePage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply
             </h2>
             <p className="relative mt-3 text-ink-stage/70 max-w-xl mx-auto">
-              14-day free trial, no card. Designed to reply in under 5 minutes — even from the booth. At
-              your cap, drafting pauses; never a surprise bill.
+              Subscribe to activate, with a 30-day money-back guarantee. Designed to reply in under 5
+              minutes — even from the booth. At your cap, drafting pauses; never a surprise bill.
             </p>
             <div className="relative mt-7">
               <Link

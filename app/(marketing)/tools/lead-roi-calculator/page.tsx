@@ -108,7 +108,7 @@ export default function LeadRoiCalculatorPage() {
               until the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">
-              14-day free trial, no card. Starter $25/mo · Pro $79/mo · Studio $149/mo.
+              Starter $25/mo · Pro $79/mo · Studio $149/mo. 30-day money-back guarantee.
             </p>
             <Link
               href="/onboarding"

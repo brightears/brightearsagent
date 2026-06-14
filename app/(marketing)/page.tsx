@@ -24,23 +24,23 @@ import { Kicker } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Bright Ears — stop being the 5th DJ to reply",
   description:
-    "The AI back office that answers every inquiry first, in your voice, in under 5 minutes, then follows up for days until it's booked or dead — you just tap Approve. 14-day free trial, no card.",
+    "The AI back office that answers every event inquiry in your voice in under 5 minutes, follows up until it's booked or dead, and proactively hunts venues for you — you just tap Approve. 30-day money-back guarantee.",
 };
 
-const TRUST_LINE = "14-day free trial · no card · 5-minute setup";
+const TRUST_LINE = "30-day money-back guarantee · setup in minutes";
 
 const MARQUEE_ITEMS = [
   "ANSWERED IN MINUTES",
   "YOUR VOICE, NOT A BOT'S",
   "FOLLOWED UP UNTIL BOOKED — OR DEAD",
   "WHILE YOU WERE ON STAGE",
-  "NO ALGORITHM SLOP",
+  "WEDDINGS, CORPORATE, PARTIES, RESIDENCIES",
   "REAL LEADS, ANSWERED FAST.",
 ];
 
 const STATS = [
   { n: "Under 5 min", l: "our target first reply" },
-  { n: "First", l: "couples often book whoever replies first" },
+  { n: "First", l: "clients often book whoever replies first" },
   { n: "$1,800", l: "an example booking you stop losing (illustrative)" },
 ];
 
@@ -91,6 +91,14 @@ const FEATURES: {
     tilt: "rotate-1",
   },
   {
+    chip: "The Hunt",
+    chipTone: "magenta",
+    chipRotate: -4,
+    title: "It hunts new venues for you",
+    body: "Quiet week? The proactive agent scans for venues hiring entertainment, scores how well each fits you, and drafts an intro in your voice. You approve, it sends from your own mailbox. It can’t promise bookings — results depend on local demand — but it makes sure you’re in front of the right rooms.",
+    tilt: "-rotate-[0.6deg]",
+  },
+  {
     chip: "Monday, 9:00",
     chipTone: "ink",
     chipRotate: -5,
@@ -103,7 +111,7 @@ const FEATURES: {
     chipTone: "outline",
     chipRotate: 4,
     title: "Your clients see you, never us",
-    body: "Replies send from your business name, with your reply-to address. No “AI”, no Bright Ears branding anywhere — your couples just think you’re impressively quick.",
+    body: "Replies send from your business name, with your reply-to address. No “AI”, no Bright Ears branding anywhere — your clients just think you’re impressively quick.",
     tilt: "-rotate-[0.6deg]",
   },
 ];
@@ -136,7 +144,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-14 sm:pt-20">
           <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/75">
             <span className="h-1.5 w-1.5 rounded-full bg-neon-magenta" />
-            The AI back office for DJ &amp; performer businesses
+            The AI back office for DJ &amp; event performer businesses
           </span>
           <h1 className="mt-7 max-w-4xl text-6xl font-black leading-[0.95] tracking-tighter text-cream-bright sm:text-7xl lg:text-8xl">
             <KineticHeadline accentWord="5th">Stop being the 5th DJ to reply.</KineticHeadline>
@@ -145,8 +153,9 @@ export default function HomePage() {
             <div>
               {/* The one-liner (ADR-003 reposition): outcome, not "answers inbounds". */}
               <p className="max-w-xl text-lg leading-relaxed text-cream/70">
-                Every inquiry answered in your voice in under 5 minutes, followed up for days, until
-                it’s booked or dead — you just tap{" "}
+                Every event inquiry — wedding, corporate, party, residency — answered in your voice
+                in under 5 minutes, followed up for days until it’s booked or dead, and it hunts new
+                venues for you too. You just tap{" "}
                 <strong className="font-bold text-cream-bright">Approve</strong>.
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -244,8 +253,8 @@ export default function HomePage() {
                 have responded.”
               </blockquote>
               <p className="mt-3 text-sm leading-relaxed text-ink-stage/65">
-                Couples book whoever replies first — and a third of vendors never reply at all.
-                Speed isn’t a feature. It’s the whole game.
+                Clients tend to book whoever replies first — and many vendors are slow or never
+                reply at all. Speed isn’t a feature. It’s the whole game.
               </p>
             </div>
           </RevealOnScroll>
@@ -463,7 +472,7 @@ export default function HomePage() {
               </Link>
               <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
               <p className="mt-1 text-xs text-cream/65">
-                Then from $25/mo. At your lead cap we pause — never a surprise bill.
+                From $25/mo. At your lead cap we pause — never a surprise bill.
               </p>
             </div>
           </div>

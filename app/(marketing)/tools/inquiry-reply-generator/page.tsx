@@ -123,7 +123,7 @@ export default function InquiryReplyGeneratorPage() {
               minutes. Then it follows up until the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">
-              14-day free trial, no card. Plans from $25/mo.
+              Plans from $25/mo, with a 30-day money-back guarantee.
             </p>
             <Link
               href="/onboarding"

@@ -90,9 +90,10 @@ export default function TermsPage() {
             prompt you to add capacity rather than charging automatically.
           </li>
           <li>
-            You start with a 14-day free trial (no card required) and can cancel at any time;
-            cancellation stops future renewals. Any refund or money-back terms, if and when we offer
-            them, will be stated explicitly here and on the pricing page before they apply.
+            There is no free trial — you subscribe to activate the service. You are covered by a
+            30-day money-back guarantee: if you cancel within 30 days of first subscribing and email
+            us, we refund that payment in full. After that, plans are month-to-month; cancellation
+            stops future renewals but is not retroactively refunded except as required by law.
           </li>
         </ul>
       </LegalSection>

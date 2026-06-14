@@ -187,7 +187,7 @@ export default function DesignAPage() {
             </div>
 
             <p className="mt-6 text-sm text-white/40">
-              14-day free trial · no card · 5-minute setup
+              30-day money-back guarantee · setup in minutes
             </p>
           </div>
 

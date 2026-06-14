@@ -211,7 +211,7 @@ export function DemoWidget() {
 
           {phase === "done" && typeof result.remaining === "number" && result.remaining >= 0 && (
             <p className="text-xs text-ink-stage/55">
-              {result.remaining} of 5 free demo replies left today — your trial has no daily limit.
+              {result.remaining} of 5 free demo replies left today — the real thing has no daily limit.
             </p>
           )}
         </div>

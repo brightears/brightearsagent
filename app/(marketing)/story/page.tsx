@@ -242,10 +242,18 @@ export default function StoryPage() {
                   <p>
                     It filters out the spam and scams before you see them, then drafts
                     a reply in <em>your</em> voice, from <em>your</em> rate card, with{" "}
-                    <em>your</em> real availability. You approve it from your phone —
+                    <em>your</em> real availability — for any event, from weddings to
+                    corporate parties to residencies. You approve it from your phone —
                     from the booth, between ceremonies, from the couch. Designed to
                     reply in under 5 minutes. Then it follows up until the gig is booked
                     or the lead is truly dead, with a one-tap opt-out on every email.
+                  </p>
+                  <p>
+                    And when the inbox is quiet, it doesn’t just wait. The same back
+                    office goes hunting — scanning for venues hiring entertainment,
+                    scoring how well each fits you, and drafting an intro in your voice
+                    for you to approve. It can’t promise the room says yes; it makes
+                    sure you’re the one who asked first.
                   </p>
                   <p>
                     And your clients never see any of it. No &ldquo;AI,&rdquo; no bot
@@ -317,8 +325,8 @@ export default function StoryPage() {
             Give your business its own <span className={GRAD}>back office</span>.
           </h2>
           <p className="relative mt-4 text-cream/70 max-w-xl mx-auto">
-            Vinyl runs ours every night. Bright Ears runs yours — 14 days of
-            full Pro, free, no card needed.
+            Vinyl runs ours every night. Bright Ears runs yours — subscribe to
+            activate, with a 30-day money-back guarantee.
           </p>
           <Link
             href="/onboarding"

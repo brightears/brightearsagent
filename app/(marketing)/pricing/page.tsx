@@ -12,7 +12,7 @@ import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete assistant — instant replies, follow-ups until booked-or-dead, weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
+    "Every plan is the complete assistant — replies for any event, follow-ups until booked-or-dead, weekly report, and the proactive Hunt that finds venues for you. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 30-day money-back guarantee. Cancel anytime.",
 };
 
 type Plan = {
@@ -33,9 +33,10 @@ const PLANS: Plan[] = [
     price: "$25",
     blurb: "The complete assistant for a solo performer — you approve every send.",
     features: [
-      "15 leads per month",
+      "15 inbound leads per month (weddings, corporate, parties — any event)",
+      "Plus the Hunt: proactive venue outreach drafted for you, up to ~10 pitches/day",
       "1 performer (you)",
-      "Instant replies in your voice — from your rate card, checked against your gig calendar",
+      "Replies in your voice — from your rate card, checked against your gig calendar",
       "Follow-up sequences until every lead is booked or dead, opt-out compliance built in",
       "Weekly report: median reply time & gigs booked",
       "Spam & scams filtered before you ever see them",
@@ -48,8 +49,8 @@ const PLANS: Plan[] = [
     price: "$79",
     blurb: "The same assistant, more headroom — and it can send for itself on sources you trust.",
     features: [
-      "Everything in Starter — the same complete assistant",
-      "60 leads per month",
+      "Everything in Starter — the same complete assistant and the Hunt",
+      "60 inbound leads per month",
       "Per-source auto-send: full autopilot on sources you trust, approval everywhere else",
     ],
     highlighted: true,
@@ -60,7 +61,7 @@ const PLANS: Plan[] = [
     blurb: "The same assistant for the whole roster — one inbox, every performer, your team.",
     features: [
       "Everything in Pro",
-      "150 leads per month",
+      "150 inbound leads per month",
       "Multi-performer routing — leads matched across your whole roster",
       "Team seats so anyone can review and approve",
     ],
@@ -70,11 +71,19 @@ const PLANS: Plan[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between Starter, Pro and Studio?",
-    a: "Capacity and autonomy — never features. Every plan includes the complete assistant: instant replies in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 leads with multi-performer routing and team seats.",
+    a: "Capacity and autonomy — never features. Every plan includes the complete assistant: replies in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, approve-from-phone, and the proactive Hunt agent. Starter ($25) handles 15 inbound leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 inbound leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 inbound leads with multi-performer routing and team seats.",
+  },
+  {
+    q: "Is this only for wedding DJs?",
+    a: "No. Bright Ears works for any bookable performer business and any event type — weddings, corporate and brand events, private parties, bar/club/hotel residencies, festivals and launches. DJs, bands, singers, photo booths, MCs and more all run it; the replies use your packages, your rates and your voice, whatever you book.",
+  },
+  {
+    q: "What's the Hunt — the proactive venue agent?",
+    a: "Alongside answering your inbound leads, Bright Ears proactively looks for venues hiring entertainment, scores how well each one fits you, and drafts outreach in your voice. You review and approve, and it sends — so quiet weeks don't stay quiet. It's separate from your monthly inbound leads, runs at up to ~10 pitches a day, and it never guarantees bookings — results depend on demand in your area.",
   },
   {
     q: "What if it isn't working for me?",
-    a: "Start with 14 days of full Pro — free, no card. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    a: "Subscribe to activate, and if it's not for you, email us within 30 days for a full money-back refund — no questions asked. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
   },
   {
     q: "Is email forwarding safe? Do I have to share my password?",
@@ -82,7 +91,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What counts as a lead?",
-    a: "A lead is a real inquiry from a real prospect — someone asking about your availability, pricing or services — that we parse and draft a reply for. One prospect = one lead, no matter how many emails go back and forth with them.",
+    a: "Your monthly number counts inbound leads — a real inquiry from a real prospect (someone asking about your availability, pricing or services) that we parse and draft a reply for. One prospect = one lead, no matter how many emails go back and forth. Venue pitches from the Hunt are a separate allowance and never count against your inbound lead number.",
   },
   {
     q: "Does spam count against my monthly leads?",
@@ -113,8 +122,8 @@ const FAQS: { q: string; a: string }[] = [
     a: "Edit it in a tap or toss it — nothing is sent without your approval unless you have explicitly turned on auto-send for a source you trust. You are always the final word in your own inbox.",
   },
   {
-    q: "Do I need a credit card to start the trial?",
-    a: "No card needed. You get 14 days of full Pro — 60 leads and per-source auto-send, on top of the complete assistant every plan includes. At the end, pick the plan that fits or walk away. We will not charge you by surprise.",
+    q: "Is there a free trial?",
+    a: "No free trial — you subscribe to activate the agent. Instead you're protected by a 30-day money-back guarantee: if it's not for you, email us within 30 days for a full refund, no questions asked. You can still set up your whole account — profile, packages, voice, calendar — for free before you subscribe; you just need an active plan for the agent to start replying and hunting venues.",
   },
 ];
 
@@ -177,20 +186,21 @@ export default function PricingPage() {
           Pricing
         </StickerChip>
         <h1 className="mt-6 text-4xl sm:text-6xl font-black tracking-tight text-cream-bright text-balance">
-          Less than one first dance. Plans priced in <span className={GRAD}>leads</span>, not
+          Less than one good gig. Plans priced in <span className={GRAD}>leads</span>, not
           jargon.
         </h1>
         <p className="mt-6 max-w-2xl mx-auto text-lg leading-relaxed text-cream/70">
-          A booked wedding is often worth $1,500–3,000. Bright Ears is designed
-          to answer every inquiry in minutes — even from the booth — and follows
-          up until it&apos;s booked or dead, for less than a dinner out. Start
-          with 14 days of full Pro. No card.
+          A booked event is often worth $1,500–3,000 — wedding, corporate party,
+          residency or launch. Bright Ears is designed to answer every inquiry in
+          minutes — even from the booth — and follows up until it&apos;s booked or
+          dead, for less than a dinner out. Subscribe to activate, with a 30-day
+          money-back guarantee.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
-          Every plan is the complete assistant — instant replies in your voice,
-          follow-ups until booked-or-dead, weekly report, spam filtering,
-          approve from your phone. You only choose leads, performers and
-          autopilot.
+          Every plan is the complete assistant — replies in your voice,
+          follow-ups until booked-or-dead, weekly report, spam filtering, approve
+          from your phone, and the Hunt that finds venues for you. You only choose
+          leads, performers and autopilot.
         </p>
       </section>
 
@@ -250,7 +260,7 @@ export default function PricingPage() {
                   Start free
                 </Link>
                 <p className="mt-3 text-center text-xs text-ink-stage/50">
-                  14-day free trial of Pro · no card needed
+                  Subscribe to activate · 30-day money-back guarantee
                 </p>
               </div>
             </div>
@@ -304,8 +314,9 @@ export default function PricingPage() {
               Busy month? Lead packs, not lock-in.
             </h3>
             <p className="mt-2 text-sm text-ink-stage/70">
-              Wedding season spikes are real. Add 10 extra leads for $10
-              whenever you need them — no plan change, no commitment.
+              Busy-season spikes are real — wedding months, festival runs, a
+              corporate Q4. Add 10 extra leads for $10 whenever you need them — no
+              plan change, no commitment.
             </p>
           </div>
           <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] rotate-1">
@@ -359,8 +370,8 @@ export default function PricingPage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply.
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
-              Designed to reply in minutes — even from the booth. 14 days of full
-              Pro, free, no card. Cancel anytime.
+              Designed to reply in minutes — even from the booth. Subscribe to
+              activate, 30-day money-back guarantee. Cancel anytime.
             </p>
             <Link
               href="/onboarding"
