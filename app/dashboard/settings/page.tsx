@@ -6,7 +6,7 @@ import { PushToggle } from "@/components/push-toggle";
 import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
-import { PLAN_LEAD_CAPS } from "@/lib/billing/metering";
+import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,9 @@ const PLAN_CARDS = [
 // Section titles use the editorial Kicker system (docs/DESIGN.md v2.1 rule 2)
 // — mono ALL-CAPS tracked labels, cyan square prefix, no emoji ever (rule 1).
 
-async function BillingCard() {
+async function BillingCard({ meter }: { meter: MeterState }) {
   const state = await billingState();
+  const pct = meter.cap > 0 ? Math.min(100, Math.round((meter.used / meter.cap) * 100)) : 100;
   return (
     <Card className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -32,6 +33,30 @@ async function BillingCard() {
         <Badge tone={state.subscribed ? "teal" : "peach"}>
           {state.subscribed ? state.plan : state.trialDaysLeft !== null && state.trialDaysLeft > 0 ? `Trial · ${state.trialDaysLeft} days left` : "Trial ended"}
         </Badge>
+      </div>
+
+      {/* In-app usage meter + at-cap notice (audit C3): the at-cap state used to
+          surface only via an optional push; show it here so an owner with push
+          off still sees that drafting paused and how to fix it. */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between text-xs text-ink-stage/60">
+          <span>Leads this month</span>
+          <span className="font-mono font-semibold text-ink-stage/75">
+            {meter.used} / {meter.cap}
+          </span>
+        </div>
+        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink-stage/10">
+          <div
+            className={`h-full rounded-full ${meter.overCap ? "bg-[#c2410c]" : "bg-brand-cyan"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        {meter.overCap && (
+          <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
+            <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
+            still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
+          </p>
+        )}
       </div>
       {!state.enabled ? (
         <p className="text-sm text-ink-stage/60">Billing isn&apos;t configured in this environment yet.</p>
@@ -122,13 +147,20 @@ async function MailboxSection({
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mailbox?: string | string[]; reason?: string | string[] }>;
+  searchParams: Promise<{
+    mailbox?: string | string[];
+    reason?: string | string[];
+    billing?: string | string[];
+  }>;
 }) {
   const sp = await searchParams;
   const mailbox = Array.isArray(sp.mailbox) ? sp.mailbox[0] : sp.mailbox ?? null;
   const reason = Array.isArray(sp.reason) ? sp.reason[0] : sp.reason ?? null;
+  const billing = Array.isArray(sp.billing) ? sp.billing[0] : sp.billing ?? null;
   const business = await getCurrentBusiness();
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
+  // At-cap / usage surfaced in-app (audit C3), not only via push.
+  const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
 
   return (
     <main className="flex-1 bg-ink-stage">
@@ -139,7 +171,19 @@ export default async function SettingsPage({
       />
 
       <div className="space-y-6">
-        <BillingCard />
+        {/* Post-checkout confirmation (audit C3): billing.ts redirects here with
+            ?billing=success|cancelled, but nothing consumed it before. */}
+        {billing === "success" && (
+          <div className="rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
+            You&apos;re subscribed — replies are flowing. Manage your plan anytime below.
+          </div>
+        )}
+        {billing === "cancelled" && (
+          <div className="rounded-2xl border border-cream/15 bg-ink-raised px-5 py-4 text-sm text-cream/80">
+            Checkout cancelled — no charge was made. You can pick a plan whenever you&apos;re ready.
+          </div>
+        )}
+        <BillingCard meter={meter} />
         <Card className="p-6">
           <h2 className="mb-5">
             <Kicker onLight>Business profile</Kicker>
