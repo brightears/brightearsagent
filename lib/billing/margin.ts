@@ -29,7 +29,17 @@ export interface MarginRow {
 
 export const MARGIN_FLOOR_PCT = 70;
 
-/** Month-to-date LLM cost vs plan price per tenant; flags margin < 70%. */
+/**
+ * Month-to-date LLM cost vs plan price per tenant; flags margin < 70%.
+ *
+ * SCOPE (audit D3-NF): this is the LLM-margin lens only — `llmCostUsd` is the
+ * sum of `LlmUsage` token cost. It does NOT include the paid Serper discovery
+ * API (a per-query external cost tracked only as a count today), so a tenant
+ * running heavy proactive scans can erode real gross margin without tripping
+ * this 70% alert. To make the alert reflect true margin, persist a priced
+ * discovery cost ledger and add it here (Serper's per-query price is public) —
+ * tracked in docs/AUDIT-FINDINGS.md.
+ */
 export async function computeMargins(now = new Date()): Promise<MarginRow[]> {
   const businesses = await db.business.findMany({ select: { id: true, name: true, plan: true } });
   const rows: MarginRow[] = [];

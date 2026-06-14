@@ -52,37 +52,42 @@ export function KineticHeadline({
   className?: string;
 }) {
   const lineList = lines ?? (typeof children === "string" ? [children] : []);
-  let wordIndex = 0;
-  let accentUsed = false;
+  const wordLines = lineList.map((line) => line.split(/\s+/).filter(Boolean));
+  // Global word offset per line so the rise/fade stagger stays continuous
+  // across line breaks. Computed without render-time mutation (see eslint
+  // react-hooks/immutability) — headlines are a handful of words, O(n²) is fine.
+  const lineOffsets = wordLines.map((_, li) =>
+    wordLines.slice(0, li).reduce((sum, words) => sum + words.length, 0),
+  );
+  // First word (in reading order) matching accentWord gets the show gradient.
+  const accentGlobalIndex =
+    accentWord === undefined
+      ? -1
+      : (wordLines
+          .flatMap((words, li) => words.map((word, wi) => ({ word, gi: lineOffsets[li] + wi })))
+          .find(({ word }) => word === accentWord || coreOf(word) === accentWord)?.gi ?? -1);
   return (
     <span className={className}>
-      {lineList.map((line, li) => (
+      {wordLines.map((words, li) => (
         <span key={li} className="block">
-          {line
-            .split(/\s+/)
-            .filter(Boolean)
-            .map((word, wi) => {
-              const delay = wordIndex * staggerMs;
-              wordIndex += 1;
-              const isAccent =
-                !accentUsed &&
-                accentWord !== undefined &&
-                (word === accentWord || coreOf(word) === accentWord);
-              if (isAccent) accentUsed = true;
-              return (
-                <Fragment key={wi}>
-                  {/* clip wrapper: slight bottom padding keeps descenders un-cropped */}
-                  <span className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
-                    <span
-                      className={`be-kinetic-word${isAccent ? ` ${ACCENT_CLASS}` : ""}`}
-                      style={{ animationDelay: `${delay}ms` }}
-                    >
-                      {word}
-                    </span>
-                  </span>{" "}
-                </Fragment>
-              );
-            })}
+          {words.map((word, wi) => {
+            const globalIndex = lineOffsets[li] + wi;
+            const delay = globalIndex * staggerMs;
+            const isAccent = globalIndex === accentGlobalIndex;
+            return (
+              <Fragment key={wi}>
+                {/* clip wrapper: slight bottom padding keeps descenders un-cropped */}
+                <span className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
+                  <span
+                    className={`be-kinetic-word${isAccent ? ` ${ACCENT_CLASS}` : ""}`}
+                    style={{ animationDelay: `${delay}ms` }}
+                  >
+                    {word}
+                  </span>
+                </span>{" "}
+              </Fragment>
+            );
+          })}
         </span>
       ))}
     </span>

@@ -156,7 +156,7 @@ export function Kicker({
   return (
     <span
       className={`inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.25em] ${
-        onLight ? "text-ink-stage/50" : "text-cream/50"
+        onLight ? "text-ink-stage/50" : "text-cream/65"
       }`}
     >
       <span aria-hidden className="size-1 flex-none bg-brand-cyan" />

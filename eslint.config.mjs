@@ -12,7 +12,19 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Prisma-generated client — never our code to lint.
+    "app/generated/**",
   ]),
+  {
+    rules: {
+      // Allow intentionally-unused bindings when prefixed with "_" (the common
+      // convention for placeholder args in test mocks and signature stubs).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

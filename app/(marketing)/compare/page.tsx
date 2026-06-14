@@ -172,7 +172,7 @@ export default function ComparePage() {
           </div>
         </div>
         <p className="mt-5 text-sm font-semibold text-cream/85">{ROADMAP_LINE}</p>
-        <p className="mt-3 text-xs text-cream/45">
+        <p className="mt-3 text-xs text-cream/65">
           Spot a stale number? Tell us — we&apos;ll re-verify and update the stamp. Being wrong about a
           competitor&apos;s pricing helps nobody, least of all us.
         </p>
@@ -311,7 +311,7 @@ export default function ComparePage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply
             </h2>
             <p className="relative mt-3 text-ink-stage/70 max-w-xl mx-auto">
-              14-day free trial, no card. Median first reply under 5 minutes — even from the booth. At
+              14-day free trial, no card. Designed to reply in under 5 minutes — even from the booth. At
               your cap, drafting pauses; never a surprise bill.
             </p>
             <div className="relative mt-7">

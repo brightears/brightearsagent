@@ -24,13 +24,6 @@
   --color-brand-cyan: #00bbe4; /* ceylon blue — the PRODUCT voice */
   --color-brand-cyan-soft: #b6eaff;
 
-  /* Legacy tokens kept so v1 screens render during the migration; remove after reskin */
-  --color-deep-teal: #1a5152;
-  --color-soft-lavender: #d59ec9;
-  --color-warm-peach: #f1bca6;
-  --color-earthy-brown: #a47764;
-  --color-off-white: #e5e2e1;
-  --color-ink: #333333;
 }
 
 body {

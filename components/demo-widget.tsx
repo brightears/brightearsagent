@@ -28,21 +28,25 @@ export function DemoWidget() {
   const [typed, setTyped] = useState(0);
 
   const busy = phase === "loading" || phase === "typing";
-  const totalChars = result ? result.subject.length + result.body.length : 0;
 
-  // Typewriter: reveal the draft a few characters per tick.
+  // Typewriter: reveal the draft a few characters per tick, then settle to
+  // "done" once the whole reply is shown. The completion transition lives in
+  // the interval callback (an event context), not a render-phase effect, so we
+  // never call setState directly inside an effect body (eslint react-hooks).
   useEffect(() => {
     if (phase !== "typing" || !result) return;
     const total = result.subject.length + result.body.length;
+    let shown = 0;
     const id = setInterval(() => {
-      setTyped((n) => Math.min(n + 3, total));
+      shown = Math.min(shown + 3, total);
+      setTyped(shown);
+      if (shown >= total) {
+        clearInterval(id);
+        setPhase("done");
+      }
     }, 16);
     return () => clearInterval(id);
   }, [phase, result]);
-
-  useEffect(() => {
-    if (phase === "typing" && result && typed >= totalChars) setPhase("done");
-  }, [phase, result, typed, totalChars]);
 
   async function run() {
     if (busy || inquiry.trim().length < MIN_CHARS) return;
@@ -182,6 +186,9 @@ export function DemoWidget() {
             <p className="min-h-28 whitespace-pre-wrap px-4 py-3 text-sm leading-relaxed text-ink-stage/85">
               {result.body.slice(0, Math.max(0, typed - result.subject.length))}
               {phase === "typing" && typed > result.subject.length && <Caret />}
+            </p>
+            <p className="border-t border-ink-stage/10 px-4 py-2 text-[11px] italic text-ink-stage/55">
+              Sample reply — generated live, never sent.
             </p>
           </div>
 

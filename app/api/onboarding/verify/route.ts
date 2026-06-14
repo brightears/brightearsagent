@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 // Live forwarding verifier for onboarding step 5: the wizard polls this every
 // 5s while the owner sends a test email (or forwards a real inquiry) to their
@@ -11,7 +12,13 @@ export const dynamic = "force-dynamic";
 
 const WINDOW_MS = 10 * 60 * 1000;
 
-export async function GET() {
+export async function GET(req: Request) {
+  // Generous cap (audit B10): the wizard polls every 5s (~12/min); this only
+  // trips on a runaway client.
+  if (!rateLimit(`verify:${clientIp(req)}`, 120, 60_000).ok) {
+    return Response.json({ verified: false, error: "rate-limited" }, { status: 429 });
+  }
+
   let business;
   try {
     business = await getCurrentBusiness();

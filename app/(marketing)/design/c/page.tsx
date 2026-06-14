@@ -24,9 +24,9 @@ function spectrum(t: number): string {
 const QUOTE_WORDS = "“From hello to booked — I just tap Approve from the booth.”".split(" ");
 
 const STATS = [
-  { value: "<5 min", label: "median first reply" },
-  { value: "~50%", label: "of couples book the first responder" },
-  { value: "$1,800", label: "the booking you stop losing" },
+  { value: "<5 min", label: "designed to reply in under 5 minutes" },
+  { value: "First", label: "couples often book whoever replies first" },
+  { value: "$1,800", label: "an example booking you stop losing (illustrative)" },
 ];
 
 const FEATURES = [
@@ -351,7 +351,7 @@ export default function VoltageLightPreview() {
               ))}
             </blockquote>
             <figcaption className="mt-7 font-mono text-xs uppercase tracking-[0.2em] text-white/50">
-              — a beta DJ
+              — what the workflow feels like
             </figcaption>
           </figure>
         </div>

@@ -28,6 +28,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }
 
+  // Idempotency (audit B1): Stripe retries a delivery for up to ~3 days until it
+  // gets a 2xx. Skip events we've already processed so a retry can't double-apply
+  // a plan/subscription change. (We only reach the recorder below after the
+  // handler runs without throwing — a thrown handler returns 5xx, Stripe retries,
+  // and the event reprocesses.)
+  const alreadyProcessed = await db.processedStripeEvent.findUnique({ where: { id: event.id } });
+  if (alreadyProcessed) return NextResponse.json({ received: true, deduped: true });
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -59,9 +67,7 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findFirst({
-        where: { stripeSubscriptionId: sub.id },
-      });
+      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
       if (!business) break;
 
       if (sub.status === "active" || sub.status === "past_due") {
@@ -80,9 +86,7 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findFirst({
-        where: { stripeSubscriptionId: sub.id },
-      });
+      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
       if (!business) break;
       // Subscription gone → expired-trial state: leads still ingest, drafting
       // pauses (metering), owner sees resubscribe prompts. Never delete data.
@@ -93,6 +97,13 @@ export async function POST(req: NextRequest) {
       break;
     }
   }
+
+  // Record only after the switch completes without throwing. The catch swallows
+  // the unique-violation race where two concurrent deliveries of the same event
+  // both passed the findUnique above — the event is recorded either way.
+  await db.processedStripeEvent
+    .create({ data: { id: event.id, type: event.type } })
+    .catch(() => {});
 
   return NextResponse.json({ received: true });
 }

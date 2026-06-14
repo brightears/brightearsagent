@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
    voice; cyan is the PRODUCT voice and this page isn't the product). */
 function EpkKicker({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-cream/50">
+    <span className="inline-flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-cream/65">
       <span aria-hidden className="size-1 flex-none bg-neon-magenta" />
       {children}
     </span>

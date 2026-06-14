@@ -126,7 +126,7 @@ describe("runDiscoveryScan orchestration", () => {
 });
 
 describe("runDiscoveryScan warm wheel (10.2c)", () => {
-  const warmSeenBy = async (count: number, forceWarm = false) => {
+  const warmSeenBy = async (count: number, _forceWarm = false) => {
     mockDb.business.findUniqueOrThrow.mockResolvedValue(
       business({ discoveryScanCount: count, serviceCities: ["Manchester"] }),
     );

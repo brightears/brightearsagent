@@ -88,7 +88,7 @@ model Business {
   plan                 PlanTier      @default(TRIAL)
   trialEndsAt          DateTime?
   stripeCustomerId     String?       @unique
-  stripeSubscriptionId String?
+  stripeSubscriptionId String?       @unique // audit NF18: one subscription ↔ one business; lets webhook use findUnique
   // Phase 10.2b: discovery-scan budget guard — a live scan costs real Serper
   // queries; refuse a new scan if one ran < 20h ago (manual --force bypasses).
   lastDiscoveryScanAt  DateTime?
@@ -536,4 +536,14 @@ model MarketingContact {
   createdAt DateTime @default(now())
 
   @@unique([email, source])
+}
+
+// Idempotency ledger for Stripe webhooks (audit B1). Stripe retries a delivery
+// for up to ~3 days until it gets a 2xx; the webhook checks this table on
+// `event.id` BEFORE applying side effects and records it after, so a retried
+// delivery can never double-apply a plan/subscription change.
+model ProcessedStripeEvent {
+  id          String   @id // Stripe event.id (evt_...)
+  type        String // event.type, for debugging/audit
+  processedAt DateTime @default(now())
 }

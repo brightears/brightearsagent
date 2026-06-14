@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { OnboardingBanner } from "@/components/onboarding-banner";
+import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
   LEAD_STATUS_META,
@@ -147,6 +148,11 @@ export default async function Dashboard({
     }),
   ]);
   const business = { ...tenant, leads };
+  // First-run dashboard shows ONE next action (audit C4): while setup is
+  // incomplete the OnboardingBanner is the single CTA, so the no-leads welcome
+  // drops its competing "Connect your leads" button and points at finishing
+  // setup; once setup is done the banner hides and the welcome owns the CTA.
+  const setup = await getSetupStatus(tenant);
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
   // only — the query filtered, so the cast on status is honest).
@@ -224,11 +230,17 @@ export default async function Dashboard({
               kicker="The inbox is listening"
               title="No leads yet."
               accent="yet."
-              hint="Connect your leads — your forwarding test will land here."
+              hint={
+                setup.incomplete
+                  ? "Finish your setup above — then your forwarding test will land here."
+                  : "Connect your leads — your forwarding test will land here."
+              }
               cta={
-                <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
-                  Connect your leads
-                </Link>
+                setup.incomplete ? undefined : (
+                  <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
+                    Connect your leads
+                  </Link>
+                )
               }
             />
             <StickerChip tone="magenta" rotate={6} className="absolute -top-2.5 right-8">

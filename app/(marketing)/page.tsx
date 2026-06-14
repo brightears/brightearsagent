@@ -24,24 +24,24 @@ import { Kicker } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Bright Ears — stop being the 5th DJ to reply",
   description:
-    "The AI back office that wins you the gig: every inquiry answered in your voice in under 5 minutes, followed up for days, until it's booked or dead — you just tap Approve. 14-day free trial, no card.",
+    "The AI back office that answers every inquiry first, in your voice, in under 5 minutes, then follows up for days until it's booked or dead — you just tap Approve. 14-day free trial, no card.",
 };
 
 const TRUST_LINE = "14-day free trial · no card · 5-minute setup";
 
 const MARQUEE_ITEMS = [
-  "ANSWERED IN 4:51",
+  "ANSWERED IN MINUTES",
   "YOUR VOICE, NOT A BOT'S",
   "FOLLOWED UP UNTIL BOOKED — OR DEAD",
   "WHILE YOU WERE ON STAGE",
   "NO ALGORITHM SLOP",
-  "EVERY LEAD. EVERY TIME.",
+  "REAL LEADS, ANSWERED FAST.",
 ];
 
 const STATS = [
-  { n: "<5 min", l: "median first reply" },
-  { n: "~50%", l: "of couples book the first responder" },
-  { n: "$1,800", l: "the booking you stop losing" },
+  { n: "Under 5 min", l: "our target first reply" },
+  { n: "First", l: "couples often book whoever replies first" },
+  { n: "$1,800", l: "an example booking you stop losing (illustrative)" },
 ];
 
 /* word-by-word magenta → orange spectrum — the gradient pull-quote treatment */
@@ -166,7 +166,7 @@ export default function HomePage() {
                   Watch it write a reply
                 </a>
               </div>
-              <p className="mt-6 text-sm text-cream/45">{TRUST_LINE}</p>
+              <p className="mt-6 text-sm text-cream/65">{TRUST_LINE}</p>
             </div>
             <HeroCollage />
           </div>
@@ -190,6 +190,10 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <p className="mt-8 max-w-2xl text-xs leading-relaxed text-cream/65">
+            Results depend on demand in your area — we make sure every real lead gets a fast,
+            personal reply.
+          </p>
         </RevealOnScroll>
       </section>
 
@@ -201,8 +205,8 @@ export default function HomePage() {
             “I can’t always text the lead within <GradWord>5 minutes</GradWord>.”
           </h2>
           <p className="mt-3 text-lg text-cream/70">
-            Now you can — without touching your phone. Paste a real inquiry below and watch the
-            engine that wins you the gig write the reply, live. Your voice, not a bot’s.
+            Now you can — without touching your phone. Paste a real inquiry below and watch it
+            answer first, in your voice, write the reply, live. Your voice, not a bot’s.
           </p>
           <div className="relative mt-10">
             <GradientBlob tone="show" className="-bottom-10 -left-8 h-44 w-72" />
@@ -292,8 +296,8 @@ export default function HomePage() {
                 “If there were two of me, I would double my business.”
               </blockquote>
               <p className="mt-3 text-sm leading-relaxed text-ink-stage/65">
-                More leads was never the problem. Answering every one of them, fast, every time —
-                that’s the problem.
+                More leads was never the problem. Answering real leads fast, before someone else
+                does — that’s the problem.
               </p>
             </div>
           </RevealOnScroll>
@@ -309,7 +313,7 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 text-lg text-cream/70">
             You play the gig. This plays the inbox. Three steps, about five minutes of setup —
-            median first reply: under 5 minutes.
+            designed to reply in under 5 minutes.
           </p>
         </RevealOnScroll>
         <RevealOnScroll delayMs={100}>
@@ -420,7 +424,7 @@ export default function HomePage() {
               </span>
             ))}
           </div>
-          <p className="mt-3 text-center text-xs text-cream/45">
+          <p className="mt-3 text-center text-xs text-cream/65">
             Simple email forwarding — no password sharing, no OAuth.
           </p>
         </RevealOnScroll>
@@ -447,8 +451,8 @@ export default function HomePage() {
                 “If there were two of me, I would <GradWord>double</GradWord> my business.”
               </blockquote>
               <p className="mx-auto mt-4 max-w-xl text-lg text-cream/75">
-                Now there are two of you. One plays the gigs. The other wins them — every lead
-                answered in minutes, followed up for days, carried all the way to booked. And it
+                Now there are two of you. One plays the gigs. The other answers every lead in
+                minutes and follows up for days, so you stop losing gigs to a slow reply. And it
                 always asks before sending.
               </p>
               <Link
@@ -458,7 +462,7 @@ export default function HomePage() {
                 Start free
               </Link>
               <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
-              <p className="mt-1 text-xs text-cream/50">
+              <p className="mt-1 text-xs text-cream/65">
                 Then from $25/mo. At your lead cap we pause — never a surprise bill.
               </p>
             </div>

@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# macOS/iCloud/Finder sync-conflict copies ("foo 2.ts", "bar 2.sql") — never commit these
+* [0-9].*
+
 # debug
 npm-debug.log*
 yarn-debug.log*

@@ -22,7 +22,7 @@ const orgJsonLd = {
   logo: "https://brightears.io/brand/logo.svg",
   description:
     "Bright Ears is the AI back office for wedding and event performer businesses: every inquiry answered in under 5 minutes, in your voice, with your real availability — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
-  slogan: "Your gigs, answered and booked.",
+  slogan: "Every inquiry answered in minutes.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Bangkok",
@@ -243,8 +243,8 @@ export default function StoryPage() {
                     It filters out the spam and scams before you see them, then drafts
                     a reply in <em>your</em> voice, from <em>your</em> rate card, with{" "}
                     <em>your</em> real availability. You approve it from your phone —
-                    from the booth, between ceremonies, from the couch. Median first
-                    reply: under 5 minutes. Then it follows up until the gig is booked
+                    from the booth, between ceremonies, from the couch. Designed to
+                    reply in under 5 minutes. Then it follows up until the gig is booked
                     or the lead is truly dead, with a one-tap opt-out on every email.
                   </p>
                   <p>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Design A — Electric Stage",
@@ -41,7 +42,7 @@ const NAV_LINKS = [
 ];
 
 const STATS = [
-  { big: "<5 min", small: "median first reply" },
+  { big: "<5 min", small: "the reply speed we design for" },
   { big: "~50%", small: "of couples book the first responder" },
   { big: "$1,800", small: "the booking you stop losing" },
 ];
@@ -122,13 +123,13 @@ export default function DesignAPage() {
 
       {/* ============================== NAV ============================== */}
       <nav className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <a href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <span
             className="inline-block h-3.5 w-3.5 rounded-full"
             style={{ backgroundImage: `linear-gradient(135deg, ${MAGENTA}, ${ORANGE})` }}
           />
           <span className="text-lg font-bold tracking-tight text-white">Bright Ears</span>
-        </a>
+        </Link>
         <div className="flex items-center gap-7 text-sm">
           {NAV_LINKS.map((n) => (
             <a key={n.href} href={n.href} className="hidden text-white/60 transition-colors hover:text-white sm:inline">
@@ -280,7 +281,7 @@ export default function DesignAPage() {
               style={{ animation: "ea-float 6s ease-in-out infinite" }}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Replied in 4 min 51 s
+              Answered in minutes
             </div>
             <div
               className="absolute bottom-[16%] right-[10%] rounded-full p-[1.5px] shadow-[0_0_24px_rgba(255,45,174,0.45)]"
@@ -355,7 +356,7 @@ export default function DesignAPage() {
             ))}
           </blockquote>
           <figcaption className="mt-7 text-sm font-medium uppercase tracking-[0.2em] text-white/40">
-            — a beta DJ
+            What it feels like to use it
           </figcaption>
         </figure>
       </section>

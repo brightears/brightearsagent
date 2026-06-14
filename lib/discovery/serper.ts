@@ -273,7 +273,7 @@ function isLinkedInUrl(url: string): boolean {
   }
 }
 
-function toRawSignal(c: ExtractedCandidate, scanNow: Date): RawSignal {
+function toRawSignal(c: ExtractedCandidate, _scanNow: Date): RawSignal {
   let observedAt: Date | undefined;
   if (c.observedAtISO) {
     const d = new Date(c.observedAtISO);

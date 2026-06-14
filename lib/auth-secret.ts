@@ -16,6 +16,27 @@ export function checkSharedSecret(envVar: string | undefined, provided: string |
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+/**
+ * Extract the caller-provided shared secret from a request, preferring HEADERS
+ * over the query string. A `?secret=...` query param leaks into access/request
+ * logs, proxies and browser history; an Authorization/header secret does not.
+ *
+ * Order: `Authorization: Bearer <secret>` → `x-webhook-secret` header → the
+ * legacy `?secret=` query param. The query fallback is kept ONLY so already-
+ * configured cron/Postmark URLs keep working through the cutover — migrate those
+ * to send the header (see docs/DEPLOYMENT.md) to fully close the leak.
+ */
+export function providedSecret(req: {
+  headers: { get(name: string): string | null };
+  nextUrl?: { searchParams: { get(name: string): string | null } };
+}): string | null {
+  const auth = req.headers.get("authorization");
+  if (auth && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  const header = req.headers.get("x-webhook-secret");
+  if (header) return header;
+  return req.nextUrl?.searchParams.get("secret") ?? null;
+}
+
 /** Resolve a required secret, throwing in production if it's missing. */
 export function requireSecret(envVar: string | undefined, name: string): string {
   if (!envVar) {

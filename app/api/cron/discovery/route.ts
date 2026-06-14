@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
-import { checkSharedSecret } from "@/lib/auth-secret";
+import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 
 export const maxDuration = 300;
 
@@ -12,7 +12,7 @@ export const maxDuration = 300;
  * with per-tenant isolation: one tenant's failure never blocks the rest.
  */
 export async function GET(req: NextRequest) {
-  if (!checkSharedSecret(process.env.CRON_SECRET, req.nextUrl.searchParams.get("secret"))) {
+  if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

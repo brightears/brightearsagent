@@ -3,12 +3,20 @@
 // links with cyan hover (interface voice), magenta "Start free" pill (show voice).
 import Link from "next/link";
 import { BrightEarsLogo } from "@/components/ui";
+import { MarketingMobileMenu } from "@/components/marketing-mobile-menu";
 
 const NAV = [
   { href: "/pricing", label: "Pricing" },
   { href: "/compare", label: "Compare" },
   { href: "/tools/inquiry-reply-generator", label: "Free tools" },
   { href: "/story", label: "Our story" },
+];
+
+const LEGAL = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/cookies", label: "Cookies" },
+  { href: "/dpa", label: "DPA" },
 ];
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -37,21 +45,38 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               Start free
             </Link>
           </nav>
+          <MarketingMobileMenu links={NAV} />
         </div>
       </header>
       <main className="flex-1">{children}</main>
       <footer className="mt-24 border-t border-cream/10">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-6 px-6 py-10 text-sm text-cream/45">
+        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-x-8 gap-y-8 px-6 py-10 text-sm text-cream/65">
           <div className="flex items-center gap-2.5">
             <BrightEarsLogo size={20} />
             <span>Bright Ears — 20 years in entertainment, now working for your business.</span>
           </div>
-          <div className="flex gap-5">
+          <nav className="flex gap-5">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} className="transition-colors hover:text-brand-cyan">
                 {n.label}
               </Link>
             ))}
+          </nav>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-cream/65">
+              Legal
+            </span>
+            <nav className="flex gap-5">
+              {LEGAL.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="transition-colors hover:text-brand-cyan"
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
           </div>
         </div>
       </footer>
