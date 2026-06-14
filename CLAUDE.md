@@ -12,7 +12,7 @@ Self-serve SaaS under the existing **Bright Ears** brand (will take over brighte
 
 1. **Total separation from the live agency stack.** Never import from, modify, or depend on `../brightears` (live business at brightears.io, run by the Vinyl agent) or `../brightears26`. Patterns may be reimplemented; code never copied wholesale. Brand assets (logo, favicons) in `public/brand/` were copied from the old repo — that's the only sanctioned crossover.
 2. **brightears.io cutover discipline (Phase 8):** the old service moves to `agency.brightears.io` FIRST (LINE webhook re-registered, Clerk origins updated, Vinyl verified working for several days) before the apex domain ever points at this app. Until then this app deploys on its own Render service with a temporary URL. Vinyl must never lose a single day of operation.
-3. **Email spine, no OAuth at MVP.** No Gmail/Microsoft OAuth scopes in the critical path (Google restricted scopes need CASA review — deferred to Phase 1.5 via Unipile/Nylas). Inbound = per-tenant parse address (`leads@{slug}.in.brightears.io`); outbound via `mail.brightears.io` (own SPF/DKIM, isolated from any existing mail), From = business name, Reply-To = owner.
+3. **Email spine, no OAuth in the reactive critical path.** The reactive product (inbound→draft→approve→send) uses NO Gmail/Microsoft OAuth: inbound = per-tenant parse address (`leads@{slug}.in.brightears.io`); outbound via `mail.brightears.io` (own SPF/DKIM, isolated from any existing mail), From = business name, Reply-To = owner. **Carve-out (ADR-004):** the *proactive* sales agent sends venue pitches from the artist's OWN Gmail via native minimal-scope OAuth (`gmail.send` only) — shipped (ROADMAP 10.5), CASA review deferred to public launch; this replaces the earlier Unipile/Nylas plan. No Microsoft/Outlook OAuth is built yet (Google only).
 4. **ToS discipline:** never scrape or script The Knot/WeddingWire vendor inboxes (parsing their *notification emails* arriving in the tenant's own inbox is fine — established practice). GigSalad: draft + deep link only, never auto-send. Bark: official Zapier route with owner-set budget caps.
 5. **Automation hard-stops:** BOOKED, DEAD, opt-out, and prospect-reply (ENGAGED) stop sequences immediately. Every sequence email carries an opt-out. Compliance footer varies by tenant country (CAN-SPAM/PECR/CASL/Spam Act).
 6. **Polymorphic from day one:** `PerformerKind` covers all performer types; nothing DJ-specific in shared code. DJ-first lives in marketing copy only.
@@ -35,7 +35,7 @@ Self-serve SaaS under the existing **Bright Ears** brand (will take over brighte
 ## Stack
 
 - Next.js 16 (App Router, Turbopack) + TypeScript + Tailwind v4 — heed AGENTS.md: read `node_modules/next/dist/docs/` before writing code
-- Prisma 7 + Postgres (generated client at `app/generated/prisma`; `prisma.config.ts` present)
+- Prisma 6.19 + Postgres (generated client at `app/generated/prisma`; `prisma.config.ts` present)
 - LLM: OpenRouter gateway + Vercel AI SDK (the pattern proven in brightears26) — per-purpose model map, DeepSeek V4 Flash/Pro defaults (see rule 10)
 - Postmark or Mailgun inbound-parse + outbound (decide in ROADMAP Phase 1 spike)
 - Stripe billing; Clerk auth
