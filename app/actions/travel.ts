@@ -13,12 +13,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+// Role tags live in a plain module — a "use server" file may only export async
+// functions, so the const/type cannot be defined (or re-exported) here.
+import { TRAVEL_ROLE_TAGS } from "@/lib/travel/roles";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-
-// The role tags an owner may attach to a window (what kind of work to hunt).
-export const TRAVEL_ROLE_TAGS = ["guest-spot", "residency", "private-event"] as const;
-export type TravelRoleTag = (typeof TRAVEL_ROLE_TAGS)[number];
 
 const idSchema = z.string().trim().min(1, "No window given").max(64);
 
