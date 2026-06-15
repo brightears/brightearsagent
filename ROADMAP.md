@@ -108,3 +108,10 @@ Rules of engagement for any agent working this file:
 - [ ] 10.7 Control plane: Telegram bot (digest, Approve/Edit/Skip buttons, deep links, one-time-token linking) + web push; WhatsApp utility-template digest later in this phase
 - [ ] 10.8 Multilingual + culturally-tuned pitches (recipient-language drafting); pitch-quality eval harness (extend the 16-scenario suite with venue-pitch scenarios per language); cadence tiers daily / ~3-hourly wired to plans
 - [ ] 10.9 Beta gates (conversion is the bet): instrument venue reply-rate from day 1; ≥30% of beta artists get ≥1 real venue conversation within 14 days before charging; north star = % with agent-sourced booking inside 90 days
+
+## Pre-launch audit + founder decisions (June 14-15, 2026) — branch `audit/pre-launch` / PR #1
+Full record: `docs/AUDIT-FINDINGS.md` (→ RESOLUTION LOG). Audit auto-fixes + the founder decisions are committed and green; PR awaits founder review/merge.
+- DONE: copy honesty (no unenforceable guarantee, stats→targets, absolutes softened, broadened beyond weddings), risk-reversal FINAL = 14-day no-card free trial / no money-back, two-allowance + Hunt disclosure, Stripe webhook dedup, header-auth, mobile/WCAG, proxy fail-closed, rate limiter, OPS_ALERT_EMAIL, legal pages populated (entity/reg/email; no street address; not-directed-at-EU/UK; no DPO).
+- [ ] DEFERRED founder gates (pre-launch): rotate chat-exposed secrets · Clerk production instance + domain · Gmail CASA (before proactive auto-send >~100 test users) · DB backup/restore drill + Sentry decision · lawyer review of legal pages before publishing · EU/UK Art 27 reps (only if EU traction grows) · EU/UK B2C VAT (accountant, before EU scaling).
+- [ ] OPTIONAL polish (audit-flagged): billing success/cancel toasts + at-cap banner + lead-pack build-or-strike (C3) · post-send venue-tracking surface + codify discovery cron in deploy config + onboarding step-5 spinner fallback (C2).
+- [ ] NEW: artist "business postal address" profile field → flows into outreach/compliance email footers (CAN-SPAM/CASL; artist is the legal sender).

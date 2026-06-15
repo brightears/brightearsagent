@@ -17,6 +17,26 @@ Every item across Tracks A–D is **FIXED** (applied + verified), **FIXED\*** (i
 
 **Next step:** founder reviews this single diff (PR "Pre-launch audit"), works the FOUNDER DECISIONS list, then merges. Do not merge unreviewed.
 
+## ✅ RESOLUTION LOG — founder decisions applied (2026-06-15)
+
+Worked through the FOUNDER DECISIONS with the founder and applied them on this branch (PR #1).
+
+**Resolved + applied:**
+- **FD1 (refund/trial) → FINAL: 14-day no-card free trial → monthly, cancel anytime, NO money-back guarantee.** Founder first chose "no-trial + 30-day money-back," then reversed after risk-reversal research (value is setup-gated → a trial that lets owners feel it work activates better than charging first; trial + guarantee is redundant on monthly plans). The agent works DURING the trial; the unenforceable "pays for itself" claim stays removed.
+- **FD2 / FD3 (stats / absolutes) → applied** — stats reframed to targets / cited; absolutes softened.
+- **FD6 (metering) → applied** — two SEPARATE allowances disclosed (inbound leads/mo vs venue pitches/day); Hunt surfaced as a headline feature; positioning broadened beyond weddings (founder priority).
+- **FD7 (legal pages) → built + populated** — entity Bright Ears Co., Ltd., Thai reg no. 0105550096659, contact info@brightears.io. Founder calls: street address NOT shown anywhere (entity + reg no. + email is sufficient); EU/UK Art 27 reps DEFERRED → page states the service is not directed at EU/UK and none are appointed; NO DPO (not mandatory at current scale). Lawyer review before publishing remains a (deferred) founder item.
+- **FD8 (Stripe tax) → decided** — Thai entity (Stripe verified); NOT enabling automatic_tax; EU/UK B2C digital-VAT is an accountant question before scaling to the EU. Stripe apiVersion already pinned.
+- **FD4 (ops) → partial** — OPS_ALERT_EMAIL set (norbert@brightears.io); rate limiter + shared reportError done. Backup/restore drill + Sentry decision deferred (founder).
+
+**Still deferred — founder gates, pre-launch by design:** FD5/FD11 rotate chat-exposed secrets · FD9 Clerk production instance + domain · FD10 Gmail CASA (before proactive auto-send beyond ~100 test users) · backup/restore drill + Sentry · lawyer review of the legal pages · EU/UK reps (only if EU traction grows).
+
+**Optional polish NOT yet built (audit-flagged, nice-to-have):** FD12/C3 billing success/cancel toasts + at-cap banner + lead-pack build-or-strike · FD11/C2 post-send venue-tracking surface + codify the discovery cron in deploy config + onboarding step-5 spinner fallback.
+
+**New follow-up logged:** the ARTIST's outreach footers legally need the ARTIST's own physical postal address (CAN-SPAM/CASL — the artist is the sender); add a "business postal address" profile field feeding the pitch/compliance footers. (Not the founder's home address.)
+
+PR #1 is complete and green; **not merged** — founder's call.
+
 ---
 
 ## Seeded findings
