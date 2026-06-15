@@ -43,8 +43,12 @@ export const BRIGHT_EARS_PRICING = {
   // lib/outreach/caps.ts: HOT 10 / WARM 5 / SEED 3 (≤18/day total).
   hunt:
     "Every plan also includes the Hunt: the proactive agent that finds venues hiring entertainment, scores the fit, and drafts outreach in your voice for you to approve — up to ~10 venue pitches a day.",
+  // NOTE (audit C3): we deliberately do NOT advertise a buyable lead-pack here.
+  // The product PAUSES drafting at the cap and prompts an upgrade — it never
+  // surprise-bills. A real $10/10-leads top-up is a deferred founder option
+  // (no purchase flow is built); revisit this copy if/when it ships.
   overage:
-    "Need more? Lead packs are $10 per 10. At your cap, drafting pauses — never a surprise bill.",
+    "Need more? Move up a plan in one click. At your cap, drafting pauses for the month — never a surprise bill.",
 } as const;
 
 /**
@@ -235,7 +239,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering, and the proactive Hunt agent that drafts venue outreach (up to ~10 pitches/day) for you to approve — the tiers only change how many inbound leads, how many performers and how much autopilot. Extra leads are $10 per 10; at your cap, drafting pauses — never a surprise bill. Start with a 14-day free trial of full Pro — no card — then month-to-month, cancel anytime.",
+      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering, and the proactive Hunt agent that drafts venue outreach (up to ~10 pitches/day) for you to approve — the tiers only change how many inbound leads, how many performers and how much autopilot. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. Start with a 14-day free trial of full Pro — no card — then month-to-month, cancel anytime.",
   },
   {
     question: "Does Bright Ears do quotes, contracts or deposits?",
@@ -996,7 +1000,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     {
       question: "What does the bolt-on option cost?",
       answer:
-        "Bright Ears starts at $25/mo (15 leads, 1 performer — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). 14-day free trial, no card. Extra leads $10 per 10 — at your cap, drafting pauses rather than surprise-billing you.",
+        "Bright Ears starts at $25/mo (15 leads, 1 performer — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). 14-day free trial, no card. Need more leads? Upgrade in one click — at your cap, drafting pauses for the month rather than surprise-billing you.",
     },
   ],
   ctaHeading: "Fix the complaint without the migration",

@@ -3,8 +3,11 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
 
 /**
  * Customers are metered in LEADS (they understand leads, not tokens).
- * At cap: ingestion continues (never lose a lead), drafting pauses, owner gets
- * a friendly upsell push — never a surprise bill. Lead packs raise the cap.
+ * At cap: ingestion continues (never lose a lead), drafting pauses for the rest
+ * of the month, owner gets a friendly upgrade prompt — never a surprise bill.
+ * DEFERRED (audit C3): a buyable lead-pack top-up that raises the cap mid-month
+ * is a founder revenue option, NOT built (no Stripe price / checkout / UI). The
+ * cap resets at monthStart(); the only mid-month fix today is upgrading the plan.
  */
 export const PLAN_LEAD_CAPS: Record<PlanTier, number> = {
   // TRIAL is a REAL 14-day full-Pro free trial (FINAL founder decision

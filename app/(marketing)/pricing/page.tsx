@@ -99,7 +99,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What happens when I hit my monthly lead cap?",
-    a: "Drafting pauses and we notify you immediately — we never silently bill you more. You can add a lead pack ($10 per 10 leads) or upgrade your plan in one click. No surprise bills, ever.",
+    a: "Drafting pauses for the rest of the month and we notify you immediately — we never silently bill you more. New leads still arrive and nothing is lost; to switch drafting back on right away, upgrade your plan in one click. Your cap resets at the start of next month. No surprise bills, ever.",
   },
   {
     q: "Can I cancel anytime?",
@@ -311,12 +311,13 @@ export default function PricingPage() {
         <div className="grid gap-6 sm:grid-cols-2">
           <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] -rotate-1">
             <h3 className="font-bold text-ink-stage">
-              Busy month? Lead packs, not lock-in.
+              Busy month? Upgrade, not lock-in.
             </h3>
             <p className="mt-2 text-sm text-ink-stage/70">
               Busy-season spikes are real — wedding months, festival runs, a
-              corporate Q4. Add 10 extra leads for $10 whenever you need them — no
-              plan change, no commitment.
+              corporate Q4. Move up a plan in one click for more leads each month,
+              and step back down whenever the rush passes. Month-to-month, no
+              commitment.
             </p>
           </div>
           <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] rotate-1">
