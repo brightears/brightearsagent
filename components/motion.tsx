@@ -76,8 +76,10 @@ export function KineticHeadline({
             const isAccent = globalIndex === accentGlobalIndex;
             return (
               <Fragment key={wi}>
-                {/* clip wrapper: slight bottom padding keeps descenders un-cropped */}
-                <span className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
+                {/* clip wrapper: bottom padding keeps heavy display descenders
+                    (g, y, p, j) un-cropped under the tight leading-[0.95] heroes.
+                    pb and -mb are equal so line spacing is unchanged. */}
+                <span className="-mb-[0.28em] inline-block overflow-hidden pb-[0.28em] align-bottom">
                   <span
                     className={`be-kinetic-word${isAccent ? ` ${ACCENT_CLASS}` : ""}`}
                     style={{ animationDelay: `${delay}ms` }}
