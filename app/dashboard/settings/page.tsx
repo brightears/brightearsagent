@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { Card, Badge, buttonStyles, Kicker, PageHeader } from "@/components/ui";
 import { SettingsForm, CopyButton } from "@/components/settings-form";
+import { TravelWindowsCard, type TravelWindowRow } from "@/components/travel-windows-card";
 import { PushToggle } from "@/components/push-toggle";
 import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
@@ -193,6 +194,30 @@ export default async function SettingsPage({
   // At-cap / usage surfaced in-app (audit C3), not only via push.
   const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
 
+  // Travel Mode: the artist's ACTIVE travel windows (upcoming + live), soonest
+  // first. Cancelled/expired windows aren't shown here (history only).
+  const travelWindows = await db.travelWindow.findMany({
+    where: { businessId: business.id, status: "ACTIVE" },
+    orderBy: { startDate: "asc" },
+    select: {
+      id: true,
+      city: true,
+      country: true,
+      startDate: true,
+      endDate: true,
+      radiusKm: true,
+      roleTags: true,
+      status: true,
+    },
+  });
+  // Dates are date-only (UTC midnight) — serialize to YYYY-MM-DD for the client.
+  const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+  const travelWindowRows: TravelWindowRow[] = travelWindows.map((w) => ({
+    ...w,
+    startDate: isoDate(w.startDate),
+    endDate: isoDate(w.endDate),
+  }));
+
   return (
     <main className="flex-1 bg-ink-stage">
       <div className="mx-auto w-full max-w-4xl px-6 py-8">
@@ -233,6 +258,13 @@ export default async function SettingsPage({
             }}
           />
         </Card>
+
+        {/* Travel Mode: "Where you hunt" — Home Base + travel windows manager. */}
+        <TravelWindowsCard
+          serviceCities={business.serviceCities}
+          homeRadiusKm={business.homeRadiusKm}
+          windows={travelWindowRows}
+        />
 
         <Card className="p-6">
           <h2 className="mb-4">

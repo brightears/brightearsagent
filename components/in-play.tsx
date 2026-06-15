@@ -29,6 +29,8 @@ export type InPlayVenue = {
   kind: VenueKind;
   status: VenueStatus;
   pitchedAt: Date | null;
+  /** Travel Mode: the travel-window city, when this is a travel find (else null). */
+  travelCity: string | null;
 };
 
 const KIND_LABEL: Record<VenueKind, string> = {
@@ -85,7 +87,15 @@ function InPlayRow({ venue, now }: { venue: InPlayVenue; now: Date }) {
   return (
     <li className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink-stage/10 bg-white p-4 shadow-sm">
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-ink-stage">{venue.name}</p>
+        <p className="flex flex-wrap items-center gap-2 font-semibold text-ink-stage">
+          {venue.name}
+          {/* Travel Mode tag (mono, cyan interface accent, no emoji). */}
+          {venue.travelCity && (
+            <span className="inline-block rounded-full bg-brand-cyan-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
+              Travel · {venue.travelCity}
+            </span>
+          )}
+        </p>
         <p className="mt-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-stage/45">
           {KIND_LABEL[venue.kind]} · {venue.city}, {venue.country}
           {sent ? ` · ${sent}` : ""}

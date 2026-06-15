@@ -120,6 +120,9 @@ export default async function Dashboard({
         lastSignalAt: true,
         bookingEmail: true,
         contactSource: true,
+        // Travel Mode: the window's city, when this venue is a travel find —
+        // drives the "Travel · {city}" tag on the card.
+        travelWindow: { select: { city: true } },
         // The live pitch for the review surface (10.3) — at most one PENDING
         // or parked APPROVED per venue (action-level dedupe guarantee).
         pitches: {
@@ -156,6 +159,8 @@ export default async function Dashboard({
         kind: true,
         status: true,
         pitchedAt: true,
+        // Travel Mode: window city for the "Travel · {city}" tag (in play too).
+        travelWindow: { select: { city: true } },
       },
     }),
     db.package.count({ where: { businessId: tenant.id, active: true } }),
@@ -175,9 +180,11 @@ export default async function Dashboard({
   const setup = await getSetupStatus(tenant);
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
-  // only — the query filtered, so the cast on status is honest).
-  const huntCards = huntVenues.map(({ pitches, ...venue }) => ({
+  // only — the query filtered, so the cast on status is honest). Travel Mode:
+  // flatten the window into travelCity for the "Travel · {city}" tag.
+  const huntCards = huntVenues.map(({ pitches, travelWindow, ...venue }) => ({
     ...venue,
+    travelCity: travelWindow?.city ?? null,
     pitch: pitches[0]
       ? { ...pitches[0], status: pitches[0].status as "PENDING" | "APPROVED" }
       : null,
@@ -262,7 +269,14 @@ export default async function Dashboard({
       {/* In play (audit C2): venues a pitch was sent to leave the Hunt feed —
           this section gives them a home so the owner can track the reply by
           hand. Only shown once at least one pitch has gone out. */}
-      {inPlayVenues.length > 0 && <InPlaySection venues={inPlayVenues} />}
+      {inPlayVenues.length > 0 && (
+        <InPlaySection
+          venues={inPlayVenues.map(({ travelWindow, ...v }) => ({
+            ...v,
+            travelCity: travelWindow?.city ?? null,
+          }))}
+        />
+      )}
 
       {business.leads.length === 0 ? (
         // Whole-pipeline welcome: a cream poster floating on the ink, sticker

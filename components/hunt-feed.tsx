@@ -39,6 +39,8 @@ export type HuntVenue = {
   lastSignalAt: Date | null;
   bookingEmail: string | null;
   contactSource: string | null;
+  /** Travel Mode: the travel-window city, when this is a travel find (else null). */
+  travelCity: string | null;
   /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
   pitch: HuntPitch | null;
 };
@@ -97,6 +99,13 @@ function VenueCard({
           >
             {TEMPERATURE_CHIP[venue.temperature].label}
           </span>
+          {/* Travel Mode tag (no emoji, mono, cyan interface accent): marks a
+              find from a travel window so travel finds are distinguishable. */}
+          {venue.travelCity && (
+            <span className="ml-1.5 mt-1.5 inline-block rounded-full bg-brand-cyan-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
+              Travel · {venue.travelCity}
+            </span>
+          )}
           <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
             {KIND_LABEL[venue.kind]}
           </p>
