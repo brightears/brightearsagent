@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockDb = vi.hoisted(() => ({
   package: { count: vi.fn() },
   gig: { count: vi.fn() },
-  venue: { findFirst: vi.fn(), updateMany: vi.fn() },
+  venue: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   venuePitch: { findFirst: vi.fn(), count: vi.fn(), create: vi.fn() },
   outreachSuppression: { findUnique: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
@@ -49,7 +49,7 @@ vi.mock("@/lib/agent/venue-pitch", async (importOriginal) => ({
   })),
 }));
 
-import { draftVenuePitch } from "@/app/actions/venues";
+import { draftVenuePitch, setVenueStatus } from "@/app/actions/venues";
 import { generateVenuePitch } from "@/lib/agent/venue-pitch";
 
 const warmVenue = {
@@ -76,6 +76,7 @@ beforeEach(() => {
   mockDb.gig.count.mockResolvedValue(3);
   mockDb.venue.findFirst.mockResolvedValue(warmVenue);
   mockDb.venue.updateMany.mockResolvedValue({ count: 1 });
+  mockDb.venue.update.mockResolvedValue({ id: "v1" });
   mockDb.venuePitch.findFirst.mockResolvedValue(null);
   mockDb.venuePitch.count.mockResolvedValue(0);
   mockDb.venuePitch.create.mockResolvedValue({ id: "p1" });
@@ -129,5 +130,64 @@ describe("draftVenuePitch — 10.2c caps + temperature snapshot", () => {
     mockDb.venue.findFirst.mockResolvedValue({ ...warmVenue, temperature: "HOT" });
     mockDb.venuePitch.count.mockResolvedValue(9);
     expect(await draftVenuePitch("v1")).toEqual({ ok: true });
+  });
+});
+
+// Post-send venue tracking (audit C2): the owner moves a PITCHED venue along by
+// hand — PITCHED → REPLIED / IN_CONVERSATION / BOOKED / DEAD — since gmail.send
+// captures no reply. Tenant-scoped, status-gated.
+describe("setVenueStatus — manual in-play tracking", () => {
+  const pitchedVenue = { ...warmVenue, status: "PITCHED" };
+
+  it("advances a PITCHED venue to BOOKED", async () => {
+    mockDb.venue.findFirst.mockResolvedValue(pitchedVenue);
+    const result = await setVenueStatus("v1", "BOOKED");
+    expect(result).toEqual({ ok: true });
+    expect(mockDb.venue.update).toHaveBeenCalledWith({
+      where: { id: "v1" },
+      data: { status: "BOOKED" },
+    });
+  });
+
+  it("rejects a status that isn't an in-play target (e.g. PITCHED)", async () => {
+    mockDb.venue.findFirst.mockResolvedValue(pitchedVenue);
+    const result = await setVenueStatus("v1", "PITCHED");
+    expect(result).toEqual({ ok: false, error: "Not a status you can set here" });
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown status string", async () => {
+    mockDb.venue.findFirst.mockResolvedValue(pitchedVenue);
+    const result = await setVenueStatus("v1", "BANANA");
+    expect(result.ok).toBe(false);
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
+  });
+
+  it("refuses to move a venue that isn't in play yet (feed-stage DISCOVERED)", async () => {
+    mockDb.venue.findFirst.mockResolvedValue({ ...warmVenue, status: "DISCOVERED" });
+    const result = await setVenueStatus("v1", "REPLIED");
+    expect(result).toEqual({ ok: false, error: "This venue isn't in play yet" });
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
+  });
+
+  it("won't resurrect a SUPPRESSED venue", async () => {
+    mockDb.venue.findFirst.mockResolvedValue({ ...warmVenue, status: "SUPPRESSED" });
+    const result = await setVenueStatus("v1", "REPLIED");
+    expect(result).toEqual({ ok: false, error: "This venue isn't in play yet" });
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
+  });
+
+  it("is an idempotent no-op when the venue is already in that status", async () => {
+    mockDb.venue.findFirst.mockResolvedValue({ ...warmVenue, status: "BOOKED" });
+    const result = await setVenueStatus("v1", "BOOKED");
+    expect(result).toEqual({ ok: true });
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
+  });
+
+  it("returns not-found when the venue isn't the tenant's", async () => {
+    mockDb.venue.findFirst.mockResolvedValue(null);
+    const result = await setVenueStatus("v1", "BOOKED");
+    expect(result).toEqual({ ok: false, error: "Venue not found" });
+    expect(mockDb.venue.update).not.toHaveBeenCalled();
   });
 });

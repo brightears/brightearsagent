@@ -11,7 +11,12 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAgentPaused } from "@/lib/billing/metering";
 import { profileStrength } from "@/lib/profile/strength";
-import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
+import {
+  isSkipReason,
+  SKIP_REASONS,
+  isInPlayStatus,
+  isInPlayTargetStatus,
+} from "@/lib/venues/feed";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
 import {
   capError,
@@ -518,6 +523,54 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
 /** Form-friendly wrapper (form `action` must return void). */
 export async function skipVenueForm(venueId: string, reason: string): Promise<void> {
   await skipVenue(venueId, reason);
+}
+
+/**
+ * Manual post-send venue tracking (audit C2). gmail.send is send-only — once a
+ * pitch goes out there's no automated venue-reply capture — so the owner moves
+ * a venue along by hand from the "In play" surface: PITCHED → REPLIED /
+ * IN_CONVERSATION / BOOKED / DEAD. Tenant-scoped, status-gated:
+ *   - the venue must currently be IN PLAY (PITCHED onward; SUPPRESSED/feed
+ *     statuses are not movable here — those have their own flows);
+ *   - the target must be a valid in-play target (REPLIED / IN_CONVERSATION /
+ *     BOOKED / DEAD — never back to PITCHED, the system-set "sent" state).
+ * Idempotent: setting the status it already has is a no-op success. BOOKED/DEAD
+ * are terminal for venue automation (mirrors the lead booked-or-dead rule), but
+ * the owner may still re-open by hand if they mis-clicked.
+ */
+export async function setVenueStatus(venueId: string, status: string): Promise<ActionResult> {
+  const parsed = venueIdSchema.safeParse(venueId);
+  if (!parsed.success) return { ok: false, error: "No venue given" };
+  if (!isInPlayTargetStatus(status)) return { ok: false, error: "Not a status you can set here" };
+
+  const business = await getCurrentBusiness();
+  const venue = await findTenantVenue(business.id, parsed.data);
+  if (!venue) return { ok: false, error: "Venue not found" };
+
+  // No-op success if already there (double-click / stale UI).
+  if (venue.status === status) {
+    revalidatePath("/dashboard");
+    return { ok: true };
+  }
+
+  // Only an in-play venue is trackable here — never resurrect a SUPPRESSED one
+  // or hijack a feed-stage venue (DISCOVERED/QUALIFIED/PITCH_DRAFTED).
+  if (!isInPlayStatus(venue.status)) {
+    return { ok: false, error: "This venue isn't in play yet" };
+  }
+
+  await db.venue.update({
+    where: { id: venue.id },
+    data: { status },
+  });
+
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/** Form-friendly wrapper (form `action` must return void). */
+export async function setVenueStatusForm(venueId: string, status: string): Promise<void> {
+  await setVenueStatus(venueId, status);
 }
 
 // ---------------------------------------------------------------------------

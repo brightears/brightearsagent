@@ -3,6 +3,46 @@
 // of the "use server" actions file (which may only export async functions).
 // PURE: no DB, no clock — `now` is a parameter so tests are deterministic.
 
+import type { VenueStatus } from "@/app/generated/prisma/enums";
+
+/**
+ * The post-send "In play" tracking surface (audit C2). gmail.send is send-only,
+ * so a PITCHED venue has no automated reply capture — the owner tracks it by
+ * hand here. These are the statuses a sent venue can be in (PITCHED onward,
+ * minus SUPPRESSED, which is the skip/never-contact bucket).
+ */
+export const IN_PLAY_STATUSES = [
+  "PITCHED",
+  "REPLIED",
+  "IN_CONVERSATION",
+  "BOOKED",
+  "DEAD",
+] as const satisfies readonly VenueStatus[];
+
+export type InPlayStatus = (typeof IN_PLAY_STATUSES)[number];
+
+/**
+ * Statuses the owner may manually set on an in-play venue. PITCHED is omitted:
+ * it's the system-set "we sent it" state, not something you move a venue back
+ * to by hand. The owner advances it as the conversation goes.
+ */
+export const IN_PLAY_TARGET_STATUSES = [
+  "REPLIED",
+  "IN_CONVERSATION",
+  "BOOKED",
+  "DEAD",
+] as const satisfies readonly VenueStatus[];
+
+export type InPlayTargetStatus = (typeof IN_PLAY_TARGET_STATUSES)[number];
+
+export function isInPlayStatus(value: string): value is InPlayStatus {
+  return (IN_PLAY_STATUSES as readonly string[]).includes(value);
+}
+
+export function isInPlayTargetStatus(value: string): value is InPlayTargetStatus {
+  return (IN_PLAY_TARGET_STATUSES as readonly string[]).includes(value);
+}
+
 /**
  * The one-tap skip reasons (ROADMAP 10.4: "Skip asks why → tunes matching").
  * Keys are what we persist in Venue.suppressedReason (machine-readable for the
