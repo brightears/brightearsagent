@@ -28,6 +28,7 @@ import {
 } from "@/lib/outreach/caps";
 import {
   epkUrlFor,
+  formatTravelDateRange,
   generateVenuePitch,
   pitchLanguageFor,
   type VenuePitchRequest,
@@ -92,6 +93,9 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
     where: { id: parsed.data, businessId: business.id },
     include: {
       signals: { orderBy: { observedAt: "desc" }, take: 5 },
+      // Travel Mode: if this venue was found for a travel window, the pitch must
+      // be date-bounded to that window's city + dates (never open-ended).
+      travelWindow: { select: { city: true, startDate: true, endDate: true } },
     },
   });
   if (!venue) return { ok: false, error: "Venue not found" };
@@ -164,6 +168,17 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
       signals: venue.signals.map((s) => s.summary),
       entertainmentEvidence: venue.entertainmentEvidence,
       fitReasons: venue.fitReasons,
+      // Travel Mode: a date-bounded pitch when this venue came from a travel
+      // window — the artist is in town only for these dates.
+      travelWindow: venue.travelWindow
+        ? {
+            city: venue.travelWindow.city,
+            dateRange: formatTravelDateRange(
+              venue.travelWindow.startDate,
+              venue.travelWindow.endDate,
+            ),
+          }
+        : undefined,
     },
     epkUrl: epkUrlFor(business.slug),
     language: pitchLanguageFor(venue.country, business.pitchLanguages),

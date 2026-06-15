@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
   business: { findUniqueOrThrow: vi.fn(), update: vi.fn() },
+  travelWindow: { updateMany: vi.fn() },
 }));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("@/lib/discovery/ingest", () => ({
@@ -39,12 +40,14 @@ const business = (over: Record<string, unknown> = {}) => ({
   serviceCities: ["Manchester", "Leeds"],
   lastDiscoveryScanAt: null,
   discoveryScanCount: 1, // not the warm wheel's turn (warm = count % 3 === 0)
+  travelWindows: [], // Travel Mode: home-only by default
   ...over,
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockDb.business.update.mockResolvedValue({});
+  mockDb.travelWindow.updateMany.mockResolvedValue({ count: 0 });
 });
 
 describe("runDiscoveryScan budget guard", () => {

@@ -18,7 +18,7 @@ const ranResult = (businessId: string) => ({
   businessId,
   ran: true,
   warm: false,
-  metros: [{ city: "Manchester", country: "GB", rawSignals: 2, created: 1, updated: 1, skipped: 0 }],
+  metros: [{ city: "Manchester", country: "GB", rawSignals: 2, created: 1, updated: 1, skipped: 0, travelWindowId: null }],
   contacts: { eligible: 1, attempted: 1, serperQueries: 1, found: [], suppressed: [] },
   serperQueries: 8,
 });
@@ -51,9 +51,12 @@ describe("GET /api/cron/discovery", () => {
     const body = await res.json();
     expect(body.tenants).toBe(2);
     expect(scanMock).toHaveBeenCalledTimes(2);
-    // Only tenants with non-empty serviceCities are even queried.
+    // Tenants with a home base OR an active travel window (Travel Mode) are queried.
     expect(mockDb.business.findMany.mock.calls[0][0].where).toEqual({
-      serviceCities: { isEmpty: false },
+      OR: [
+        { serviceCities: { isEmpty: false } },
+        { travelWindows: { some: { status: "ACTIVE" } } },
+      ],
     });
     expect(body.results[0]).toMatchObject({ slug: "alpha", ran: true, serperQueries: 8 });
   });

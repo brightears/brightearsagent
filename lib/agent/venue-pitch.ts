@@ -45,6 +45,20 @@ export interface PitchVenueInfo {
   /** Grounded facts proving the venue buys entertainment (10.2c, WARM/SEED). */
   entertainmentEvidence?: string[];
   fitReasons: string[];
+  /**
+   * Travel Mode: when set, this venue was found for a TRAVEL WINDOW — the
+   * artist is visiting `city` only for these specific dates. The pitch MUST be
+   * date-bounded ("I'm in Lisbon Aug 4-11") and must NEVER claim open-ended
+   * availability for a travel city. Absent = a home-base hunt (normal pitch).
+   */
+  travelWindow?: TravelWindowContext;
+}
+
+/** A bounded availability window for a travel-city pitch (Travel Mode). */
+export interface TravelWindowContext {
+  city: string;
+  /** Human-readable inclusive range, e.g. "August 4-11" (caller formats it). */
+  dateRange: string;
 }
 
 export interface VenuePitchRequest {
@@ -73,6 +87,34 @@ export const VenuePitchSchema = z.object({
     .min(1)
     .describe("the email body, plain text, 90-150 words, no signature placeholders"),
 });
+
+/**
+ * Travel Mode: format a window's inclusive date range for a pitch, e.g.
+ * "August 4-11", "August 28 - September 2", "December 30, 2026 - January 2,
+ * 2027". Date-only (UTC) so a window entered as "Aug 4-11" reads exactly that
+ * regardless of server tz. Same-day windows collapse to a single date.
+ */
+export function formatTravelDateRange(start: Date, end: Date): string {
+  const month = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const day = (d: Date) => d.getUTCDate();
+  const year = (d: Date) => d.getUTCFullYear();
+  const sameYear = year(start) === year(end);
+  // Show the year only when the range straddles years OR isn't the current one
+  // — keep the common case ("August 4-11") clean; callers in a future year are
+  // rare. We always include the year when the two dates differ in year.
+  const startStr = sameYear
+    ? `${month(start)} ${day(start)}`
+    : `${month(start)} ${day(start)}, ${year(start)}`;
+  if (start.getTime() === end.getTime()) return startStr;
+  const endStr =
+    month(start) === month(end) && sameYear
+      ? `${day(end)}`
+      : sameYear
+        ? `${month(end)} ${day(end)}`
+        : `${month(end)} ${day(end)}, ${year(end)}`;
+  return `${startStr}-${endStr}`;
+}
 
 /** The hosted EPK link for a tenant — APP_URL env with the deployed fallback. */
 export function epkUrlFor(slug: string): string {
@@ -107,6 +149,7 @@ export function pitchLanguageFor(countryISO2: string, pitchLanguages: string[]):
 export function buildVenuePitchSystem(req: VenuePitchRequest): string {
   const b = req.business;
   const temperature = req.venue.temperature ?? "HOT";
+  const travel = req.venue.travelWindow;
   const ammo = [
     b.headline && `Headline: ${b.headline}`,
     b.bio && `Bio: ${b.bio}`,
@@ -131,6 +174,11 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     temperature === "SEED" ? `1. Body 60-90 words. Short paragraphs.` : `1. Body 90-150 words. Short paragraphs.`,
     `2. Open by referencing the venue's specific situation from the signals given (e.g. "saw you're opening this month") — naturally, like a local who noticed, never like a database.`,
     `2b. ONLY state facts that appear in the venue facts below, and never claim firsthand experience you don't have: you have NOT visited, seen sets, watched clips, or heard anything — you READ that they're opening/hiring/in the news. "Heard you're opening the rooftop" is honest; "the launch sets looked great" is a lie that kills trust on reply. No invented platforms, dates, names, or details. Vague-but-true beats specific-but-invented, always.`,
+    // Travel Mode: a date-bounded availability claim, NEVER open-ended. The
+    // artist is only in this city for the window — say so plainly.
+    travel
+      ? `2c. TRAVEL: you do NOT live in ${travel.city} — you are visiting only on these dates: ${travel.dateRange}. Say so naturally and early (e.g. "I'm in ${travel.city} ${travel.dateRange}"). NEVER claim open-ended or ongoing availability there, never imply you're local, and only offer to play within those dates. The whole point is a date-specific guest spot while you're in town.`
+      : null,
     `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
     `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
     // 10.2c: the CTA shape follows the temperature (the TASK section in the
@@ -145,7 +193,9 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     `8. Subject line: 7 words or fewer, specific to this venue. No exclamation marks anywhere; no "I hope this finds you well"; no placeholder brackets like [date].`,
     `9. Sign off with the artist's first name and act name.`,
     `10. Write the entire email in this language: ${req.language}.`,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 /**
@@ -185,11 +235,17 @@ export function buildPitchTask(temperature: VenueTemperature): string {
 export function buildVenuePitchPrompt(req: VenuePitchRequest): string {
   const v = req.venue;
   const evidence = v.entertainmentEvidence ?? [];
+  const travel = v.travelWindow;
   return [
     `THE VENUE:`,
     `Name: ${v.name}`,
     `City: ${v.city}, ${v.country}`,
     `Type: ${v.kind.toLowerCase().replace(/_/g, " ")}`,
+    // Travel Mode: the bounded dates the artist is in town — the pitch is for a
+    // guest spot within this window, never an open-ended availability claim.
+    travel
+      ? `TRAVEL WINDOW: you are visiting ${travel.city} only on ${travel.dateRange}. Offer a guest spot within these exact dates — never ongoing availability.`
+      : "",
     v.signals.length > 0 ? `What we know (signals):\n${v.signals.map((s) => `- ${s}`).join("\n")}` : "",
     evidence.length > 0
       ? `Their entertainment program (verified facts — the ONLY program claims you may reference):\n${evidence.map((e) => `- ${e}`).join("\n")}`

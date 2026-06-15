@@ -53,6 +53,8 @@ export type PlannedCreate = {
   entertainmentEvidence: string[];
   /** LinkedIn handoff URL (find-only — never a name from LinkedIn). */
   linkedinUrl: string | null;
+  /** Travel Mode: the window this venue was found for (null = home base). */
+  travelWindowId: string | null;
   signals: PlannedSignal[];
   score: PlannedScore;
 };
@@ -100,6 +102,13 @@ export type IngestContext = {
   suppressedEmails: string[];
   profile: MatchProfile;
   now: Date;
+  /**
+   * Travel Mode: the TravelWindow this batch was discovered for (null = a
+   * home-base hunt). New venues are tagged with it so the feed can label travel
+   * finds and outreach can be date-bounded; existing venues keep their original
+   * tag (a venue belongs to whichever hunt first found it).
+   */
+  travelWindowId?: string | null;
 };
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -266,6 +275,7 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
       contactSource: pick("contactSource"),
       entertainmentEvidence: groupEvidence,
       linkedinUrl: groupLinkedin,
+      travelWindowId: ctx.travelWindowId ?? null,
       signals,
       score: {
         fitScore: score.fitScore,
@@ -297,6 +307,7 @@ export async function ingestSignals(
   metro: Metro,
   rawSignals: RawSignal[],
   now: Date = new Date(),
+  travelWindowId: string | null = null,
 ): Promise<IngestPlan> {
   const [business, existingVenues, suppressions] = await Promise.all([
     db.business.findUniqueOrThrow({
@@ -332,6 +343,7 @@ export async function ingestSignals(
       suppressedEmails: suppressions.map((s) => s.email),
       profile: business,
       now,
+      travelWindowId,
     },
     metro,
     rawSignals,
@@ -355,6 +367,7 @@ export async function ingestSignals(
           timingScore: c.score.timingScore,
           entertainmentEvidence: c.entertainmentEvidence,
           linkedinUrl: c.linkedinUrl,
+          travelWindowId: c.travelWindowId,
           fitScore: c.score.fitScore,
           fitReasons: c.score.fitReasons,
           caution: c.score.caution,

@@ -7,9 +7,11 @@ export const maxDuration = 300;
 
 /**
  * Daily venue-discovery scan (Phase 10.2b). Gated by CRON_SECRET. Iterates
- * every tenant with service cities set (cap/cadence differs by tier later —
- * the 20h budget guard inside runDiscoveryScan is the v1 throttle), sequential
- * with per-tenant isolation: one tenant's failure never blocks the rest.
+ * every tenant with a HOME BASE (service cities) OR an ACTIVE travel window
+ * (Travel Mode — a tenant may hunt a travel city with no home base); the 20h
+ * budget guard inside runDiscoveryScan is the v1 throttle (cap/cadence differs
+ * by tier later). Sequential with per-tenant isolation: one tenant's failure
+ * never blocks the rest.
  */
 export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
@@ -17,7 +19,12 @@ export async function GET(req: NextRequest) {
   }
 
   const businesses = await db.business.findMany({
-    where: { serviceCities: { isEmpty: false } },
+    where: {
+      OR: [
+        { serviceCities: { isEmpty: false } },
+        { travelWindows: { some: { status: "ACTIVE" } } },
+      ],
+    },
     select: { id: true, slug: true },
   });
 
