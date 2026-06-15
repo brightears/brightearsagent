@@ -25,9 +25,7 @@ export default function PrivacyPage() {
           entity and data controller for this service is{" "}
           <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659, registered office{" "}
-          {/* TODO(founder): registered office address in Thailand */}
-          <ToBeCompleted label="registered address" />). References to &ldquo;Bright Ears&rdquo;,
+          0105550096659). References to &ldquo;Bright Ears&rdquo;,
           &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo; mean that entity.
         </p>
         <p>
@@ -452,9 +450,7 @@ export default function PrivacyPage() {
           <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             {CONTACT}
           </a>
-          , or by post to Bright Ears Co., Ltd.,{" "}
-          {/* TODO(founder): registered office address in Thailand */}
-          <ToBeCompleted label="registered address" />. EU and UK data subjects may also contact our
+          . EU and UK data subjects may also contact our
           respective representatives named above. You also have the right to lodge a complaint with the
           Thai PDPC or your local supervisory authority.
         </p>

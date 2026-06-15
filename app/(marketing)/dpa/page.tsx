@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalPage, LegalSection, ToBeCompleted } from "@/components/legal-page";
+import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Data Processing Addendum (draft) — Bright Ears",
@@ -25,9 +25,7 @@ export default function DpaPage() {
           subscribes to Bright Ears (the &ldquo;Controller&rdquo;), and{" "}
           <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659, registered office{" "}
-          {/* TODO(founder): registered office address in Thailand */}
-          <ToBeCompleted label="registered address" />) (the &ldquo;Processor&rdquo;). It is incorporated
+          0105550096659) (the &ldquo;Processor&rdquo;). It is incorporated
           into the{" "}
           <Link href="/terms" className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             Terms of Service

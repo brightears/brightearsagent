@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalPage, LegalSection, ToBeCompleted } from "@/components/legal-page";
+import { LegalPage, LegalSection } from "@/components/legal-page";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 
 export const metadata: Metadata = {
@@ -25,9 +25,7 @@ export default function TermsPage() {
           Bright Ears is operated by{" "}
           <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659, registered office{" "}
-          {/* TODO(founder): registered office address in Thailand */}
-          <ToBeCompleted label="registered address" />). By creating an account or using Bright Ears, you
+          0105550096659). By creating an account or using Bright Ears, you
           agree to these terms. If you are using the service on behalf of a business, you confirm you are
           authorised to bind that business. If you do not agree, do not use the service.
         </p>
