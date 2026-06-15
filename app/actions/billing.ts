@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { db } from "@/lib/db";
 import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
+import { trialDaysLeft } from "@/lib/billing/metering";
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 function appUrl(): string {
@@ -56,15 +57,19 @@ export async function openBillingPortal() {
 }
 
 /** Settings page helper: current billing state in one shape.
- *  NO free trial (founder decision 2026-06-14): a tenant is either subscribed
- *  (active paid plan) or unsubscribed (agent paused — "Subscribe to activate").
- *  There is no trial countdown to surface anymore. */
+ *  14-day no-card free trial (FINAL founder decision 2026-06-14): an
+ *  unsubscribed tenant is on plan=TRIAL with a countdown — `trialDaysLeft` is
+ *  the days remaining (0 once it has ended); `trialActive` means the agent is
+ *  live. A paid subscription supersedes the trial. */
 export async function billingState() {
   const business = await getCurrentBusiness();
+  const daysLeft = trialDaysLeft(business.plan, business.trialEndsAt);
   return {
     enabled: stripeEnabled,
     plan: business.plan,
     subscribed: !!business.stripeSubscriptionId,
+    trialDaysLeft: daysLeft,
+    trialActive: business.plan === "TRIAL" && daysLeft > 0,
   };
 }
 

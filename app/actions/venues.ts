@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { isUnsubscribed } from "@/lib/billing/metering";
+import { isAgentPaused } from "@/lib/billing/metering";
 import { profileStrength } from "@/lib/profile/strength";
 import { isSkipReason, SKIP_REASONS } from "@/lib/venues/feed";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
@@ -44,13 +44,14 @@ async function findTenantVenue(businessId: string, venueId: string) {
   return db.venue.findFirst({ where: { id: venueId, businessId } });
 }
 
-// Subscription gate copy (founder decision 2026-06-14: NO free trial — the
-// live agent requires an active paid plan). isUnsubscribed() is a pure check
-// (no DB): TRIAL + trialEndsAt-in-past = "agent paused". Applied to the two
-// paths that ACTIVATE the agent — generating a pitch and sending one — so an
-// unsubscribed tenant can browse the feed but the agent does no LLM/outbound
-// work until they subscribe.
-const SUBSCRIBE_TO_ACTIVATE = "Subscribe to activate the agent before it can pitch venues";
+// Trial-expiry gate copy (FINAL founder decision 2026-06-14: a 14-day full-Pro
+// free trial — the agent works during the trial AND on any paid plan).
+// isAgentPaused() is a pure check (no DB): plan=TRIAL + trialEndsAt-in-past =
+// "trial ended, unsubscribed → agent paused". The SAME gate guards the reactive
+// lead path, so reactive drafting and proactive venue pitches gate identically:
+// an active trial may generate AND send pitches; only an expired-trial tenant
+// with no subscription is blocked, and may still browse the feed.
+const TRIAL_ENDED = "Your trial has ended — choose a plan to keep your agent working";
 
 /**
  * Draft a REAL pitch for a venue (Phase 10.3): license check → suppression
@@ -65,9 +66,10 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
 
   const business = await getCurrentBusiness();
 
-  // No free trial: the agent only works on an active paid plan.
-  if (isUnsubscribed(business.plan, business.trialEndsAt)) {
-    return { ok: false, error: SUBSCRIBE_TO_ACTIVATE };
+  // Active trial OR paid plan: the agent drafts. Only an expired trial with no
+  // subscription is paused — same gate as the reactive lead path.
+  if (isAgentPaused(business.plan, business.trialEndsAt)) {
+    return { ok: false, error: TRIAL_ENDED };
   }
 
   // The hunting license, enforced server-side (never trust the UI): a weak
@@ -269,9 +271,10 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
 
   const business = await getCurrentBusiness();
 
-  // No free trial: the agent only sends on an active paid plan.
-  if (isUnsubscribed(business.plan, business.trialEndsAt)) {
-    return { ok: false, error: SUBSCRIBE_TO_ACTIVATE };
+  // Active trial OR paid plan: the agent sends. Only an expired trial with no
+  // subscription is paused — same gate as the reactive lead path.
+  if (isAgentPaused(business.plan, business.trialEndsAt)) {
+    return { ok: false, error: TRIAL_ENDED };
   }
 
   // (1) Tenant-scoped lookup + status gate.

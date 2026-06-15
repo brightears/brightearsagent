@@ -25,15 +25,21 @@ const PLAN_CARDS = [
 async function BillingCard({ meter }: { meter: MeterState }) {
   const state = await billingState();
   const pct = meter.cap > 0 ? Math.min(100, Math.round((meter.used / meter.cap) * 100)) : 100;
+  // Badge: a paid plan shows the plan name; an active trial shows the countdown;
+  // an ended trial (unsubscribed) shows "Trial ended".
+  const badgeTone = state.subscribed || state.trialActive ? "teal" : "peach";
+  const badgeLabel = state.subscribed
+    ? state.plan
+    : state.trialActive
+      ? `Free trial · ${state.trialDaysLeft} day${state.trialDaysLeft === 1 ? "" : "s"} left`
+      : "Trial ended";
   return (
     <Card className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2>
           <Kicker onLight>Plan &amp; billing</Kicker>
         </h2>
-        <Badge tone={state.subscribed ? "teal" : "peach"}>
-          {state.subscribed ? state.plan : "Not active"}
-        </Badge>
+        <Badge tone={badgeTone}>{badgeLabel}</Badge>
       </div>
 
       {/* In-app usage meter + at-cap notice (audit C3): the at-cap state used to
@@ -54,16 +60,16 @@ async function BillingCard({ meter }: { meter: MeterState }) {
         </div>
         {meter.overCap && (
           <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
-            {state.subscribed ? (
+            {state.subscribed || state.trialActive ? (
               <>
                 <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
                 still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
               </>
             ) : (
               <>
-                <span className="font-semibold text-[#7a4100]">Agent paused</span> — your setup is
-                saved and new leads still arrive, but replies and venue pitches start once you
-                subscribe below.
+                <span className="font-semibold text-[#7a4100]">Trial ended</span> — your setup is
+                saved and new leads still arrive, but replies and venue pitches resume once you
+                choose a plan below.
               </>
             )}
           </p>
@@ -81,8 +87,22 @@ async function BillingCard({ meter }: { meter: MeterState }) {
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
-            Your setup is saved and new inquiries are being collected — subscribe to activate the
-            agent and it starts replying in your voice and finding venues for you.
+            {state.trialActive ? (
+              <>
+                You&apos;re on the free trial —{" "}
+                <span className="font-semibold text-ink-stage/80">
+                  {state.trialDaysLeft} day{state.trialDaysLeft === 1 ? "" : "s"} left
+                </span>{" "}
+                of full Pro. The agent is replying in your voice and finding venues right now. Choose
+                a plan to keep it running after your trial ends — no surprise, no interruption.
+              </>
+            ) : (
+              <>
+                Your free trial has ended — your setup is saved and new inquiries are still being
+                collected. Choose a plan and the agent picks right back up, replying in your voice
+                and finding venues for you.
+              </>
+            )}
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
             {PLAN_CARDS.map((p) => {
@@ -115,8 +135,8 @@ async function BillingCard({ meter }: { meter: MeterState }) {
             })}
           </div>
           <p className="mt-4 text-xs text-ink-stage/60">
-            {RISK_REVERSAL.short} Renews automatically each month until you cancel. Cancel anytime in
-            Settings &rarr; Manage billing; no charge after you cancel.
+            Month-to-month. Renews automatically each month until you cancel. Cancel anytime in
+            Settings &rarr; Manage billing; no charge after you cancel. {RISK_REVERSAL.capLine}
           </p>
         </div>
       )}

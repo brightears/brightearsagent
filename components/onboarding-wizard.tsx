@@ -860,9 +860,8 @@ function StepConnect({
             Your first lead just landed — forwarding works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it and parsed it. Subscribe to activate the agent and it starts drafting
-            replies in your voice for every inquiry from here on — even when you’re mid-set. 30-day
-            money-back guarantee.
+            We caught it, parsed it, and your agent is already drafting a reply in your voice — go
+            watch it answer. Your 14-day free trial of full Pro is live; no card, cancel anytime.
           </p>
           <Link
             href="/dashboard"
@@ -983,8 +982,8 @@ export function OnboardingWizard({
             </span>
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Five quick steps — under ten minutes — to set up free. Subscribe when you’re ready and
-            every inquiry starts getting answered in your voice.
+            Five quick steps — under ten minutes — and your 14-day free trial of full Pro starts
+            answering every inquiry in your voice. No card, cancel anytime.
           </p>
         </header>
 

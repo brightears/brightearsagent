@@ -7,10 +7,11 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
  * a friendly upsell push — never a surprise bill. Lead packs raise the cap.
  */
 export const PLAN_LEAD_CAPS: Record<PlanTier, number> = {
-  // TRIAL is the "unsubscribed" state (NO free trial — founder decision
-  // 2026-06-14): `trialEndsAt` is provisioned in the past, so meterState()
-  // forces overCap regardless of this number and the agent stays paused until
-  // they subscribe. Kept non-zero only so the cap math/UI has a sane divisor.
+  // TRIAL is a REAL 14-day full-Pro free trial (FINAL founder decision
+  // 2026-06-14): during the window `trialEndsAt` is in the FUTURE, so the agent
+  // works with the full Pro allowance below. When the trial expires without a
+  // paid plan, meterState() forces overCap (isAgentPaused) and the agent pauses
+  // until they subscribe — this cap is the trial's live allowance, not a stub.
   TRIAL: 60,
   STARTER: 15,
   PRO: 60,
@@ -35,14 +36,26 @@ export interface MeterState {
 }
 
 /**
- * Pure "agent paused / unsubscribed" check (no DB) — the no-free-trial gate.
- * A new/unsubscribed tenant is plan=TRIAL with `trialEndsAt` in the past
- * (see lib/tenant.ts); a subscribed tenant has a paid plan and trialEndsAt
- * cleared. Used by meterState (drafting gate) and the venue-pitch actions
- * (generate/send gate) so the live agent only works on an active paid plan.
+ * Pure "is the agent paused?" check (no DB) — the trial-expiry gate.
+ * The agent is paused only when an UNSUBSCRIBED tenant's free trial has ended:
+ * plan=TRIAL AND `trialEndsAt` is in the past (see lib/tenant.ts). During an
+ * active trial (trialEndsAt in the future) or on any paid plan, the agent runs.
+ * Used by meterState (drafting gate) and the venue-pitch actions (generate/send
+ * gate) so reactive drafting and proactive pitches gate identically.
  */
-export function isUnsubscribed(plan: PlanTier, trialEndsAt?: Date | null, now = new Date()): boolean {
+export function isAgentPaused(plan: PlanTier, trialEndsAt?: Date | null, now = new Date()): boolean {
   return plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
+}
+
+/** Days remaining in an active free trial (0 once it has ended or N/A). */
+export function trialDaysLeft(
+  plan: PlanTier,
+  trialEndsAt?: Date | null,
+  now = new Date(),
+): number {
+  if (plan !== "TRIAL" || !trialEndsAt) return 0;
+  const ms = trialEndsAt.getTime() - now.getTime();
+  return ms > 0 ? Math.ceil(ms / (24 * 60 * 60 * 1000)) : 0;
 }
 
 export async function meterState(
@@ -53,8 +66,9 @@ export async function meterState(
 ): Promise<MeterState> {
   const used = await leadsUsedThisMonth(businessId, now);
   const cap = PLAN_LEAD_CAPS[plan];
-  // Unsubscribed (TRIAL + trialEndsAt in the past — the no-free-trial default):
-  // the agent is paused entirely (no free lead allowance) — leads still ingest,
-  // nothing is lost, and subscribing resumes drafting immediately.
-  return { used, cap, overCap: isUnsubscribed(plan, trialEndsAt, now) || used > cap };
+  // Agent paused (TRIAL whose trialEndsAt is in the past — an expired trial with
+  // no subscription): the agent is paused entirely — leads still ingest, nothing
+  // is lost, and subscribing resumes drafting immediately. During an active
+  // trial or on a paid plan, only used > cap pauses drafting.
+  return { used, cap, overCap: isAgentPaused(plan, trialEndsAt, now) || used > cap };
 }
