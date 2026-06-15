@@ -41,9 +41,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             ))}
             <Link
               href="/onboarding"
-              className="rounded-full bg-neon-magenta px-5 py-2 font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
+              className="whitespace-nowrap rounded-full bg-neon-magenta px-5 py-2 font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
             >
-              Start free
+              Start free — no card
             </Link>
           </nav>
           <MarketingMobileMenu links={NAV} />

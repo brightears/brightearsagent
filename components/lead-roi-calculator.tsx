@@ -271,15 +271,16 @@ export function LeadRoiCalculator() {
               Plugging the leak costs $79/month. The leak costs {usd(result.revenueLost)}/year.
             </p>
             <p className="text-sm text-ink-stage/65 max-w-xl mx-auto">
-              Bright Ears replies to every inquiry in under 5 minutes — in your voice, from your
-              rate card, with your real availability — then follows up until it&apos;s booked or
-              dead. You approve from your phone, even from the booth. 14-day free trial, no card.
+              And that&apos;s only the leak you can measure. Bright Ears goes out and finds new
+              venues for you and drafts the outreach in your voice — and replies to every inquiry
+              that comes in, then follows up until it&apos;s booked or dead. You just approve from
+              your phone. 14-day free trial, no card.
             </p>
             <Link
               href="/onboarding"
               className="inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Start free — no card
             </Link>
           </div>
         </div>

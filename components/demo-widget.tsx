@@ -149,7 +149,7 @@ export function DemoWidget() {
               href="/onboarding"
               className="mt-2 inline-block rounded-full bg-neon-magenta px-4 py-1.5 text-sm font-bold text-white shadow-[0_6px_20px_rgba(255,45,174,0.3)] transition-opacity hover:opacity-90"
             >
-              Start free
+              Start free — no card
             </Link>
           )}
         </div>
@@ -204,7 +204,7 @@ export function DemoWidget() {
                 href="/onboarding"
                 className="rounded-full bg-neon-magenta px-4 py-2 font-bold text-white shadow-[0_6px_20px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
-                Start free
+                Start free — no card
               </Link>
             </div>
           )}

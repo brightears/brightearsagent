@@ -53,7 +53,7 @@ export function MarketingMobileMenu({ links }: { links: { href: string; label: s
               onClick={() => setOpen(false)}
               className="mt-2 rounded-full bg-neon-magenta px-5 py-2.5 text-center font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)]"
             >
-              Start free
+              Start free — no card
             </Link>
           </nav>
         </div>

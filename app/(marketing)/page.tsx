@@ -5,7 +5,10 @@
 // hero type, one Marquee divider, mono Kickers on every section, scroll
 // reveals (components/motion.tsx). NO EMOJI in chrome (v2.1 rule 1).
 // Customers' verbatim language in headlines (docs/PRODUCT-BRIEF.md §3);
-// factual claims and hrefs unchanged — every CTA: Start free → /onboarding.
+// factual claims and hrefs unchanged — every CTA: "Start free — no card" → /onboarding.
+// Reframed (audit pre-launch) to lead with discovery (the proactive Hunt); the
+// reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
+// guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
