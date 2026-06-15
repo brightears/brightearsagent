@@ -25,8 +25,7 @@ export default function TermsPage() {
           Bright Ears is operated by{" "}
           <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
           registered in Thailand (registration number{" "}
-          {/* TODO(founder): Thai company registration number */}
-          <ToBeCompleted label="registration no." />, registered office{" "}
+          0105550096659, registered office{" "}
           {/* TODO(founder): registered office address in Thailand */}
           <ToBeCompleted label="registered address" />). By creating an account or using Bright Ears, you
           agree to these terms. If you are using the service on behalf of a business, you confirm you are

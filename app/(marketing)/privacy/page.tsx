@@ -25,8 +25,7 @@ export default function PrivacyPage() {
           entity and data controller for this service is{" "}
           <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
           registered in Thailand (registration number{" "}
-          {/* TODO(founder): Thai company registration number */}
-          <ToBeCompleted label="registration no." />, registered office{" "}
+          0105550096659, registered office{" "}
           {/* TODO(founder): registered office address in Thailand */}
           <ToBeCompleted label="registered address" />). References to &ldquo;Bright Ears&rdquo;,
           &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo; mean that entity.
