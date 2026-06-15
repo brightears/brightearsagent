@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAllowedCountry } from "@/lib/geo/countries";
+import { toneNoteOf, withToneNote } from "@/lib/voice/tone-note";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -63,9 +64,33 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
       country: country ?? business.country,
       websiteUrl: optional(formData, "websiteUrl"),
       bookingLinkUrl: optional(formData, "bookingLinkUrl"),
-      voiceSamples: optional(formData, "voiceSamples"),
       performerKind: (performerKindRaw as PerformerKind | null) ?? business.performerKind,
     },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Save the owner's voice samples (Control Room "Voice & profile" section).
+ * Split out of updateBusiness so the voice editor is its own writer — the
+ * Control Room gives each section a single, non-overlapping action, so saving
+ * one section can never clobber a column another section owns.
+ *
+ * The voice card strips the internal "[Tone: …]" marker for display, so re-
+ * attach the existing tone here — otherwise editing the voice would silently
+ * drop the tone preference the owner set during onboarding. Empty clears it
+ * (tone and all).
+ */
+export async function updateVoice(formData: FormData): Promise<ActionResult> {
+  const business = await getCurrentBusiness();
+  const edited = optional(formData, "voiceSamples");
+  const voiceSamples = edited === null ? null : withToneNote(edited, toneNoteOf(business.voiceSamples));
+  await db.business.update({
+    where: { id: business.id },
+    data: { voiceSamples },
   });
 
   revalidatePath("/dashboard/settings");

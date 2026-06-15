@@ -18,7 +18,6 @@ export type ArtistProfile = {
   reviewQuotes: string[];
   notableVenues: string[];
   insured: boolean;
-  serviceCities: string[];
   travelPolicy: string | null;
   feeFloor: number | null;
   feeSweetSpot: number | null;
@@ -44,9 +43,9 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
   return (
     <form action={formAction} className="space-y-6">
       <Card className="p-6">
-        <h2 className="mb-5">
+        <h3 className="mb-5">
           <Kicker onLight>The basics</Kicker>
-        </h2>
+        </h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="headline" className={labelCls}>
@@ -79,9 +78,9 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
       </Card>
 
       <Card className="p-6">
-        <h2 className="mb-5">
+        <h3 className="mb-5">
           <Kicker onLight>Your sound</Kicker>
-        </h2>
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="genres" className={labelCls}>
@@ -125,9 +124,9 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
       </Card>
 
       <Card className="p-6">
-        <h2 className="mb-5">
+        <h3 className="mb-5">
           <Kicker onLight>Proof</Kicker>
-        </h2>
+        </h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="videoLinks" className={labelCls}>
@@ -201,23 +200,17 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
       </Card>
 
       <Card className="p-6">
-        <h2 className="mb-5">
-          <Kicker onLight>Reach</Kicker>
-        </h2>
+        <h3 className="mb-2">
+          <Kicker onLight>Rate &amp; reach</Kicker>
+        </h3>
+        <p className={`${hintCls} mb-5`}>
+          The cities you&apos;re based in live in{" "}
+          <a href="#hunt" className="font-semibold text-brand-cyan hover:opacity-80">
+            Where you hunt
+          </a>
+          .
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <label htmlFor="serviceCities" className={labelCls}>
-              Cities &amp; areas you serve
-            </label>
-            <input
-              id="serviceCities"
-              name="serviceCities"
-              placeholder="Austin, San Antonio, Hill Country"
-              defaultValue={profile.serviceCities.join(", ")}
-              className={inputCls}
-            />
-            <p className={hintCls}>The agent only hunts where you play.</p>
-          </div>
           <div className="sm:col-span-2">
             <label htmlFor="travelPolicy" className={labelCls}>
               Travel policy

@@ -68,7 +68,7 @@ export function AtCapBanner({ used, cap, overCap, subscribed, trialActive }: AtC
             )}
           </p>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings#billing"
             className={`${buttonStyles.primary} flex-none whitespace-nowrap text-center`}
           >
             {trialEnded ? "Choose a plan" : "Upgrade"}

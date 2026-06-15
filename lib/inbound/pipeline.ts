@@ -162,7 +162,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       void pushToBusiness(business.id, {
         title: "Lead cap reached",
         body: `${meter.used}/${meter.cap} leads this month — new inquiries are waiting. Upgrade to keep replies flowing.`,
-        url: "/dashboard/settings",
+        url: "/dashboard/settings#billing",
       }).catch(() => null);
     } else {
       void generateDraftForLead(lead.id).catch((err) =>

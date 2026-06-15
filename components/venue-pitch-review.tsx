@@ -199,7 +199,7 @@ export function VenuePitchReview({
           ) : (
             <>
               <a
-                href="/dashboard/settings"
+                href="/dashboard/settings#connections"
                 className="text-brand-cyan hover:opacity-80"
               >
                 Connect your mailbox

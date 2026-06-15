@@ -94,7 +94,10 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
       ...parsed.data,
       genres: splitList(formData.get("genres")),
       eventTypes: splitList(formData.get("eventTypes")),
-      serviceCities: splitList(formData.get("serviceCities")),
+      // serviceCities is NOT edited here — the Control Room's "Where you hunt"
+      // section owns it (updateHomeBase in app/actions/travel.ts). Leaving it
+      // out keeps this action from clobbering it to [] when the profile form,
+      // which no longer carries the field, is saved.
       notableVenues: splitList(formData.get("notableVenues")),
       reviewQuotes: splitLines(formData.get("reviewQuotes")),
       pitchLanguages: pitchLanguages.length > 0 ? pitchLanguages : ["en"],
@@ -105,7 +108,9 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
     },
   });
 
-  revalidatePath("/dashboard/profile");
+  // The profile editor now lives in the Control Room (/dashboard/settings);
+  // /dashboard/profile only redirects there.
+  revalidatePath("/dashboard/settings");
   revalidatePath(`/epk/${business.slug}`);
   return { ok: true };
 }

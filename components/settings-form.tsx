@@ -30,7 +30,6 @@ export type BusinessProfile = {
   country: string;
   websiteUrl: string | null;
   bookingLinkUrl: string | null;
-  voiceSamples: string | null;
   performerKind: PerformerKind;
 };
 
@@ -159,7 +158,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
           />
         </div>
 
-        <div>
+        <div className="sm:col-span-2">
           <label htmlFor="bookingLinkUrl" className={labelCls}>
             Booking / deposit link
           </label>
@@ -174,19 +173,6 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
           <p className="mt-1 text-xs text-ink-stage/45">
             When a couple is ready, the AI includes this link so they can lock in their date — your existing booking page, contract, or deposit link.
           </p>
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="voiceSamples" className={labelCls}>
-            How you write (voice samples)
-          </label>
-          <textarea
-            id="voiceSamples"
-            name="voiceSamples"
-            rows={6}
-            placeholder="Paste 2-3 replies you've sent to past inquiries. We'll match your tone — clients will never know it wasn't you typing."
-            defaultValue={business.voiceSamples ?? ""}
-            className={`${inputCls} font-mono text-xs leading-relaxed`}
-          />
         </div>
       </div>
 

@@ -1,7 +1,8 @@
 "use server";
 
-// Travel Mode actions — the artist's Home Base radius + Travel Windows manager
-// (settings "Where you hunt" card). Tenant-scoped via getCurrentBusiness, zod-
+// Travel Mode actions — the artist's Home Base (cities + radius) + Travel
+// Windows manager (Control Room "Where you hunt" section). Tenant-scoped via
+// getCurrentBusiness, zod-
 // validated, never trusting the UI. A travel window makes the Hunt ALSO scan a
 // destination city for those dates and draft date-bounded outreach
 // (lib/discovery/scan.ts + lib/agent/venue-pitch.ts).
@@ -169,29 +170,43 @@ export async function cancelTravelWindowForm(windowId: string): Promise<void> {
 }
 
 /**
- * Save the advisory Home Base radius (Business.homeRadiusKm). Empty clears it.
- * Advisory only for now — the UI shows it; scan scoping doesn't act on it yet.
+ * Save the artist's Home Base — the cities they're based in (serviceCities,
+ * which gate where the Hunt scans) plus the advisory travel radius
+ * (Business.homeRadiusKm). The Control Room's "Where you hunt" section owns
+ * BOTH, in one form with one Save, so home base is edited exactly where it's
+ * used. serviceCities used to live on the profile form; it moved here to make
+ * "where you hunt" a single source of truth.
+ *
+ * The radius is advisory only for now — the UI shows it; scan scoping doesn't
+ * act on it yet. Empty radius clears it. Empty cities clears them (the agent
+ * then has no home cities to hunt — the strength meter flags that).
  */
 const homeRadiusSchema = z
   .union([z.literal(""), z.coerce.number().int().positive().max(20000)])
   .transform((v) => (v === "" ? null : v));
 
-export async function updateHomeRadius(formData: FormData): Promise<ActionResult> {
-  const parsed = homeRadiusSchema.safeParse(formData.get("homeRadiusKm") ?? "");
-  if (!parsed.success) return { ok: false, error: "Enter a radius in km, or leave it blank" };
+/** Comma-separated text → trimmed, de-duped city list (mirrors profile.ts splitList). */
+function splitCities(value: FormDataEntryValue | null, max = 20): string[] {
+  if (typeof value !== "string") return [];
+  return [...new Set(value.split(",").map((s) => s.trim()).filter(Boolean))].slice(0, max);
+}
+
+export async function updateHomeBase(formData: FormData): Promise<ActionResult> {
+  const parsedRadius = homeRadiusSchema.safeParse(formData.get("homeRadiusKm") ?? "");
+  if (!parsedRadius.success) {
+    return { ok: false, error: "Enter a radius in km, or leave it blank" };
+  }
 
   const business = await getCurrentBusiness();
   await db.business.update({
     where: { id: business.id },
-    data: { homeRadiusKm: parsed.data },
+    data: {
+      serviceCities: splitCities(formData.get("serviceCities")),
+      homeRadiusKm: parsedRadius.data,
+    },
   });
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
   return { ok: true };
-}
-
-/** Form-friendly wrapper (a <form action> must return void). */
-export async function updateHomeRadiusForm(formData: FormData): Promise<void> {
-  await updateHomeRadius(formData);
 }

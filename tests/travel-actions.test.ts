@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Travel Mode actions: addTravelWindow / cancelTravelWindow / updateHomeRadius.
+// Travel Mode actions: addTravelWindow / cancelTravelWindow / updateHomeBase.
 // Tenant-scoped + zod-validated — both dates required, end ≥ start, valid ISO-2
-// country, past windows rejected. The DB + tenant are mocked (mirrors
-// tests/venues-actions.test.ts).
+// country, past windows rejected. updateHomeBase owns serviceCities + radius
+// (the Control Room "Where you hunt" section). The DB + tenant are mocked
+// (mirrors tests/venues-actions.test.ts).
 
 const mockDb = vi.hoisted(() => ({
   travelWindow: { create: vi.fn(), updateMany: vi.fn() },
@@ -18,7 +19,7 @@ vi.mock("@/lib/tenant", () => ({
 import {
   addTravelWindow,
   cancelTravelWindow,
-  updateHomeRadius,
+  updateHomeBase,
 } from "@/app/actions/travel";
 
 // "Today" for the past-window guard. The action reads new Date() directly, so
@@ -130,22 +131,28 @@ describe("cancelTravelWindow", () => {
   });
 });
 
-describe("updateHomeRadius", () => {
-  it("saves a positive radius", async () => {
-    const res = await updateHomeRadius(fd({ homeRadiusKm: "120" }));
+describe("updateHomeBase", () => {
+  it("saves a positive radius and the parsed, de-duped service cities", async () => {
+    const res = await updateHomeBase(
+      fd({ homeRadiusKm: "120", serviceCities: "Austin, San Antonio, Austin" }),
+    );
     expect(res).toEqual({ ok: true });
     expect(mockDb.business.update).toHaveBeenCalledWith({
       where: { id: "biz1" },
-      data: { homeRadiusKm: 120 },
+      data: { serviceCities: ["Austin", "San Antonio"], homeRadiusKm: 120 },
     });
   });
 
-  it("clears the radius when left blank", async () => {
-    await updateHomeRadius(fd({ homeRadiusKm: "" }));
-    expect(mockDb.business.update.mock.calls[0][0].data).toEqual({ homeRadiusKm: null });
+  it("clears the radius when left blank and empties cities when absent", async () => {
+    await updateHomeBase(fd({ homeRadiusKm: "" }));
+    expect(mockDb.business.update.mock.calls[0][0].data).toEqual({
+      serviceCities: [],
+      homeRadiusKm: null,
+    });
   });
 
-  it("rejects a non-numeric radius", async () => {
-    expect((await updateHomeRadius(fd({ homeRadiusKm: "far" }))).ok).toBe(false);
+  it("rejects a non-numeric radius without touching the DB", async () => {
+    expect((await updateHomeBase(fd({ homeRadiusKm: "far" }))).ok).toBe(false);
+    expect(mockDb.business.update).not.toHaveBeenCalled();
   });
 });

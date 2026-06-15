@@ -7,8 +7,9 @@ const NAV = [
   { href: "/dashboard", label: "Pipeline" },
   { href: "/dashboard/calendar", label: "Calendar" },
   { href: "/dashboard/packages", label: "Packages" },
-  { href: "/dashboard/profile", label: "Profile" },
-  { href: "/dashboard/settings", label: "Settings" },
+  // Profile + Settings collapsed into one Control Room (Phase 2b); the old
+  // /dashboard/profile route redirects to /dashboard/settings#profile.
+  { href: "/dashboard/settings", label: "Control room" },
 ];
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

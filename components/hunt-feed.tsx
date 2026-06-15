@@ -240,7 +240,7 @@ function VenueCard({
 
       {!canPitch && venue.status !== "PITCH_DRAFTED" && (
         <p className="mt-2 text-[11px] text-ink-stage/55">
-          <Link href="/dashboard/profile" className="font-semibold text-brand-cyan hover:opacity-80">
+          <Link href="/dashboard/settings#profile" className="font-semibold text-brand-cyan hover:opacity-80">
             Finish your profile
           </Link>{" "}
           to unlock pitching — {profilePercent}%

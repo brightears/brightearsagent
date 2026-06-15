@@ -1,8 +1,10 @@
 "use client";
 
-// "Where you hunt" settings surface (Travel Mode). Two parts on one card:
-//   1. Home Base — the artist's serviceCities (read-only here; edited on the
-//      profile) + an advisory radius input.
+// "Where you hunt" Control Room section (Travel Mode). Two parts on one card:
+//   1. Home Base — the artist's serviceCities (the cities the Hunt scans) +
+//      an advisory radius, BOTH editable here via updateHomeBase. This is the
+//      single source of truth for the cities — they used to be edited on the
+//      profile, which split them from where they're actually used.
 //   2. Travel Windows — add a window (city, country, dates, optional radius,
 //      role tags) and cancel/remove existing ones. When a window is live the
 //      Hunt ALSO scans that city for those dates and drafts date-bounded
@@ -11,11 +13,11 @@
 // focus ring, mono Kickers, NO emoji ever.
 
 import { useActionState } from "react";
-import { Kicker, buttonStyles } from "@/components/ui";
+import { buttonStyles } from "@/components/ui";
 import {
   addTravelWindow,
   cancelTravelWindowForm,
-  updateHomeRadius,
+  updateHomeBase,
 } from "@/app/actions/travel";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { TRAVEL_ROLE_TAGS, type TravelRoleTag } from "@/lib/travel/roles";
@@ -57,38 +59,33 @@ function fmtRange(start: string, end: string): string {
   return start === end ? f(start) : `${f(start)} – ${f(end)}`;
 }
 
-function HomeRadiusForm({ serviceCities, homeRadiusKm }: { serviceCities: string[]; homeRadiusKm: number | null }) {
+function HomeBaseForm({ serviceCities, homeRadiusKm }: { serviceCities: string[]; homeRadiusKm: number | null }) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
-      updateHomeRadius(formData),
+      updateHomeBase(formData),
     null,
   );
   return (
-    <div>
+    <form action={formAction}>
       <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
         Home base
       </p>
-      {serviceCities.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {serviceCities.map((city) => (
-            <span
-              key={city}
-              className="inline-flex items-center rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage"
-            >
-              {city}
-            </span>
-          ))}
+      <div className="mt-3 space-y-4">
+        <div>
+          <label htmlFor="serviceCities" className={labelCls}>
+            Cities you&apos;re based in
+          </label>
+          <input
+            id="serviceCities"
+            name="serviceCities"
+            placeholder="Austin, San Antonio, Hill Country"
+            defaultValue={serviceCities.join(", ")}
+            className={inputCls}
+          />
+          <p className="mt-1.5 text-xs text-ink-stage/45">
+            Comma-separated. The agent only hunts where you play — this is where it starts.
+          </p>
         </div>
-      ) : (
-        <p className="mt-2 text-sm text-ink-stage/55">
-          No home cities yet — add them on your{" "}
-          <a href="/dashboard/profile" className="font-semibold text-brand-cyan hover:opacity-80">
-            profile
-          </a>{" "}
-          so the agent knows where you&apos;re based.
-        </p>
-      )}
-      <form action={formAction} className="mt-3 flex flex-wrap items-end gap-3">
         <div className="w-40">
           <label htmlFor="homeRadiusKm" className={labelCls}>
             Travel radius (km)
@@ -103,19 +100,19 @@ function HomeRadiusForm({ serviceCities, homeRadiusKm }: { serviceCities: string
             defaultValue={homeRadiusKm ?? ""}
             className={inputCls}
           />
+          <p className="mt-1.5 text-xs text-ink-stage/45">
+            Advisory for now — how far from home you&apos;ll travel for a gig.
+          </p>
         </div>
-        <button type="submit" disabled={pending} className={buttonStyles.secondaryOnLight}>
-          {pending ? "Saving…" : "Save radius"}
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <button type="submit" disabled={pending} className={buttonStyles.primary}>
+          {pending ? "Saving…" : "Save home base"}
         </button>
-        {state?.ok && (
-          <span className="text-sm font-semibold text-ink-stage/70">Saved</span>
-        )}
+        {state?.ok && <span className="text-sm font-semibold text-ink-stage/70">Saved</span>}
         {state && !state.ok && <span className="text-sm font-medium text-red-600">{state.error}</span>}
-      </form>
-      <p className="mt-1.5 text-xs text-ink-stage/45">
-        Advisory for now — how far from home you&apos;ll travel for a gig.
-      </p>
-    </div>
+      </div>
+    </form>
   );
 }
 
@@ -218,17 +215,19 @@ export function TravelWindowsCard({
   /** ACTIVE + upcoming/live windows (the page filters out cancelled/expired). */
   windows: TravelWindowRow[];
 }) {
+  // With no home cities AND no travel windows the agent has nowhere to scan —
+  // the discovery cron skips the tenant entirely. Surface that plainly rather
+  // than letting a cleared cities field silently switch the Hunt off.
+  const nowhereToHunt = serviceCities.length === 0 && windows.length === 0;
   return (
     <div className="rounded-3xl border border-cream/10 bg-white p-6 shadow-[0_16px_40px_rgba(0,0,0,0.08)]">
-      <h2 className="mb-2">
-        <Kicker onLight>Where you hunt</Kicker>
-      </h2>
-      <p className="mb-5 text-sm text-ink-stage/60">
-        We&apos;ll hunt guest spots in your travel cities for those dates and draft date-bounded
-        outreach — results still depend on local demand.
-      </p>
-
-      <HomeRadiusForm serviceCities={serviceCities} homeRadiusKm={homeRadiusKm} />
+      {nowhereToHunt && (
+        <p className="mb-5 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
+          <span className="font-semibold text-[#7a4100]">The agent has nowhere to hunt yet</span> —
+          add a home city below, or a travel window, so it knows where to look.
+        </p>
+      )}
+      <HomeBaseForm serviceCities={serviceCities} homeRadiusKm={homeRadiusKm} />
 
       <div className="my-6 border-t border-ink-stage/10" />
 

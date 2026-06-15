@@ -123,9 +123,9 @@ export function MailboxCard({
   return (
     <Card className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2>
+        <h3>
           <Kicker onLight>Outreach mailbox</Kicker>
-        </h2>
+        </h3>
         {state.kind === "connected" && <Badge tone="teal">Connected</Badge>}
         {state.kind === "error" && <Badge tone="peach">Needs attention</Badge>}
       </div>

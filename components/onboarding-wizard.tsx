@@ -21,6 +21,7 @@ import { buttonStyles, Badge, BrightEarsLogo, Card } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
 import { COUNTRIES } from "@/lib/geo/countries";
+import { stripToneNote } from "@/lib/voice/tone-note";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
@@ -907,11 +908,6 @@ function StepConnect({
 // ---------------------------------------------------------------------------
 // The wizard shell
 // ---------------------------------------------------------------------------
-
-/** Strip a previously saved tone note so re-saving doesn't stack two of them. */
-function stripToneNote(samples: string | null): string {
-  return (samples ?? "").replace(/\n\n\[Tone: [^\]]*\]\s*$/, "");
-}
 
 export function OnboardingWizard({
   initialStep,
