@@ -206,9 +206,9 @@ export const ROUNDUP: RoundupEntry[] = [
     name: "Bright Ears",
     price: "$25–149/mo",
     builtFor:
-      "Turning inquiries into bookings for any event — weddings, corporate, parties, residencies — the only tool here that answers your leads and hunts venues for you.",
+      "Finding gigs and winning them for any event — weddings, corporate, parties, residencies — the only tool here that hunts venues for you AND answers your leads.",
     shines:
-      "Designed to reply in under 5 minutes, in your voice, from your rate card — you approve from your phone, follow-ups run until booked or dead, and a proactive agent drafts venue outreach for you to approve.",
+      "A proactive agent scans the web for venues that fit you and drafts the outreach in your voice for you to approve — and when an inquiry comes in, it drafts the reply in minutes too. Follow-ups run until booked or dead, everything sent from your own mailbox.",
     stops:
       "At the booking — by design. Contracts, invoices and music planning stay with your favorite tool above; one forwarding rule bolts us on.",
     isBrightEars: true,
@@ -219,7 +219,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What's the best DJ booking software in 2026?",
     answer:
-      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry ($29–139/mo). For client music planning after the booking, Vibo ($149–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). For an AI receptionist at venue budgets, Mikla.ai ($149–499/mo) leads that category for wedding venues and now sells to DJs. If the thing that hurts is leads going cold before you can reply — or quiet weeks with no leads at all — that's the job Bright Ears was built for ($25–149/mo, 14-day free trial, no card): it answers inbound for any event type and proactively hunts venues, and it pairs with any of the above.",
+      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry ($29–139/mo). For client music planning after the booking, Vibo ($149–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). For an AI receptionist at venue budgets, Mikla.ai ($149–499/mo) leads that category for wedding venues and now sells to DJs. If the thing that hurts is quiet weeks with no new gigs coming in — or leads going cold before you can reply — that's the job Bright Ears was built for ($25–149/mo, 14-day free trial, no card): it proactively hunts venues that fit you and drafts the outreach, AND it answers inbound for any event type, and it pairs with any of the above.",
   },
   {
     question: "Isn't this comparison biased? You make one of these tools.",
@@ -239,7 +239,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete assistant — replies in your voice, follow-up sequences until booked-or-dead, weekly report, spam filtering, and the proactive Hunt agent that drafts venue outreach (up to ~10 pitches/day) for you to approve — the tiers only change how many inbound leads, how many performers and how much autopilot. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. Start with a 14-day free trial of full Pro — no card — then month-to-month, cancel anytime.",
+      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete engine — the proactive Hunt agent that finds venues for you and drafts the outreach (up to ~10 pitches/day) for you to approve, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, weekly report and spam filtering — the tiers only change how many inbound leads, how many performers and how much autopilot. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. Start with a 14-day free trial of full Pro — no card — then month-to-month, cancel anytime.",
   },
   {
     question: "Does Bright Ears do quotes, contracts or deposits?",
@@ -399,8 +399,8 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
         "Yes. Starting Bright Ears changes nothing in DJEP — add the forwarding rule, watch drafts appear during your 14-day free trial, and if it's not for you, just don't subscribe and delete the rule; everything is exactly as it was.",
     },
   ],
-  ctaHeading: "Add the AI inbox in front of your DJEP",
-  ctaSub: "14-day free trial, no card. Respond in under 5 minutes — even from the booth.",
+  ctaHeading: "Add the AI that hunts gigs and answers leads in front of your DJEP",
+  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const GIGBUILDER: ComparisonPage = {
@@ -523,8 +523,8 @@ const GIGBUILDER: ComparisonPage = {
         "No. Replies go out under your business name, in your voice, and the client's answers route straight back to you. You approve everything before it sends, and there's no AI branding anywhere a client can see.",
     },
   ],
-  ctaHeading: "Put the reply on autopilot — keep your hands on the faders",
-  ctaSub: "14-day free trial, no card. You approve every reply from your phone.",
+  ctaHeading: "Find the next gig and answer the last one — keep your hands on the faders",
+  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const VIBO: ComparisonPage = {
@@ -645,7 +645,7 @@ const VIBO: ComparisonPage = {
     },
   ],
   ctaHeading: "Get more contracts for Vibo to plan",
-  ctaSub: "14-day free trial, no card. Designed to reply in under 5 minutes.",
+  ctaSub: "14-day free trial, no card. It hunts new venues for you AND answers every inquiry — you just approve.",
 };
 
 const CHECK_CHERRY: ComparisonPage = {
@@ -767,8 +767,8 @@ const CHECK_CHERRY: ComparisonPage = {
         "Yes — they do different jobs. Forms qualify and convert; speed wins the shortlist. Many vendors never respond to inquiries at all, and couples book whoever replies first. Fast and polished together beat either one alone.",
     },
   ],
-  ctaHeading: "Make the fastest reply also the best-looking booking",
-  ctaSub: "14-day free trial, no card. Respond in under 5 minutes — even from the booth.",
+  ctaHeading: "Find the gigs your forms never see — and answer the ones they catch",
+  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const HONEYBOOK: ComparisonPage = {
@@ -896,8 +896,8 @@ const HONEYBOOK: ComparisonPage = {
         "Finish it — switching twice is worse than either tool alone. Bright Ears can still sit in front: forward your lead notifications and we'll answer and chase while you work the pipeline in HoneyBook.",
     },
   ],
-  ctaHeading: "Keep your stack. Add the answering.",
-  ctaSub: "14-day free trial, no card. One forwarding rule — nothing migrates.",
+  ctaHeading: "Keep your stack. Add the hunting and the answering.",
+  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — one forwarding rule, nothing migrates.",
 };
 
 const DJEP_ALTERNATIVES: ComparisonPage = {
@@ -1004,7 +1004,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     },
   ],
   ctaHeading: "Fix the complaint without the migration",
-  ctaSub: "14-day free trial, no card. Keep DJEP — add the AI inbox in front of it.",
+  ctaSub: "14-day free trial, no card. Keep DJEP — add the AI that hunts gigs and answers leads in front of it.",
 };
 
 // ---------------------------------------------------------------------------

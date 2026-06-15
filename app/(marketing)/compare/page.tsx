@@ -22,7 +22,7 @@ import {
 export const metadata: Metadata = {
   title: "Best DJ Booking Software 2026 — Honest Comparison, Verified Pricing | Bright Ears",
   description:
-    "The honest 2026 comparison of DJ booking software: DJ Event Planner, GigBuilder, Vibo, Check Cherry, HoneyBook and Bright Ears. Real strengths, real gaps, pricing last verified June 2026.",
+    "The honest 2026 comparison of DJ booking software: DJ Event Planner, GigBuilder, Vibo, Check Cherry, HoneyBook and Bright Ears — the one that hunts venues for you AND answers your leads. Real strengths, real gaps, pricing last verified June 2026.",
 };
 
 const itemListJsonLd = JSON.stringify({
@@ -84,12 +84,13 @@ export default function ComparePage() {
           <p className="mt-5 text-lg leading-relaxed text-cream/70 max-w-2xl">
             Every tool below earns its keep somewhere — and yes, we sell one of them, so judge for
             yourself: verified pricing, real strengths, real gaps. Spoiler: we&apos;re the one that
-            answers your leads — for any event, not just weddings — and proactively hunts venues for
-            you, and we&apos;re the wrong choice for contracts.
+            goes hunting for venues that fit you and drafts the outreach — and answers your inbound
+            leads too, for any event, not just weddings — and we&apos;re the wrong choice for
+            contracts.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/onboarding" className={buttonStyles.show}>
-              Start free
+              Start free — no card
             </Link>
             <a href="#roundup" className={buttonStyles.secondary}>
               See the table
@@ -191,9 +192,10 @@ export default function ComparePage() {
               </h2>
               <p className="relative mt-4 text-ink-stage/70">
                 Contracts, invoices, planning portals, music apps — this category is genuinely well
-                served. What stays unsolved is the first five minutes: a couple fills out three forms
-                at 11pm and books whoever replies first. You don&apos;t want to be the 5th DJ that
-                reaches out.
+                served once a lead arrives. What none of them do is go out and find you the next gig:
+                every tool here waits for the inquiry to land. The best rooms get filled before you
+                ever hear they were open. And when a lead does come in, it&apos;s still on you to
+                reply first.
               </p>
               <blockquote className="relative mt-5 rounded-xl border-l-4 border-neon-magenta bg-cream-bright p-4 font-medium text-ink-stage">
                 “Get an inquiry, immediately respond, and then nothing... 30 inquiries so far, maybe 5
@@ -310,18 +312,18 @@ export default function ComparePage() {
               &#10022;
             </span>
             <h2 className="relative text-2xl sm:text-4xl font-black tracking-tight text-ink-stage">
-              Stop being the <span className={GRAD}>5th</span> DJ to reply
+              Never miss a <span className={GRAD}>gig</span> you never knew existed
             </h2>
             <p className="relative mt-3 text-ink-stage/70 max-w-xl mx-auto">
-              14-day free trial, no card — cancel anytime. Designed to reply in under 5
-              minutes — even from the booth. At your cap, drafting pauses; never a surprise bill.
+              14-day free trial, no card — cancel anytime. It hunts venues for you and answers every
+              inquiry — you just approve. At your cap, drafting pauses; never a surprise bill.
             </p>
             <div className="relative mt-7">
               <Link
                 href="/onboarding"
                 className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
               >
-                Start free
+                Start free — no card
               </Link>
             </div>
           </div>

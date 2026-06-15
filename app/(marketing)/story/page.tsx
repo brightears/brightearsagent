@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "Our story — Bright Ears",
   description:
-    "Twenty years running a DJ agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today. Now she works for wedding and event performers everywhere.",
+    "Twenty years running a DJ agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today, finding new rooms and answering every inquiry. Now she works for event performers everywhere.",
 };
 
 const orgJsonLd = {
@@ -21,8 +21,8 @@ const orgJsonLd = {
   url: "https://brightears.io",
   logo: "https://brightears.io/brand/logo.svg",
   description:
-    "Bright Ears is the AI back office for wedding and event performer businesses: every inquiry answered in under 5 minutes, in your voice, with your real availability — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
-  slogan: "Every inquiry answered in minutes.",
+    "Bright Ears is the AI back office for event performer businesses: it hunts the web for venues that fit you and drafts the outreach in your voice, AND answers every inquiry that comes in — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
+  slogan: "Never miss a gig you never knew existed.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Bangkok",
@@ -233,32 +233,35 @@ export default function StoryPage() {
                 </h2>
                 <div className="mt-5 space-y-5 text-ink-stage/75 leading-relaxed">
                   <p>
-                    We took what Vinyl does for our agency and rebuilt it for wedding
-                    and event performer businesses everywhere. Bright Ears catches
-                    every inquiry — The Knot, WeddingWire, Bark, GigSalad, your
-                    website forms, plain email — through one simple forwarding rule.
-                    No password sharing. No inbox takeover.
+                    We took what Vinyl does for our agency and rebuilt it for event
+                    performer businesses everywhere — as a two-part back office. It
+                    hunts new opportunities for you <em>and</em> it answers every
+                    inquiry that comes in.
                   </p>
                   <p>
-                    It filters out the spam and scams before you see them, then drafts
-                    a reply in <em>your</em> voice, from <em>your</em> rate card, with{" "}
-                    <em>your</em> real availability — for any event, from weddings to
-                    corporate parties to residencies. You approve it from your phone —
-                    from the booth, between ceremonies, from the couch. Designed to
-                    reply in under 5 minutes. Then it follows up until the gig is booked
-                    or the lead is truly dead, with a one-tap opt-out on every email.
+                    The first half is the part nobody has time for: going out and
+                    finding work. Bright Ears scans the web for venues hiring
+                    entertainment and rooms that fit your sound, scores how well each
+                    one fits you, and drafts the intro in <em>your</em> voice for you to
+                    approve. It can’t promise the room says yes — but it makes sure
+                    you’re the one who asked, instead of finding out too late that the
+                    gig was ever open.
                   </p>
                   <p>
-                    And when the inbox is quiet, it doesn’t just wait. The same back
-                    office goes hunting — scanning for venues hiring entertainment,
-                    scoring how well each fits you, and drafting an intro in your voice
-                    for you to approve. It can’t promise the room says yes; it makes
-                    sure you’re the one who asked first.
+                    The second half catches everything that lands in your inbox — The
+                    Knot, WeddingWire, Bark, GigSalad, your website forms, plain email —
+                    through one simple forwarding rule. No password sharing, no inbox
+                    takeover. It filters out spam and scams, then drafts a reply in{" "}
+                    <em>your</em> voice, from <em>your</em> rate card, with <em>your</em>{" "}
+                    real availability — for any event, from weddings to corporate
+                    parties to residencies. You approve from your phone, and it follows
+                    up until the gig is booked or the lead is truly dead, with a one-tap
+                    opt-out on every email.
                   </p>
                   <p>
-                    And your clients never see any of it. No &ldquo;AI,&rdquo; no bot
-                    branding, no Bright Ears logo in their inbox — just a performer
-                    who answers fast, sounds like themselves, and follows through.
+                    And the venues and clients never see any of it. No &ldquo;AI,&rdquo;
+                    no bot branding, no Bright Ears logo in their inbox — just a
+                    performer who turns up, sounds like themselves, and follows through.
                   </p>
                 </div>
               </section>
@@ -274,9 +277,9 @@ export default function StoryPage() {
                     <div aria-hidden className="h-1 w-8 rounded-full bg-brand-cyan" />
                     <h3 className="mt-3 font-bold text-ink-stage">We promise</h3>
                     <ul className="mt-3 space-y-2 text-sm text-ink-stage/75">
+                      <li>You never miss a chance to put yourself forward — the AI finds it and drafts it</li>
                       <li>Every real inquiry answered in minutes, in your voice</li>
                       <li>You approve everything — or choose auto-send, per source</li>
-                      <li>Follow-ups that never stop early and never overstay</li>
                       <li>No surprise bills: at your cap, drafting simply pauses</li>
                     </ul>
                   </div>
@@ -290,7 +293,7 @@ export default function StoryPage() {
                       We won&apos;t promise
                     </h3>
                     <ul className="mt-3 space-y-2 text-sm text-ink-stage/75">
-                      <li>That every lead books — couples are still couples</li>
+                      <li>The booking — whether the room says yes is still down to you and them</li>
                       <li>Magic. It&apos;s diligence, done every time, instantly</li>
                       <li>
                         To replace your judgment — you stay the voice and the boss
@@ -325,14 +328,14 @@ export default function StoryPage() {
             Give your business its own <span className={GRAD}>back office</span>.
           </h2>
           <p className="relative mt-4 text-cream/70 max-w-xl mx-auto">
-            Vinyl runs ours every night. Bright Ears runs yours — start with a
-            14-day free trial, no card.
+            Vinyl hunts and answers for ours every night. Bright Ears does it for
+            yours — start with a 14-day free trial, no card.
           </p>
           <Link
             href="/onboarding"
             className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
           >
-            Start free
+            Start free — no card
           </Link>
         </div>
       </section>
