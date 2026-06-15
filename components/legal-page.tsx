@@ -37,6 +37,20 @@ export function DraftBanner() {
   );
 }
 
+/**
+ * A visible founder-placeholder marker for legal identifiers we must NOT invent
+ * (entity number, registered address, appointed representatives, etc.). Renders
+ * an inline "[to be completed]" pill so the gap is obvious in the rendered page,
+ * and the call site carries a {/* TODO(founder): ... *​/} comment for the build.
+ */
+export function ToBeCompleted({ label }: { label?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-neon-orange/40 bg-neon-orange/10 px-1.5 py-0.5 align-baseline font-mono text-[0.78em] font-semibold text-neon-orange">
+      [{label ?? "to be completed"}]
+    </span>
+  );
+}
+
 /** A section heading inside the prose card — mono kicker + bold ink heading. */
 export function LegalSection({
   kicker,

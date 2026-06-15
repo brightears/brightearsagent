@@ -15,6 +15,7 @@ const NAV = [
 const LEGAL = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/acceptable-use", label: "Acceptable Use" },
   { href: "/cookies", label: "Cookies" },
   { href: "/dpa", label: "DPA" },
 ];

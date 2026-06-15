@@ -14,6 +14,7 @@ const ROUTES: { path: string; changeFrequency: "weekly" | "monthly" | "yearly"; 
   { path: "/onboarding", changeFrequency: "monthly", priority: 0.6 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
   { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/acceptable-use", changeFrequency: "yearly", priority: 0.3 },
   { path: "/cookies", changeFrequency: "yearly", priority: 0.3 },
   { path: "/dpa", changeFrequency: "yearly", priority: 0.3 },
 ];
