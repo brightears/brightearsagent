@@ -77,28 +77,22 @@ export const buttonStyles = {
 };
 
 /**
- * The only sanctioned logo rendering — ink-raised tile with a cyan wordmark
- * dot, sized variants. The logo SVG is white + cyan, so it reads cleanly on
- * the ink-raised tile (white-on-#201f2b).
+ * The only sanctioned logo rendering — the REAL Bright Ears mark: white "BE"
+ * monogram in the cyan ring on a transparent ground (public/brand/logo.png,
+ * the dark-UI version). No constructed tile or dot — the ring is part of the
+ * mark, and stacking another tile/dot is what made the old hand-drawn SVG
+ * read as a knock-off. (logo-light.png is the dark-on-white version for
+ * light/SEO surfaces.)
  */
 export function BrightEarsLogo({ size = 28 }: { size?: 20 | 28 | 32 | 44 | 56 }) {
-  const radius = size >= 44 ? "rounded-xl" : size >= 28 ? "rounded-lg" : "rounded";
-  const pad = size >= 44 ? "p-1.5" : size >= 28 ? "p-1" : "p-0.5";
-  const dot = size >= 44 ? "h-2.5 w-2.5" : "h-1.5 w-1.5";
   return (
-    <span className="relative inline-flex shrink-0" style={{ width: size, height: size }}>
-      <Image
-        src="/brand/logo.svg"
-        alt="Bright Ears"
-        width={size}
-        height={size}
-        className={`bg-ink-raised ring-1 ring-cream/15 ${radius} ${pad}`}
-      />
-      <span
-        aria-hidden
-        className={`absolute -bottom-0.5 -right-0.5 rounded-full bg-brand-cyan ring-2 ring-ink-stage ${dot}`}
-      />
-    </span>
+    <Image
+      src="/brand/logo.png"
+      alt="Bright Ears"
+      width={size}
+      height={size}
+      className="shrink-0"
+    />
   );
 }
 

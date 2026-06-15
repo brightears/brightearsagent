@@ -19,7 +19,7 @@ const orgJsonLd = {
   "@type": "Organization",
   name: "Bright Ears",
   url: "https://brightears.io",
-  logo: "https://brightears.io/brand/logo.svg",
+  logo: "https://brightears.io/brand/logo-light.png",
   description:
     "Bright Ears is the AI back office for event performer businesses: it hunts the web for venues that fit you and drafts the outreach in your voice, AND answers every inquiry that comes in — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
   slogan: "Never miss a gig you never knew existed.",
