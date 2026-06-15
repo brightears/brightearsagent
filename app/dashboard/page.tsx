@@ -12,7 +12,11 @@ import {
 } from "@/components/ui";
 import { GradientBlob, StickerChip } from "@/components/collage";
 import { HUNT_CAP, HuntSection } from "@/components/hunt-feed";
+import { AtCapBanner } from "@/components/at-cap-banner";
+import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
+import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
+import { meterState, trialDaysLeft } from "@/lib/billing/metering";
 import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +76,7 @@ export default async function Dashboard({
 }) {
   const huntExpanded = (await searchParams).hunt === "all";
   const tenant = await getCurrentBusiness();
-  const [leads, spamCount, huntVenues, huntCount, activePackages, gigs, mailbox] = await Promise.all([
+  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -138,6 +142,22 @@ export default async function Dashboard({
     db.venue.count({
       where: { businessId: tenant.id, status: { in: [...HUNT_STATUSES] } },
     }),
+    // Post-send "In play" tracking surface (audit C2): venues a pitch was sent
+    // to, which leave the Hunt feed but need a home so the owner can track the
+    // reply by hand. PITCHED first, then most-recently-pitched.
+    db.venue.findMany({
+      where: { businessId: tenant.id, status: { in: [...IN_PLAY_STATUSES] } },
+      orderBy: [{ pitchedAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        country: true,
+        kind: true,
+        status: true,
+        pitchedAt: true,
+      },
+    }),
     db.package.count({ where: { businessId: tenant.id, active: true } }),
     db.gig.count({ where: { businessId: tenant.id } }),
     // 10.5: is a sending mailbox connected? Drives the "Send now" vs "connect"
@@ -182,6 +202,15 @@ export default async function Dashboard({
     (l) => l.status === "BOOKED" && l.bookedAt && monthOf(l.bookedAt) === thisMonth
   ).length;
 
+  // At-cap / trial-ended surface (audit C3): the agent-paused state used to
+  // appear only via an optional push — show it in-app too. meterState reads an
+  // expired-trial-unsubscribed tenant as overCap (isAgentPaused); a paid plan
+  // is overCap only when used > cap. An active trial / under-cap paid → no banner.
+  const now = new Date();
+  const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
+  const trialActive = tenant.plan === "TRIAL" && trialDaysLeft(tenant.plan, tenant.trialEndsAt, now) > 0;
+  const subscribed = !!tenant.stripeSubscriptionId;
+
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
       <PageHeader
@@ -204,6 +233,16 @@ export default async function Dashboard({
 
       <OnboardingBanner />
 
+      {/* Agent paused (audit C3): expired trial or paid-plan-over-cap. Renders
+          nothing during an active trial or an under-cap paid plan. */}
+      <AtCapBanner
+        used={meter.used}
+        cap={meter.cap}
+        overCap={meter.overCap}
+        subscribed={subscribed}
+        trialActive={trialActive}
+      />
+
       {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
           pipeline. Brand-new tenants (zero leads AND zero venues) keep the
           whole-pipeline welcome primary; the Hunt moves below it then. */}
@@ -219,6 +258,11 @@ export default async function Dashboard({
           mailboxConnected={mailboxConnected}
         />
       )}
+
+      {/* In play (audit C2): venues a pitch was sent to leave the Hunt feed —
+          this section gives them a home so the owner can track the reply by
+          hand. Only shown once at least one pitch has gone out. */}
+      {inPlayVenues.length > 0 && <InPlaySection venues={inPlayVenues} />}
 
       {business.leads.length === 0 ? (
         // Whole-pipeline welcome: a cream poster floating on the ink, sticker

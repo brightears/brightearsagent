@@ -206,7 +206,7 @@ export default async function SettingsPage({
             ?billing=success|cancelled, but nothing consumed it before. */}
         {billing === "success" && (
           <div className="rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
-            You&apos;re subscribed — replies are flowing. Manage your plan anytime below.
+            You&apos;re subscribed — your agent is live. Manage your plan anytime below.
           </div>
         )}
         {billing === "cancelled" && (
