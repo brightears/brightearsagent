@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-const CONTACT = "privacy@brightears.io";
+const CONTACT = "info@brightears.io";
 
 /** Per-cookie disclosure rows (name / provider / purpose / duration). */
 const COOKIE_ROWS: { name: string; provider: string; purpose: string; duration: string }[] = [

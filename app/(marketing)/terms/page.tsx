@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-const CONTACT = "privacy@brightears.io";
+const CONTACT = "info@brightears.io";
 
 export default function TermsPage() {
   return (
