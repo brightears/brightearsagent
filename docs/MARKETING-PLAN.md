@@ -48,8 +48,14 @@ Two tracks: **the engine** (agents produce, founder approves) and **founder moti
 - Founder: 2 group threads answered/week, 1 podcast pitch/month, outreach batches
 - Metrics reviewed weekly: trials, trial→paid, churn, median customer first-reply time, content signups; report against Gate 1/2 (brief §10)
 
+## Promotable angles / campaign themes
+
+### Travel Mode — "let your agent tour with you" (SECONDARY hook)
+Artists love to travel, and the gig-finding agent now comes with them: set a home base + dated travel windows, and the Hunt scans those cities for those dates and drafts date-bounded outreach in the artist's voice (works anywhere in the world; jurisdiction follows the destination). A high-delight, share-worthy angle for social clips and group posts ("going on tour? the gigs come with you"). **Always sits UNDER the main "finds you gigs" message — it's a delight feature, not the hero, and never promises a booking (it finds + pitches; results depend on local demand).** Good fit for: DJ/touring-musician groups, a short demo clip (add a travel window → date-bounded pitches draft themselves), and a seasonal hook (festival season, winter-sun residencies).
+
 ## Positioning one-liners (use everywhere)
 - "Reply in under 5 minutes — even from the booth."
 - "Stop being the 5th DJ to reply."
 - "Your leads answered, chased, and booked — you just tap Approve."
 - "We ran a DJ agency for 20 years. An AI runs its back office today. Now she works for you too."
+- "Going on tour? The gigs come with you." (Travel Mode — secondary hook, under "finds you gigs")

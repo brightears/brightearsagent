@@ -35,6 +35,7 @@ const PLANS: Plan[] = [
       "The complete opportunity engine for a solo performer — it hunts venues for you AND answers every inquiry. You approve every send.",
     features: [
       "The Hunt: it finds venues hiring entertainment and drafts the outreach in your voice — up to ~10 venue pitches/day, you approve",
+      "Travel Mode: tell it where you're touring and the dates — it hunts gigs in that city for those days, anywhere in the world",
       "15 inbound leads per month (weddings, corporate, parties — any event)",
       "1 performer (you)",
       "Everything drafted in your voice — from your rate card, checked against your gig calendar",
@@ -87,6 +88,10 @@ const FAQS: { q: string; a: string }[] = [
   {
     q: "What if it isn't working for me?",
     a: "Start with a 14-day free trial of full Pro — no card — so you can feel it work before you pay a cent. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+  },
+  {
+    q: "I travel for gigs — does it work when I'm on the road?",
+    a: "Yes — Travel Mode is included on every plan. Set a home base and add travel windows (a city and the dates you'll be there), and the Hunt also scans that city for those days, drafting date-bounded outreach in your voice for you to approve from the road. It works anywhere in the world and the compliance footer follows the destination country. Like the rest of the Hunt, it finds and pitches the opportunities — results still depend on local demand.",
   },
   {
     q: "Is email forwarding safe? Do I have to share my password?",

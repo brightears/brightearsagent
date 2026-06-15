@@ -208,7 +208,7 @@ export const ROUNDUP: RoundupEntry[] = [
     builtFor:
       "Finding gigs and winning them for any event — weddings, corporate, parties, residencies — the only tool here that hunts venues for you AND answers your leads.",
     shines:
-      "A proactive agent scans the web for venues that fit you and drafts the outreach in your voice for you to approve — and when an inquiry comes in, it drafts the reply in minutes too. Follow-ups run until booked or dead, everything sent from your own mailbox.",
+      "A proactive agent scans the web for venues that fit you and drafts the outreach in your voice for you to approve — and when an inquiry comes in, it drafts the reply in minutes too. Travel Mode even hunts gigs in the cities you tour to, for the dates you're there. Follow-ups run until booked or dead, everything sent from your own mailbox.",
     stops:
       "At the booking — by design. Contracts, invoices and music planning stay with your favorite tool above; one forwarding rule bolts us on.",
     isBrightEars: true,

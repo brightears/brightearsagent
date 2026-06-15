@@ -61,6 +61,15 @@ const EFFORTLESS = [
   { n: "Just yes", l: "you say yes; the AI does the rest" },
 ];
 
+/* Travel Mode — a secondary delight beat. The Hunt comes with you on tour;
+   it scans your travel cities for those dates and drafts date-bounded intros.
+   Process framing only (it FINDS and PITCHES) — never a booking guarantee. */
+const TRAVEL_MODE = [
+  { n: "Anywhere", l: "your home turf or a city across the world — the hunt follows the dates" },
+  { n: "Date-bounded", l: "guest spots and residencies inside your travel window, nothing stale" },
+  { n: "Your voice", l: "the intro drafted the way you'd write it — approve from the road" },
+];
+
 /* Pricing teaser — three plans, discovery-led, mirrors /pricing. */
 const PRICING_TEASER = [
   { name: "Starter", price: "$25", l: "Finds gigs and answers leads for a solo performer" },
@@ -374,6 +383,55 @@ export default function HomePage() {
                 <div className="mt-2 max-w-[240px] text-sm leading-snug text-cream/55">{s.l}</div>
               </div>
             ))}
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* ---------- Travel Mode — a secondary delight: the hunt tours with you ---------- */}
+      <section className="mx-auto max-w-6xl px-6 py-8 sm:py-12">
+        <RevealOnScroll>
+          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised p-8 sm:p-12">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(480px circle at 88% 12%, rgba(255,138,0,0.12), transparent 70%), radial-gradient(420px circle at 6% 100%, rgba(255,45,174,0.10), transparent 70%)",
+              }}
+            />
+            <VinylDisc size={210} tone="orange" spin className="-bottom-16 -right-16 hidden sm:block" />
+            <StickerChip tone="cream" rotate={-4} className="absolute right-8 top-8 hidden md:inline-block">
+              Works anywhere
+            </StickerChip>
+            <div className="relative max-w-2xl">
+              <Kicker>Travel mode</Kicker>
+              <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
+                Going on tour? The gigs <GradWord>come with you.</GradWord>
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-cream/75">
+                Tell Bright Ears where you&apos;re headed and the dates — it hunts guest spots and
+                residencies in that city for those days, and drafts the intro in your voice. Approve
+                from the road. It works anywhere in the world; the fine print follows wherever you
+                land.
+              </p>
+              <p className="mt-3 text-lg leading-relaxed text-cream/75">
+                Same honest deal as always:{" "}
+                <strong className="font-bold text-cream-bright">
+                  it finds and pitches the date-bounded chances
+                </strong>{" "}
+                in your travel cities — results still depend on local demand. Included on every plan.
+              </p>
+              <div className="mt-8 grid gap-8 sm:grid-cols-3">
+                {TRAVEL_MODE.map((s) => (
+                  <div key={s.n}>
+                    <div className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-3xl font-black tracking-tight text-transparent">
+                      {s.n}
+                    </div>
+                    <div className="mt-2 max-w-[240px] text-sm leading-snug text-cream/55">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </RevealOnScroll>
       </section>
