@@ -733,10 +733,13 @@ function Walkthrough({
 function StepConnect({
   leadAddress,
   leadDetected,
+  tookTooLong,
   onBack,
 }: {
   leadAddress: string;
   leadDetected: boolean;
+  /** ~90s elapsed on this step with no lead detected (audit C2 fallback). */
+  tookTooLong: boolean;
   onBack: () => void;
 }) {
   return (
@@ -881,6 +884,15 @@ function StepConnect({
             <span className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan" aria-hidden />
             Listening for your first lead… (we check every 5 seconds)
           </p>
+          {/* Calm fallback after ~90s (audit C2) — we keep listening; this just
+              points at the usual culprit and reassures them they can move on. */}
+          {tookTooLong && (
+            <p className="mt-3 rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/70">
+              Taking longer than expected? Double-check your forwarding rule is
+              pointing at the address above — or skip this and we&apos;ll catch your
+              first lead whenever it arrives.
+            </p>
+          )}
         </div>
       )}
 
@@ -932,6 +944,10 @@ export function OnboardingWizard({
   ]);
   const [gigsSaved, setGigsSaved] = useState(0);
   const [leadDetected, setLeadDetected] = useState(false);
+  // After ~90s of polling on step 5 with no lead detected, surface a calm
+  // fallback (audit C2) so the spinner doesn't appear to hang forever. The live
+  // verifier keeps running underneath and still flips to success if a lead lands.
+  const [tookTooLong, setTookTooLong] = useState(false);
 
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
 
@@ -962,6 +978,20 @@ export function OnboardingWizard({
     return () => {
       cancelled = true;
       clearInterval(id);
+    };
+  }, [step, leadDetected]);
+
+  // Calm fallback after ~90s on step 5 without a detected lead (audit C2). The
+  // poll above keeps running and still flips to success if a lead arrives; this
+  // only adds a "taking longer than expected" hint, it never stops listening.
+  // The flag is reset in cleanup (never synchronously in the effect body) so
+  // leaving the step or detecting a lead clears any stale hint.
+  useEffect(() => {
+    if (step !== 4 || leadDetected) return;
+    const id = setTimeout(() => setTookTooLong(true), 90_000);
+    return () => {
+      clearTimeout(id);
+      setTookTooLong(false);
     };
   }, [step, leadDetected]);
 
@@ -1058,6 +1088,7 @@ export function OnboardingWizard({
             <StepConnect
               leadAddress={leadAddress}
               leadDetected={leadDetected}
+              tookTooLong={tookTooLong}
               onBack={() => goTo(3)}
             />
           )}

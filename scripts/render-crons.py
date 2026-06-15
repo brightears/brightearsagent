@@ -43,6 +43,12 @@ CRONS = [
     ("brightears-app-sequences", "*/30 * * * *", "/api/cron/sequences"),
     ("brightears-app-weekly-report", "0 14 * * 1", "/api/cron/weekly-report"),  # Mon 14:00 UTC
     ("brightears-app-margin-guardrail", "0 2 * * *", "/api/cron/margin-guardrail"),  # daily 02:00 UTC
+    # Daily venue-discovery scan (the Hunt). CODIFICATION ONLY (audit C2): this
+    # job ALREADY EXISTS as a live Render cron created ad hoc via the API — it
+    # was never reproducible from code until now. Re-running this script will
+    # try to POST a duplicate; skip this entry (or delete the live one first) if
+    # you re-provision. Listed so the deploy config matches reality.
+    ("brightears-app-discovery", "0 5 * * *", "/api/cron/discovery"),  # daily 05:00 UTC
 ]
 
 
