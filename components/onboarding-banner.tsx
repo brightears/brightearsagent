@@ -35,8 +35,8 @@ export async function OnboardingBanner() {
           Soundcheck pending
         </StickerChip>
         <p className="relative min-w-48 flex-1 text-sm text-ink-stage/75">
-          <span className="font-bold text-ink-stage">Almost there —</span> we still need {missing}{" "}
-          before replies can sound like you.
+          <span className="font-bold text-ink-stage">Almost there —</span> once we have {missing}, the
+          Hunt starts finding venues that fit you and the assistant can reply in your voice.
         </p>
         <Link href="/onboarding" className={`relative ${buttonStyles.primary} text-sm`}>
           Resume setup →

@@ -14,9 +14,9 @@ export const dynamic = "force-dynamic";
 // ADR-003 tier recut: every plan is the complete assistant — blurbs gate
 // capacity/autonomy (leads, performers, autopilot, team), never capability.
 const PLAN_CARDS = [
-  { plan: "STARTER" as const, price: "$25", blurb: `${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer · full follow-up engine` },
-  { plan: "PRO" as const, price: "$79", blurb: `${PLAN_LEAD_CAPS.PRO} leads/mo · auto-send autopilot` },
-  { plan: "STUDIO" as const, price: "$149", blurb: `${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
+  { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues for you + answers leads · ${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer` },
+  { plan: "PRO" as const, price: "$79", blurb: `Same engine, more headroom · ${PLAN_LEAD_CAPS.PRO} leads/mo · auto-send autopilot` },
+  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine for the roster · ${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
 ];
 
 // Section titles use the editorial Kicker system (docs/DESIGN.md v2.1 rule 2)

@@ -284,12 +284,12 @@ export function HuntSection({
         // Typography-first empty state (v2.1 LAW rule 7) — no icons, ever.
         <EmptyState
           kicker="The hunt"
-          title="Your agent hasn't hunted yet."
-          accent="yet."
-          hint="Once the venue scanner connects, new openings and rooms that fit your sound land here — scored, with the reasons spelled out."
+          title="The hunt begins here."
+          accent="here."
+          hint="Finish your profile and the agent starts finding venues that fit you — new openings and rooms for your sound land here, scored, with the reasons spelled out and the outreach drafted for you to approve."
           cta={
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
-              Scanner arrives with the next update
+              Finish your profile to start the hunt
             </span>
           }
         />

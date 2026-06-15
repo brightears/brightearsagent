@@ -50,9 +50,10 @@ export function AtCapBanner({ used, cap, overCap, subscribed, trialActive }: AtC
           <p className="max-w-2xl text-sm font-medium text-[#7a4100]">
             {trialEnded ? (
               <>
-                Your free trial has ended — your setup is saved and new leads still
-                arrive, but drafting and venue pitches are paused. Choose a plan to
-                switch your agent back on.
+                Your free trial has ended — your setup is saved, but the Hunt has
+                stopped finding venues and drafting your outreach, and inbound
+                replies are paused too. New leads still arrive and nothing is lost.
+                Choose a plan to switch your agent back on.
               </>
             ) : (
               <>
