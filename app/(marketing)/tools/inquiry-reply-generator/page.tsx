@@ -114,13 +114,14 @@ export default function InquiryReplyGeneratorPage() {
           <div className="relative overflow-hidden rounded-3xl bg-cream p-8 sm:p-10 text-center shadow-[0_30px_80px_rgba(0,0,0,0.5)] rotate-[-0.6deg]">
             <VinylDisc size={130} tone="dark" className="-bottom-12 -right-10" />
             <h2 className="relative text-2xl sm:text-3xl font-extrabold tracking-tight text-ink-stage mb-4">
-              Now imagine this happening while you&apos;re mid-set.
+              This is the easy half. We also find the gigs.
             </h2>
             <p className="relative text-ink-stage/70 max-w-xl mx-auto mb-3">
-              Bright Ears watches your inbox, The Knot, WeddingWire, Bark and your website form —
-              filters the spam, drafts the reply in <em>your</em> voice from <em>your</em> rate card
-              and real availability, and pings your phone to approve. Designed to reply in under 5
-              minutes. Then it follows up until the gig is booked or dead.
+              Replying to a lead is one thing. The harder half is finding new ones — and that&apos;s
+              what Bright Ears leads with: it hunts the web for venues that fit you and drafts the
+              outreach in <em>your</em> voice for you to approve. And when an inquiry does land, it
+              drafts that reply too, filters the spam, and pings your phone — then follows up until
+              the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">
               Plans from $25/mo. Start with a 14-day free trial, no card.
@@ -129,14 +130,14 @@ export default function InquiryReplyGeneratorPage() {
               href="/onboarding"
               className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Start free — no card
             </Link>
           </div>
         </div>
         <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}
           <Link href="/tools/templates" className="text-brand-cyan font-semibold hover:underline">
-            25 inquiry &amp; follow-up templates
+            29 venue, inquiry &amp; follow-up templates
           </Link>{" "}
           ·{" "}
           <Link

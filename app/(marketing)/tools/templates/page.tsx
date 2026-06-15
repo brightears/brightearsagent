@@ -5,9 +5,9 @@ import { CopyButton } from "@/components/copy-button";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 
 export const metadata: Metadata = {
-  title: "25 Wedding DJ Inquiry & Follow-Up Templates (Free) — Bright Ears",
+  title: "29 DJ Email Templates: Venue Outreach, Inquiry Replies & Follow-Ups (Free) — Bright Ears",
   description:
-    "Copy-paste email templates for wedding and event DJs: first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
+    "Copy-paste email templates for event DJs: venue outreach to find new gigs (cold intro, follow-up, residency, festival), plus first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
 };
 
 /* One gradient-painted word in the headline — the design/b signature. */
@@ -35,6 +35,68 @@ type Section = {
 };
 
 const SECTIONS: Section[] = [
+  {
+    id: "venue-outreach",
+    heading: "Venue outreach",
+    blurb:
+      "The gigs you go and find. Most rooms never post a listing — you have to reach out first. These are the cold intros, follow-ups and pitches that actually get a reply. Keep them short, lead with what you do for THEIR room, and always make the next step easy.",
+    accent: "cream",
+    templates: [
+      {
+        title: "Intro to a new venue",
+        useWhen: "First contact with a bar, hotel or restaurant you'd love to play.",
+        subject: "DJ for [venue] — quick intro",
+        body: `Hi [Name] — I'm [your name], a [DJ / band] based in [city]. I've had my eye on [venue] for a while — [one specific, genuine detail: the rooftop crowd, the Friday nights, the room itself].
+
+I play [your style — e.g. open-format, deep house, party classics] and I'm great at reading a room and keeping it full without taking it over. I've held it down at places like [venue / event], and I bring my own [gear if relevant].
+
+Would it be worth a quick chat about your music nights? I'm happy to send a short mix and a couple of references. Either way, love what you're doing over there.
+
+[Your name]
+[link to mix / EPK]`,
+        tip: "Lead with their room, not your résumé. One specific, true detail proves you actually know the place.",
+      },
+      {
+        title: "Follow-up to a venue (no reply yet)",
+        useWhen: "A week or so after your intro, still no answer.",
+        body: `Hi [Name] — floating my note from last week back to the top in case it got buried (inboxes, I know).
+
+Short version: I'd love to play [venue], I'm [city]-based and reliable, and I can fit whatever night needs lifting. If now's not the time, no worries at all — happy to check back when your calendar opens up.
+
+Here's a 3-minute mix so you can hear the vibe: [link].
+
+[Your name]`,
+        tip: "One follow-up, friendly and brief. Drop a mix link so the reply costs them nothing.",
+      },
+      {
+        title: "Residency pitch",
+        useWhen: "Proposing a recurring weekly or monthly night.",
+        subject: "A regular night at [venue] — a proposal",
+        body: `Hi [Name] — thanks for [the chat / the chance to play]. I want to pitch something bigger than a one-off: a regular [night] at [venue].
+
+Here's the thinking: a consistent night builds a crowd that comes back for it. I'd handle [music + promo on my channels], help you build [theme / regulars], and we'd review the numbers after [4–6 weeks] — no long lock-in. My rate for a residency is [$X per night], and I'm flexible on the trial run.
+
+Want me to put together a one-page plan for [proposed night]? I can have it to you this week.
+
+[Your name]`,
+        tip: "Sell the recurring crowd, not just the set. Offer a short trial run so saying yes is low-risk.",
+      },
+      {
+        title: "Festival or season pitch",
+        useWhen: "Pitching for a festival lineup or a seasonal program (summer series, holiday run).",
+        subject: "[Festival / season] [year] — [your act] for the lineup",
+        body: `Hi [Name] — I'd love to be part of [festival / the summer rooftop series] this year.
+
+Quick fit: I play [style] and I'm built for [their slot — the sunset set, the late-night floor, the family-friendly afternoon]. I draw [honest detail — a local following / strong socials / repeat venue bookings], and I'm easy to work with on timing and tech.
+
+Lineup, EPK and references here: [link]. If you're still building [the season / this year's bill], I'd be glad to send a tailored set proposal for the slot you're filling.
+
+Thanks for considering me,
+[Your name]`,
+        tip: "Name the exact slot you fit. Programmers fill gaps — make it obvious which gap is yours.",
+      },
+    ],
+  },
   {
     id: "first-replies",
     heading: "First replies",
@@ -391,6 +453,10 @@ Hope married life is wonderful,
 
 const FAQS = [
   {
+    q: "How do I reach out to venues for gigs?",
+    a: "Keep it short and lead with their room, not your résumé. Open with one specific, genuine detail about the venue, say in a line what you do for a crowd, and make the next step easy — a quick chat, a 3-minute mix link. Follow up once if you don't hear back, then move on. The venue outreach templates above cover the cold intro, the follow-up, a residency pitch and a festival or season pitch.",
+  },
+  {
     q: "How fast should a DJ reply to a wedding inquiry?",
     a: "Within five minutes if you possibly can, and within the hour at worst. Couples typically message several vendors at once and shortlist whoever responds first — about a third of vendors never reply at all, so speed alone puts you ahead of the pack. A short, specific reply sent fast beats a perfect reply sent that evening.",
   },
@@ -404,7 +470,7 @@ const FAQS = [
   },
   {
     q: "Can these templates be automated?",
-    a: "Yes — that's literally why we built Bright Ears. It watches your inbox and lead sources, drafts replies like these in your own voice with your real availability and rates, sends you a push notification, and you approve from your phone. Follow-ups run on the day 2/5/9 cadence automatically until the gig is booked or dead. Designed to get your first reply out in under five minutes.",
+    a: "Yes — that's literally why we built Bright Ears. It goes out and finds venues that fit you and drafts the outreach in your voice, like the venue templates above, for you to approve — so the cold pitches actually get sent. And when an inquiry comes in, it drafts that reply too, in your voice with your real availability and rates, and runs the day 2/5/9 follow-ups automatically until the gig is booked or dead. You just approve from your phone.",
   },
 ];
 
@@ -481,7 +547,7 @@ function StartFreeBanner({ heading, sub }: { heading: string; sub: string }) {
           href="/onboarding"
           className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
         >
-          Start free
+          Start free — no card
         </Link>
       </div>
     </div>
@@ -531,13 +597,13 @@ export default function TemplatesPage() {
             Free — no PDF, no paywall, just copy and send
           </span>
           <h1 className="mt-7 text-4xl sm:text-6xl font-black tracking-tight leading-[1.02]">
-            25 Wedding DJ Inquiry &amp; Follow-Up <span style={gradText}>Templates</span>
+            29 DJ Email <span style={gradText}>Templates</span>: outreach, replies &amp; follow-ups
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-cream/65">
-            &ldquo;Get an inquiry, immediately respond, and then nothing.&rdquo; We&apos;ve run an
-            entertainment business for 20 years — these are the emails that actually get answered.
-            First replies for every situation, follow-ups that don&apos;t feel desperate, and the
-            asks most DJs never send.
+            We&apos;ve run an entertainment business for 20 years — these are the emails that
+            actually get answered. The venue outreach that finds you new gigs, first replies for
+            every inquiry, follow-ups that don&apos;t feel desperate, and the asks most DJs never
+            send.
           </p>
         </div>
       </section>
@@ -625,7 +691,7 @@ export default function TemplatesPage() {
               <div className="mt-12 max-w-3xl mx-auto">
                 <StartFreeBanner
                   heading="Sending these at 11pm after a gig? There's a better way."
-                  sub="Bright Ears drafts every first reply and runs the day 2/5/9 follow-ups for you — in your voice, with your real availability and rates. You approve from your phone. Designed to reply in under 5 minutes. From $25/mo — start with a 14-day free trial, no card."
+                  sub="Bright Ears goes out and finds the venues, drafts every reply and runs the day 2/5/9 follow-ups for you — all in your voice, with your real availability and rates. You just approve from your phone. From $25/mo — start with a 14-day free trial, no card."
                 />
               </div>
             )}
@@ -656,8 +722,8 @@ export default function TemplatesPage() {
       {/* Final CTA */}
       <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <StartFreeBanner
-          heading={'"If there were two of you, you\'d double your business."'}
-          sub="There can be. Bright Ears answers every inquiry in minutes, follows up until booked-or-dead, filters the spam before you ever see it, and proactively hunts new venues — while your clients only ever see you. Start with a 14-day free trial, no card."
+          heading="Never miss a gig you never knew existed."
+          sub="Bright Ears hunts the web for venues that fit you and drafts the outreach in your voice — and answers every inquiry that comes in, follows up until booked-or-dead, and filters the spam before you ever see it. Venues and clients only ever see you. Start with a 14-day free trial, no card."
         />
         <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}

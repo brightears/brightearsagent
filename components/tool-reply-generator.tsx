@@ -182,7 +182,20 @@ export function ToolReplyGenerator() {
             </div>
           </div>
 
-          {/* Email gate — the 25 templates */}
+          {/* What's next — the reply is only half the product; point at the Hunt. */}
+          <div className="relative overflow-hidden rounded-3xl border border-cream/15 bg-ink-raised p-5 sm:p-6">
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan">
+              That&apos;s the reply half
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-cream/75">
+              This drafted a reply to a lead that already found you. Bright Ears also does the harder
+              half: it goes out and <span className="font-semibold text-cream-bright">finds you new
+              venues</span> — scanning the web for rooms that fit you and drafting the outreach in
+              your voice, so you stop missing the gigs you never even hear about.
+            </p>
+          </div>
+
+          {/* Email gate — the 29 templates */}
           <div className="relative">
             <div className="relative overflow-hidden rounded-3xl bg-cream p-5 sm:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.45)] rotate-[-0.4deg]">
               <VinylDisc size={110} tone="dark" className="-bottom-10 -right-8" />
@@ -197,26 +210,27 @@ export function ToolReplyGenerator() {
                     You&apos;re in — templates unlocked
                   </h3>
                   <p className="text-sm text-ink-stage/65">
-                    All 25 inquiry &amp; follow-up templates are yours. Steal them, tweak them, send
-                    them tonight.
+                    All 29 venue-outreach, inquiry &amp; follow-up templates are yours. Steal them,
+                    tweak them, send them tonight.
                   </p>
                   <Link href="/tools/templates" className={`inline-block ${buttonStyles.primary}`}>
-                    Open the 25 templates
+                    Open the 29 templates
                   </Link>
                 </div>
               ) : (
                 <div className="relative space-y-3">
                   <div>
                     <StickerChip tone="ink" rotate={-3}>
-                      Free — 25 templates
+                      Free — 29 templates
                     </StickerChip>
                   </div>
                   <h3 className="font-extrabold tracking-tight text-ink-stage text-lg">
-                    Get our 25 ready-to-send inquiry &amp; follow-up templates
+                    Get our 29 ready-to-send venue, inquiry &amp; follow-up templates
                   </h3>
                   <p className="text-sm text-ink-stage/65">
-                    First replies for every situation, day 2/5/9 follow-ups, rebooking and review
-                    asks — short, human, and free. Drop your email and they&apos;re yours.
+                    Venue outreach that finds new gigs, first replies for every situation, day 2/5/9
+                    follow-ups, rebooking and review asks — short, human, and free. Drop your email
+                    and they&apos;re yours.
                   </p>
                   <form onSubmit={joinGate} className="flex flex-col sm:flex-row gap-2">
                     <input
