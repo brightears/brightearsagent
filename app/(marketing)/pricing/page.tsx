@@ -12,7 +12,7 @@ import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete assistant — replies for any event, follow-ups until booked-or-dead, weekly report, and the proactive Hunt that finds venues for you. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
+    "Every plan is the complete engine — the Hunt that finds venues for you AND replies to every inquiry in your voice, with follow-ups and a weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
 };
 
 type Plan = {
@@ -31,25 +31,27 @@ const PLANS: Plan[] = [
   {
     name: "Starter",
     price: "$25",
-    blurb: "The complete assistant for a solo performer — you approve every send.",
+    blurb:
+      "The complete opportunity engine for a solo performer — it hunts venues for you AND answers every inquiry. You approve every send.",
     features: [
+      "The Hunt: it finds venues hiring entertainment and drafts the outreach in your voice — up to ~10 venue pitches/day, you approve",
       "15 inbound leads per month (weddings, corporate, parties — any event)",
-      "Plus the Hunt: proactive venue outreach drafted for you, up to ~10 pitches/day",
       "1 performer (you)",
-      "Replies in your voice — from your rate card, checked against your gig calendar",
+      "Everything drafted in your voice — from your rate card, checked against your gig calendar",
       "Follow-up sequences until every lead is booked or dead, opt-out compliance built in",
-      "Weekly report: median reply time & gigs booked",
+      "Weekly report: rooms found, leads answered, gigs booked",
       "Spam & scams filtered before you ever see them",
       "You approve every send — one tap from your phone, even from the booth",
-      "Works with The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
+      "Also catches The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
     ],
   },
   {
     name: "Pro",
     price: "$79",
-    blurb: "The same assistant, more headroom — and it can send for itself on sources you trust.",
+    blurb:
+      "The same engine, more headroom — it hunts and answers, and can send for itself on sources you trust.",
     features: [
-      "Everything in Starter — the same complete assistant and the Hunt",
+      "Everything in Starter — the same Hunt and the same complete assistant",
       "60 inbound leads per month",
       "Per-source auto-send: full autopilot on sources you trust, approval everywhere else",
     ],
@@ -58,7 +60,8 @@ const PLANS: Plan[] = [
   {
     name: "Studio",
     price: "$149",
-    blurb: "The same assistant for the whole roster — one inbox, every performer, your team.",
+    blurb:
+      "The same engine for the whole roster — hunting and answering across one inbox, every performer, your team.",
     features: [
       "Everything in Pro",
       "150 inbound leads per month",
@@ -71,7 +74,7 @@ const PLANS: Plan[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between Starter, Pro and Studio?",
-    a: "Capacity and autonomy — never features. Every plan includes the complete assistant: replies in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, approve-from-phone, and the proactive Hunt agent. Starter ($25) handles 15 inbound leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 inbound leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 inbound leads with multi-performer routing and team seats.",
+    a: "Capacity and autonomy — never features. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 inbound leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 inbound leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 inbound leads with multi-performer routing and team seats. The Hunt's venue-pitch allowance is the same on every plan.",
   },
   {
     q: "Is this only for wedding DJs?",
@@ -186,21 +189,20 @@ export default function PricingPage() {
           Pricing
         </StickerChip>
         <h1 className="mt-6 text-4xl sm:text-6xl font-black tracking-tight text-cream-bright text-balance">
-          Less than one good gig. Plans priced in <span className={GRAD}>leads</span>, not
-          jargon.
+          Less than one good <span className={GRAD}>gig</span>. The whole engine,
+          every plan.
         </h1>
         <p className="mt-6 max-w-2xl mx-auto text-lg leading-relaxed text-cream/70">
-          A booked event is often worth $1,500–3,000 — wedding, corporate party,
-          residency or launch. Bright Ears is designed to answer every inquiry in
-          minutes — even from the booth — and follows up until it&apos;s booked or
-          dead, for less than a dinner out. Start with a 14-day free trial — no
-          card.
+          Bright Ears hunts the web for venues that fit you and drafts the
+          outreach in your voice — and it answers every inquiry that comes in too.
+          A booked event is often worth $1,500–3,000; this costs less than a
+          dinner out. Start with a 14-day free trial — no card.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
-          Every plan is the complete assistant — replies in your voice,
-          follow-ups until booked-or-dead, weekly report, spam filtering, approve
-          from your phone, and the Hunt that finds venues for you. You only choose
-          leads, performers and autopilot.
+          Every plan is the complete engine — the Hunt that finds venues for you
+          AND replies to every inquiry in your voice, with follow-ups until
+          booked-or-dead, a weekly report, spam filtering and approve-from-phone.
+          You only choose leads, performers and autopilot.
         </p>
       </section>
 
@@ -257,7 +259,7 @@ export default function PricingPage() {
                       : "border-[1.5px] border-ink-stage/30 text-ink-stage/80 hover:border-ink-stage/60 hover:text-ink-stage transition-colors"
                   }`}
                 >
-                  Start free
+                  Start free — no card
                 </Link>
                 <p className="mt-3 text-center text-xs text-ink-stage/50">
                   14-day free trial, no card · cancel anytime
@@ -368,17 +370,17 @@ export default function PricingPage() {
               &#10022;
             </span>
             <h2 className="relative text-3xl sm:text-4xl font-black tracking-tight text-ink-stage text-balance">
-              Stop being the <span className={GRAD}>5th</span> DJ to reply.
+              Never miss a <span className={GRAD}>gig</span> you never knew existed.
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
-              Designed to reply in minutes — even from the booth. 14-day free
+              It finds the rooms, drafts the pitch, you just approve. 14-day free
               trial, no card. Cancel anytime.
             </p>
             <Link
               href="/onboarding"
               className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Start free — no card
             </Link>
           </div>
         </div>
