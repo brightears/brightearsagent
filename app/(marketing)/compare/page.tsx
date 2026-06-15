@@ -313,7 +313,7 @@ export default function ComparePage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply
             </h2>
             <p className="relative mt-3 text-ink-stage/70 max-w-xl mx-auto">
-              Subscribe to activate, with a 30-day money-back guarantee. Designed to reply in under 5
+              14-day free trial, no card — cancel anytime. Designed to reply in under 5
               minutes — even from the booth. At your cap, drafting pauses; never a surprise bill.
             </p>
             <div className="relative mt-7">

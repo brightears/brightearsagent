@@ -12,7 +12,7 @@ import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete assistant — replies for any event, follow-ups until booked-or-dead, weekly report, and the proactive Hunt that finds venues for you. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 30-day money-back guarantee. Cancel anytime.",
+    "Every plan is the complete assistant — replies for any event, follow-ups until booked-or-dead, weekly report, and the proactive Hunt that finds venues for you. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
 };
 
 type Plan = {
@@ -83,7 +83,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if it isn't working for me?",
-    a: "Subscribe to activate, and if it's not for you, email us within 30 days for a full money-back refund — no questions asked. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    a: "Start with a 14-day free trial of full Pro — no card — so you can feel it work before you pay a cent. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
   },
   {
     q: "Is email forwarding safe? Do I have to share my password?",
@@ -123,7 +123,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is there a free trial?",
-    a: "No free trial — you subscribe to activate the agent. Instead you're protected by a 30-day money-back guarantee: if it's not for you, email us within 30 days for a full refund, no questions asked. You can still set up your whole account — profile, packages, voice, calendar — for free before you subscribe; you just need an active plan for the agent to start replying and hunting venues.",
+    a: "Yes — 14 days of full Pro, free, no card required. You set up your whole account — profile, packages, voice, calendar — and the agent immediately starts replying in your voice and hunting venues, so you can watch it work before you pay anything. When the trial ends, pick a plan to keep it running; if you don't, the agent simply pauses (your setup and leads are kept safe). Month-to-month after that, cancel anytime.",
   },
 ];
 
@@ -193,8 +193,8 @@ export default function PricingPage() {
           A booked event is often worth $1,500–3,000 — wedding, corporate party,
           residency or launch. Bright Ears is designed to answer every inquiry in
           minutes — even from the booth — and follows up until it&apos;s booked or
-          dead, for less than a dinner out. Subscribe to activate, with a 30-day
-          money-back guarantee.
+          dead, for less than a dinner out. Start with a 14-day free trial — no
+          card.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
           Every plan is the complete assistant — replies in your voice,
@@ -260,7 +260,7 @@ export default function PricingPage() {
                   Start free
                 </Link>
                 <p className="mt-3 text-center text-xs text-ink-stage/50">
-                  Subscribe to activate · 30-day money-back guarantee
+                  14-day free trial, no card · cancel anytime
                 </p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Outcome math + guarantee (ADR-003: per-gig economics as framing + guarantee) */}
+      {/* Outcome math + risk-reversal (ADR-003: per-gig economics as framing + the free-trial line) */}
       <section className="relative max-w-6xl mx-auto px-6 pb-12">
         <div className="relative overflow-hidden rounded-3xl bg-ink-raised border border-cream/10 p-8 sm:p-10 text-center">
           <h2 className="text-2xl font-extrabold tracking-tight text-cream-bright">
@@ -370,8 +370,8 @@ export default function PricingPage() {
               Stop being the <span className={GRAD}>5th</span> DJ to reply.
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
-              Designed to reply in minutes — even from the booth. Subscribe to
-              activate, 30-day money-back guarantee. Cancel anytime.
+              Designed to reply in minutes — even from the booth. 14-day free
+              trial, no card. Cancel anytime.
             </p>
             <Link
               href="/onboarding"

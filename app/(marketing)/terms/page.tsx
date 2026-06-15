@@ -90,10 +90,12 @@ export default function TermsPage() {
             prompt you to add capacity rather than charging automatically.
           </li>
           <li>
-            There is no free trial — you subscribe to activate the service. You are covered by a
-            30-day money-back guarantee: if you cancel within 30 days of first subscribing and email
-            us, we refund that payment in full. After that, plans are month-to-month; cancellation
-            stops future renewals but is not retroactively refunded except as required by law.
+            New accounts start with a 14-day free trial of our full Pro features — no payment card
+            required. If you don&rsquo;t choose a plan before the trial ends, the agent simply
+            pauses; your account and data are retained. Once you subscribe, plans are month-to-month
+            and renew automatically until you cancel. You can cancel anytime from Settings;
+            cancellation stops future renewals but does not retroactively refund amounts already
+            billed except as required by law.
           </li>
         </ul>
       </LegalSection>

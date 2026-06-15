@@ -24,10 +24,10 @@ import { Kicker } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Bright Ears — stop being the 5th DJ to reply",
   description:
-    "The AI back office that answers every event inquiry in your voice in under 5 minutes, follows up until it's booked or dead, and proactively hunts venues for you — you just tap Approve. 30-day money-back guarantee.",
+    "The AI back office that answers every event inquiry in your voice in under 5 minutes, follows up until it's booked or dead, and proactively hunts venues for you — you just tap Approve. 14-day free trial, no card.",
 };
 
-const TRUST_LINE = "30-day money-back guarantee · setup in minutes";
+const TRUST_LINE = "14-day free trial, no card · setup in minutes";
 
 const MARQUEE_ITEMS = [
   "ANSWERED IN MINUTES",

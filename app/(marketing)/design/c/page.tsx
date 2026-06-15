@@ -236,7 +236,7 @@ export default function VoltageLightPreview() {
               </a>
             </div>
             <p className="mt-7 font-mono text-xs uppercase tracking-[0.18em] text-[#17161f]/55">
-              30-day money-back guarantee · setup in minutes
+              14-day free trial, no card · setup in minutes
             </p>
           </div>
 

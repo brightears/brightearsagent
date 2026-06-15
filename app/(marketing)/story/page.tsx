@@ -325,8 +325,8 @@ export default function StoryPage() {
             Give your business its own <span className={GRAD}>back office</span>.
           </h2>
           <p className="relative mt-4 text-cream/70 max-w-xl mx-auto">
-            Vinyl runs ours every night. Bright Ears runs yours — subscribe to
-            activate, with a 30-day money-back guarantee.
+            Vinyl runs ours every night. Bright Ears runs yours — start with a
+            14-day free trial, no card.
           </p>
           <Link
             href="/onboarding"

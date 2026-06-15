@@ -306,7 +306,7 @@ export default function DesignDirectionB() {
                 </a>
               </div>
               <p className="mt-6 text-sm text-[#e8e4dc]/45">
-                30-day money-back guarantee &middot; setup in minutes
+                14-day free trial, no card &middot; setup in minutes
               </p>
             </div>
 
