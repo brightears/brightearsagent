@@ -98,6 +98,10 @@ model Business {
   // so a date-modulo could starve the warm wheel for weeks; a counter
   // guarantees exactly 1-in-3 regardless of cadence.
   discoveryScanCount   Int       @default(0)
+  // Travel Mode: Home Base = serviceCities (where the artist is normally
+  // available). homeRadiusKm is advisory for now (UI shows it; scan scoping
+  // doesn't act on it yet) — packaging: founder decision (included for all).
+  homeRadiusKm         Int?
 
   // --- Artist profile (Phase 10.1) — what the sales agent pitches WITH.
   // Lives on Business (not a 1:1 side table): every field is tenant-singular,
@@ -132,6 +136,7 @@ model Business {
   venuePitches         VenuePitch[]
   outreachSuppressions OutreachSuppression[]
   mailboxConnection    MailboxConnection?
+  travelWindows        TravelWindow[]
 }
 
 // One row per (business, device) the owner approved push on. Scoped by business
@@ -404,6 +409,12 @@ model Venue {
   lastSignalAt       DateTime?
   pitchedAt          DateTime?
   suppressedReason   String?
+  // Travel Mode: the TravelWindow this venue was discovered for (null = a
+  // home-base hunt). Lets the feed label travel finds ("Travel · Lisbon") and
+  // the pitch be date-bounded to the window's city + dates. SetNull so deleting
+  // a window doesn't take its discovered venues with it.
+  travelWindowId     String?
+  travelWindow       TravelWindow? @relation(fields: [travelWindowId], references: [id], onDelete: SetNull)
 
   signals VenueSignal[]
   pitches VenuePitch[]
@@ -488,6 +499,44 @@ model OutreachSuppression {
   createdAt  DateTime @default(now())
 
   @@unique([businessId, email])
+}
+
+// ---------------------------------------------------------------------------
+// Travel Mode — the artist's HOME BASE is Business.serviceCities (where
+// they're normally available). When they travel, they add a TRAVEL WINDOW ("in
+// Lisbon Aug 4-11") and the Hunt ALSO scans that city for guest-spot/residency/
+// private-event work for those dates, drafting DATE-BOUNDED outreach. The
+// window's country drives jurisdiction at the destination (not the home
+// country). packaging: founder decision — included for ALL tiers for now (no
+// per-tier limits on travel windows).
+// ---------------------------------------------------------------------------
+
+enum TravelWindowStatus {
+  ACTIVE    // live or upcoming — the Hunt scans it (lead-time gated)
+  CANCELLED // owner removed it before it ran out — never scanned
+  EXPIRED   // endDate passed — auto-expired at scan start, excluded
+}
+
+model TravelWindow {
+  id         String             @id @default(cuid())
+  businessId String
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  city       String
+  country    String // ISO-2 — drives the DESTINATION jurisdiction (ADR-004 D4)
+  // Date-only semantics (stored as DateTime; time component ignored — the
+  // window is inclusive of both dates in the tenant's day sense).
+  startDate  DateTime
+  endDate    DateTime
+  radiusKm   Int? // advisory, like homeRadiusKm
+  feeOverride Int? // cents — optional travel-city fee floor; null = use profile
+  roleTags   String[]           @default([]) // "guest-spot" | "residency" | "private-event"
+  status     TravelWindowStatus @default(ACTIVE)
+
+  venues Venue[]
+
+  @@index([businessId, status])
 }
 
 // ---------------------------------------------------------------------------
