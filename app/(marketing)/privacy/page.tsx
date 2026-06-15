@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalPage, LegalSection, ToBeCompleted } from "@/components/legal-page";
+import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
   title: "Privacy Policy (draft) — Bright Ears",
@@ -281,31 +281,18 @@ export default function PrivacyPage() {
 
       <LegalSection kicker="Representatives" title="Our EU and UK representatives">
         <p>
-          Because Bright Ears is established in Thailand but targets data subjects in the EU and the UK,
-          we are required to appoint local Article 27 representatives. We have appointed:
+          Bright Ears is established in Thailand. We currently offer the service to customers in Thailand,
+          the wider Asia-Pacific region and the United States, and we do{" "}
+          <span className="font-semibold text-ink-stage">not actively direct it at, or market it to,
+          individuals in the EU or the UK</span>. We have therefore not appointed Article 27
+          representatives at this time. If our activities grow to the point that the EU or UK GDPR requires
+          it, we will appoint the required EU and UK representatives and name them here.
         </p>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>
-            <span className="font-semibold text-ink-stage">EU representative (GDPR Art 27):</span>{" "}
-            {/* TODO(founder): appoint an EU Art 27 representative and insert name + EU address + contact */}
-            <ToBeCompleted label="EU representative — to appoint" />.
-          </li>
-          <li>
-            <span className="font-semibold text-ink-stage">UK representative (UK GDPR Art 27):</span>{" "}
-            {/* TODO(founder): appoint a UK Art 27 representative and insert name + UK address + contact.
-                This duty survived the UK Data (Use and Access) Act 2025 and still applies. */}
-            <ToBeCompleted label="UK representative — to appoint" />.
-          </li>
-        </ul>
         <p>
-          EU and UK data subjects may contact the relevant representative on any matter relating to our
-          processing of their data. We have{" "}
-          {/* TODO(founder): decide whether a Data Protection Officer is required/appointed; if so, insert
-              DPO name + contact. Most likely NOT mandatory at current scale (no large-scale special-category
-              or systematic monitoring), but confirm in legal review. */}
-          <ToBeCompleted label="DPO decision — to confirm" /> regarding a Data Protection Officer; at our
-          current scale a DPO is not expected to be mandatory, and privacy queries are handled by the
-          contact below.
+          We have <span className="font-semibold text-ink-stage">not appointed a Data Protection
+          Officer</span>: our core activities do not involve large-scale systematic monitoring of
+          individuals or large-scale processing of special-category data, so a DPO is not mandatory at our
+          current scale. We keep this under review, and privacy queries are handled by the contact below.
         </p>
       </LegalSection>
 
