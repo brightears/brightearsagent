@@ -73,6 +73,16 @@ describe("planIngest", () => {
     expect(nest.signals).toHaveLength(2);
   });
 
+  it("Travel Mode: created venues are tagged with the batch's travelWindowId (null = home base)", async () => {
+    const raw = await stubBatch(MANCHESTER);
+    // Home-base batch — no window → all creates tagged null.
+    const home = planIngest(ctx(), MANCHESTER, raw);
+    expect(home.creates.every((c) => c.travelWindowId === null)).toBe(true);
+    // Travel batch — every create carries the window id.
+    const travel = planIngest(ctx({ travelWindowId: "tw1" }), MANCHESTER, raw);
+    expect(travel.creates.every((c) => c.travelWindowId === "tw1")).toBe(true);
+  });
+
   it("appends only NEW sourceUrls to an existing venue and re-scores", async () => {
     const raw = await stubBatch(MANCHESTER);
     const first = planIngest(ctx(), MANCHESTER, raw);
