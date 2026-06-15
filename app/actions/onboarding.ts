@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { isAllowedCountry } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -33,7 +34,9 @@ const basicsSchema = z.object({
     .string()
     .trim()
     .toUpperCase()
-    .regex(/^[A-Z]{2}$/, "Pick a country"),
+    .regex(/^[A-Z]{2}$/, "Pick a country")
+    // Real, non-sanctioned country — don't trust the client's dropdown.
+    .refine(isAllowedCountry, "Pick a country we can support"),
   timezone: z
     .string()
     .trim()

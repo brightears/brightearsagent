@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { isAllowedCountry } from "@/lib/geo/countries";
 // Role tags live in a plain module — a "use server" file may only export async
 // functions, so the const/type cannot be defined (or re-exported) here.
 import { TRAVEL_ROLE_TAGS } from "@/lib/travel/roles";
@@ -58,12 +59,15 @@ const dateOnly = z
 const addWindowSchema = z
   .object({
     city: z.string().trim().min(1, "City is required").max(120),
-    // ISO-2 country, uppercased — drives the DESTINATION jurisdiction.
+    // ISO-2 country, uppercased — drives the DESTINATION jurisdiction. Must be
+    // a real, non-sanctioned country (isAllowedCountry) — never trust the
+    // client to have shown only allowed options.
     country: z
       .string()
       .trim()
       .transform((c) => c.toUpperCase())
-      .pipe(z.string().regex(/^[A-Z]{2}$/, "Pick a country")),
+      .pipe(z.string().regex(/^[A-Z]{2}$/, "Pick a country"))
+      .refine(isAllowedCountry, "We can't hunt in that country — pick another"),
     startDate: dateOnly,
     endDate: dateOnly,
     radiusKm: z

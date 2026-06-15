@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { updateBusiness } from "@/app/actions/settings";
 import { buttonStyles } from "@/components/ui";
+import { COUNTRIES } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 const PERFORMER_LABELS: Record<PerformerKind, string> = {
@@ -18,18 +19,8 @@ const PERFORMER_LABELS: Record<PerformerKind, string> = {
   OTHER: "Other",
 };
 
-const COUNTRIES: { code: string; label: string }[] = [
-  { code: "US", label: "United States" },
-  { code: "CA", label: "Canada" },
-  { code: "GB", label: "United Kingdom" },
-  { code: "AU", label: "Australia" },
-  { code: "NZ", label: "New Zealand" },
-  { code: "IE", label: "Ireland" },
-  { code: "DE", label: "Germany" },
-  { code: "FR", label: "France" },
-  { code: "SG", label: "Singapore" },
-  { code: "TH", label: "Thailand" },
-];
+// Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
+// sorted and with sanctioned jurisdictions filtered out.
 
 export type BusinessProfile = {
   name: string;
@@ -63,9 +54,12 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
     return known.includes(business.timezone) ? known : [business.timezone, ...known];
   }, [business.timezone]);
 
+  // Keep an already-saved country selectable even if it's not in the list
+  // (e.g. a legacy/excluded code on an existing business) so saving never
+  // silently changes it.
   const countries = COUNTRIES.some((c) => c.code === business.country)
     ? COUNTRIES
-    : [{ code: business.country, label: business.country }, ...COUNTRIES];
+    : [{ code: business.country, name: business.country }, ...COUNTRIES];
 
   return (
     <form action={formAction} className="space-y-4">
@@ -145,7 +139,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
           <select id="country" name="country" defaultValue={business.country} className={inputCls}>
             {countries.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.label}
+                {c.name}
               </option>
             ))}
           </select>

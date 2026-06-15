@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { isAllowedCountry } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -45,6 +46,13 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
     }
   }
 
+  // Blank = keep current. A submitted country must be real and non-sanctioned —
+  // don't trust the client's dropdown (isAllowedCountry, lib/geo/countries.ts).
+  const country = optional(formData, "country");
+  if (country && !isAllowedCountry(country)) {
+    return { ok: false, error: "Pick a country we can support" };
+  }
+
   await db.business.update({
     where: { id: business.id },
     data: {
@@ -52,7 +60,7 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
       ownerName,
       replyToEmail,
       timezone: timezone ?? business.timezone,
-      country: optional(formData, "country") ?? business.country,
+      country: country ?? business.country,
       websiteUrl: optional(formData, "websiteUrl"),
       bookingLinkUrl: optional(formData, "bookingLinkUrl"),
       voiceSamples: optional(formData, "voiceSamples"),

@@ -17,30 +17,15 @@ import {
   cancelTravelWindowForm,
   updateHomeRadius,
 } from "@/app/actions/travel";
+import { COUNTRIES } from "@/lib/geo/countries";
 import { TRAVEL_ROLE_TAGS, type TravelRoleTag } from "@/lib/travel/roles";
 
 const inputCls =
   "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
-const COUNTRIES: { code: string; label: string }[] = [
-  { code: "US", label: "United States" },
-  { code: "CA", label: "Canada" },
-  { code: "GB", label: "United Kingdom" },
-  { code: "AU", label: "Australia" },
-  { code: "NZ", label: "New Zealand" },
-  { code: "IE", label: "Ireland" },
-  { code: "DE", label: "Germany" },
-  { code: "AT", label: "Austria" },
-  { code: "FR", label: "France" },
-  { code: "ES", label: "Spain" },
-  { code: "PT", label: "Portugal" },
-  { code: "IT", label: "Italy" },
-  { code: "NL", label: "Netherlands" },
-  { code: "SG", label: "Singapore" },
-  { code: "TH", label: "Thailand" },
-  { code: "JP", label: "Japan" },
-];
+// Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
+// sorted and with sanctioned jurisdictions filtered out.
 
 const ROLE_LABELS: Record<TravelRoleTag, string> = {
   "guest-spot": "Guest spot",
@@ -164,7 +149,7 @@ function AddWindowForm() {
             </option>
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.label}
+                {c.name}
               </option>
             ))}
           </select>

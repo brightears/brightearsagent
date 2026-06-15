@@ -20,6 +20,7 @@ import {
 import { buttonStyles, Badge, BrightEarsLogo, Card } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
+import { COUNTRIES } from "@/lib/geo/countries";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
@@ -56,19 +57,8 @@ const KINDS: { kind: PerformerKind; label: string }[] = [
   { kind: "OTHER", label: "Something else" },
 ];
 
-// US/UK/AU/CA first — our launch markets.
-const COUNTRIES: { code: string; label: string }[] = [
-  { code: "US", label: "United States" },
-  { code: "GB", label: "United Kingdom" },
-  { code: "AU", label: "Australia" },
-  { code: "CA", label: "Canada" },
-  { code: "NZ", label: "New Zealand" },
-  { code: "IE", label: "Ireland" },
-  { code: "DE", label: "Germany" },
-  { code: "FR", label: "France" },
-  { code: "SG", label: "Singapore" },
-  { code: "TH", label: "Thailand" },
-];
+// Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
+// sorted and with sanctioned jurisdictions filtered out.
 
 const EVENT_TYPES = ["wedding", "corporate", "birthday", "private party", "school dance"];
 
@@ -189,9 +179,12 @@ function StepBusiness({
     return known.includes(initial.timezone) ? known : [initial.timezone, ...known];
   }, [initial.timezone]);
 
+  // Keep an already-saved country selectable even if it's not in the list
+  // (e.g. a legacy/excluded code on an existing business) so editing never
+  // silently changes it.
   const countries = COUNTRIES.some((c) => c.code === initial.country)
     ? COUNTRIES
-    : [{ code: initial.country, label: initial.country }, ...COUNTRIES];
+    : [{ code: initial.country, name: initial.country }, ...COUNTRIES];
 
   return (
     <form action={formAction} className="space-y-4">
@@ -252,7 +245,7 @@ function StepBusiness({
           <label htmlFor="ob-country" className={labelStyles}>Country</label>
           <select id="ob-country" name="country" defaultValue={initial.country} className={inputStyles}>
             {countries.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
+              <option key={c.code} value={c.code}>{c.name}</option>
             ))}
           </select>
           <p className="mt-1 text-xs text-ink-stage/50">Sets the right email rules for your region.</p>
