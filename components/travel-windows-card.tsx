@@ -59,9 +59,18 @@ function fmtRange(start: string, end: string): string {
   return start === end ? f(start) : `${f(start)} – ${f(end)}`;
 }
 
-function HomeBaseForm({ serviceCities, homeRadiusKm }: { serviceCities: string[]; homeRadiusKm: number | null }) {
+function HomeBaseForm({
+  serviceCities,
+  homeRadiusKm,
+  homeCityCap,
+}: {
+  serviceCities: string[];
+  homeRadiusKm: number | null;
+  /** How many home cities this plan's Hunt scans (coverage gate). */
+  homeCityCap: number;
+}) {
   const [state, formAction, pending] = useActionState(
-    async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
+    async (_prev: { ok: boolean; error?: string; notice?: string } | null, formData: FormData) =>
       updateHomeBase(formData),
     null,
   );
@@ -83,7 +92,12 @@ function HomeBaseForm({ serviceCities, homeRadiusKm }: { serviceCities: string[]
             className={inputCls}
           />
           <p className="mt-1.5 text-xs text-ink-stage/45">
-            Comma-separated. The agent only hunts where you play — this is where it starts.
+            Comma-separated. The agent only hunts where you play — this is where it starts. Your plan
+            covers{" "}
+            <span className="font-semibold text-ink-stage/65">
+              {homeCityCap === 1 ? "1 city" : `${homeCityCap} cities`}
+            </span>
+            {homeCityCap < 25 && " — upgrade to hunt more"}.
           </p>
         </div>
         <div className="w-40">
@@ -109,7 +123,11 @@ function HomeBaseForm({ serviceCities, homeRadiusKm }: { serviceCities: string[]
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
           {pending ? "Saving…" : "Save home base"}
         </button>
-        {state?.ok && <span className="text-sm font-semibold text-ink-stage/70">Saved</span>}
+        {state?.ok && (
+          <span className="text-sm font-semibold text-ink-stage/70">
+            {state.notice ?? "Saved"}
+          </span>
+        )}
         {state && !state.ok && <span className="text-sm font-medium text-red-600">{state.error}</span>}
       </div>
     </form>
@@ -208,10 +226,13 @@ function AddWindowForm() {
 export function TravelWindowsCard({
   serviceCities,
   homeRadiusKm,
+  homeCityCap,
   windows,
 }: {
   serviceCities: string[];
   homeRadiusKm: number | null;
+  /** Coverage gate: how many home cities this plan's Hunt scans. */
+  homeCityCap: number;
   /** ACTIVE + upcoming/live windows (the page filters out cancelled/expired). */
   windows: TravelWindowRow[];
 }) {
@@ -227,7 +248,11 @@ export function TravelWindowsCard({
           add a home city below, or a travel window, so it knows where to look.
         </p>
       )}
-      <HomeBaseForm serviceCities={serviceCities} homeRadiusKm={homeRadiusKm} />
+      <HomeBaseForm
+        serviceCities={serviceCities}
+        homeRadiusKm={homeRadiusKm}
+        homeCityCap={homeCityCap}
+      />
 
       <div className="my-6 border-t border-ink-stage/10" />
 

@@ -10,11 +10,15 @@ const mockDb = vi.hoisted(() => ({
   travelWindow: { create: vi.fn(), updateMany: vi.fn() },
   business: { update: vi.fn() },
 }));
+// Tenant mock is hoisted so individual tests can vary the plan (the coverage cap
+// in updateHomeBase reads business.plan). Default STUDIO = effectively unlimited
+// home cities, so the existing assertions don't trip the cap.
+const mockTenant = vi.hoisted(() => ({
+  getCurrentBusiness: vi.fn(async () => ({ id: "biz1", plan: "STUDIO" })),
+}));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("@/lib/tenant", () => ({
-  getCurrentBusiness: vi.fn(async () => ({ id: "biz1" })),
-}));
+vi.mock("@/lib/tenant", () => mockTenant);
 
 import {
   addTravelWindow,
@@ -154,5 +158,14 @@ describe("updateHomeBase", () => {
   it("rejects a non-numeric radius without touching the DB", async () => {
     expect((await updateHomeBase(fd({ homeRadiusKm: "far" }))).ok).toBe(false);
     expect(mockDb.business.update).not.toHaveBeenCalled();
+  });
+
+  it("trims home cities to the plan's coverage cap and flags the trim", async () => {
+    // Starter covers 1 home city — saving three keeps only the first.
+    mockTenant.getCurrentBusiness.mockResolvedValueOnce({ id: "biz1", plan: "STARTER" });
+    const res = await updateHomeBase(fd({ homeRadiusKm: "", serviceCities: "Austin, Dallas, Houston" }));
+    expect(res.ok).toBe(true);
+    expect((res as { notice?: string }).notice).toMatch(/1 city/);
+    expect(mockDb.business.update.mock.calls[0][0].data.serviceCities).toEqual(["Austin"]);
   });
 });

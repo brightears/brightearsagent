@@ -31,6 +31,11 @@ describe("plan-features (single source of truth)", () => {
     expect(PLAN_FEATURES.STUDIO.leadCap).toBe(150);
     expect(PLAN_FEATURES.TRIAL.leadCap).toBe(60);
   });
+  it("coverage (home city cap) climbs with the tier", () => {
+    expect(PLAN_FEATURES.STARTER.homeCityCap).toBe(1);
+    expect(PLAN_FEATURES.PRO.homeCityCap).toBeGreaterThan(PLAN_FEATURES.STARTER.homeCityCap);
+    expect(PLAN_FEATURES.STUDIO.homeCityCap).toBeGreaterThan(PLAN_FEATURES.PRO.homeCityCap);
+  });
 });
 
 describe("autoSendEligibleSources", () => {

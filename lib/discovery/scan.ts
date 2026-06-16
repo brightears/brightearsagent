@@ -7,6 +7,7 @@
 // dev script) bypasses; the cron never does.
 
 import { db } from "@/lib/db";
+import { planFeatures } from "@/lib/billing/plan-features";
 import { getDiscoveryProvider, type DiscoveryProvider, type Metro } from "@/lib/discovery/provider";
 import { ingestSignals } from "@/lib/discovery/ingest";
 import { runContactPass, type ContactPassResult } from "@/lib/discovery/contacts";
@@ -58,6 +59,7 @@ export async function runDiscoveryScan(
     where: { id: businessId },
     select: {
       id: true,
+      plan: true,
       country: true,
       serviceCities: true,
       lastDiscoveryScanAt: true,
@@ -144,10 +146,15 @@ export async function runDiscoveryScan(
   // reduced 1-in-3 cadence; windows with ≥1 venue scan every time. The
   // MAX_METROS_PER_SCAN cap still bounds total Serper spend (home wins the cap).
   type ScanTarget = { metro: Metro; travelWindowId: string | null };
-  const homeTargets: ScanTarget[] = business.serviceCities.map((city) => ({
-    metro: { city, country: business.country },
-    travelWindowId: null,
-  }));
+  // Coverage gate: the plan caps how many HOME cities the Hunt scans. Saves are
+  // already trimmed (app/actions/travel.ts), but slice here too so a legacy or
+  // downgraded tenant with more stored cities never scans beyond its plan.
+  const homeTargets: ScanTarget[] = business.serviceCities
+    .slice(0, planFeatures(business.plan).homeCityCap)
+    .map((city) => ({
+      metro: { city, country: business.country },
+      travelWindowId: null,
+    }));
   const travelTargets: ScanTarget[] = business.travelWindows
     .filter((w) => isWindowLive(w, now))
     .filter((w) => shouldScanWindowThisScan(w._count.venues > 0, business.discoveryScanCount))

@@ -449,6 +449,7 @@ export default async function ControlRoomPage({
               <TravelWindowsCard
                 serviceCities={business.serviceCities}
                 homeRadiusKm={business.homeRadiusKm}
+                homeCityCap={planFeatures(business.plan).homeCityCap}
                 windows={travelWindowRows}
               />
             </Section>

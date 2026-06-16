@@ -15,11 +15,13 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAllowedCountry } from "@/lib/geo/countries";
+import { planFeatures } from "@/lib/billing/plan-features";
 // Role tags live in a plain module — a "use server" file may only export async
 // functions, so the const/type cannot be defined (or re-exported) here.
 import { TRAVEL_ROLE_TAGS } from "@/lib/travel/roles";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+// `notice` = a non-error heads-up to show on success (e.g. cities trimmed to cap).
+type ActionResult = { ok: true; notice?: string } | { ok: false; error: string };
 
 const idSchema = z.string().trim().min(1, "No window given").max(64);
 
@@ -198,15 +200,26 @@ export async function updateHomeBase(formData: FormData): Promise<ActionResult> 
   }
 
   const business = await getCurrentBusiness();
+  // Coverage gate (effort-based pricing): the plan caps how many HOME cities the
+  // Hunt scans. Trim here so the saved list never exceeds it, and tell the owner
+  // what landed when we trimmed — don't silently drop cities they typed.
+  const cap = planFeatures(business.plan).homeCityCap;
+  const requested = splitCities(formData.get("serviceCities"));
+  const serviceCities = requested.slice(0, cap);
   await db.business.update({
     where: { id: business.id },
     data: {
-      serviceCities: splitCities(formData.get("serviceCities")),
+      serviceCities,
       homeRadiusKm: parsedRadius.data,
     },
   });
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
-  return { ok: true };
+  return requested.length > cap
+    ? {
+        ok: true,
+        notice: `Your plan covers ${cap} ${cap === 1 ? "city" : "cities"} — saved the first ${cap}. Upgrade to hunt more.`,
+      }
+    : { ok: true };
 }

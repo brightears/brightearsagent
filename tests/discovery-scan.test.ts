@@ -36,6 +36,7 @@ const fakeProvider = (): DiscoveryProvider & { queriesUsed: number } => ({
 
 const business = (over: Record<string, unknown> = {}) => ({
   id: "biz1",
+  plan: "STUDIO", // coverage cap 25 = effectively unlimited home cities for these tests
   country: "GB",
   serviceCities: ["Manchester", "Leeds"],
   lastDiscoveryScanAt: null,

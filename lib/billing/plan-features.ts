@@ -20,13 +20,18 @@ export interface PlanFeatures {
    *  trusts (Business.autoSendSources), enforced in lib/inbound/auto-send.ts.
    *  GigSalad is never eligible regardless (CLAUDE.md rule 4). */
   autoSend: boolean;
+  /** Coverage: how many HOME cities the Hunt scans (serviceCities). Enforced at
+   *  save (app/actions/travel.ts: updateHomeBase trims to this) AND at scan
+   *  (lib/discovery/scan.ts slices home targets). Travel windows are separate
+   *  and all-tier. 25 ≈ unlimited for a real roster. */
+  homeCityCap: number;
 }
 
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
-  TRIAL: { leadCap: 60, autoSend: true }, // full Pro during the 14-day trial
-  STARTER: { leadCap: 15, autoSend: false },
-  PRO: { leadCap: 60, autoSend: true },
-  STUDIO: { leadCap: 150, autoSend: true },
+  TRIAL: { leadCap: 60, autoSend: true, homeCityCap: 3 }, // full Pro during the 14-day trial
+  STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1 },
+  PRO: { leadCap: 60, autoSend: true, homeCityCap: 3 },
+  STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25 },
 };
 
 export function planFeatures(plan: PlanTier): PlanFeatures {

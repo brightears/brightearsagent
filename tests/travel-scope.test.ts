@@ -62,6 +62,7 @@ const window = (over: Record<string, unknown> = {}) => ({
 // cold-cadence gate would also pass for 0-venue windows.
 const business = (over: Record<string, unknown> = {}) => ({
   id: "biz1",
+  plan: "STUDIO", // coverage cap 25 = unlimited home cities for these tests
   country: "GB",
   serviceCities: ["Manchester"],
   lastDiscoveryScanAt: null,
