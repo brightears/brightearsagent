@@ -11,7 +11,7 @@ import {
 export const metadata: Metadata = {
   title: "Our story — Bright Ears",
   description:
-    "Twenty years running a DJ agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today, finding new rooms and answering every inquiry. Now she works for event performers everywhere.",
+    "Twenty years running an entertainment agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today, finding new rooms and answering every inquiry. Now she works for performers everywhere.",
 };
 
 const orgJsonLd = {
@@ -63,7 +63,7 @@ function PullQuote({ children }: { children: string }) {
         ))}
       </p>
       <footer className="mt-4 font-mono text-xs font-bold uppercase tracking-[0.18em] text-ink-stage/55">
-        — a working DJ, saying out loud what thousands feel
+        — a working performer, saying out loud what thousands feel
       </footer>
     </blockquote>
   );
@@ -132,10 +132,10 @@ export default function StoryPage() {
                 </h2>
                 <div className="mt-5 space-y-5 text-ink-stage/75 leading-relaxed">
                   <p>
-                    For two decades we&apos;ve run a DJ agency in Bangkok, serving
-                    five-star hotel venues — rooftop bars, ballrooms, pool decks,
+                    For two decades we&apos;ve run an entertainment agency in Bangkok,
+                    serving five-star hotel venues — rooftop bars, ballrooms, pool decks,
                     lobby lounges. On any given night, somewhere in the city, one of
-                    our performers is opening a set under our name. It&apos;s a
+                    our performers is taking the stage under our name. It&apos;s a
                     wonderful business. It&apos;s also a relentless one.
                   </p>
                   <p>
@@ -195,8 +195,8 @@ export default function StoryPage() {
                 </h2>
                 <div className="mt-5 space-y-5 text-ink-stage/75 leading-relaxed">
                   <p>
-                    Talking with wedding and event DJs, bands, and performers around
-                    the world, we kept hearing our old life — except harder. They
+                    Talking with DJs, bands, dancers and performers of every kind
+                    around the world, we kept hearing our old life — except harder. They
                     don&apos;t have an agency&apos;s back office. They <em>are</em> the
                     back office, at night, around gigs, day jobs, and kids.
                   </p>
@@ -241,7 +241,7 @@ export default function StoryPage() {
                   <p>
                     The first half is the part nobody has time for: going out and
                     finding work. Bright Ears scans the web for venues hiring
-                    entertainment and rooms that fit your sound, scores how well each
+                    entertainment and rooms that fit your act, scores how well each
                     one fits you, and drafts the intro in <em>your</em> voice for you to
                     approve. It can’t promise the room says yes — but it makes sure
                     you’re the one who asked, instead of finding out too late that the

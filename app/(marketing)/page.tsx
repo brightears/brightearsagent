@@ -57,7 +57,7 @@ const STORY_QUOTE: { w: string; c: string }[] = [
 /* The effortless promise — 30 seconds a day, approve from your phone. */
 const EFFORTLESS = [
   { n: "30 seconds", l: "a day — that’s the whole job" },
-  { n: "Your phone", l: "approve from anywhere, even the booth" },
+  { n: "Your phone", l: "approve from anywhere, even backstage" },
   { n: "Just yes", l: "you say yes; the AI does the rest" },
 ];
 
@@ -80,7 +80,7 @@ const PRICING_TEASER = [
 const STEPS = [
   {
     title: "It finds the gigs",
-    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your sound — the openings you’d never have stumbled across. Each one comes scored, with the reasons spelled out.",
+    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your act — the openings you’d never have stumbled across. Each one comes scored, with the reasons spelled out.",
   },
   {
     title: "It drafts in your voice",
@@ -88,7 +88,7 @@ const STEPS = [
   },
   {
     title: "You just approve",
-    body: "The draft lands on your phone. One tap — even from the booth — and it sends from your own mailbox. You say yes; the AI does the rest. You’re never the one staring at the inbox.",
+    body: "The draft lands on your phone. One tap — even backstage — and it sends from your own mailbox. You say yes; the AI does the rest. You’re never the one staring at the inbox.",
   },
 ];
 
@@ -105,7 +105,7 @@ const FEATURES: {
     chipTone: "magenta",
     chipRotate: -4,
     title: "It finds gigs you’d have missed",
-    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your sound, scores how well each one fits you, and drafts the intro in your voice. You approve; it sends from your own mailbox. It can’t promise the room says yes — but it makes sure you’re the one who asked.",
+    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your act, scores how well each one fits you, and drafts the intro in your voice. You approve; it sends from your own mailbox. It can’t promise the room says yes — but it makes sure you’re the one who asked.",
     tilt: "-rotate-1",
   },
   {
@@ -170,18 +170,20 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-14 sm:pt-20">
           <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/75">
             <span className="h-1.5 w-1.5 rounded-full bg-neon-magenta" />
-            The AI that finds gigs for DJs &amp; event performers
+            The AI that finds gigs for performers of every kind
           </span>
           <h1 className="mt-7 max-w-4xl text-6xl font-black leading-[0.95] tracking-tighter text-cream-bright sm:text-7xl lg:text-8xl">
             <KineticHeadline accentWord="gig">Never miss a gig you never knew existed.</KineticHeadline>
           </h1>
           <div className="mt-10 grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              {/* The one-liner: discovery-led. The Hunt is the hero now. */}
+              {/* The one-liner: discovery-led. The Hunt is the hero now. Names a
+                  spread of acts so every performer feels addressed, then "whatever
+                  your act" catches the rest (magicians, MCs, comedians, actors). */}
               <p className="max-w-xl text-lg leading-relaxed text-cream/70">
-                Bright Ears hunts the whole web for opportunities that fit you, drafts the outreach
-                in your voice, and waits for your tap. You{" "}
-                <strong className="font-bold text-cream-bright">approve</strong> — it does the rest.
+                DJ, band, dancer, magician — whatever your act, Bright Ears hunts the whole web for
+                opportunities that fit you, drafts the outreach in your voice, and waits for your tap.
+                You <strong className="font-bold text-cream-bright">approve</strong> — it does the rest.
               </p>
               <div className="mt-9 flex flex-wrap items-center gap-4">
                 <Link
@@ -218,7 +220,7 @@ export default function HomePage() {
             The best gigs are filled <GradWord>before you hear</GradWord> about them.
           </h2>
           <p className="mt-3 text-lg text-cream/70">
-            Most rooms never post a “DJ wanted” ad. The bar that just changed managers, the hotel
+            Most rooms never post a “performer wanted” ad. The bar that just changed managers, the hotel
             relaunching its rooftop, the venue whose regular act just quit — those gigs go to
             whoever happens to be in front of them. Usually that’s not you. Not because you’re not
             good enough. Because nobody had time to go looking.
