@@ -19,10 +19,12 @@ import { ProfileForm } from "@/components/profile-form";
 import { TravelWindowsCard, type TravelWindowRow } from "@/components/travel-windows-card";
 import { PushToggle } from "@/components/push-toggle";
 import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
+import { AutoSendCard } from "@/components/auto-send-card";
 import { ControlRoomNav, type ControlRoomSection } from "@/components/control-room-nav";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
 import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
+import { planFeatures } from "@/lib/billing/plan-features";
 import { profileStrength } from "@/lib/profile/strength";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 import type { ReactNode } from "react";
@@ -473,6 +475,11 @@ export default async function ControlRoomPage({
                   address — every lead lands in your pipeline with a reply drafted and waiting.
                 </p>
               </Card>
+
+              <AutoSendCard
+                enabled={planFeatures(business.plan).autoSend}
+                trusted={business.autoSendSources}
+              />
 
               <MailboxCard state={mailboxState} mailbox={mailbox} reason={reason} />
 

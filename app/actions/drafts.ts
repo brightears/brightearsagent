@@ -2,107 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { sendEmail } from "@/lib/outbound/send";
-import { complianceFooter } from "@/lib/optout";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { sendDraftReply } from "@/lib/agent/send-reply";
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
  * Reply-To the owner → lead becomes REPLIED (first reply timestamped).
  * Owner edits are kept on the draft (voice-tuning signal).
+ *
+ * Thin tenant-scoped wrapper: the actual send + compliance + sequencing lives in
+ * lib/agent/send-reply.ts so the inbound pipeline's AUTO-SEND (Pro+) runs the
+ * exact same path — manual approve and auto-send can never diverge.
  */
 export async function approveDraft(draftId: string, editedBody?: string) {
   const business = await getCurrentBusiness();
-  const draft = await db.draft.findFirst({
-    where: { id: draftId, lead: { businessId: business.id } }, // tenant-scoped
-    include: { lead: { include: { business: true } } },
-  });
-  if (!draft || draft.status !== "PENDING") return { ok: false, error: "draft not pending" };
-
-  const { lead } = draft;
-  if (!lead.clientEmail) {
-    return { ok: false, error: "lead has no reachable email (reply on the platform instead)" };
-  }
-  // Compliance hard-stop at the SEND boundary (not just in the cron engine):
-  // a draft can sit PENDING while the client opts out or the lead is closed.
-  // Never email an opted-out or terminal lead. (CLAUDE.md rule 5.)
-  if (lead.optedOut || lead.status === "DEAD" || lead.status === "BOOKED") {
-    await db.draft.update({
-      where: { id: draft.id },
-      data: { status: "EXPIRED", decidedAt: new Date() },
-    });
-    return { ok: false, error: "this lead has opted out or is closed — nothing was sent" };
-  }
-
-  const approvedBody = editedBody?.trim() || draft.body;
-  // Follow-ups carry the compliance footer (who/why/opt-out) — appended at send
-  // time so the owner reviews clean copy and the footer is never edited away.
-  const body = draft.isFollowUp
-    ? approvedBody + complianceFooter(lead.business.name, lead.id)
-    : approvedBody;
-  const sent = await sendEmail({
-    fromName: lead.business.name,
-    to: lead.clientEmail,
-    replyTo: lead.business.replyToEmail ?? lead.business.ownerEmail,
-    subject: draft.subject,
-    textBody: body,
-  });
-
-  await db.$transaction([
-    db.draft.update({
-      where: { id: draft.id },
-      data: {
-        status: editedBody?.trim() ? "EDITED" : "APPROVED",
-        editedBody: editedBody?.trim() || null,
-        decidedAt: new Date(),
-      },
-    }),
-    db.message.create({
-      data: {
-        leadId: lead.id,
-        direction: "OUTBOUND",
-        subject: draft.subject,
-        body,
-        fromEmail: lead.business.ownerEmail,
-        toEmail: lead.clientEmail,
-        providerMessageId: sent.providerMessageId,
-        draftId: draft.id,
-      },
-    }),
-    db.lead.update({
-      where: { id: lead.id },
-      data: {
-        // If the client wrote back while this draft was pending (ENGAGED), keep
-        // ENGAGED so the sequence never restarts — replying doesn't undo a reply.
-        status: lead.status === "ENGAGED" ? "ENGAGED" : draft.isFollowUp ? "IN_SEQUENCE" : "REPLIED",
-        firstReplyAt: lead.firstReplyAt ?? new Date(),
-      },
-    }),
-  ]);
-
-  // First reply sent → the follow-up sequence clock starts (engine fires steps).
-  // Skip if the client already replied (ENGAGED) — they don't need chasing.
-  if (!draft.isFollowUp && lead.status !== "ENGAGED") {
-    const template = await db.sequenceTemplate.findFirst({
-      where: { businessId: lead.businessId, active: true },
-    });
-    if (template && template.stepsDays.length > 0) {
-      await db.sequenceRun
-        .create({
-          data: {
-            leadId: lead.id,
-            templateId: template.id,
-            currentStep: 0,
-            nextRunAt: new Date(Date.now() + template.stepsDays[0] * 24 * 3600 * 1000),
-          },
-        })
-        .catch(() => null); // unique leadId — already has a run
-    }
-  }
-
-  revalidatePath("/dashboard");
-  return { ok: true, transport: sent.transport };
+  const result = await sendDraftReply({ draftId, businessId: business.id, editedBody });
+  if (result.ok) revalidatePath("/dashboard");
+  return result;
 }
 
 export async function rejectDraft(draftId: string) {

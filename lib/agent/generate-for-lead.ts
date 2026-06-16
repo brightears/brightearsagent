@@ -8,8 +8,18 @@ import type { DraftRequest } from "@/lib/agent/types";
  * Load everything the drafter needs for a lead, generate, persist as PENDING
  * Draft, and move the lead to DRAFTED. Called fire-and-forget from the webhook
  * (persistent server) and by the sequence engine.
+ *
+ * Returns the created draft's id (or null if nothing was drafted — closed lead,
+ * opt-out, or an existing PENDING draft deduped it). The inbound pipeline uses
+ * the returned id to AUTO-SEND when the plan + trusted-source allow it; pass
+ * `suppressPush` there so the "Reply ready — approve" ping isn't sent for a
+ * reply that's about to go out on its own.
  */
-export async function generateDraftForLead(leadId: string, sequenceStep = 0): Promise<void> {
+export async function generateDraftForLead(
+  leadId: string,
+  sequenceStep = 0,
+  opts: { suppressPush?: boolean } = {},
+): Promise<string | null> {
   const lead = await db.lead.findUnique({
     where: { id: leadId },
     include: {
@@ -17,8 +27,8 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
       messages: { orderBy: { createdAt: "asc" } },
     },
   });
-  if (!lead || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") return;
-  if (lead.optedOut) return;
+  if (!lead || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") return null;
+  if (lead.optedOut) return null;
 
   // Dedupe: never stack a second PENDING draft on the same lead. Guards against
   // webhook redelivery, overlapping cron ticks, and retries all racing here.
@@ -26,7 +36,7 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
     where: { leadId, status: "PENDING" },
     select: { id: true },
   });
-  if (existingPending) return;
+  if (existingPending) return null;
 
   const eventDate = lead.eventDate ? isoDay(lead.eventDate) : null;
   // Only the gigs on the event day matter — range-filter instead of loading a
@@ -99,11 +109,14 @@ export async function generateDraftForLead(leadId: string, sequenceStep = 0): Pr
       : []),
   ]);
 
-  // One-tap approve from the phone — the core loop.
-  void pushToBusiness(lead.businessId, {
-    title: `Reply ready: ${lead.clientName ?? "new lead"}`,
-    body: result.subject,
-    url: `/dashboard/leads/${lead.id}`,
-  }).catch(() => null);
-  void draft;
+  // One-tap approve from the phone — the core loop. Suppressed when the caller
+  // is about to auto-send (it pushes its own "auto-replied" note instead).
+  if (!opts.suppressPush) {
+    void pushToBusiness(lead.businessId, {
+      title: `Reply ready: ${lead.clientName ?? "new lead"}`,
+      body: result.subject,
+      url: `/dashboard/leads/${lead.id}`,
+    }).catch(() => null);
+  }
+  return draft.id;
 }

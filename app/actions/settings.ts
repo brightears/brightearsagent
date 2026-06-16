@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAllowedCountry } from "@/lib/geo/countries";
 import { toneNoteOf, withToneNote } from "@/lib/voice/tone-note";
-import { PerformerKind } from "@/app/generated/prisma/enums";
+import { AUTO_SEND_INELIGIBLE_SOURCES } from "@/lib/inbound/auto-send";
+import { PerformerKind, LeadSource } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -93,6 +94,32 @@ export async function updateVoice(formData: FormData): Promise<ActionResult> {
     data: { voiceSamples },
   });
 
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Save which lead sources the owner trusts for AUTO-SEND (Pro+ autonomy gate).
+ * Stores the preference; enforcement is at send time (lib/inbound/auto-send.ts:
+ * canAutoSend also checks the plan), so an unverified value never auto-sends on
+ * its own. Validated to real LeadSource values and ToS-eligible ones only
+ * (GigSalad can never be auto-sent — CLAUDE.md rule 4).
+ */
+export async function updateAutoSendSources(formData: FormData): Promise<ActionResult> {
+  const business = await getCurrentBusiness();
+  const allValues = Object.values(LeadSource) as string[];
+  const chosen = formData
+    .getAll("autoSendSources")
+    .filter((v): v is string => typeof v === "string")
+    .filter(
+      (s): s is LeadSource =>
+        allValues.includes(s) && !AUTO_SEND_INELIGIBLE_SOURCES.includes(s as LeadSource),
+    );
+  await db.business.update({
+    where: { id: business.id },
+    data: { autoSendSources: { set: [...new Set(chosen)] as LeadSource[] } },
+  });
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard");
   return { ok: true };

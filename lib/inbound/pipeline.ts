@@ -4,7 +4,9 @@ import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { sendDraftReply } from "@/lib/agent/send-reply";
 import { meterState } from "@/lib/billing/metering";
+import { canAutoSend } from "@/lib/inbound/auto-send";
 import { pushToBusiness } from "@/lib/push";
 
 export type PipelineResult =
@@ -164,6 +166,32 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         body: `${meter.used}/${meter.cap} leads this month — new inquiries are waiting. Upgrade to keep replies flowing.`,
         url: "/dashboard/settings#billing",
       }).catch(() => null);
+    } else if (canAutoSend(business.plan, business.autoSendSources, parsed.source)) {
+      // Auto-send autonomy (Pro+ tier capability): draft AND send without waiting
+      // for approval, but ONLY from a source the owner trusts (and never a
+      // ToS-ineligible one — guaranteed by canAutoSend). Degrades gracefully: if
+      // the send fails or is blocked (no client email, opted-out, etc.) the draft
+      // stays PENDING and the owner gets the normal "approve" ping to send it.
+      const clientName = lead.clientName;
+      const leadId = lead.id;
+      void (async () => {
+        try {
+          const draftId = await generateDraftForLead(leadId, 0, { suppressPush: true });
+          if (!draftId) return; // deduped / closed — nothing to send
+          const res = await sendDraftReply({ draftId, businessId: business.id });
+          await pushToBusiness(business.id, {
+            title: res.ok
+              ? `Auto-replied: ${clientName ?? "new lead"}`
+              : `Reply ready: ${clientName ?? "new lead"}`,
+            body: res.ok
+              ? "Sent in your voice — tap to view the thread."
+              : "Tap to review and send.",
+            url: `/dashboard/leads/${leadId}`,
+          }).catch(() => null);
+        } catch (err) {
+          console.error(`auto-send failed for lead ${leadId}`, err);
+        }
+      })();
     } else {
       void generateDraftForLead(lead.id).catch((err) =>
         console.error(`draft generation failed for lead ${lead.id}`, err),

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { PlanTier } from "@/app/generated/prisma/enums";
+import { PLAN_FEATURES } from "@/lib/billing/plan-features";
 
 /**
  * Customers are metered in LEADS (they understand leads, not tokens).
@@ -8,18 +9,18 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
  * DEFERRED (audit C3): a buyable lead-pack top-up that raises the cap mid-month
  * is a founder revenue option, NOT built (no Stripe price / checkout / UI). The
  * cap resets at monthStart(); the only mid-month fix today is upgrading the plan.
+ *
+ * The caps live in lib/billing/plan-features.ts (THE single source of truth for
+ * tier capabilities); this is a derived view kept for the existing importers.
+ * TRIAL = full Pro: during the window `trialEndsAt` is in the FUTURE so the
+ * agent works with the Pro allowance; an expired unsubscribed trial forces
+ * overCap via isAgentPaused.
  */
-export const PLAN_LEAD_CAPS: Record<PlanTier, number> = {
-  // TRIAL is a REAL 14-day full-Pro free trial (FINAL founder decision
-  // 2026-06-14): during the window `trialEndsAt` is in the FUTURE, so the agent
-  // works with the full Pro allowance below. When the trial expires without a
-  // paid plan, meterState() forces overCap (isAgentPaused) and the agent pauses
-  // until they subscribe — this cap is the trial's live allowance, not a stub.
-  TRIAL: 60,
-  STARTER: 15,
-  PRO: 60,
-  STUDIO: 150,
-};
+export const PLAN_LEAD_CAPS: Record<PlanTier, number> = Object.fromEntries(
+  (Object.entries(PLAN_FEATURES) as [PlanTier, { leadCap: number }][]).map(
+    ([plan, f]) => [plan, f.leadCap],
+  ),
+) as Record<PlanTier, number>;
 
 export function monthStart(now = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
