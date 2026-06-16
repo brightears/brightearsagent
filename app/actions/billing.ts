@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { db } from "@/lib/db";
 import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
 import { trialDaysLeft } from "@/lib/billing/metering";
 import type { PlanTier } from "@/app/generated/prisma/enums";
@@ -79,23 +78,7 @@ export async function billingState() {
   };
 }
 
-/** Used by the webhook (not a form action): apply a plan change. */
-export async function applySubscriptionState(
-  businessId: string,
-  data: {
-    plan: PlanTier;
-    stripeCustomerId?: string | null;
-    stripeSubscriptionId?: string | null;
-  },
-) {
-  await db.business.update({
-    where: { id: businessId },
-    data: {
-      plan: data.plan,
-      ...(data.stripeCustomerId !== undefined ? { stripeCustomerId: data.stripeCustomerId } : {}),
-      ...(data.stripeSubscriptionId !== undefined
-        ? { stripeSubscriptionId: data.stripeSubscriptionId }
-        : {}),
-    },
-  });
-}
+// (Removed `applySubscriptionState` — it was an unauthenticated, tenant-
+// unscoped "use server" export: anyone could grant any tenant a paid plan. The
+// Stripe webhook updates the plan directly via lib/billing/webhook.ts; nothing
+// imported this. Stripe audit 2026-06-16, finding S1.)

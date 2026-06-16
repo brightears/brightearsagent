@@ -11,7 +11,7 @@ const MODEL_PRICING: Record<string, { in: number; out: number }> = {
 const FALLBACK_PRICING = { in: 1.0, out: 5.0 }; // unknown models: assume expensive
 
 export const PLAN_PRICES_USD: Record<PlanTier, number> = {
-  TRIAL: 25, // margin computed against Starter price during trial
+  TRIAL: 0, // unsubscribed/free (no auto trial) — $0 revenue; excluded from the report
   STARTER: 25,
   PRO: 79,
   STUDIO: 149,
@@ -41,7 +41,14 @@ export const MARGIN_FLOOR_PCT = 70;
  * tracked in docs/AUDIT-FINDINGS.md.
  */
 export async function computeMargins(now = new Date()): Promise<MarginRow[]> {
-  const businesses = await db.business.findMany({ select: { id: true, name: true, plan: true } });
+  // Only PAYING tenants have a margin to guard. Unsubscribed (plan=TRIAL) tenants
+  // earn $0 and their agent is paused, so they're excluded — otherwise every free
+  // tenant would flag at 0% and a free-rider would hide behind phantom revenue
+  // (Stripe audit S7).
+  const businesses = await db.business.findMany({
+    where: { plan: { not: "TRIAL" } },
+    select: { id: true, name: true, plan: true },
+  });
   const rows: MarginRow[] = [];
   for (const b of businesses) {
     const usage = await db.llmUsage.groupBy({

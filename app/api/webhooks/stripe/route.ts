@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
-import { stripe, stripeEnabled, planForLookupKey } from "@/lib/billing/stripe";
+import { stripe, stripeEnabled } from "@/lib/billing/stripe";
+import { applyStripeEvent } from "@/lib/billing/webhook";
 
 /**
  * Stripe webhook: keeps Business.plan + customer/subscription ids in sync.
@@ -36,74 +37,21 @@ export async function POST(req: NextRequest) {
   const alreadyProcessed = await db.processedStripeEvent.findUnique({ where: { id: event.id } });
   if (alreadyProcessed) return NextResponse.json({ received: true, deduped: true });
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const businessId = session.client_reference_id;
-      if (!businessId || session.mode !== "subscription") break;
+  // Subscription-lifecycle sync lives in lib/billing/webhook.ts (unit-tested).
+  const result = await applyStripeEvent(event);
 
-      const subscriptionId =
-        typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
-      const customerId =
-        typeof session.customer === "string" ? session.customer : session.customer?.id;
-      if (!subscriptionId) break;
-
-      const sub = await stripe().subscriptions.retrieve(subscriptionId);
-      const lookupKey = sub.items.data[0]?.price?.lookup_key;
-      const plan = planForLookupKey(lookupKey);
-      if (!plan) break;
-
-      await db.business.update({
-        where: { id: businessId },
-        data: {
-          plan,
-          stripeCustomerId: customerId ?? undefined,
-          stripeSubscriptionId: subscriptionId,
-          trialEndsAt: null, // subscribed — the in-app trial clock no longer applies
-        },
-      });
-      break;
-    }
-
-    case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
-      if (!business) break;
-
-      if (sub.status === "active" || sub.status === "past_due") {
-        const plan = planForLookupKey(sub.items.data[0]?.price?.lookup_key);
-        if (plan && plan !== business.plan) {
-          await db.business.update({ where: { id: business.id }, data: { plan } });
-        }
-      } else if (sub.status === "canceled" || sub.status === "unpaid") {
-        await db.business.update({
-          where: { id: business.id },
-          data: { plan: "TRIAL", trialEndsAt: new Date(), stripeSubscriptionId: null },
-        });
-      }
-      break;
-    }
-
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      const business = await db.business.findUnique({ where: { stripeSubscriptionId: sub.id } });
-      if (!business) break;
-      // Subscription gone → expired-trial state: leads still ingest, drafting
-      // pauses (metering), owner sees resubscribe prompts. Never delete data.
-      await db.business.update({
-        where: { id: business.id },
-        data: { plan: "TRIAL", trialEndsAt: new Date(), stripeSubscriptionId: null },
-      });
-      break;
-    }
+  // An event that's ours (carries our businessId) but whose tenant we couldn't
+  // resolve right now → 5xx so Stripe re-delivers, and DON'T record it as
+  // processed (so the retry actually reprocesses). Anything else (applied, or a
+  // not-ours/irrelevant event) is recorded so retries don't reprocess junk.
+  if (result.retry) {
+    console.error(`stripe webhook ${event.id} (${event.type}): tenant unresolved — returning 500 to retry`);
+    return NextResponse.json({ error: "tenant unresolved" }, { status: 500 });
   }
 
-  // Record only after the switch completes without throwing. The catch swallows
-  // the unique-violation race where two concurrent deliveries of the same event
-  // both passed the findUnique above — the event is recorded either way.
   await db.processedStripeEvent
     .create({ data: { id: event.id, type: event.type } })
-    .catch(() => {});
+    .catch(() => {}); // swallow the unique-violation race between concurrent deliveries
 
   return NextResponse.json({ received: true });
 }
