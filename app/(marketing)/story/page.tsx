@@ -163,8 +163,9 @@ export default function StoryPage() {
                 </h2>
                 <div className="mt-5 space-y-5 text-ink-stage/75 leading-relaxed">
                   <p>
-                    A few years ago we stopped waiting for someone else to fix this
-                    and built an AI back office for our own agency. We gave her a
+                    About a year ago — once AI was finally good enough to trust with
+                    real work — we stopped waiting for someone else to fix this and
+                    built an AI back office for our own agency. We gave her a
                     name: <span className="font-bold text-ink-stage">Vinyl</span>.
                     Not a chatbot bolted onto the side — the actual back office. The
                     schedules. The invoices. The messages.
