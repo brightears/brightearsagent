@@ -11,19 +11,19 @@ function slugify(input: string): string {
     .slice(0, 30) || "business";
 }
 
-/** First sign-in: provision the tenant — business, owner membership, the
- *  14-day free-trial window, and the default follow-up sequence so the engine
- *  works from the very first lead.
+/** First sign-in: provision the tenant — business, owner membership, and the
+ *  default follow-up sequence so the engine works from the very first lead.
  *
- *  14-DAY NO-CARD FREE TRIAL (FINAL founder decision, 2026-06-14): the
- *  risk-reversal is a real free window of full Pro, NOT a money-back guarantee
- *  — see lib/marketing/guarantee.ts. New tenants get `plan=TRIAL` with
- *  `trialEndsAt` 14 days out, which the metering layer reads as a full-Pro
- *  allowance (cap 60) so the live agent — drafting replies AND generating/
- *  sending venue pitches — works the moment they finish onboarding. When the
- *  trial expires WITHOUT a paid subscription, the metering layer pauses the
- *  agent (lib/billing/metering.ts: isAgentPaused → overCap). A successful
- *  Stripe checkout flips `plan` to the paid tier and clears `trialEndsAt`. */
+ *  NO AUTOMATIC FREE TRIAL (founder decision, 2026-06-16): new tenants start on
+ *  `plan=TRIAL` meaning "free / not subscribed", and the agent is PAUSED
+ *  (lib/billing/metering.ts: isAgentPaused) until they subscribe. There is no
+ *  time-based trial — a free trial was gameable (sign up, grab gigs, churn,
+ *  re-sign with a new email). Instead, selected artists get a Stripe PROMOTION
+ *  CODE (a 100%-off-first-month coupon the founder mints in the Stripe
+ *  Dashboard) to enter at checkout, which makes their first month free; they're
+ *  a normal paid subscriber to us. A successful Stripe checkout flips `plan` to
+ *  the paid tier (webhook). They can finish onboarding, but the agent only
+ *  starts working once subscribed. */
 async function createBusinessForUser(clerkUserId: string, email: string, name: string) {
   const base = slugify(email.split("@")[0]);
   // Find a free slug (base, base-2, base-3...).
@@ -37,11 +37,9 @@ async function createBusinessForUser(clerkUserId: string, email: string, name: s
       slug,
       ownerEmail: email,
       ownerName: name || email.split("@")[0],
+      // plan=TRIAL = "free / not subscribed" → the agent is paused until they
+      // subscribe (no auto free trial). trialEndsAt is unused now.
       plan: "TRIAL",
-      // 14-day full-Pro free trial from day one: the agent works (drafts replies
-      // and venue pitches) for the whole window; if the trial expires without a
-      // paid plan, metering pauses the agent until they choose a plan.
-      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
       members: { create: { email, name: name || email, isOwner: true, clerkUserId } },
       sequences: { create: { stepsDays: [2, 5, 9] } },
     },

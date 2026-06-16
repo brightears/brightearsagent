@@ -1,6 +1,13 @@
 // Risk-reversal copy — the SINGLE source of truth for it.
 //
-// POLICY (FINAL founder decision, 2026-06-14, research-backed): a **14-day,
+// ⚠️ SUPERSEDED (founder decision 2026-06-16): there is NO automatic free trial
+// anymore — subscribe to activate; selected artists get a free first month via a
+// private Stripe promotion code (never advertised on-site). See CLAUDE.md
+// pricing + [[pricing-effort-reframe]]. The STRINGS below still say "14-day free
+// trial" and are rewritten in the effort-based pricing copy reframe (the
+// capstone) — backend already enforces no-trial (lib/billing/metering.ts).
+//
+// PRIOR POLICY (2026-06-14, now reversed): a **14-day,
 // no-card FREE TRIAL** of full Pro, then month-to-month, cancel anytime — and
 // NO money-back guarantee. An earlier pass had flipped this to "subscribe to
 // activate + 30-day money-back guarantee"; the founder REVERSED that after

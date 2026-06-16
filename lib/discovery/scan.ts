@@ -8,6 +8,7 @@
 
 import { db } from "@/lib/db";
 import { planFeatures } from "@/lib/billing/plan-features";
+import { isAgentPaused } from "@/lib/billing/metering";
 import { getDiscoveryProvider, type DiscoveryProvider, type Metro } from "@/lib/discovery/provider";
 import { ingestSignals } from "@/lib/discovery/ingest";
 import { runContactPass, type ContactPassResult } from "@/lib/discovery/contacts";
@@ -97,6 +98,13 @@ export async function runDiscoveryScan(
     contacts: null,
     serperQueries: 0,
   };
+
+  // Subscription gate: an unsubscribed tenant's agent is paused everywhere — so
+  // never spend Serper queries hunting for one (no losses on free users). The
+  // reactive draft path + venue-pitch actions gate on the same isAgentPaused.
+  if (isAgentPaused(business.plan)) {
+    return { ...base, reason: "agent paused — no active subscription" };
+  }
 
   // Travel Mode: a tenant with NO home cities can still be hunted in a travel
   // city, so refuse only when there's neither a home base nor any travel window.

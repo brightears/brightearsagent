@@ -50,14 +50,14 @@ async function findTenantVenue(businessId: string, venueId: string) {
   return db.venue.findFirst({ where: { id: venueId, businessId } });
 }
 
-// Trial-expiry gate copy (FINAL founder decision 2026-06-14: a 14-day full-Pro
-// free trial — the agent works during the trial AND on any paid plan).
-// isAgentPaused() is a pure check (no DB): plan=TRIAL + trialEndsAt-in-past =
-// "trial ended, unsubscribed → agent paused". The SAME gate guards the reactive
-// lead path, so reactive drafting and proactive venue pitches gate identically:
-// an active trial may generate AND send pitches; only an expired-trial tenant
-// with no subscription is blocked, and may still browse the feed.
-const TRIAL_ENDED = "Your trial has ended — choose a plan to keep your agent working";
+// Subscription gate copy (founder decision 2026-06-16: NO automatic free trial;
+// a Stripe promotion code gives selected artists a free first month, but the
+// agent only runs on an active subscription). isAgentPaused() is a pure check
+// (no DB): plan=TRIAL = unsubscribed → agent paused. The SAME gate guards the
+// reactive lead path AND the discovery scan, so drafting, proactive pitches and
+// scanning gate identically — an unsubscribed tenant is blocked everywhere but
+// may still browse the feed.
+const TRIAL_ENDED = "Your agent is paused — subscribe to switch it on";
 
 /**
  * Draft a REAL pitch for a venue (Phase 10.3): license check → suppression
@@ -74,7 +74,7 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
 
   // Active trial OR paid plan: the agent drafts. Only an expired trial with no
   // subscription is paused — same gate as the reactive lead path.
-  if (isAgentPaused(business.plan, business.trialEndsAt)) {
+  if (isAgentPaused(business.plan)) {
     return { ok: false, error: TRIAL_ENDED };
   }
 
@@ -293,7 +293,7 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
 
   // Active trial OR paid plan: the agent sends. Only an expired trial with no
   // subscription is paused — same gate as the reactive lead path.
-  if (isAgentPaused(business.plan, business.trialEndsAt)) {
+  if (isAgentPaused(business.plan)) {
     return { ok: false, error: TRIAL_ENDED };
   }
 

@@ -35,6 +35,12 @@ export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">) {
     ...(business.stripeCustomerId
       ? { customer: business.stripeCustomerId }
       : { customer_email: business.ownerEmail }),
+    // No automatic free trial (founder decision 2026-06-16). Instead, the
+    // founder mints Stripe PROMOTION CODES (a 100%-off-first-month coupon) in
+    // the Stripe Dashboard and hands them to selected artists; this flag shows
+    // the promo-code field on Stripe's checkout so a valid code makes the first
+    // month free. Nothing about trials/codes appears on our own site.
+    allow_promotion_codes: true,
     success_url: `${appUrl()}/dashboard/settings?billing=success`,
     cancel_url: `${appUrl()}/dashboard/settings?billing=cancelled`,
     subscription_data: { metadata: { businessId: business.id } },

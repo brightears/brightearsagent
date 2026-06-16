@@ -51,6 +51,22 @@ beforeEach(() => {
   mockDb.travelWindow.updateMany.mockResolvedValue({ count: 0 });
 });
 
+describe("runDiscoveryScan subscription gate", () => {
+  it("does not scan or spend Serper for an unsubscribed tenant (plan=TRIAL)", async () => {
+    // No auto trial: unsubscribed = agent paused everywhere, including the Hunt.
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({ plan: "TRIAL", lastDiscoveryScanAt: hoursAgo(25) }),
+    );
+    const provider = fakeProvider();
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider });
+
+    expect(result.ran).toBe(false);
+    expect(result.reason).toMatch(/paused|subscription/i);
+    expect(provider.queriesUsed).toBe(0);
+    expect(mockDb.business.update).not.toHaveBeenCalled(); // never stamps / spends
+  });
+});
+
 describe("runDiscoveryScan budget guard", () => {
   it("refuses when the last scan was < 20h ago and spends nothing", async () => {
     mockDb.business.findUniqueOrThrow.mockResolvedValue(business({ lastDiscoveryScanAt: hoursAgo(5) }));

@@ -6,7 +6,7 @@ describe("metering", () => {
     expect(PLAN_LEAD_CAPS.STARTER).toBe(15);
     expect(PLAN_LEAD_CAPS.PRO).toBe(60);
     expect(PLAN_LEAD_CAPS.STUDIO).toBe(150);
-    expect(PLAN_LEAD_CAPS.TRIAL).toBe(60); // 14-day full-Pro free trial allowance
+    expect(PLAN_LEAD_CAPS.TRIAL).toBe(60); // TRIAL = free/unsubscribed (agent paused); cap kept for reference
   });
 
   it("monthStart is UTC month boundary", () => {
@@ -14,27 +14,15 @@ describe("metering", () => {
     expect(monthStart(d).toISOString()).toBe("2026-06-01T00:00:00.000Z");
   });
 
-  describe("isAgentPaused (trial-expiry gate)", () => {
-    const now = new Date("2026-06-14T12:00:00Z");
-
-    it("an ACTIVE trial (trialEndsAt in the future) is NOT paused → agent works", () => {
-      expect(isAgentPaused("TRIAL", new Date("2026-06-20T00:00:00Z"), now)).toBe(false);
-      expect(isAgentPaused("TRIAL", new Date("2026-06-14T12:00:01Z"), now)).toBe(false);
+  describe("isAgentPaused (subscription gate — no auto trial)", () => {
+    it("an unsubscribed tenant (plan=TRIAL) is paused until they subscribe", () => {
+      expect(isAgentPaused("TRIAL")).toBe(true);
     });
 
-    it("an EXPIRED trial with no subscription (trialEndsAt in the past) is paused", () => {
-      expect(isAgentPaused("TRIAL", new Date(0), now)).toBe(true);
-      expect(isAgentPaused("TRIAL", new Date("2026-06-14T11:59:59Z"), now)).toBe(true);
-    });
-
-    it("a paid plan is never paused, regardless of trialEndsAt", () => {
-      expect(isAgentPaused("STARTER", new Date(0), now)).toBe(false);
-      expect(isAgentPaused("PRO", null, now)).toBe(false);
-      expect(isAgentPaused("STUDIO", new Date(0), now)).toBe(false);
-    });
-
-    it("TRIAL with no trialEndsAt is not treated as paused (defensive)", () => {
-      expect(isAgentPaused("TRIAL", null, now)).toBe(false);
+    it("a paid plan is never paused — subscribing switches the agent on", () => {
+      expect(isAgentPaused("STARTER")).toBe(false);
+      expect(isAgentPaused("PRO")).toBe(false);
+      expect(isAgentPaused("STUDIO")).toBe(false);
     });
   });
 

@@ -40,15 +40,19 @@ export interface MeterState {
 }
 
 /**
- * Pure "is the agent paused?" check (no DB) — the trial-expiry gate.
- * The agent is paused only when an UNSUBSCRIBED tenant's free trial has ended:
- * plan=TRIAL AND `trialEndsAt` is in the past (see lib/tenant.ts). During an
- * active trial (trialEndsAt in the future) or on any paid plan, the agent runs.
- * Used by meterState (drafting gate) and the venue-pitch actions (generate/send
- * gate) so reactive drafting and proactive pitches gate identically.
+ * Pure "is the agent paused?" check (no DB) — the subscription gate.
+ * NO automatic free trial (founder decision 2026-06-16): an UNSUBSCRIBED tenant
+ * (still on the free `plan=TRIAL` default, no paid Stripe subscription) is
+ * paused — the agent does nothing until they subscribe. Subscribing flips
+ * `plan` to a paid tier (Stripe webhook); a Stripe promotion code just makes
+ * the first invoice free, so a comped artist is a normal paid subscriber to us.
+ * Cancelling flips `plan` back to TRIAL → paused again. (TRIAL is now "free /
+ * not subscribed", not "14-day trial"; `trialEndsAt` is vestigial.)
+ * Used by meterState (drafting), the venue-pitch actions, and the discovery
+ * scan so reactive drafting, proactive pitches, and scanning gate identically.
  */
-export function isAgentPaused(plan: PlanTier, trialEndsAt?: Date | null, now = new Date()): boolean {
-  return plan === "TRIAL" && !!trialEndsAt && trialEndsAt.getTime() < now.getTime();
+export function isAgentPaused(plan: PlanTier): boolean {
+  return plan === "TRIAL";
 }
 
 /** Days remaining in an active free trial (0 once it has ended or N/A). */
@@ -70,9 +74,10 @@ export async function meterState(
 ): Promise<MeterState> {
   const used = await leadsUsedThisMonth(businessId, now);
   const cap = PLAN_LEAD_CAPS[plan];
-  // Agent paused (TRIAL whose trialEndsAt is in the past — an expired trial with
-  // no subscription): the agent is paused entirely — leads still ingest, nothing
-  // is lost, and subscribing resumes drafting immediately. During an active
-  // trial or on a paid plan, only used > cap pauses drafting.
-  return { used, cap, overCap: isAgentPaused(plan, trialEndsAt, now) || used > cap };
+  // Unsubscribed (TRIAL) → agent paused entirely (leads still ingest, nothing is
+  // lost, subscribing resumes immediately). On a paid plan, only used > cap
+  // pauses drafting. (trialEndsAt is kept in the signature for callers but no
+  // longer affects the gate — there's no time-based trial anymore.)
+  void trialEndsAt;
+  return { used, cap, overCap: isAgentPaused(plan) || used > cap };
 }
