@@ -80,8 +80,19 @@ export function KineticHeadline({
                     (g, y, p, j) un-cropped under the tight leading-[0.95] heroes.
                     pb and -mb are equal so line spacing is unchanged. */}
                 <span className="-mb-[0.28em] inline-block overflow-hidden pb-[0.28em] align-bottom">
+                  {/* Accent words paint with `background-clip: text`, whose paint
+                      box is the line box (leading-[0.95]) — SHORTER than the glyph,
+                      so a gradient descender (the "g" in "gig") falls outside the
+                      box and renders transparent, i.e. visually cut. Extend the
+                      paint box down with pb, and cancel its layout effect with an
+                      equal -mb (verified: headline height unchanged). Stays inside
+                      the wrapper's 0.28em room, so overflow-hidden never clips it.
+                      Solid-colour words don't need this — colour paints the whole
+                      glyph regardless of box. */}
                   <span
-                    className={`be-kinetic-word${isAccent ? ` ${ACCENT_CLASS}` : ""}`}
+                    className={`be-kinetic-word${
+                      isAccent ? ` ${ACCENT_CLASS} pb-[0.22em] -mb-[0.22em]` : ""
+                    }`}
                     style={{ animationDelay: `${delay}ms` }}
                   >
                     {word}
