@@ -16,7 +16,7 @@ import { AtCapBanner } from "@/components/at-cap-banner";
 import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
-import { meterState, trialDaysLeft } from "@/lib/billing/metering";
+import { meterState } from "@/lib/billing/metering";
 import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -209,13 +209,11 @@ export default async function Dashboard({
     (l) => l.status === "BOOKED" && l.bookedAt && monthOf(l.bookedAt) === thisMonth
   ).length;
 
-  // At-cap / trial-ended surface (audit C3): the agent-paused state used to
-  // appear only via an optional push — show it in-app too. meterState reads an
-  // expired-trial-unsubscribed tenant as overCap (isAgentPaused); a paid plan
-  // is overCap only when used > cap. An active trial / under-cap paid → no banner.
+  // Agent-paused surface (audit C3): show it in-app, not just via push.
+  // meterState reads an UNSUBSCRIBED tenant as overCap (isAgentPaused); a paid
+  // plan is overCap only when used > cap. Subscribed & under-cap → no banner.
   const now = new Date();
   const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
-  const trialActive = tenant.plan === "TRIAL" && trialDaysLeft(tenant.plan, tenant.trialEndsAt, now) > 0;
   const subscribed = !!tenant.stripeSubscriptionId;
 
   return (
@@ -240,14 +238,13 @@ export default async function Dashboard({
 
       <OnboardingBanner />
 
-      {/* Agent paused (audit C3): expired trial or paid-plan-over-cap. Renders
-          nothing during an active trial or an under-cap paid plan. */}
+      {/* Agent paused (audit C3): unsubscribed or paid-plan-over-cap. Renders
+          nothing for a subscribed, under-cap plan. */}
       <AtCapBanner
         used={meter.used}
         cap={meter.cap}
         overCap={meter.overCap}
         subscribed={subscribed}
-        trialActive={trialActive}
       />
 
       {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the

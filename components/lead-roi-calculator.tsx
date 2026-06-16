@@ -274,13 +274,13 @@ export function LeadRoiCalculator() {
               And that&apos;s only the leak you can measure. Bright Ears goes out and finds new
               venues for you and drafts the outreach in your voice — and replies to every inquiry
               that comes in, then follows up until it&apos;s booked or dead. You just approve from
-              your phone. 14-day free trial.
+              your phone. Month-to-month, cancel anytime.
             </p>
             <Link
               href="/onboarding"
               className="inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Get started
             </Link>
           </div>
         </div>

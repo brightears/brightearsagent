@@ -134,13 +134,14 @@ export default function LeadRoiCalculatorPage() {
               from your phone; follow-ups run until the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">
-              Starter $25/mo · Pro $79/mo · Studio $149/mo. 14-day free trial.
+              Starter $25/mo · Pro $79/mo · Studio $149/mo. Subscribe to switch it on, month-to-month,
+              cancel anytime.
             </p>
             <Link
               href="/onboarding"
               className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Get started
             </Link>
           </div>
         </div>

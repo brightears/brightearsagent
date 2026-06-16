@@ -90,7 +90,7 @@ export default function ComparePage() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/onboarding" className={buttonStyles.show}>
-              Start free
+              Get started
             </Link>
             <a href="#roundup" className={buttonStyles.secondary}>
               See the table
@@ -315,15 +315,16 @@ export default function ComparePage() {
               Never miss a <span className={GRAD}>gig</span> you never knew existed
             </h2>
             <p className="relative mt-3 text-ink-stage/70 max-w-xl mx-auto">
-              14-day free trial — cancel anytime. It hunts venues for you and answers every
-              inquiry — you just approve. At your cap, drafting pauses; never a surprise bill.
+              Subscribe to switch it on — month-to-month, cancel anytime. It hunts venues for you and
+              answers every inquiry — you just approve. At your cap, drafting pauses; never a surprise
+              bill.
             </p>
             <div className="relative mt-7">
               <Link
                 href="/onboarding"
                 className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
               >
-                Start free
+                Get started
               </Link>
             </div>
           </div>

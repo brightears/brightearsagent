@@ -5,7 +5,9 @@
 // hero type, one Marquee divider, mono Kickers on every section, scroll
 // reveals (components/motion.tsx). NO EMOJI in chrome (v2.1 rule 1).
 // Customers' verbatim language in headlines (docs/PRODUCT-BRIEF.md §3);
-// factual claims and hrefs unchanged — every CTA: "Start free" → /onboarding.
+// factual claims and hrefs unchanged — every CTA: "Get started" → /onboarding.
+// No free trial: you subscribe to activate (month-to-month, cancel anytime;
+// at your plan's cap we pause rather than surprise-bill).
 // Reframed (audit pre-launch) to lead with discovery (the proactive Hunt); the
 // reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
 // guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
@@ -27,10 +29,10 @@ import { Kicker } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Bright Ears — never miss a gig you never knew existed",
   description:
-    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. 14-day free trial.",
+    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
 };
 
-const TRUST_LINE = "14-day free trial · setup in minutes";
+const TRUST_LINE = "Month-to-month · cancel anytime · setup in minutes";
 
 const MARQUEE_ITEMS = [
   "FOUND WHILE YOU SLEPT",
@@ -72,9 +74,9 @@ const TRAVEL_MODE = [
 
 /* Pricing teaser — three plans, discovery-led, mirrors /pricing. */
 const PRICING_TEASER = [
-  { name: "Starter", price: "$25", l: "Finds gigs and answers leads for a solo performer" },
-  { name: "Pro", price: "$79", l: "More headroom, plus auto-send on sources you trust" },
-  { name: "Studio", price: "$149", l: "Your whole roster, one inbox, your team" },
+  { name: "Starter", price: "$25", l: "Answers up to 15 of your inquiries a month · hunts your 1 home city · you approve every send" },
+  { name: "Pro", price: "$79", l: "Up to 60 inquiries a month · hunts up to 3 cities · auto-sends from the sources you trust" },
+  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · multi-performer routing" },
 ];
 
 const STEPS = [
@@ -190,7 +192,7 @@ export default function HomePage() {
                   href="/onboarding"
                   className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
                 >
-                  Start free
+                  Get started
                 </Link>
                 <a
                   href="#demo"
@@ -582,8 +584,9 @@ export default function HomePage() {
             Less than one good <GradWord>gig.</GradWord>
           </h2>
           <p className="mt-3 text-lg text-cream/70">
-            Every plan is the complete engine — it hunts venues for you and answers every inquiry.
-            Plans only change how many leads, performers and how much autopilot. Start free.
+            Every plan is the complete engine — the same deep research on every plan: it hunts venues
+            for you and answers your inquiries. Plans only change how many inquiries, how many cities,
+            and how much autopilot. Subscribe to activate — month-to-month, cancel anytime.
           </p>
         </RevealOnScroll>
         <RevealOnScroll delayMs={100}>
@@ -640,11 +643,11 @@ export default function HomePage() {
                 href="/onboarding"
                 className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
               >
-                Start free
+                Get started
               </Link>
               <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
               <p className="mt-1 text-xs text-cream/65">
-                From $25/mo. At your lead cap we pause — never a surprise bill.
+                From $25/mo. At your plan&rsquo;s cap we pause — never a surprise bill.
               </p>
             </div>
           </div>

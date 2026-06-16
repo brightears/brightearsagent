@@ -857,14 +857,15 @@ function StepConnect({
             Your first lead just landed — forwarding works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it, parsed it, and your agent is already drafting a reply in your voice — go
-            watch it answer. Your 14-day free trial of full Pro is live; cancel anytime.
+            We caught it and parsed it. Your assistant is set up and ready to reply in your voice and
+            hunt venues for you — choose a plan to switch it on, and it goes to work on this lead and
+            every one after.
           </p>
           <Link
-            href="/dashboard"
+            href="/dashboard/settings#billing"
             className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
           >
-            Take me to my pipeline →
+            Choose your plan →
           </Link>
         </div>
       ) : (
@@ -1001,8 +1002,8 @@ export function OnboardingWizard({
             </span>
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Five quick steps — under ten minutes — and your 14-day free trial of full Pro starts
-            answering every inquiry in your voice. Cancel anytime.
+            Five quick steps — under ten minutes — and your assistant is ready to hunt venues and
+            answer every inquiry in your voice. Choose a plan to switch it on; cancel anytime.
           </p>
         </header>
 

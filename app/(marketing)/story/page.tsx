@@ -330,13 +330,13 @@ export default function StoryPage() {
           </h2>
           <p className="relative mt-4 text-cream/70 max-w-xl mx-auto">
             Vinyl hunts and answers for ours every night. Bright Ears does it for
-            yours — start with a 14-day free trial.
+            yours — subscribe to switch it on, month-to-month, cancel anytime.
           </p>
           <Link
             href="/onboarding"
             className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
           >
-            Start free
+            Get started
           </Link>
         </div>
       </section>

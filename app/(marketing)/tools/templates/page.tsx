@@ -547,7 +547,7 @@ function StartFreeBanner({ heading, sub }: { heading: string; sub: string }) {
           href="/onboarding"
           className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
         >
-          Start free
+          Get started
         </Link>
       </div>
     </div>
@@ -691,7 +691,7 @@ export default function TemplatesPage() {
               <div className="mt-12 max-w-3xl mx-auto">
                 <StartFreeBanner
                   heading="Sending these at 11pm after a gig? There's a better way."
-                  sub="Bright Ears goes out and finds the venues, drafts every reply and runs the day 2/5/9 follow-ups for you — all in your voice, with your real availability and rates. You just approve from your phone. From $25/mo — start with a 14-day free trial."
+                  sub="Bright Ears goes out and finds the venues, drafts every reply and runs the day 2/5/9 follow-ups for you — all in your voice, with your real availability and rates. You just approve from your phone. From $25/mo — subscribe to switch it on, month-to-month, cancel anytime."
                 />
               </div>
             )}
@@ -723,7 +723,7 @@ export default function TemplatesPage() {
       <section className="relative max-w-3xl mx-auto px-6 pb-24">
         <StartFreeBanner
           heading="Never miss a gig you never knew existed."
-          sub="Bright Ears hunts the web for venues that fit you and drafts the outreach in your voice — and answers every inquiry that comes in, follows up until booked-or-dead, and filters the spam before you ever see it. Venues and clients only ever see you. Start with a 14-day free trial."
+          sub="Bright Ears hunts the web for venues that fit you and drafts the outreach in your voice — and answers every inquiry that comes in, follows up until booked-or-dead, and filters the spam before you ever see it. Venues and clients only ever see you. Subscribe to switch it on, month-to-month, cancel anytime."
         />
         <p className="text-center text-sm text-cream/65 mt-10">
           More free tools:{" "}

@@ -12,7 +12,7 @@ import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete engine — the Hunt that finds venues for you AND replies to every inquiry in your voice, with follow-ups and a weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial. Cancel anytime.",
+    "Every plan is the complete engine — the Hunt that finds venues for you AND answers every inquiry in your voice, with follow-ups, a weekly report and Travel Mode, and the same deep research on every plan. You only choose how many inquiries, how many cities and how much autopilot: Starter $25, Pro $79, Studio $149. Subscribe to activate, cancel anytime.",
 };
 
 type Plan = {
@@ -24,23 +24,27 @@ type Plan = {
 };
 
 // Tier recut per docs/ADR-003-scope-vs-price.md Stage 1: every tier is the
-// COMPLETE assistant (replies, sequences, weekly report, spam filtering,
-// approve-from-phone). Plans differ only in capacity and autonomy — leads,
-// performers, auto-send, team. Never capability-gate copy here again.
+// COMPLETE engine (the Hunt, replies, sequences, weekly report, spam filtering,
+// approve-from-phone, Travel Mode, AND the same maxed research quality). Plans
+// differ only in capacity and autonomy — how many inquiries you answer, how many
+// cities you hunt, and how much auto-send. Never capability-gate copy here again,
+// and never gate research quality — it's the moat and it's full on every plan.
 const PLANS: Plan[] = [
   {
     name: "Starter",
     price: "$25",
     blurb:
-      "The complete opportunity engine for a solo performer — it hunts venues for you AND answers every inquiry. You approve every send.",
+      "The complete engine for a solo performer in one home city — it hunts venues for you AND answers your incoming inquiries. You approve every send.",
     features: [
-      "The Hunt: it finds venues hiring entertainment and drafts the outreach in your voice — up to ~10 venue pitches/day, you approve",
-      "Travel Mode: tell it where you're touring and the dates — it hunts gigs in that city for those days, anywhere in the world",
-      "15 inbound leads per month (weddings, corporate, parties — any event)",
+      "The Hunt: it finds venues hiring entertainment and drafts the outreach in your voice — you approve every pitch",
+      "The same deep research as every plan — full quality, never throttled",
+      "Hunts your 1 home city",
+      "Answers up to 15 of your incoming inquiries a month (weddings, corporate, parties — any event)",
       "1 performer (you)",
+      "Travel Mode: tell it where you're touring and the dates — it hunts gigs in that city for those days, anywhere in the world",
       "Everything drafted in your voice — from your rate card, checked against your gig calendar",
-      "Follow-up sequences until every lead is booked or dead, opt-out compliance built in",
-      "Weekly report: rooms found, leads answered, gigs booked",
+      "Follow-up sequences until every inquiry is booked or dead, opt-out compliance built in",
+      "Weekly report: rooms found, inquiries answered, gigs booked",
       "Spam & scams filtered before you ever see them",
       "You approve every send — one tap from your phone, even backstage",
       "Also catches The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
@@ -50,11 +54,12 @@ const PLANS: Plan[] = [
     name: "Pro",
     price: "$79",
     blurb:
-      "The same engine, more headroom — it hunts and answers, and can send for itself on sources you trust.",
+      "The same engine, more headroom — it hunts more cities, answers more of your inquiries, and can send for itself on sources you trust.",
     features: [
-      "Everything in Starter — the same Hunt and the same complete assistant",
-      "60 inbound leads per month",
-      "Per-source auto-send: full autopilot on sources you trust, approval everywhere else",
+      "Everything in Starter — the same Hunt, the same complete engine, the same deep research",
+      "Answers up to 60 of your incoming inquiries a month",
+      "Hunts up to 3 cities",
+      "Auto-send: full autopilot on the sources you trust, approval everywhere else",
     ],
     highlighted: true,
   },
@@ -62,12 +67,12 @@ const PLANS: Plan[] = [
     name: "Studio",
     price: "$149",
     blurb:
-      "The same engine for the whole roster — hunting and answering across one inbox, every performer, your team.",
+      "The same engine for the whole roster — hunting every city and answering across one inbox, routed to every performer.",
     features: [
-      "Everything in Pro",
-      "150 inbound leads per month",
-      "Multi-performer routing — leads matched across your whole roster",
-      "Team seats so anyone can review and approve",
+      "Everything in Pro — the same deep research, the same complete engine",
+      "Answers up to 150 of your incoming inquiries a month",
+      "Hunts all your cities",
+      "Multi-performer routing — inquiries matched across your whole roster",
     ],
   },
 ];
@@ -75,7 +80,7 @@ const PLANS: Plan[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between Starter, Pro and Studio?",
-    a: "Capacity and autonomy — never features. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 inbound leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 inbound leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 inbound leads with multi-performer routing and team seats. The Hunt's venue-pitch allowance is the same on every plan.",
+    a: "Capacity and autonomy — never features, and never research quality. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, replies to every incoming inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, Travel Mode, approve-from-phone — and the same deep research on every plan. Starter ($25) answers up to 15 of your incoming inquiries a month, hunts your 1 home city, for 1 performer, and you approve every send. Pro ($79) answers up to 60 inquiries, hunts up to 3 cities, and adds auto-send — full autopilot on the sources you trust. Studio ($149) answers up to 150 inquiries, hunts all your cities, with multi-performer routing across your roster. The Hunt's venue-pitch allowance is the same on every plan.",
   },
   {
     q: "Is this only for wedding performers?",
@@ -83,11 +88,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What's the Hunt — the proactive venue agent?",
-    a: "Alongside answering your inbound leads, Bright Ears proactively looks for venues hiring entertainment, scores how well each one fits you, and drafts outreach in your voice. You review and approve, and it sends — so quiet weeks don't stay quiet. It's separate from your monthly inbound leads, runs at up to ~10 pitches a day, and it never guarantees bookings — results depend on demand in your area.",
+    a: "Alongside answering your incoming inquiries, Bright Ears proactively looks for venues hiring entertainment, scores how well each one fits you, and drafts outreach in your voice. You review and approve, and it sends — so quiet weeks don't stay quiet. It's separate from the inquiries you answer each month, runs on the same deep research as every plan, and it never guarantees bookings — results depend on demand in your area.",
   },
   {
     q: "What if it isn't working for me?",
-    a: "Start with a 14-day free trial of full Pro — so you can feel it work before you pay a cent. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    a: "It's month-to-month — cancel anytime in two clicks, and at your monthly cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and an inquiry handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
   },
   {
     q: "I travel for gigs — does it work when I'm on the road?",
@@ -98,16 +103,16 @@ const FAQS: { q: string; a: string }[] = [
     a: "No passwords, no inbox access, no OAuth permissions. You add one simple forwarding rule in your own email or lead platform that sends inquiry notifications to your private Bright Ears address. You stay in full control and can switch the forward off anytime.",
   },
   {
-    q: "What counts as a lead?",
-    a: "Your monthly number counts inbound leads — a real inquiry from a real prospect (someone asking about your availability, pricing or services) that we parse and draft a reply for. One prospect = one lead, no matter how many emails go back and forth. Venue pitches from the Hunt are a separate allowance and never count against your inbound lead number.",
+    q: "What counts as an inquiry?",
+    a: "Your monthly number is a ceiling on your own incoming inquiries — a real inquiry from a real prospect (someone asking about your availability, pricing or services) that we parse and draft a reply for. One prospect = one inquiry, no matter how many emails go back and forth. Venue pitches from the Hunt are a separate allowance and never count against this number.",
   },
   {
-    q: "Does spam count against my monthly leads?",
-    a: "No. Spam, scams and vendor junk are filtered before you ever see them, and they never count toward your lead cap. You only pay for real prospects.",
+    q: "Does spam count against my monthly inquiries?",
+    a: "No. Spam, scams and vendor junk are filtered before you ever see them, and they never count toward your monthly cap. You only pay for real prospects.",
   },
   {
-    q: "What happens when I hit my monthly lead cap?",
-    a: "Drafting pauses for the rest of the month and we notify you immediately — we never silently bill you more. New leads still arrive and nothing is lost; to switch drafting back on right away, upgrade your plan in one click. Your cap resets at the start of next month. No surprise bills, ever.",
+    q: "What happens when I hit my monthly cap?",
+    a: "Drafting pauses for the rest of the month and we notify you immediately — we never silently bill you more. New inquiries still arrive and nothing is lost; to switch drafting back on right away, upgrade your plan in one click. Your cap resets at the start of next month. No surprise bills, ever.",
   },
   {
     q: "Can I cancel anytime?",
@@ -131,7 +136,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — 14 days of full Pro, free. You set up your whole account — profile, packages, voice, calendar — and the agent immediately starts replying in your voice and hunting venues, so you can watch it work before you pay anything. When the trial ends, pick a plan to keep it running; if you don't, the agent simply pauses (your setup and leads are kept safe). Month-to-month after that, cancel anytime.",
+    a: "No — you subscribe to activate. Pick a plan, and the engine switches on: it starts answering your inquiries in your voice and hunting venues right away. It's month-to-month, cancel anytime in two clicks, and at your monthly cap we pause rather than surprise-bill you.",
   },
 ];
 
@@ -201,13 +206,14 @@ export default function PricingPage() {
           Bright Ears hunts the web for venues that fit you and drafts the
           outreach in your voice — and it answers every inquiry that comes in too.
           A booked event is often worth $1,500–3,000; this costs less than a
-          dinner out. Start with a 14-day free trial.
+          dinner out. Subscribe to activate, cancel anytime.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
           Every plan is the complete engine — the Hunt that finds venues for you
-          AND replies to every inquiry in your voice, with follow-ups until
-          booked-or-dead, a weekly report, spam filtering and approve-from-phone.
-          You only choose leads, performers and autopilot.
+          AND answers every inquiry in your voice, with follow-ups until
+          booked-or-dead, a weekly report, Travel Mode, spam filtering and
+          approve-from-phone, and the same deep research on every plan. You only
+          choose how many inquiries, how many cities and how much autopilot.
         </p>
       </section>
 
@@ -264,10 +270,10 @@ export default function PricingPage() {
                       : "border-[1.5px] border-ink-stage/30 text-ink-stage/80 hover:border-ink-stage/60 hover:text-ink-stage transition-colors"
                   }`}
                 >
-                  Start free
+                  Get started
                 </Link>
                 <p className="mt-3 text-center text-xs text-ink-stage/50">
-                  14-day free trial · cancel anytime
+                  Subscribe to activate · cancel anytime
                 </p>
               </div>
             </div>
@@ -275,7 +281,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Outcome math + risk-reversal (ADR-003: per-gig economics as framing + the free-trial line) */}
+      {/* Outcome math + risk-reversal (ADR-003: per-gig economics as framing + the subscribe-to-activate line) */}
       <section className="relative max-w-6xl mx-auto px-6 pb-12">
         <div className="relative overflow-hidden rounded-3xl bg-ink-raised border border-cream/10 p-8 sm:p-10 text-center">
           <h2 className="text-2xl font-extrabold tracking-tight text-cream-bright">
@@ -322,9 +328,9 @@ export default function PricingPage() {
             </h3>
             <p className="mt-2 text-sm text-ink-stage/70">
               Busy-season spikes are real — wedding months, festival runs, a
-              corporate Q4. Move up a plan in one click for more leads each month,
-              and step back down whenever the rush passes. Month-to-month, no
-              commitment.
+              corporate Q4. Move up a plan in one click to answer more inquiries
+              each month, and step back down whenever the rush passes.
+              Month-to-month, no commitment.
             </p>
           </div>
           <div className="rounded-3xl bg-cream p-6 shadow-[0_18px_44px_rgba(0,0,0,0.4)] rotate-1">
@@ -332,7 +338,7 @@ export default function PricingPage() {
               At your cap, drafting pauses — never surprise bills.
             </h3>
             <p className="mt-2 text-sm text-ink-stage/70">
-              When you hit your monthly leads, we pause and ask before anything
+              When you hit your monthly cap, we pause and ask before anything
               costs you a cent. Your card is never charged for overages you
               didn&apos;t choose.
             </p>
@@ -378,14 +384,14 @@ export default function PricingPage() {
               Never miss a <span className={GRAD}>gig</span> you never knew existed.
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
-              It finds the rooms, drafts the pitch, you just approve. 14-day free
-              trial. Cancel anytime.
+              It finds the rooms, drafts the pitch, you just approve. Subscribe to
+              activate. Cancel anytime.
             </p>
             <Link
               href="/onboarding"
               className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free
+              Get started
             </Link>
           </div>
         </div>

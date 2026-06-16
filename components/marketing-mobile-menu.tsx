@@ -1,7 +1,7 @@
 "use client";
 
 // Mobile nav for the marketing header (audit C5). Below 640px the desktop nav —
-// including the only "Start free" CTA — was `hidden sm:flex` with no fallback,
+// including the only "Get started" CTA — was `hidden sm:flex` with no fallback,
 // so phone visitors had no navigation and no call to action. This adds an
 // accessible hamburger toggle (aria-expanded/aria-controls) revealing the links
 // + CTA. Shown only below sm; the desktop nav stays `hidden sm:flex`.
@@ -53,7 +53,7 @@ export function MarketingMobileMenu({ links }: { links: { href: string; label: s
               onClick={() => setOpen(false)}
               className="mt-2 rounded-full bg-neon-magenta px-5 py-2.5 text-center font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)]"
             >
-              Start free
+              Get started
             </Link>
           </nav>
         </div>

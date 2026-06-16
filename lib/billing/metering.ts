@@ -55,17 +55,6 @@ export function isAgentPaused(plan: PlanTier): boolean {
   return plan === "TRIAL";
 }
 
-/** Days remaining in an active free trial (0 once it has ended or N/A). */
-export function trialDaysLeft(
-  plan: PlanTier,
-  trialEndsAt?: Date | null,
-  now = new Date(),
-): number {
-  if (plan !== "TRIAL" || !trialEndsAt) return 0;
-  const ms = trialEndsAt.getTime() - now.getTime();
-  return ms > 0 ? Math.ceil(ms / (24 * 60 * 60 * 1000)) : 0;
-}
-
 export async function meterState(
   businessId: string,
   plan: PlanTier,

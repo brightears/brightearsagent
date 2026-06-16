@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLAN_LEAD_CAPS, isAgentPaused, trialDaysLeft, monthStart } from "@/lib/billing/metering";
+import { PLAN_LEAD_CAPS, isAgentPaused, monthStart } from "@/lib/billing/metering";
 
 describe("metering", () => {
   it("plan caps match the founder-confirmed pricing", () => {
@@ -26,24 +26,4 @@ describe("metering", () => {
     });
   });
 
-  describe("trialDaysLeft", () => {
-    const now = new Date("2026-06-14T12:00:00Z");
-
-    it("counts whole days remaining in an active trial (ceil)", () => {
-      // ~13.5 days out → ceils to 14
-      expect(trialDaysLeft("TRIAL", new Date("2026-06-28T00:00:00Z"), now)).toBe(14);
-      // exactly 1 day out
-      expect(trialDaysLeft("TRIAL", new Date("2026-06-15T12:00:00Z"), now)).toBe(1);
-    });
-
-    it("is 0 once the trial has ended", () => {
-      expect(trialDaysLeft("TRIAL", new Date(0), now)).toBe(0);
-      expect(trialDaysLeft("TRIAL", new Date("2026-06-14T11:59:59Z"), now)).toBe(0);
-    });
-
-    it("is 0 for paid plans or a missing trialEndsAt", () => {
-      expect(trialDaysLeft("PRO", new Date("2026-06-28T00:00:00Z"), now)).toBe(0);
-      expect(trialDaysLeft("TRIAL", null, now)).toBe(0);
-    });
-  });
 });

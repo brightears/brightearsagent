@@ -117,14 +117,12 @@ export default function TermsPage() {
         </p>
       </LegalSection>
 
-      <LegalSection kicker="Billing" title="Free trial, subscription, auto-renewal and cancellation">
+      <LegalSection kicker="Billing" title="Subscription, auto-renewal and cancellation">
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <span className="font-semibold text-ink-stage">Free trial.</span> New accounts start with a{" "}
-            <span className="font-semibold text-ink-stage">14-day free trial</span> of full Pro features —{" "}
-            <span className="font-semibold text-ink-stage">no payment card required</span>. If you do not
-            choose a plan before the trial ends, the agent simply pauses; your account and data are
-            retained.
+            <span className="font-semibold text-ink-stage">Subscribe to activate.</span> Your agent is
+            paused until you subscribe to a plan. Subscribing switches the service on; there is no automatic
+            free trial. You can cancel at any time, and you stay month-to-month throughout.
           </li>
           <li>
             <span className="font-semibold text-ink-stage">Subscription and prices.</span> Paid plans are
@@ -132,13 +130,13 @@ export default function TermsPage() {
             <span className="font-semibold text-ink-stage">$25/month</span>, Pro{" "}
             <span className="font-semibold text-ink-stage">$79/month</span>, Studio{" "}
             <span className="font-semibold text-ink-stage">$149/month</span>. Your plan sets your monthly
-            inbound-lead capacity and the features available to you. We do not send surprise overage bills —
+            inbound-inquiry capacity and the features available to you. We do not send surprise overage bills —
             at your plan&rsquo;s cap, drafting pauses and we prompt you to add capacity rather than charging
             automatically.
           </li>
           <li>
             <span className="font-semibold text-ink-stage">Auto-renewal disclosure (express consent).</span>{" "}
-            When you add a payment method and convert from trial to a paid plan, you are enrolling in an{" "}
+            When you add a payment method and subscribe to a plan, you are enrolling in an{" "}
             <span className="font-semibold text-ink-stage">automatically renewing subscription</span>: it
             continues each month at the price above and your card is charged each renewal until you cancel.
             By subscribing you give express consent to these recurring charges. This disclosure is provided
@@ -152,8 +150,8 @@ export default function TermsPage() {
             billing period.
           </li>
           <li>
-            <span className="font-semibold text-ink-stage">No money-back guarantee.</span> Because we offer
-            a no-card free trial so you can evaluate the service before paying, fees already billed are{" "}
+            <span className="font-semibold text-ink-stage">No money-back guarantee.</span> Subscriptions are
+            month-to-month and you can cancel at any time, so fees already billed are{" "}
             <span className="font-semibold text-ink-stage">non-refundable</span> except where a refund is
             required by applicable mandatory law. {RISK_REVERSAL.capLine}
           </li>

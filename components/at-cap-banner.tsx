@@ -1,14 +1,12 @@
-// At-cap / trial-ended banner (audit C3) — the agent-paused state used to
-// surface ONLY via an optional push; this banner makes it visible in the app so
-// an owner with push off still sees that drafting paused and how to switch it
-// back on. Pure presentation (server component, no hooks): the caller computes
-// the meter + billing state and passes the already-resolved shape.
+// Agent-paused banner (audit C3) — surfaces in the app (not just an optional
+// push) so an owner sees the agent is paused and how to switch it on. Pure
+// presentation (server component): the caller passes the resolved meter + state.
 //
-// Trial model (FINAL founder decision 2026-06-14, lib/billing/metering.ts):
-//   - EXPIRED trial, unsubscribed  → agent paused → "trial ended, choose a plan"
-//   - PAID plan over the lead cap  → drafting paused until next month → "upgrade"
-//   - ACTIVE trial, or under-cap paid → NOT paused → render nothing.
-// The CTA links to /dashboard/settings, where the checkout/portal forms live.
+// No free trial (founder 2026-06-16): two paused cases only —
+//   - NOT subscribed            → agent paused → "subscribe to switch it on"
+//   - PAID plan over the lead cap → drafting paused until next month → "upgrade"
+//   - subscribed & under cap     → NOT paused → render nothing.
+// The CTA links to /dashboard/settings#billing (the plan cards / portal).
 
 import Link from "next/link";
 import { Kicker, buttonStyles } from "@/components/ui";
@@ -18,42 +16,34 @@ export type AtCapBannerProps = {
   used: number;
   /** This plan's monthly lead cap. */
   cap: number;
-  /** meterState().overCap — agent paused (expired trial) OR used > cap. */
+  /** meterState().overCap — agent paused (unsubscribed) OR used > cap. */
   overCap: boolean;
   /** A live paid subscription exists (billingState().subscribed). */
   subscribed: boolean;
-  /** An active free trial (billingState().trialActive). */
-  trialActive: boolean;
 };
 
 /**
- * Returns the banner, or null when nothing should show. Two paused cases only:
- * an expired trial (unsubscribed) or a paid plan over its lead cap. An active
- * trial and an under-cap paid plan render nothing — the agent is working.
+ * Returns the banner, or null when nothing should show. An under-cap paid plan
+ * renders nothing — the agent is working.
  */
-export function AtCapBanner({ used, cap, overCap, subscribed, trialActive }: AtCapBannerProps) {
-  // Active trial → agent is live, never warn. (overCap can't be true here:
-  // isAgentPaused is false during an active trial, and used > cap would be a
-  // separate alarm we don't raise mid-trial — the trial allowance is full Pro.)
-  if (trialActive) return null;
-  if (!overCap) return null;
+export function AtCapBanner({ used, cap, overCap, subscribed }: AtCapBannerProps) {
+  // Subscribed and under cap → agent live, no banner. (Unsubscribed is always
+  // overCap via isAgentPaused, so it always shows the "subscribe" banner.)
+  if (subscribed && !overCap) return null;
 
-  // Distinguish the two paused reasons. Expired-trial-unsubscribed is the only
-  // case where neither subscribed nor trialActive is true.
-  const trialEnded = !subscribed;
+  const notSubscribed = !subscribed;
 
   return (
     <section className="mb-8">
       <div className="rounded-3xl border border-[#ffdfba]/40 bg-[#ffdfba] p-6 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
-        <Kicker onLight>{trialEnded ? "Trial ended" : "Lead cap reached"}</Kicker>
+        <Kicker onLight>{notSubscribed ? "Agent paused" : "Lead cap reached"}</Kicker>
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-2xl text-sm font-medium text-[#7a4100]">
-            {trialEnded ? (
+            {notSubscribed ? (
               <>
-                Your free trial has ended — your setup is saved, but the Hunt has
-                stopped finding venues and drafting your outreach, and inbound
-                replies are paused too. New leads still arrive and nothing is lost.
-                Choose a plan to switch your agent back on.
+                Your agent is paused — your setup is saved, but the Hunt isn&apos;t finding venues
+                or drafting outreach, and inbound replies are on hold. New leads still arrive and
+                nothing is lost. Choose a plan to switch your agent on.
               </>
             ) : (
               <>
@@ -71,7 +61,7 @@ export function AtCapBanner({ used, cap, overCap, subscribed, trialActive }: AtC
             href="/dashboard/settings#billing"
             className={`${buttonStyles.primary} flex-none whitespace-nowrap text-center`}
           >
-            {trialEnded ? "Choose a plan" : "Upgrade"}
+            {notSubscribed ? "Choose a plan" : "Upgrade"}
           </Link>
         </div>
       </div>

@@ -7,7 +7,8 @@
 // actually consumed by the code. Add a field only when you wire it; the pricing
 // page only renders bullets backed by a field here.
 //
-// TRIAL mirrors PRO (CLAUDE.md: the 14-day trial is full Pro).
+// TRIAL = "free / not subscribed" (agent paused until subscribe — no auto trial);
+// its caps mirror PRO so a Stripe-comped first month behaves like full Pro.
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 export interface PlanFeatures {
@@ -28,7 +29,7 @@ export interface PlanFeatures {
 }
 
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
-  TRIAL: { leadCap: 60, autoSend: true, homeCityCap: 3 }, // full Pro during the 14-day trial
+  TRIAL: { leadCap: 60, autoSend: true, homeCityCap: 3 }, // free/unsubscribed; caps mirror PRO (comped first month = full Pro)
   STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1 },
   PRO: { leadCap: 60, autoSend: true, homeCityCap: 3 },
   STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25 },

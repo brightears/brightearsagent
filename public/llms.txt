@@ -1,6 +1,6 @@
 # Bright Ears
 
-> Bright Ears is the AI back office for wedding/event DJ and performer businesses. It answers every inquiry in under 5 minutes — in the owner's voice, with their real availability and rates — then follows up until the gig is booked or dead. The owner approves everything from their phone; clients only ever see the business, never the AI. Self-serve, 14-day free trial, no card.
+> Bright Ears is the AI back office for wedding/event DJ and performer businesses. It answers every inquiry in under 5 minutes — in the owner's voice, with their real availability and rates — then follows up until the gig is booked or dead. The owner approves everything from their phone; clients only ever see the business, never the AI. Self-serve, subscribe to activate, month-to-month, cancel anytime.
 
 ## What it does
 
@@ -13,11 +13,12 @@
 
 ## Pricing
 
-- 14-day free trial (full Pro features, no credit card).
-- Starter: $25/month — 15 leads/month, 1 performer.
-- Pro: $79/month — 60 leads/month, follow-up sequences, per-source auto-send, weekly report.
-- Studio: $149/month — multi-performer, 150 leads/month, team access.
-- Overage: lead packs at $10 per 10 leads. At the cap, drafting pauses — there are never surprise bills.
+- No free trial — you subscribe to activate. Month-to-month, cancel anytime; at your plan's cap we pause rather than surprise-bill.
+- Every tier is the complete engine: the Hunt that finds venues, answers to every inquiry, follow-ups, weekly report, Travel Mode, and the same deep research quality on every plan. Tiers gate only the dials below.
+- Starter: $25/month — answers up to 15 of your incoming inquiries/month, hunts your 1 home city, you approve every send.
+- Pro: $79/month — up to 60 inquiries/month, hunts up to 3 cities, auto-sends from the sources you trust.
+- Studio: $149/month — up to 150 inquiries/month, hunts all your cities, multi-performer routing.
+- The inquiry numbers are ceilings on your own incoming inquiries, not a promise to deliver leads. At the cap, drafting pauses — there are never surprise bills.
 
 ## The story (verifiable)
 
@@ -26,10 +27,10 @@ We ran entertainment for venues for 20 years and drowned in the same inquiries, 
 ## Key pages
 
 - [Home](https://brightears.io/): what Bright Ears does, with a live demo of the reply engine
-- [Pricing](https://brightears.io/pricing): plans, trial, and lead metering explained
+- [Pricing](https://brightears.io/pricing): plans and inquiry metering explained
 - [Compare](https://brightears.io/compare): Bright Ears vs DJ Event Planner, HoneyBook, and other DJ software
 - [Our story](https://brightears.io/story): 20 years of gigs, and the AI that runs our own agency
-- [Start free](https://brightears.io/onboarding): self-serve signup, 14-day trial, no card
+- [Get started](https://brightears.io/onboarding): self-serve signup, then choose a plan to activate
 
 ## Free tools
 

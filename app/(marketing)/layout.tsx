@@ -1,6 +1,6 @@
 // Marketing shell — design language v2 "Neon Collage" (docs/DESIGN.md, THE LAW;
 // canonical preview: app/(marketing)/design/b/page.tsx). Ink canvas, cream nav
-// links with cyan hover (interface voice), magenta "Start free" pill (show voice).
+// links with cyan hover (interface voice), magenta "Get started" pill (show voice).
 import Link from "next/link";
 import { BrightEarsLogo } from "@/components/ui";
 import { MarketingMobileMenu } from "@/components/marketing-mobile-menu";
@@ -43,7 +43,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
               href="/onboarding"
               className="whitespace-nowrap rounded-full bg-neon-magenta px-5 py-2 font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
             >
-              Start free
+              Get started
             </Link>
           </nav>
           <MarketingMobileMenu links={NAV} />

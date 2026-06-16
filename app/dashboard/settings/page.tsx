@@ -176,26 +176,10 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
             style={{ width: `${pct}%` }}
           />
         </div>
-        {meter.overCap && (
+        {meter.overCap && state.subscribed && (
           <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
-            {state.subscribed ? (
-              <>
-                <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
-                still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
-              </>
-            ) : state.trialActive ? (
-              <>
-                <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads
-                still arrive, but drafting is paused until you choose a plan below. No surprise
-                bill, ever.
-              </>
-            ) : (
-              <>
-                <span className="font-semibold text-[#7a4100]">Trial ended</span> — your setup is
-                saved and new leads still arrive, but replies and venue pitches resume once you
-                choose a plan below.
-              </>
-            )}
+            <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads still
+            arrive, but drafting is paused until you upgrade. No surprise bill, ever.
           </p>
         )}
       </div>
@@ -211,22 +195,9 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
-            {state.trialActive ? (
-              <>
-                You&apos;re on the free trial —{" "}
-                <span className="font-semibold text-ink-stage/80">
-                  {state.trialDaysLeft} day{state.trialDaysLeft === 1 ? "" : "s"} left
-                </span>{" "}
-                of full Pro. The agent is replying in your voice and finding venues right now. Choose
-                a plan to keep it running after your trial ends — no surprise, no interruption.
-              </>
-            ) : (
-              <>
-                Your free trial has ended — your setup is saved and new inquiries are still being
-                collected. Choose a plan and the agent picks right back up, replying in your voice
-                and finding venues for you.
-              </>
-            )}
+            Your agent is paused — choose a plan to switch it on. Your setup is saved and new
+            inquiries still arrive; the moment you subscribe it starts replying in your voice and
+            hunting venues for you.
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
             {PLAN_CARDS.map((p) => {
@@ -270,9 +241,7 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
 
 /** Short, mono plan label for the header status readout. */
 function planLabel(state: BillingState): string {
-  if (state.subscribed) return state.plan;
-  if (state.trialActive) return `Trial · ${state.trialDaysLeft}d left`;
-  return "Trial ended";
+  return state.subscribed ? state.plan : "Not subscribed";
 }
 
 export default async function ControlRoomPage({
