@@ -12,7 +12,7 @@ import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 export const metadata: Metadata = {
   title: "Pricing — Bright Ears",
   description:
-    "Every plan is the complete engine — the Hunt that finds venues for you AND replies to every inquiry in your voice, with follow-ups and a weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial, no card. Cancel anytime.",
+    "Every plan is the complete engine — the Hunt that finds venues for you AND replies to every inquiry in your voice, with follow-ups and a weekly report. You only choose leads, performers and autopilot: Starter $25, Pro $79, Studio $149. 14-day free trial. Cancel anytime.",
 };
 
 type Plan = {
@@ -87,7 +87,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if it isn't working for me?",
-    a: "Start with a 14-day free trial of full Pro — no card — so you can feel it work before you pay a cent. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    a: "Start with a 14-day free trial of full Pro — so you can feel it work before you pay a cent. After that it's month-to-month: cancel anytime in two clicks, and at your lead cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and a lead handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
   },
   {
     q: "I travel for gigs — does it work when I'm on the road?",
@@ -131,7 +131,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — 14 days of full Pro, free, no card required. You set up your whole account — profile, packages, voice, calendar — and the agent immediately starts replying in your voice and hunting venues, so you can watch it work before you pay anything. When the trial ends, pick a plan to keep it running; if you don't, the agent simply pauses (your setup and leads are kept safe). Month-to-month after that, cancel anytime.",
+    a: "Yes — 14 days of full Pro, free. You set up your whole account — profile, packages, voice, calendar — and the agent immediately starts replying in your voice and hunting venues, so you can watch it work before you pay anything. When the trial ends, pick a plan to keep it running; if you don't, the agent simply pauses (your setup and leads are kept safe). Month-to-month after that, cancel anytime.",
   },
 ];
 
@@ -201,7 +201,7 @@ export default function PricingPage() {
           Bright Ears hunts the web for venues that fit you and drafts the
           outreach in your voice — and it answers every inquiry that comes in too.
           A booked event is often worth $1,500–3,000; this costs less than a
-          dinner out. Start with a 14-day free trial — no card.
+          dinner out. Start with a 14-day free trial.
         </p>
         <p className="mt-4 max-w-2xl mx-auto text-sm font-semibold text-cream/90">
           Every plan is the complete engine — the Hunt that finds venues for you
@@ -264,10 +264,10 @@ export default function PricingPage() {
                       : "border-[1.5px] border-ink-stage/30 text-ink-stage/80 hover:border-ink-stage/60 hover:text-ink-stage transition-colors"
                   }`}
                 >
-                  Start free — no card
+                  Start free
                 </Link>
                 <p className="mt-3 text-center text-xs text-ink-stage/50">
-                  14-day free trial, no card · cancel anytime
+                  14-day free trial · cancel anytime
                 </p>
               </div>
             </div>
@@ -379,13 +379,13 @@ export default function PricingPage() {
             </h2>
             <p className="relative mt-4 text-ink-stage/70 max-w-xl mx-auto">
               It finds the rooms, drafts the pitch, you just approve. 14-day free
-              trial, no card. Cancel anytime.
+              trial. Cancel anytime.
             </p>
             <Link
               href="/onboarding"
               className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free — no card
+              Start free
             </Link>
           </div>
         </div>

@@ -18,7 +18,7 @@ export const BRIGHT_EARS_PRICING = {
   range: "$25–149/mo",
   // 14-day no-card free trial (FINAL founder decision 2026-06-14) — the
   // risk-reversal is a real free window of full Pro (lib/marketing/guarantee.ts).
-  trial: "14-day free trial, no card — cancel anytime",
+  trial: "14-day free trial — cancel anytime",
   tiers: [
     {
       name: "Starter",
@@ -219,7 +219,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What's the best DJ booking software in 2026?",
     answer:
-      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry ($29–139/mo). For client music planning after the booking, Vibo ($149–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). For an AI receptionist at venue budgets, Mikla.ai ($149–499/mo) leads that category for wedding venues and now sells to DJs. If the thing that hurts is quiet weeks with no new gigs coming in — or leads going cold before you can reply — that's the job Bright Ears was built for ($25–149/mo, 14-day free trial, no card): it proactively hunts venues that fit you and drafts the outreach, AND it answers inbound for any event type, and it pairs with any of the above.",
+      "Honestly: it depends on the job. For contracts, invoicing and deep event workflow, DJ Event Planner ($20–50/mo) is still the workhorse. For modern booking forms and proposals, Check Cherry ($29–139/mo). For client music planning after the booking, Vibo ($149–179/mo). For an all-in-one generalist CRM, HoneyBook ($36–129/mo). For an AI receptionist at venue budgets, Mikla.ai ($149–499/mo) leads that category for wedding venues and now sells to DJs. If the thing that hurts is quiet weeks with no new gigs coming in — or leads going cold before you can reply — that's the job Bright Ears was built for ($25–149/mo, 14-day free trial): it proactively hunts venues that fit you and drafts the outreach, AND it answers inbound for any event type, and it pairs with any of the above.",
   },
   {
     question: "Isn't this comparison biased? You make one of these tools.",
@@ -239,7 +239,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete engine — the proactive Hunt agent that finds venues for you and drafts the outreach (up to ~10 pitches/day) for you to approve, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, weekly report and spam filtering — the tiers only change how many inbound leads, how many performers and how much autopilot. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. Start with a 14-day free trial of full Pro — no card — then month-to-month, cancel anytime.",
+      "Starter at $25/mo (15 inbound leads, 1 performer, you approve every send), Pro at $79/mo (60 leads, per-source auto-send autopilot), or Studio at $149/mo (150 leads, multi-performer routing, team seats). Every tier is the complete engine — the proactive Hunt agent that finds venues for you and drafts the outreach (up to ~10 pitches/day) for you to approve, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, weekly report and spam filtering — the tiers only change how many inbound leads, how many performers and how much autopilot. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. Start with a 14-day free trial of full Pro — then month-to-month, cancel anytime.",
   },
   {
     question: "Does Bright Ears do quotes, contracts or deposits?",
@@ -316,7 +316,7 @@ const DJEP_ROWS: ComparisonRow[] = [
   {
     feature: "Verified pricing (June 2026)",
     them: { mark: "na", note: "$20–50/mo" },
-    us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+    us: { mark: "na", note: "$25–149/mo · 14-day free trial" },
   },
 ];
 
@@ -400,7 +400,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
     },
   ],
   ctaHeading: "Add the AI that hunts gigs and answers leads in front of your DJEP",
-  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
+  ctaSub: "14-day free trial. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const GIGBUILDER: ComparisonPage = {
@@ -489,7 +489,7 @@ const GIGBUILDER: ComparisonPage = {
     {
       feature: "Verified pricing (June 2026)",
       them: { mark: "na", note: "$25–50/mo" },
-      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial" },
     },
   ],
   fitHeading: "Where Bright Ears fits",
@@ -524,7 +524,7 @@ const GIGBUILDER: ComparisonPage = {
     },
   ],
   ctaHeading: "Find the next gig and answer the last one — keep your hands on the faders",
-  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
+  ctaSub: "14-day free trial. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const VIBO: ComparisonPage = {
@@ -610,7 +610,7 @@ const VIBO: ComparisonPage = {
     {
       feature: "Verified pricing (June 11, 2026)",
       them: { mark: "na", note: "$149–179/mo" },
-      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial" },
     },
   ],
   fitHeading: "Where Bright Ears fits",
@@ -645,7 +645,7 @@ const VIBO: ComparisonPage = {
     },
   ],
   ctaHeading: "Get more contracts for Vibo to plan",
-  ctaSub: "14-day free trial, no card. It hunts new venues for you AND answers every inquiry — you just approve.",
+  ctaSub: "14-day free trial. It hunts new venues for you AND answers every inquiry — you just approve.",
 };
 
 const CHECK_CHERRY: ComparisonPage = {
@@ -733,7 +733,7 @@ const CHECK_CHERRY: ComparisonPage = {
     {
       feature: "Verified pricing (June 11, 2026)",
       them: { mark: "na", note: "$29–139/mo" },
-      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial" },
     },
   ],
   fitHeading: "Where Bright Ears fits",
@@ -768,7 +768,7 @@ const CHECK_CHERRY: ComparisonPage = {
     },
   ],
   ctaHeading: "Find the gigs your forms never see — and answer the ones they catch",
-  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — you just approve.",
+  ctaSub: "14-day free trial. It hunts venues for you AND answers every inquiry — you just approve.",
 };
 
 const HONEYBOOK: ComparisonPage = {
@@ -862,7 +862,7 @@ const HONEYBOOK: ComparisonPage = {
     {
       feature: "Verified pricing (June 2026)",
       them: { mark: "na", note: "$36–129/mo" },
-      us: { mark: "na", note: "$25–149/mo · 14-day free trial, no card" },
+      us: { mark: "na", note: "$25–149/mo · 14-day free trial" },
     },
   ],
   fitHeading: "Where Bright Ears fits",
@@ -888,7 +888,7 @@ const HONEYBOOK: ComparisonPage = {
     {
       question: "How do the prices compare?",
       answer:
-        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (15 leads, 1 performer), $79/mo Pro (60 leads, auto-send autopilot), $149/mo Studio (150 leads, multi-performer, team) — every tier includes the complete assistant, follow-up sequences, weekly report and the proactive Hunt agent — with a 14-day free trial, no card.",
+        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (15 leads, 1 performer), $79/mo Pro (60 leads, auto-send autopilot), $149/mo Studio (150 leads, multi-performer, team) — every tier includes the complete assistant, follow-up sequences, weekly report and the proactive Hunt agent — with a 14-day free trial.",
     },
     {
       question: "What if I'm already mid-migration to HoneyBook?",
@@ -897,7 +897,7 @@ const HONEYBOOK: ComparisonPage = {
     },
   ],
   ctaHeading: "Keep your stack. Add the hunting and the answering.",
-  ctaSub: "14-day free trial, no card. It hunts venues for you AND answers every inquiry — one forwarding rule, nothing migrates.",
+  ctaSub: "14-day free trial. It hunts venues for you AND answers every inquiry — one forwarding rule, nothing migrates.",
 };
 
 const DJEP_ALTERNATIVES: ComparisonPage = {
@@ -1000,11 +1000,11 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     {
       question: "What does the bolt-on option cost?",
       answer:
-        "Bright Ears starts at $25/mo (15 leads, 1 performer — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). 14-day free trial, no card. Need more leads? Upgrade in one click — at your cap, drafting pauses for the month rather than surprise-billing you.",
+        "Bright Ears starts at $25/mo (15 leads, 1 performer — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (60 leads, auto-send autopilot) and Studio at $149/mo (150 leads, multi-performer, team). 14-day free trial. Need more leads? Upgrade in one click — at your cap, drafting pauses for the month rather than surprise-billing you.",
     },
   ],
   ctaHeading: "Fix the complaint without the migration",
-  ctaSub: "14-day free trial, no card. Keep DJEP — add the AI that hunts gigs and answers leads in front of it.",
+  ctaSub: "14-day free trial. Keep DJEP — add the AI that hunts gigs and answers leads in front of it.",
 };
 
 // ---------------------------------------------------------------------------

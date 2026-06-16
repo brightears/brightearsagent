@@ -5,7 +5,7 @@
 // hero type, one Marquee divider, mono Kickers on every section, scroll
 // reveals (components/motion.tsx). NO EMOJI in chrome (v2.1 rule 1).
 // Customers' verbatim language in headlines (docs/PRODUCT-BRIEF.md §3);
-// factual claims and hrefs unchanged — every CTA: "Start free — no card" → /onboarding.
+// factual claims and hrefs unchanged — every CTA: "Start free" → /onboarding.
 // Reframed (audit pre-launch) to lead with discovery (the proactive Hunt); the
 // reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
 // guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
@@ -27,10 +27,10 @@ import { Kicker } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Bright Ears — never miss a gig you never knew existed",
   description:
-    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. 14-day free trial, no card.",
+    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. 14-day free trial.",
 };
 
-const TRUST_LINE = "14-day free trial, no card · setup in minutes";
+const TRUST_LINE = "14-day free trial · setup in minutes";
 
 const MARQUEE_ITEMS = [
   "FOUND WHILE YOU SLEPT",
@@ -188,7 +188,7 @@ export default function HomePage() {
                   href="/onboarding"
                   className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
                 >
-                  Start free — no card
+                  Start free
                 </Link>
                 <a
                   href="#demo"
@@ -581,7 +581,7 @@ export default function HomePage() {
           </h2>
           <p className="mt-3 text-lg text-cream/70">
             Every plan is the complete engine — it hunts venues for you and answers every inquiry.
-            Plans only change how many leads, performers and how much autopilot. Start free, no card.
+            Plans only change how many leads, performers and how much autopilot. Start free.
           </p>
         </RevealOnScroll>
         <RevealOnScroll delayMs={100}>
@@ -638,7 +638,7 @@ export default function HomePage() {
                 href="/onboarding"
                 className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
               >
-                Start free — no card
+                Start free
               </Link>
               <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
               <p className="mt-1 text-xs text-cream/65">

@@ -858,7 +858,7 @@ function StepConnect({
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
             We caught it, parsed it, and your agent is already drafting a reply in your voice — go
-            watch it answer. Your 14-day free trial of full Pro is live; no card, cancel anytime.
+            watch it answer. Your 14-day free trial of full Pro is live; cancel anytime.
           </p>
           <Link
             href="/dashboard"
@@ -1002,7 +1002,7 @@ export function OnboardingWizard({
           </h1>
           <p className="mt-1 text-sm text-cream/60">
             Five quick steps — under ten minutes — and your 14-day free trial of full Pro starts
-            answering every inquiry in your voice. No card, cancel anytime.
+            answering every inquiry in your voice. Cancel anytime.
           </p>
         </header>
 

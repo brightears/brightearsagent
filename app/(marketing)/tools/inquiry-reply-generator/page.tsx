@@ -124,13 +124,13 @@ export default function InquiryReplyGeneratorPage() {
               the gig is booked or dead.
             </p>
             <p className="relative text-ink-stage/50 text-sm mb-7">
-              Plans from $25/mo. Start with a 14-day free trial, no card.
+              Plans from $25/mo. Start with a 14-day free trial.
             </p>
             <Link
               href="/onboarding"
               className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
-              Start free — no card
+              Start free
             </Link>
           </div>
         </div>
