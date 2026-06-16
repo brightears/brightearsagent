@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
       "Follow-up sequences until every lead is booked or dead, opt-out compliance built in",
       "Weekly report: rooms found, leads answered, gigs booked",
       "Spam & scams filtered before you ever see them",
-      "You approve every send — one tap from your phone, even from the booth",
+      "You approve every send — one tap from your phone, even backstage",
       "Also catches The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
     ],
   },
@@ -78,8 +78,8 @@ const FAQS: { q: string; a: string }[] = [
     a: "Capacity and autonomy — never features. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering and approve-from-phone. Starter ($25) handles 15 inbound leads a month for 1 performer, and you approve every send. Pro ($79) handles 60 inbound leads and adds per-source auto-send — full autopilot on sources you trust. Studio ($149) handles 150 inbound leads with multi-performer routing and team seats. The Hunt's venue-pitch allowance is the same on every plan.",
   },
   {
-    q: "Is this only for wedding DJs?",
-    a: "No. Bright Ears works for any bookable performer business and any event type — weddings, corporate and brand events, private parties, bar/club/hotel residencies, festivals and launches. DJs, bands, singers, photo booths, MCs and more all run it; the replies use your packages, your rates and your voice, whatever you book.",
+    q: "Is this only for wedding performers?",
+    a: "No. Bright Ears works for any bookable performer business and any event type — weddings, corporate and brand events, private parties, bar/club/hotel residencies, festivals and launches. DJs, bands, singers, dancers, magicians, MCs and more all run it; the replies use your packages, your rates and your voice, whatever you book.",
   },
   {
     q: "What's the Hunt — the proactive venue agent?",

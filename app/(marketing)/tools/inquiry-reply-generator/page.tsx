@@ -68,8 +68,8 @@ export default function InquiryReplyGeneratorPage() {
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-cream/65 max-w-2xl mx-auto">
             &ldquo;You don&apos;t want to be the 5th DJ that reaches out.&rdquo; This is the same
-            drafting engine Bright Ears runs for real DJ businesses — try it on a real inquiry from
-            your inbox.
+            drafting engine Bright Ears runs for real performer businesses — try it on a real inquiry
+            from your inbox.
           </p>
         </div>
       </section>

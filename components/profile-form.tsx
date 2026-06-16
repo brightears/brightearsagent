@@ -55,7 +55,7 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
               id="headline"
               name="headline"
               maxLength={80}
-              placeholder="Open-format DJ for rooms that want a full dance floor"
+              placeholder="High-energy act for rooms that want a full dance floor"
               defaultValue={profile.headline ?? ""}
               className={inputCls}
             />
@@ -79,7 +79,7 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
 
       <Card className="p-6">
         <h3 className="mb-5">
-          <Kicker onLight>Your sound</Kicker>
+          <Kicker onLight>Your act</Kicker>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

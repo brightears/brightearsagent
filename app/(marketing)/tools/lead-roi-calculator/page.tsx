@@ -7,7 +7,7 @@ import { GradientBlob, RingsBackdrop, VinylDisc } from "@/components/collage";
 export const metadata: Metadata = {
   title: "Lead ROI Calculator for DJs — What Missed & Slow Replies Cost — Bright Ears",
   description:
-    "Free calculator for event DJs: estimate what slow replies — and the gigs you never even hear about — cost you per year. Transparent math, honest assumptions, no signup.",
+    "Free calculator for event performers: estimate what slow replies — and the gigs you never even hear about — cost you per year. Transparent math, honest assumptions, no signup.",
 };
 
 /* One gradient-painted word in the headline — the design/b signature. */
@@ -22,7 +22,7 @@ const SPEED_STATS = [
   {
     n: "3–5",
     h: "vendors per inquiry",
-    body: "Couples rarely message just you. The same inquiry lands in several DJs' inboxes at once — “you don't want to be the 5th DJ that reaches out.”",
+    body: "Couples rarely message just you. The same inquiry lands in several performers' inboxes at once — “you don't want to be the 5th DJ that reaches out.”",
   },
   {
     n: "1 in 3",
@@ -84,8 +84,9 @@ export default function LeadRoiCalculatorPage() {
             </h2>
             <p className="mt-4 text-ink-stage/70 leading-relaxed">
               The number above only counts leads that reached you. But most rooms never post a
-              &ldquo;DJ wanted&rdquo; ad — the bar that just changed managers, the hotel relaunching
-              its rooftop, the venue whose regular act quit. Those gigs go to whoever happened to be
+              &ldquo;performer wanted&rdquo; ad — the bar that just changed managers, the hotel
+              relaunching its rooftop, the venue whose regular act quit. Those gigs go to whoever
+              happened to be
               in front of them. You can&apos;t put a slow-reply cost on a gig you never knew was open.
             </p>
             <p className="mt-3 text-ink-stage/70 leading-relaxed">

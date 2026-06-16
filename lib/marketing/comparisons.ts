@@ -641,7 +641,7 @@ const VIBO: ComparisonPage = {
     {
       question: "If I can only afford one, which should I buy?",
       answer:
-        "Depends where gigs die for you. If inquiries get answered fast but events feel chaotic, buy Vibo. If you're a great DJ whose leads go quiet before you can reply — 'get an inquiry, immediately respond, and then nothing' — fix that first. It's the cheaper fix and one saved booking pays for it many times over.",
+        "Depends where gigs die for you. If inquiries get answered fast but events feel chaotic, buy Vibo. If you're a great performer whose leads go quiet before you can reply — 'get an inquiry, immediately respond, and then nothing' — fix that first. It's the cheaper fix and one saved booking pays for it many times over.",
     },
   ],
   ctaHeading: "Get more contracts for Vibo to plan",
@@ -851,7 +851,7 @@ const HONEYBOOK: ComparisonPage = {
       them: { mark: "no", note: "Horizontal by design — photographers, planners, coaches, everyone." },
       us: {
         mark: "yes",
-        note: "Your packages, your dates, your voice — DJs, bands and photo booths alike.",
+        note: "Your packages, your dates, your voice — DJs, bands, dancers and magicians alike.",
       },
     },
     {

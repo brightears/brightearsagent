@@ -16,7 +16,7 @@ const MIN_CHARS = 20;
 const MAX_CHARS = 1200;
 
 const SAMPLE_INQUIRY =
-  "Hi! We're getting married on October 17 next year at the Grandview Barn — around 120 guests. We'd need a DJ for the ceremony, cocktail hour and reception, roughly 3pm to 10pm. Is that date open, and what would something like that cost? — Maya & Jordan";
+  "Hi! We're getting married on October 17 next year at the Grandview Barn — around 120 guests. We'd need a band for the ceremony, cocktail hour and reception, roughly 3pm to 10pm. Is that date open, and what would something like that cost? — Maya & Jordan";
 
 export function DemoWidget() {
   const [inquiry, setInquiry] = useState("");
@@ -173,7 +173,7 @@ export function DemoWidget() {
             </div>
             <div className="space-y-0.5 border-b border-ink-stage/10 px-4 py-2 text-xs text-ink-stage/60">
               <p>
-                <span className="font-semibold">From:</span> Your DJ Business
+                <span className="font-semibold">From:</span> Your Business
               </p>
               <p>
                 <span className="font-semibold">To:</span> Your lead

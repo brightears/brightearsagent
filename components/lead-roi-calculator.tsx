@@ -10,7 +10,7 @@ import { GradientBlob, StickerChip } from "@/components/collage";
  * `factor` = the share of your leads still realistically "in play" when your
  * reply lands. Couples inquire with several vendors at once and shortlist
  * whoever replies first, so every hour of delay hands a slice of your leads
- * to a faster DJ.
+ * to a faster performer.
  */
 const REPLY_SPEEDS = [
   { id: "5min", label: "Under 5 minutes", factor: 1.0 },
@@ -229,7 +229,7 @@ export function LeadRoiCalculator() {
                 <strong>{result.speedDef.label.toLowerCase()}</strong> means roughly{" "}
                 <strong>{Math.round(result.speedDef.factor * 100)}%</strong> of your leads are
                 still in play when your reply lands. The rest have already started talking to a
-                faster DJ.
+                faster performer.
               </li>
               <li>
                 <strong className="text-ink-stage">3. Same you, faster reply:</strong> your{" "}

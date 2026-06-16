@@ -270,7 +270,7 @@ function StepBusiness({
           type="text"
           inputMode="url"
           defaultValue={initial.websiteUrl ?? ""}
-          placeholder="yourdjsite.com"
+          placeholder="yoursite.com"
           className={inputStyles}
         />
       </div>

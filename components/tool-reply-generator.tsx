@@ -17,7 +17,7 @@ const SAMPLES: { label: string; text: string }[] = [
   },
   {
     label: "Corporate party",
-    text: "Hello — I'm organizing our company holiday party on December 12, roughly 80 people at a downtown hotel. We'd need a DJ from 7 to 11pm with a sound system and some uplighting. Could you send pricing and availability?",
+    text: "Hello — I'm organizing our company holiday party on December 12, roughly 80 people at a downtown hotel. We'd need a band from 7 to 11pm with a sound system and some uplighting. Could you send pricing and availability?",
   },
 ];
 
@@ -238,7 +238,7 @@ export function ToolReplyGenerator() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@yourdjbusiness.com"
+                      placeholder="you@yourbusiness.com"
                       aria-label="Your email address"
                       className="flex-1 rounded-full border border-ink-stage/15 bg-cream-bright px-4 py-2 text-sm text-ink-stage placeholder:text-ink-stage/40 focus:outline-none focus:ring-2 focus:ring-brand-cyan"
                     />

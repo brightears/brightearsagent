@@ -123,7 +123,7 @@ function VenueCard({
 
       {/* The honest line (10.2c): WARM/SEED cards lead with the proof that
           this venue actually buys entertainment — "Not currently looking —
-          but books DJs regularly", grounded in the first evidence fact. */}
+          but books performers regularly", grounded in the first evidence fact. */}
       {venue.temperature !== "HOT" && venue.entertainmentEvidence.length > 0 && (
         <p className="mt-3 flex items-start gap-2 text-xs font-semibold text-ink-stage/80">
           <span aria-hidden className="mt-1.5 size-1 flex-none bg-brand-cyan" />
@@ -295,7 +295,7 @@ export function HuntSection({
           kicker="The hunt"
           title="The hunt begins here."
           accent="here."
-          hint="Finish your profile and the agent starts finding venues that fit you — new openings and rooms for your sound land here, scored, with the reasons spelled out and the outreach drafted for you to approve."
+          hint="Finish your profile and the agent starts finding venues that fit you — new openings and rooms for your act land here, scored, with the reasons spelled out and the outreach drafted for you to approve."
           cta={
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
               Finish your profile to start the hunt
