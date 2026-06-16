@@ -55,7 +55,7 @@ const KINDS: { kind: PerformerKind; label: string }[] = [
   { kind: "PHOTO_BOOTH", label: "Photo booth" },
   { kind: "MUSICIAN", label: "Musician" },
   { kind: "COMEDIAN", label: "Comedian" },
-  { kind: "OTHER", label: "Something else" },
+  { kind: "OTHER", label: "Other" },
 ];
 
 // Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
@@ -229,7 +229,7 @@ function StepBusiness({
               key={k.kind}
               onClick={() => setKind(k.kind)}
               aria-pressed={kind === k.kind}
-              className={`flex items-center justify-center rounded-2xl border px-2 py-3 text-center text-xs font-semibold transition-all ${
+              className={`flex min-h-[3.25rem] items-center justify-center rounded-2xl border px-2 py-3 text-center text-xs font-semibold leading-tight transition-all ${
                 kind === k.kind
                   ? "border-brand-cyan bg-brand-cyan-soft/60 text-ink-stage ring-2 ring-brand-cyan shadow-sm"
                   : "border-cream bg-white text-ink-stage/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
