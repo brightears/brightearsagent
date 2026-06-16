@@ -5,6 +5,7 @@ import { DashboardNavLinks } from "@/components/dashboard-nav";
 
 const NAV = [
   { href: "/dashboard", label: "Pipeline" },
+  { href: "/dashboard/results", label: "Results" },
   { href: "/dashboard/calendar", label: "Calendar" },
   { href: "/dashboard/packages", label: "Packages" },
   // Profile + Settings collapsed into one Control Room (Phase 2b); the old
