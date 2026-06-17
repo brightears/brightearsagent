@@ -7,6 +7,7 @@ export interface BusinessProfile {
   ownerName: string;
   performerKind: string; // "DJ", "BAND", ...
   country: string;
+  currency: string; // ISO-4217 — the artist's own fee currency (e.g. THB), NOT our USD billing
   voiceSamples?: string | null;
   websiteUrl?: string | null;
   bookingLinkUrl?: string | null; // owner's existing booking/contract/deposit page — the close

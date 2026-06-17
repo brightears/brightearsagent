@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       ownerName: "you",
       performerKind: "DJ",
       country: "US",
+      currency: "USD",
       voiceSamples: "Hey! Thanks so much for reaching out — congrats! We keep things fun and stress-free: you tell us the vibe, we handle the rest.",
     },
     packages: DEMO_PACKAGES,

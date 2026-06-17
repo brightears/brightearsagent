@@ -61,6 +61,7 @@ export async function generateDraftForLead(
       ownerName: lead.business.ownerName,
       performerKind: lead.business.performerKind,
       country: lead.business.country,
+      currency: lead.business.currency,
       voiceSamples: lead.business.voiceSamples,
       websiteUrl: lead.business.websiteUrl,
       bookingLinkUrl: lead.business.bookingLinkUrl,

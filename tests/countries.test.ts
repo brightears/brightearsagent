@@ -3,6 +3,7 @@ import {
   COUNTRIES,
   EXCLUDED_COUNTRY_CODES,
   isAllowedCountry,
+  currencyForCountry,
 } from "@/lib/geo/countries";
 
 // The shared country source (lib/geo/countries.ts) feeds every picker
@@ -62,6 +63,38 @@ describe("isAllowedCountry", () => {
   it("rejects garbage / non-ISO-2 input", () => {
     for (const bad of ["XX", "ZZ", "USA", "", "1", "Portugal"]) {
       expect(isAllowedCountry(bad), bad).toBe(false);
+    }
+  });
+});
+
+describe("currencyForCountry", () => {
+  it("maps countries to their own currency (the artist's fee money, not USD billing)", () => {
+    expect(currencyForCountry("TH")).toBe("THB");
+    expect(currencyForCountry("GB")).toBe("GBP");
+    expect(currencyForCountry("JP")).toBe("JPY");
+    expect(currencyForCountry("AU")).toBe("AUD");
+  });
+
+  it("maps every Eurozone member to EUR", () => {
+    for (const c of ["DE", "FR", "ES", "IT", "PT", "NL", "IE"]) {
+      expect(currencyForCountry(c), c).toBe("EUR");
+    }
+  });
+
+  it("is case/whitespace tolerant (matches the picker's normalization)", () => {
+    expect(currencyForCountry("th")).toBe("THB");
+    expect(currencyForCountry(" gb ")).toBe("GBP");
+  });
+
+  it("falls back to USD for unknown/garbage input", () => {
+    for (const bad of ["XX", "ZZ", "", "Portugal"]) {
+      expect(currencyForCountry(bad), bad).toBe("USD");
+    }
+  });
+
+  it("returns a real 3-letter ISO-4217 code for every supported country", () => {
+    for (const { code } of COUNTRIES) {
+      expect(currencyForCountry(code), code).toMatch(/^[A-Z]{3}$/);
     }
   });
 });

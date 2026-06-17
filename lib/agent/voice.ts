@@ -1,13 +1,26 @@
 import type { BusinessProfile, PackageInfo } from "@/lib/agent/types";
 
-function money(cents: number): string {
-  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+// Format a minor-unit amount in the ARTIST's own fee currency (THB for a Thai
+// DJ, GBP for a London act) — never our USD subscription billing. The artist
+// quotes clients in their local money, so their drafts must too.
+function money(cents: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+      currencyDisplay: "narrowSymbol",
+    }).format(cents / 100);
+  } catch {
+    // Unknown/invalid ISO-4217 code — fall back to "1,500 THB" rather than throw.
+    return `${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })} ${currency}`;
+  }
 }
 
-export function priceRange(p: PackageInfo): string {
+export function priceRange(p: PackageInfo, currency: string): string {
   return p.priceMax && p.priceMax !== p.priceMin
-    ? `${money(p.priceMin)}–${money(p.priceMax)}`
-    : money(p.priceMin);
+    ? `${money(p.priceMin, currency)}–${money(p.priceMax, currency)}`
+    : money(p.priceMin, currency);
 }
 
 /**
@@ -17,7 +30,7 @@ export function priceRange(p: PackageInfo): string {
  */
 export function buildVoicePrompt(business: BusinessProfile, packages: PackageInfo[]): string {
   const packageLines = packages
-    .map((p) => `- ${p.name} (${p.eventTypes.join("/")}): ${priceRange(p)} — ${p.description}`)
+    .map((p) => `- ${p.name} (${p.eventTypes.join("/")}): ${priceRange(p, business.currency)} — ${p.description}`)
     .join("\n");
 
   return [

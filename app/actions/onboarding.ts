@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { isAllowedCountry } from "@/lib/geo/countries";
+import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -79,7 +79,12 @@ export async function saveBusinessBasics(input: {
   const parsed = basicsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
-  await db.business.update({ where: { id: business.id }, data: parsed.data });
+  // Derive the artist's fee currency from their country (THB for Thailand) so
+  // the drafter quotes clients in local money — separate from USD billing.
+  await db.business.update({
+    where: { id: business.id },
+    data: { ...parsed.data, currency: currencyForCountry(parsed.data.country) },
+  });
 
   revalidatePath("/onboarding");
   revalidatePath("/dashboard");

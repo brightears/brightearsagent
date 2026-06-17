@@ -300,3 +300,49 @@ export function isAllowedCountry(code: string): boolean {
   const normalized = code.trim().toUpperCase();
   return VALID_CODES.has(normalized) && !EXCLUDED_COUNTRY_CODES.has(normalized);
 }
+
+// ---------------------------------------------------------------------------
+// Country → fee currency (ISO-3166-1 alpha-2 → ISO-4217).
+//
+// The artist quotes THEIR OWN clients in this currency (a Thai DJ quotes ฿THB) —
+// derived from the country picked at onboarding, stored on Business.currency.
+// STRICTLY separate from our own USD subscription billing. Unmapped/obscure
+// codes fall back to USD; Eurozone members all map to EUR.
+// ---------------------------------------------------------------------------
+const COUNTRY_CURRENCY: Record<string, string> = {
+  US: "USD", CA: "CAD", MX: "MXN",
+  // Eurozone
+  AD: "EUR", AT: "EUR", BE: "EUR", CY: "EUR", EE: "EUR", FI: "EUR", FR: "EUR",
+  DE: "EUR", GR: "EUR", IE: "EUR", IT: "EUR", LV: "EUR", LT: "EUR", LU: "EUR",
+  MT: "EUR", NL: "EUR", PT: "EUR", SK: "EUR", SI: "EUR", ES: "EUR", MC: "EUR",
+  SM: "EUR", VA: "EUR", ME: "EUR", XK: "EUR", HR: "EUR",
+  // Rest of Europe
+  GB: "GBP", CH: "CHF", NO: "NOK", SE: "SEK", DK: "DKK", IS: "ISK", PL: "PLN",
+  CZ: "CZK", HU: "HUF", RO: "RON", BG: "BGN", UA: "UAH", RS: "RSD", AL: "ALL",
+  MK: "MKD", BA: "BAM", MD: "MDL", GE: "GEL", AM: "AMD", AZ: "AZN", TR: "TRY",
+  // Asia-Pacific
+  TH: "THB", SG: "SGD", MY: "MYR", ID: "IDR", PH: "PHP", VN: "VND", KH: "KHR",
+  LA: "LAK", MM: "MMK", IN: "INR", PK: "PKR", BD: "BDT", LK: "LKR", NP: "NPR",
+  JP: "JPY", KR: "KRW", CN: "CNY", HK: "HKD", TW: "TWD", MO: "MOP", MN: "MNT",
+  AU: "AUD", NZ: "NZD", FJ: "FJD", PG: "PGK",
+  // Middle East
+  AE: "AED", SA: "SAR", QA: "QAR", KW: "KWD", BH: "BHD", OM: "OMR", JO: "JOD",
+  LB: "LBP", IL: "ILS", IQ: "IQD",
+  // Africa
+  ZA: "ZAR", NG: "NGN", KE: "KES", GH: "GHS", EG: "EGP", MA: "MAD", TN: "TND",
+  DZ: "DZD", ET: "ETB", TZ: "TZS", UG: "UGX", RW: "RWF", ZM: "ZMW", BW: "BWP",
+  NA: "NAD", MU: "MUR", SN: "XOF", CI: "XOF", CM: "XAF",
+  // Latin America & Caribbean
+  BR: "BRL", AR: "ARS", CL: "CLP", CO: "COP", PE: "PEN", UY: "UYU", PY: "PYG",
+  BO: "BOB", VE: "VES", CR: "CRC", GT: "GTQ", DO: "DOP",
+  JM: "JMD", TT: "TTD", BS: "BSD", BB: "BBD",
+};
+
+/**
+ * The fee currency (ISO-4217) for a country code — what the artist quotes their
+ * OWN clients in. Falls back to USD for unmapped/obscure codes. Case-tolerant.
+ */
+export function currencyForCountry(code: string | null | undefined): string {
+  if (!code) return "USD";
+  return COUNTRY_CURRENCY[code.trim().toUpperCase()] ?? "USD";
+}

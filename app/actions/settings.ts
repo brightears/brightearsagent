@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { isAllowedCountry } from "@/lib/geo/countries";
+import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
 import { toneNoteOf, withToneNote } from "@/lib/voice/tone-note";
 import { AUTO_SEND_INELIGIBLE_SOURCES } from "@/lib/inbound/auto-send";
 import { PerformerKind, LeadSource } from "@/app/generated/prisma/enums";
@@ -54,6 +54,9 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
   if (country && !isAllowedCountry(country)) {
     return { ok: false, error: "Pick a country we can support" };
   }
+  // Keep the artist's fee currency in lockstep with their country (THB for a
+  // Thai act) — re-derived on every save so a country change carries it along.
+  const resolvedCountry = country ?? business.country;
 
   await db.business.update({
     where: { id: business.id },
@@ -62,7 +65,8 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
       ownerName,
       replyToEmail,
       timezone: timezone ?? business.timezone,
-      country: country ?? business.country,
+      country: resolvedCountry,
+      currency: currencyForCountry(resolvedCountry),
       websiteUrl: optional(formData, "websiteUrl"),
       bookingLinkUrl: optional(formData, "bookingLinkUrl"),
       performerKind: (performerKindRaw as PerformerKind | null) ?? business.performerKind,

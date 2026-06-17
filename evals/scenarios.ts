@@ -8,6 +8,7 @@ export const BUSINESS: BusinessProfile = {
   ownerName: "Jamie",
   performerKind: "DJ",
   country: "US",
+  currency: "USD",
   voiceSamples:
     "Hey! Thanks so much for reaching out — congrats on the engagement! We'd love to hear more about what you have planned. We keep things fun and stress-free: you tell us the vibe, we handle the rest.",
 };
