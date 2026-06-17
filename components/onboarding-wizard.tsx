@@ -180,6 +180,29 @@ function StepBusiness({
     return known.includes(initial.timezone) ? known : [initial.timezone, ...known];
   }, [initial.timezone]);
 
+  // Group the ~400 zones by region (Asia, Europe, …) with city-only labels, so
+  // the dropdown is scannable instead of one overwhelming flat list.
+  const tzGroups = useMemo(() => {
+    const groups: Record<string, { value: string; label: string }[]> = {};
+    for (const z of timezones) {
+      const slash = z.indexOf("/");
+      const region = slash === -1 ? "Other" : z.slice(0, slash);
+      const city = slash === -1 ? z : z.slice(slash + 1).replaceAll("_", " ").replaceAll("/", " — ");
+      (groups[region] ??= []).push({ value: z, label: city });
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [timezones]);
+
+  // Pre-select the visitor's ACTUAL timezone — the browser knows it — so a new
+  // signup almost never has to open the list (a Bangkok user lands on
+  // Asia/Bangkok, not America/New_York). Set after mount so the SSR'd default
+  // doesn't cause a hydration mismatch.
+  const [tz, setTz] = useState(initial.timezone);
+  useEffect(() => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (detected && timezones.includes(detected)) setTz(detected);
+  }, [timezones]);
+
   // Keep an already-saved country selectable even if it's not in the list
   // (e.g. a legacy/excluded code on an existing business) so editing never
   // silently changes it.
@@ -253,12 +276,27 @@ function StepBusiness({
         </div>
         <div>
           <label htmlFor="ob-tz" className={labelStyles}>Timezone</label>
-          <select id="ob-tz" name="timezone" defaultValue={initial.timezone} className={inputStyles}>
-            {timezones.map((tz) => (
-              <option key={tz} value={tz}>{tz.replaceAll("_", " ")}</option>
+          <select
+            id="ob-tz"
+            name="timezone"
+            value={tz}
+            onChange={(e) => setTz(e.target.value)}
+            className={inputStyles}
+          >
+            {tzGroups.map(([region, zones]) => (
+              <optgroup key={region} label={region}>
+                {zones.map((z) => (
+                  <option key={z.value} value={z.value}>
+                    {z.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink-stage/50">So “are you free June 14th?” means your June 14th.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">
+            We detected yours — change it only if it&apos;s wrong. So “are you free June 14th?” means
+            your June 14th.
+          </p>
         </div>
       </div>
 
