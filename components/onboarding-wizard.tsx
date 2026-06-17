@@ -11,16 +11,16 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { createPackage } from "@/app/actions/packages";
 import {
   addBookedDates,
+  saveArtistProfile,
   saveBusinessBasics,
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
-import { buttonStyles, Badge, BrightEarsLogo, Card } from "@/components/ui";
+import { buttonStyles, BrightEarsLogo, Card } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
-import { COUNTRIES } from "@/lib/geo/countries";
+import { COUNTRIES, currencyForCountry } from "@/lib/geo/countries";
 import { stripToneNote } from "@/lib/voice/tone-note";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
@@ -39,7 +39,7 @@ const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-in
 
 const STEPS = [
   { label: "Your business", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "What you sell", chip: "bg-neon-magenta text-white" },
+  { label: "Who you are", chip: "bg-neon-magenta text-white" },
   { label: "Your voice", chip: "bg-neon-orange text-ink-stage" },
   { label: "Your calendar", chip: "bg-brand-cyan text-ink-stage" },
   { label: "Connect leads", chip: "bg-neon-magenta text-white" },
@@ -61,8 +61,6 @@ const KINDS: { kind: PerformerKind; label: string }[] = [
 // Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
 // sorted and with sanctioned jurisdictions filtered out.
 
-const EVENT_TYPES = ["wedding", "corporate", "birthday", "private party", "school dance"];
-
 const TONES = ["Fun & casual", "Warm & professional", "High-energy"] as const;
 type Tone = (typeof TONES)[number];
 
@@ -81,24 +79,17 @@ export interface WizardBusiness {
   voiceSamples: string | null;
 }
 
-export interface WizardPackage {
-  name: string;
-  priceMinDollars: number;
-  priceMaxDollars: number | null;
-  eventTypes: string[];
-}
-
-const usd = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
-
-function priceLabel(pkg: WizardPackage) {
-  return pkg.priceMaxDollars === null
-    ? usd.format(pkg.priceMinDollars)
-    : `${usd.format(pkg.priceMinDollars)}–${usd.format(pkg.priceMaxDollars)}`;
+// Step 2 state — WHO the artist is + the work/pricing dials (replaced packages,
+// June 2026). Fees are whole-currency strings for the inputs; the action
+// converts to cents. Currency is derived from the step-1 country, not stored here.
+export interface WizardProfile {
+  genres: string; // comma-separated tags
+  headline: string; // the one-line "vibe" descriptor
+  bio: string;
+  gigTypes: string[]; // "one-off" / "residency"
+  acceptsTravel: boolean;
+  feeFloor: string; // whole currency units (one-off floor)
+  residencyRate: string; // whole currency units (per-night residency rate)
 }
 
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
@@ -153,20 +144,23 @@ function StepBusiness({
   onDone,
 }: {
   initial: WizardBusiness;
-  onDone: () => void;
+  onDone: (country: string) => void;
 }) {
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, fd) => {
+      const country = String(fd.get("country") ?? "");
       const res = await saveBusinessBasics({
         name: String(fd.get("name") ?? ""),
         ownerName: String(fd.get("ownerName") ?? ""),
         performerKind: kind,
-        country: String(fd.get("country") ?? ""),
+        country,
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
       });
-      if (res.ok) onDone();
+      // Hand the chosen country up so step 2 can label fees in the right
+      // currency immediately (THB for Thailand), without a page reload.
+      if (res.ok) onDone(country || initial.country);
       return res;
     },
     null,
@@ -316,7 +310,7 @@ function StepBusiness({
       <div className="flex items-center justify-end gap-3 pt-2">
         {result && !result.ok && <p className="text-sm text-red-600">{result.error}</p>}
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Next: what you sell →"}
+          {pending ? "Saving…" : "Next: who you are →"}
         </button>
       </div>
     </form>
@@ -324,195 +318,209 @@ function StepBusiness({
 }
 
 // ---------------------------------------------------------------------------
-// Step 2 — What you sell (1-3 packages, at least one required)
+// Step 2 — Who you are (artist profile + work/pricing dials, June 2026 redesign)
+// Replaced the package builder: capture WHO the artist is so the Hunt matches
+// WIDER, not a narrow event-typed rate card. Fees in the artist's own currency
+// (derived from step 1). Packages now live in /dashboard/packages for inbound.
 // ---------------------------------------------------------------------------
 
-const MAX_ONBOARDING_PACKAGES = 3;
+const GIG_TYPE_OPTIONS = [
+  { v: "one-off", label: "One-off gigs" },
+  { v: "residency", label: "Residencies (regular slots)" },
+] as const;
 
-function StepPackages({
-  packages,
-  onAdded,
+function StepProfile({
+  profile,
+  currency,
+  onChange,
   onDone,
   onBack,
 }: {
-  packages: WizardPackage[];
-  onAdded: (pkg: WizardPackage) => void;
+  profile: WizardProfile;
+  currency: string;
+  onChange: (p: WizardProfile) => void;
   onDone: () => void;
   onBack: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [priceMin, setPriceMin] = useState("");
-  const [priceMax, setPriceMax] = useState("");
-  const [types, setTypes] = useState<string[]>(["wedding"]);
-  const [otherTypes, setOtherTypes] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canAddMore = packages.length < MAX_ONBOARDING_PACKAGES;
+  const set = <K extends keyof WizardProfile>(key: K, value: WizardProfile[K]) =>
+    onChange({ ...profile, [key]: value });
 
-  function toggleType(t: string) {
-    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  function toggleGigType(t: string) {
+    onChange({
+      ...profile,
+      gigTypes: profile.gigTypes.includes(t)
+        ? profile.gigTypes.filter((x) => x !== t)
+        : [...profile.gigTypes, t],
+    });
   }
 
-  async function handleAdd() {
+  const doesResidency = profile.gigTypes.includes("residency");
+  const canAdvance =
+    profile.genres.trim().length > 0 &&
+    profile.headline.trim().length > 0 &&
+    profile.feeFloor.trim().length > 0;
+
+  async function handleNext() {
     setError(null);
-    if (!name.trim()) return setError("Give the package a name");
-    if (!priceMin.trim()) return setError("What does it start at?");
-
-    const eventTypes = [...types, otherTypes].map((t) => t.trim()).filter(Boolean).join(", ");
-    const fd = new FormData();
-    fd.set("name", name);
-    fd.set("description", "");
-    fd.set("priceMin", priceMin);
-    fd.set("priceMax", priceMax);
-    fd.set("eventTypes", eventTypes);
-
     setPending(true);
     try {
-      // createPackage's inferred return widens `ok` to boolean — annotate for narrowing.
-      const res: { ok: boolean; error?: string } = await createPackage(fd);
-      if (!res.ok) return setError(res.error ?? "Could not save that package — try again");
-      onAdded({
-        name: name.trim(),
-        priceMinDollars: Number(priceMin),
-        priceMaxDollars: priceMax.trim() ? Number(priceMax) : null,
-        eventTypes: eventTypes.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
+      const res = await saveArtistProfile({
+        genres: profile.genres,
+        headline: profile.headline,
+        bio: profile.bio,
+        gigTypes: profile.gigTypes,
+        acceptsTravel: profile.acceptsTravel,
+        feeFloor: profile.feeFloor,
+        residencyRate: doesResidency ? profile.residencyRate : "",
       });
-      setName("");
-      setPriceMin("");
-      setPriceMax("");
-      setOtherTypes("");
+      if (!res.ok) return setError(res.error ?? "Could not save — try again");
+      onDone();
     } finally {
       setPending(false);
     }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <StepHeading
         step={1}
-        title="What you sell"
-        blurb="Your rate card — we only ever quote what you put here, never a number we made up. Add 1-3 packages; polish them later under Packages."
+        title="Who you are"
+        blurb="This is what the agent pitches with — the richer your profile, the more (and better) venues it matches you to. No rigid event packages: just your craft, your sound, and how you work."
       />
 
-      {packages.length > 0 && (
-        <ul className="space-y-2">
-          {packages.map((pkg, i) => (
-            <li
-              key={`${pkg.name}-${i}`}
-              className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/40 px-4 py-3"
-            >
-              <CheckMark className="size-4 flex-none text-brand-cyan" />
-              <span className="font-semibold text-ink-stage">{pkg.name}</span>
-              <span className="text-sm text-ink-stage/70">{priceLabel(pkg)}</span>
-              <span className="ml-auto flex flex-wrap gap-1">
-                {pkg.eventTypes.slice(0, 3).map((t) => (
-                  <Badge key={t} tone="gray">{t}</Badge>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div>
+        <label htmlFor="ob-genres" className={labelStyles}>Your sound / style</label>
+        <input
+          id="ob-genres"
+          value={profile.genres}
+          onChange={(e) => set("genres", e.target.value)}
+          placeholder="open format, house, disco, funk"
+          className={inputStyles}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          Comma-separated. This is how the agent matches you — go broad; it never narrows your search.
+        </p>
+      </div>
 
-      {canAddMore ? (
-        <div className="space-y-3 rounded-2xl border border-dashed border-ink-stage/25 bg-cream/30 p-4">
+      <div>
+        <label htmlFor="ob-headline" className={labelStyles}>Describe your act in one line</label>
+        <input
+          id="ob-headline"
+          value={profile.headline}
+          maxLength={80}
+          onChange={(e) => set("headline", e.target.value)}
+          placeholder="Open-format DJ that keeps dance floors full"
+          className={inputStyles}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          The first line a venue reads. {Math.max(0, 80 - profile.headline.length)} characters left.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="ob-bio" className={labelStyles}>
+          Short bio{" "}
+          <span className="font-normal normal-case text-ink-stage/40">(optional — but it lands more gigs)</span>
+        </label>
+        <textarea
+          id="ob-bio"
+          value={profile.bio}
+          onChange={(e) => set("bio", e.target.value)}
+          rows={3}
+          placeholder="A sentence or two in your own voice — who you are, where you've played, what a crowd gets when you're on."
+          className={`${inputStyles} resize-y`}
+        />
+      </div>
+
+      <div className="space-y-4 rounded-2xl border border-dashed border-ink-stage/20 bg-cream/30 p-4">
+        <div>
+          <span className={labelStyles}>What you take on</span>
+          <div className="flex flex-wrap gap-2">
+            {GIG_TYPE_OPTIONS.map((g) => (
+              <button
+                type="button"
+                key={g.v}
+                onClick={() => toggleGigType(g.v)}
+                aria-pressed={profile.gigTypes.includes(g.v)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  profile.gigTypes.includes(g.v)
+                    ? "bg-brand-cyan text-ink-stage"
+                    : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-ink-stage/50">
+            Most artists do both — a one-off and a regular slot price differently, so we ask for each.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="ob-pkg-name" className={labelStyles}>Package name</label>
+            <label htmlFor="ob-floor" className={labelStyles}>One-off floor ({currency})</label>
             <input
-              id="ob-pkg-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="6-hour wedding package"
+              id="ob-floor"
+              inputMode="numeric"
+              value={profile.feeFloor}
+              onChange={(e) => set("feeFloor", e.target.value)}
+              placeholder="1200"
               className={inputStyles}
             />
+            <p className="mt-1 text-xs text-ink-stage/50">
+              The lowest you&apos;ll take a one-off for. The agent never pitches below it.
+            </p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          {doesResidency && (
             <div>
-              <label htmlFor="ob-pkg-min" className={labelStyles}>Price from ($)</label>
+              <label htmlFor="ob-res" className={labelStyles}>Residency rate ({currency})</label>
               <input
-                id="ob-pkg-min"
-                type="number"
-                min={0}
-                step="0.01"
-                value={priceMin}
-                onChange={(e) => setPriceMin(e.target.value)}
-                placeholder="1800"
+                id="ob-res"
+                inputMode="numeric"
+                value={profile.residencyRate}
+                onChange={(e) => set("residencyRate", e.target.value)}
+                placeholder="800"
                 className={inputStyles}
               />
+              <p className="mt-1 text-xs text-ink-stage/50">Your going per-night rate for a regular slot.</p>
             </div>
-            <div>
-              <label htmlFor="ob-pkg-max" className={labelStyles}>To ($, blank = fixed)</label>
-              <input
-                id="ob-pkg-max"
-                type="number"
-                min={0}
-                step="0.01"
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
-                placeholder="2400"
-                className={inputStyles}
-              />
-            </div>
-          </div>
-          <div>
-            <span className={labelStyles}>Good for</span>
-            <div className="flex flex-wrap gap-2">
-              {EVENT_TYPES.map((t) => (
-                <button
-                  type="button"
-                  key={t}
-                  onClick={() => toggleType(t)}
-                  aria-pressed={types.includes(t)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                    // Selected = cyan (interface voice); ink text on cyan (~7.5:1).
-                    types.includes(t)
-                      ? "bg-brand-cyan text-ink-stage"
-                      : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-              <input
-                value={otherTypes}
-                onChange={(e) => setOtherTypes(e.target.value)}
-                placeholder="anything else, comma-separated"
-                className={`${inputStyles} w-56 flex-none px-3 py-1 text-xs`}
-                aria-label="Other event types"
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={pending}
-            className={`${buttonStyles.secondaryOnLight} w-full`}
-          >
-            {pending ? "Adding…" : packages.length === 0 ? "Add this package" : "+ Add another package"}
-          </button>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          )}
         </div>
-      ) : (
-        <p className="rounded-2xl bg-cream/50 px-4 py-3 text-sm text-ink-stage/60">
-          Three’s plenty to start — you can add more anytime under Packages.
-        </p>
-      )}
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+        <label className="flex items-center gap-2.5 text-sm text-ink-stage/80">
+          <input
+            type="checkbox"
+            checked={profile.acceptsTravel}
+            onChange={(e) => set("acceptsTravel", e.target.checked)}
+            className="size-4 accent-brand-cyan"
+          />
+          I&apos;m open to travel beyond my home cities
+        </label>
+      </div>
+
+      <p className="rounded-2xl bg-cream/50 px-4 py-3 text-xs text-ink-stage/55">
+        Photos, videos and press come next — add them anytime from your profile to lift how often you get picked.
+      </p>
+
+      <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
         <button
           type="button"
-          onClick={onDone}
-          disabled={packages.length === 0}
+          onClick={handleNext}
+          disabled={pending || !canAdvance}
           className={buttonStyles.primary}
         >
-          Next: your voice →
+          {pending ? "Saving…" : "Next: your voice →"}
         </button>
       </div>
-      {packages.length === 0 && (
+      {error && <p className="text-right text-xs text-red-600">{error}</p>}
+      {!canAdvance && !error && (
         <p className="text-right text-xs text-ink-stage/50">
-          Add at least one package so we know what to quote.
+          Add your sound, a one-line description, and your one-off floor to continue.
         </p>
       )}
     </div>
@@ -951,16 +959,20 @@ function StepConnect({
 export function OnboardingWizard({
   initialStep,
   business,
-  existingPackages,
+  initialProfile,
 }: {
   initialStep: number;
   business: WizardBusiness;
-  existingPackages: WizardPackage[];
+  initialProfile: WizardProfile;
 }) {
   const [step, setStep] = useState(() =>
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
   );
-  const [packages, setPackages] = useState<WizardPackage[]>(existingPackages);
+  const [profile, setProfile] = useState<WizardProfile>(initialProfile);
+  // Step 1 derives the fee currency from the chosen country (THB for Thailand),
+  // tracked here so step 2's fee labels are right even mid-session, no reload.
+  const [country, setCountry] = useState(business.country);
+  const currency = currencyForCountry(country);
   const [voice, setVoice] = useState<{ samples: string; tones: Tone[] }>(() => ({
     samples: stripToneNote(business.voiceSamples),
     tones: [],
@@ -1081,11 +1093,20 @@ export function OnboardingWizard({
         </ol>
 
         <Card className="p-6 sm:p-8">
-          {step === 0 && <StepBusiness initial={business} onDone={() => goTo(1)} />}
+          {step === 0 && (
+            <StepBusiness
+              initial={business}
+              onDone={(c) => {
+                setCountry(c);
+                goTo(1);
+              }}
+            />
+          )}
           {step === 1 && (
-            <StepPackages
-              packages={packages}
-              onAdded={(pkg) => setPackages((prev) => [...prev, pkg])}
+            <StepProfile
+              profile={profile}
+              currency={currency}
+              onChange={setProfile}
               onDone={() => goTo(2)}
               onBack={() => goTo(0)}
             />

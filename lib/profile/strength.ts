@@ -81,9 +81,12 @@ const CHECKS: {
     earned: (p) => (present(p.headline) ? 1 : 0),
   },
   {
+    // NOT license-critical: packages feed REACTIVE inbound quoting, not the
+    // Hunt (which never reads Package). Onboarding is now profile-first, so a
+    // package can't be a prerequisite to pitch — it's a nudge for inbound replies.
     weight: 8,
-    license: true,
-    hint: "Add at least one package — the agent quotes from your rate card",
+    license: false,
+    hint: "Add a package for inbound replies — the agent quotes from your rate card",
     earned: (_p, c) => (c.activePackages > 0 ? 1 : 0),
   },
   {

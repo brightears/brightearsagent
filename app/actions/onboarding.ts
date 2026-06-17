@@ -93,6 +93,84 @@ export async function saveBusinessBasics(input: {
 }
 
 // ---------------------------------------------------------------------------
+// Step 2 — Who you are (artist profile + the work/pricing dials)
+// Replaced the package builder (June 2026 redesign): captures WHO the artist is
+// so the Hunt matches WIDER, plus the non-narrowing dials. Touches ONLY these
+// fields — never clobbers media/voice/serviceCities owned by other steps.
+// ---------------------------------------------------------------------------
+
+const GIG_TYPES = ["one-off", "residency"] as const;
+
+/** Whole currency units (what the form takes) → cents; null blank; "invalid" garbage. */
+function feeToCents(raw: string): number | null | "invalid" {
+  const v = raw.trim();
+  if (v === "") return null;
+  const n = Number(v.replace(/[,\s]/g, ""));
+  if (!Number.isFinite(n) || n < 0 || n > 10_000_000) return "invalid";
+  return Math.round(n * 100);
+}
+
+const artistProfileSchema = z.object({
+  headline: z
+    .string()
+    .trim()
+    .min(1, "Give yourself a one-line description — the first thing a venue reads")
+    .max(80, "Keep it to one line — under 80 characters"),
+  bio: z.string().trim().max(2000, "That bio is a press release — keep it to ~120 words"),
+});
+
+export async function saveArtistProfile(input: {
+  genres: string;
+  headline: string;
+  bio: string;
+  gigTypes: string[];
+  acceptsTravel: boolean;
+  feeFloor: string;
+  residencyRate: string;
+}): Promise<ActionResult> {
+  const business = await getCurrentBusiness();
+
+  const parsed = artistProfileSchema.safeParse({ headline: input.headline, bio: input.bio });
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+
+  const genres = [
+    ...new Set(input.genres.split(",").map((s) => s.trim()).filter(Boolean)),
+  ].slice(0, 20);
+  if (genres.length === 0) {
+    return { ok: false, error: "Add at least one genre or style — it's how the agent matches you" };
+  }
+
+  const feeFloor = feeToCents(input.feeFloor);
+  if (feeFloor === "invalid") return { ok: false, error: "Your floor should be a plain number" };
+  if (feeFloor === null) {
+    return { ok: false, error: "Set your one-off floor — the agent never pitches below it" };
+  }
+  const residencyRate = feeToCents(input.residencyRate);
+  if (residencyRate === "invalid") {
+    return { ok: false, error: "Residency rate should be a plain number" };
+  }
+
+  await db.business.update({
+    where: { id: business.id },
+    data: {
+      genres,
+      headline: parsed.data.headline,
+      bio: parsed.data.bio || null,
+      gigTypes: GIG_TYPES.filter((t) => input.gigTypes.includes(t)),
+      acceptsTravel: input.acceptsTravel,
+      feeFloor,
+      residencyRate,
+    },
+  });
+
+  revalidatePath("/onboarding");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/settings");
+  revalidatePath(`/epk/${business.slug}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
 // Step 3 — Your voice
 // ---------------------------------------------------------------------------
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 
@@ -10,19 +9,19 @@ export const metadata: Metadata = {
   description: "Five quick steps and every inquiry you get starts answering itself.",
 };
 
+const wholeUnits = (cents: number | null) => (cents === null ? "" : String(cents / 100));
+
 export default async function OnboardingPage() {
   const business = await getCurrentBusiness();
 
-  const packages = await db.package.findMany({
-    where: { businessId: business.id, active: true },
-    orderBy: { name: "asc" },
-    select: { name: true, priceMin: true, priceMax: true, eventTypes: true },
-  });
-
-  // Resume heuristic: step-1 fields always hold values (signup defaults), so
-  // packages + voice samples are the real progress signals. Jump past what's done.
+  // Resume heuristic (June 2026): step 2 is now the artist PROFILE, so its
+  // completion is what tells us how far the user got — genres + a one-liner +
+  // a one-off floor is the "step 2 done" bar (the same fields it requires to
+  // advance). Step-1 fields always hold signup defaults, so they're no signal.
+  const hasProfile =
+    business.genres.length > 0 && Boolean(business.headline?.trim()) && business.feeFloor !== null;
   const hasVoice = Boolean(business.voiceSamples?.trim());
-  const initialStep = packages.length === 0 ? 0 : hasVoice ? 3 : 2;
+  const initialStep = !hasProfile ? (business.genres.length > 0 ? 1 : 0) : hasVoice ? 3 : 2;
 
   return (
     <OnboardingWizard
@@ -37,12 +36,15 @@ export default async function OnboardingPage() {
         websiteUrl: business.websiteUrl,
         voiceSamples: business.voiceSamples,
       }}
-      existingPackages={packages.map((p) => ({
-        name: p.name,
-        priceMinDollars: p.priceMin / 100,
-        priceMaxDollars: p.priceMax === null ? null : p.priceMax / 100,
-        eventTypes: p.eventTypes,
-      }))}
+      initialProfile={{
+        genres: business.genres.join(", "),
+        headline: business.headline ?? "",
+        bio: business.bio ?? "",
+        gigTypes: business.gigTypes,
+        acceptsTravel: business.acceptsTravel,
+        feeFloor: wholeUnits(business.feeFloor),
+        residencyRate: wholeUnits(business.residencyRate),
+      }}
     />
   );
 }

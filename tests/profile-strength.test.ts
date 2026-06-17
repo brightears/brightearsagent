@@ -110,7 +110,9 @@ describe("profileStrength", () => {
     expect(profileStrength({ ...justEnough, genres: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, serviceCities: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, feeFloor: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
-    expect(profileStrength(justEnough, { activePackages: 0, gigs: 1 }).canPitch).toBe(false);
+    // Packages are NO LONGER license-critical (onboarding is profile-first; the
+    // Hunt never reads Package) — zero packages still lets the agent pitch.
+    expect(profileStrength(justEnough, { activePackages: 0, gigs: 1 }).canPitch).toBe(true);
     expect(profileStrength(justEnough, { activePackages: 1, gigs: 0 }).canPitch).toBe(false);
   });
 
