@@ -404,6 +404,9 @@ export default async function ControlRoomPage({
                   travelPolicy: business.travelPolicy,
                   feeFloor: business.feeFloor,
                   feeSweetSpot: business.feeSweetSpot,
+                  gigTypes: business.gigTypes,
+                  acceptsTravel: business.acceptsTravel,
+                  residencyRate: business.residencyRate,
                   epkEnabled: business.epkEnabled,
                   currency: business.currency,
                 }}

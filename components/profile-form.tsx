@@ -21,6 +21,9 @@ export type ArtistProfile = {
   travelPolicy: string | null;
   feeFloor: number | null;
   feeSweetSpot: number | null;
+  gigTypes: string[];
+  acceptsTravel: boolean;
+  residencyRate: number | null;
   epkEnabled: boolean;
   currency: string;
 };
@@ -212,6 +215,34 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
+            <span className={labelCls}>What you take on</span>
+            <div className="flex flex-wrap gap-2.5">
+              <label className="flex items-center gap-2 rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage/80">
+                <input
+                  type="checkbox"
+                  name="gigTypes"
+                  value="one-off"
+                  defaultChecked={profile.gigTypes.includes("one-off")}
+                  className="size-4 accent-brand-cyan"
+                />
+                One-off gigs
+              </label>
+              <label className="flex items-center gap-2 rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage/80">
+                <input
+                  type="checkbox"
+                  name="gigTypes"
+                  value="residency"
+                  defaultChecked={profile.gigTypes.includes("residency")}
+                  className="size-4 accent-brand-cyan"
+                />
+                Residencies (regular slots)
+              </label>
+            </div>
+            <p className={hintCls}>
+              Most artists do both — a one-off party and a regular weekly slot price differently.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
             <label htmlFor="travelPolicy" className={labelCls}>
               Travel policy
             </label>
@@ -222,10 +253,22 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
               defaultValue={profile.travelPolicy ?? ""}
               className={inputCls}
             />
+            <label className="mt-2.5 flex items-center gap-2.5 text-sm text-ink-stage/80">
+              <input
+                type="checkbox"
+                name="acceptsTravel"
+                defaultChecked={profile.acceptsTravel}
+                className="size-4 accent-brand-cyan"
+              />
+              Open to travel beyond my home cities
+            </label>
+            <p className={hintCls}>
+              When on, the agent surfaces strong rooms outside your service cities too.
+            </p>
           </div>
           <div>
             <label htmlFor="feeFloor" className={labelCls}>
-              Fee floor ({profile.currency})
+              One-off floor ({profile.currency})
             </label>
             <input
               id="feeFloor"
@@ -235,7 +278,7 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
               defaultValue={cents(profile.feeFloor)}
               className={inputCls}
             />
-            <p className={hintCls}>The agent never pitches below this. Whole {profile.currency}.</p>
+            <p className={hintCls}>The agent never pitches a one-off below this. Whole {profile.currency}.</p>
           </div>
           <div>
             <label htmlFor="feeSweetSpot" className={labelCls}>
@@ -250,6 +293,22 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
               className={inputCls}
             />
             <p className={hintCls}>The fee the agent aims for.</p>
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="residencyRate" className={labelCls}>
+              Residency rate ({profile.currency})
+            </label>
+            <input
+              id="residencyRate"
+              name="residencyRate"
+              inputMode="numeric"
+              placeholder="800"
+              defaultValue={cents(profile.residencyRate)}
+              className={inputCls}
+            />
+            <p className={hintCls}>
+              Your going per-night rate for a regular slot — kept separate from the one-off floor.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="flex items-center gap-2.5 text-sm text-ink-stage/80">

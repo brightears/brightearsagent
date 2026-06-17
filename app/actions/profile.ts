@@ -42,6 +42,15 @@ function toCents(value: FormDataEntryValue | null): number | null | "invalid" {
   return Math.round(n * 100);
 }
 
+/** The work-type dial — whitelist to the two real primitives, ignore anything else. */
+const GIG_TYPES = ["one-off", "residency"] as const;
+function parseGigTypes(values: FormDataEntryValue[]): string[] {
+  const set = new Set(
+    values.filter((v): v is string => typeof v === "string").map((v) => v.trim().toLowerCase()),
+  );
+  return GIG_TYPES.filter((t) => set.has(t));
+}
+
 const urlSchema = z.url("That doesn't look like a link — paste the full https:// URL");
 
 const profileSchema = z.object({
@@ -85,6 +94,10 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
   if (feeFloor !== null && feeSweetSpot !== null && feeSweetSpot < feeFloor) {
     return { ok: false, error: "Your sweet spot can't sit below your floor" };
   }
+  const residencyRate = toCents(formData.get("residencyRate"));
+  if (residencyRate === "invalid") {
+    return { ok: false, error: "Residency rate should be a plain number" };
+  }
 
   const pitchLanguages = splitList(formData.get("pitchLanguages"), 8).map((l) => l.toLowerCase());
 
@@ -103,6 +116,9 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
       pitchLanguages: pitchLanguages.length > 0 ? pitchLanguages : ["en"],
       feeFloor,
       feeSweetSpot,
+      gigTypes: parseGigTypes(formData.getAll("gigTypes")),
+      acceptsTravel: formData.get("acceptsTravel") === "on",
+      residencyRate,
       insured: formData.get("insured") === "on",
       epkEnabled: formData.get("epkEnabled") === "on",
     },

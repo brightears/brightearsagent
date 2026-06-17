@@ -42,6 +42,13 @@ export type MatchProfile = {
   genres: string[];
   eventTypes: string[];
   serviceCities: string[];
+  /**
+   * Onboarding dial (June 2026). When the artist is open to travel, a venue
+   * outside the service cities is still genuinely pitchable — it earns partial
+   * geo credit instead of the hard "outside your area" caution. Optional so
+   * existing callers/tests default it to false (home-base-only).
+   */
+  acceptsTravel?: boolean;
 };
 
 export type VenueScore = {
@@ -153,11 +160,16 @@ export function scoreVenue(
   let caution: string | undefined;
   let score = 0;
 
-  // --- Geo (30): the agent only hunts where the artist plays.
+  // --- Geo (30): the agent hunts where the artist plays — but an artist who's
+  // open to travel can take a room out of area, so that earns half geo + a soft
+  // note rather than the hard "outside your area" caution.
   const inServiceArea = profile.serviceCities.map(norm).includes(norm(venue.city));
   if (inServiceArea) {
     score += W_GEO;
     reasons.push(`In ${venue.city} — one of your service cities`);
+  } else if (profile.acceptsTravel) {
+    score += W_GEO / 2;
+    reasons.push(`${venue.city} is outside your usual area — but you're open to travel`);
   } else {
     caution = `${venue.city} is outside your service cities`;
   }

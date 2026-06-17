@@ -111,10 +111,15 @@ model Business {
   eventTypes     String[] @default([]) // weddings, corporate, club nights...
   serviceCities  String[] @default([]) // named cities/areas served
   travelPolicy   String? // "within 100km included, beyond at cost" etc.
-  feeFloor       Int? // cents — the agent NEVER pitches below this
+  feeFloor       Int? // cents — the agent NEVER pitches below this (one-off floor)
   feeSweetSpot   Int? // cents — the fee the agent aims for
   pitchLanguages String[] @default(["en"])
   insured        Boolean  @default(false)
+  // Onboarding dials (June 2026): how the artist works — non-narrowing signals
+  // that replaced the event-typed package builder. All fees in Business.currency.
+  gigTypes       String[] @default([]) // "one-off" and/or "residency" (both = both present)
+  acceptsTravel  Boolean  @default(false) // open to gigs beyond service cities
+  residencyRate  Int? // cents — per-night going rate for a regular slot (≠ one-off feeFloor)
   // Pitching fields (the ammunition):
   headline     String? // <=80 chars, the one-liner venues read first
   bio          String? // 40-120 words, artist voice

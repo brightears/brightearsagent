@@ -53,6 +53,14 @@ describe("scoreVenue", () => {
     expect(s.reasons.some((r) => r.includes("Bristol"))).toBe(false);
   });
 
+  it("gives half geo + a soft note (no caution) out of area when open to travel", () => {
+    const away = { ...rooftop, city: "Bristol" };
+    const s = scoreVenue(away, [freshOpening], { ...profile, acceptsTravel: true }, NOW);
+    expect(s.fitScore).toBe(75); // 90 - 30 + 15 (half geo)
+    expect(s.caution).toBeUndefined();
+    expect(s.reasons.some((r) => r.includes("open to travel"))).toBe(true);
+  });
+
   it("never returns more than 3 reasons or more than 1 caution", () => {
     const s = scoreVenue(
       rooftop,

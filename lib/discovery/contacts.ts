@@ -233,7 +233,7 @@ export async function runContactPass(
   const [business, venues] = await Promise.all([
     db.business.findUniqueOrThrow({
       where: { id: businessId },
-      select: { genres: true, eventTypes: true, serviceCities: true },
+      select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true },
     }),
     db.venue.findMany({
       where: {

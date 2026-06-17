@@ -94,6 +94,15 @@ describe("prompt assembly", () => {
     expect(system).not.toContain("350");
     expect(system).toMatch(/NEVER mention prices/);
   });
+
+  it("offers a residency slot as ammo only when the artist takes residencies", () => {
+    const residency = { ...req, business: { ...req.business, gigTypes: ["one-off", "residency"] } };
+    expect(buildVenuePitchSystem(residency)).toContain("regular residency slot");
+    // No residency intent → no residency line (one-off only / unset).
+    const oneOff = { ...req, business: { ...req.business, gigTypes: ["one-off"] } };
+    expect(buildVenuePitchSystem(oneOff)).not.toContain("regular residency slot");
+    expect(buildVenuePitchSystem(req)).not.toContain("regular residency slot");
+  });
 });
 
 describe("pitchLanguageFor", () => {
