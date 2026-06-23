@@ -123,8 +123,10 @@ model Business {
   // Pitching fields (the ammunition):
   headline     String? // <=80 chars, the one-liner venues read first
   bio          String? // 40-120 words, artist voice
-  videoLinks   String[] @default([]) // YouTube/Vimeo URLs
+  videoLinks   String[] @default([]) // YouTube/Vimeo URLs (embeddable — EPK player + strength proof bar)
   photoUrls    String[] @default([]) // external URLs for v1 — no upload infra yet
+  socialLinks  String[] @default([]) // IG/TikTok/X/SoundCloud/Mixcloud/Spotify/site — platform inferred from host
+  riderNotes   String? // "how you perform & what you need" — setup/space/power/sound; feeds drafter + pitch
   reviewQuotes String[] @default([]) // 1-3 short client quotes
   notableVenues String[] @default([])
   epkEnabled   Boolean  @default(true) // hosted press kit at /epk/{slug}

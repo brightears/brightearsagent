@@ -71,6 +71,12 @@ const profileSchema = z.object({
     .transform((s) => s || null),
   videoLinks: z.array(urlSchema).max(6, "Six videos is plenty — lead with your best"),
   photoUrls: z.array(urlSchema).max(24, "24 photos max — quality over quantity"),
+  socialLinks: z.array(urlSchema).max(12, "A dozen links is plenty"),
+  riderNotes: z
+    .string()
+    .trim()
+    .max(2000, "Keep your setup notes to a paragraph or two")
+    .transform((s) => s || null),
 });
 
 export async function updateArtistProfile(formData: FormData): Promise<ActionResult> {
@@ -82,6 +88,8 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
     travelPolicy: formData.get("travelPolicy") ?? "",
     videoLinks: splitUrls(formData.get("videoLinks"), 6),
     photoUrls: splitUrls(formData.get("photoUrls"), 24),
+    socialLinks: splitUrls(formData.get("socialLinks"), 12),
+    riderNotes: formData.get("riderNotes") ?? "",
   });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 

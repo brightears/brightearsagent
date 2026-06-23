@@ -11,6 +11,7 @@ export interface BusinessProfile {
   voiceSamples?: string | null;
   websiteUrl?: string | null;
   bookingLinkUrl?: string | null; // owner's existing booking/contract/deposit page — the close
+  riderNotes?: string | null; // how they perform & what they need — answers client setup questions
 }
 
 export interface PackageInfo {

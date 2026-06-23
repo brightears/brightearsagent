@@ -25,6 +25,27 @@ async function getEpkBusiness(slug: string) {
   return business;
 }
 
+/** Friendly label for a social/streaming link, inferred from its host. */
+function socialLabel(url: string): string {
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "Link";
+  }
+  if (host.includes("instagram")) return "Instagram";
+  if (host.includes("tiktok")) return "TikTok";
+  if (host.includes("soundcloud")) return "SoundCloud";
+  if (host.includes("mixcloud")) return "Mixcloud";
+  if (host.includes("spotify")) return "Spotify";
+  if (host.includes("youtube") || host.includes("youtu.be")) return "YouTube";
+  if (host.includes("bandcamp")) return "Bandcamp";
+  if (host === "x.com" || host.includes("twitter")) return "X";
+  if (host.includes("facebook") || host === "fb.com") return "Facebook";
+  if (host.includes("linkedin")) return "LinkedIn";
+  return host.split(".")[0].replace(/^./, (c) => c.toUpperCase());
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const business = await getEpkBusiness(slug);
@@ -282,6 +303,37 @@ export default async function EpkPage({ params }: Props) {
               )}
               {business.travelPolicy && <p>{business.travelPolicy}</p>}
               {business.insured && <p>Fully insured.</p>}
+            </div>
+          </section>
+        )}
+
+        {/* RIDER — how the act performs and what it needs on the day. */}
+        {business.riderNotes && (
+          <section className="mt-14">
+            <EpkKicker>What I bring &amp; need</EpkKicker>
+            <p className="mt-3 max-w-2xl whitespace-pre-line text-base leading-relaxed text-cream/70">
+              {business.riderNotes}
+            </p>
+          </section>
+        )}
+
+        {/* SOCIAL & STREAMING — host-labelled link chips. White-label: only the
+            artist's own links. */}
+        {business.socialLinks.length > 0 && (
+          <section className="mt-14">
+            <EpkKicker>Find me</EpkKicker>
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              {business.socialLinks.map((url) => (
+                <a
+                  key={url}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="rounded-full border border-cream/25 bg-cream/5 px-4 py-2 text-sm font-semibold text-cream/80 transition-colors hover:border-brand-cyan hover:text-cream-bright"
+                >
+                  {socialLabel(url)}
+                </a>
+              ))}
             </div>
           </section>
         )}

@@ -15,6 +15,8 @@ export type ArtistProfile = {
   pitchLanguages: string[];
   videoLinks: string[];
   photoUrls: string[];
+  socialLinks: string[];
+  riderNotes: string | null;
   reviewQuotes: string[];
   notableVenues: string[];
   insured: boolean;
@@ -159,6 +161,22 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
             />
             <p className={hintCls}>
               Paste direct image URLs (your site, Google Photos share, Dropbox) — at least 3. Uploads come later.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="socialLinks" className={labelCls}>
+              Social &amp; streaming links
+            </label>
+            <textarea
+              id="socialLinks"
+              name="socialLinks"
+              rows={3}
+              placeholder={"https://instagram.com/...\nhttps://soundcloud.com/...\nhttps://open.spotify.com/artist/..."}
+              defaultValue={profile.socialLinks.join("\n")}
+              className={`${inputCls} font-mono text-xs leading-relaxed`}
+            />
+            <p className={hintCls}>
+              Instagram, TikTok, X, SoundCloud, Mixcloud, Spotify, YouTube — one link per line. They show on your press kit.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -308,6 +326,22 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
             />
             <p className={hintCls}>
               Your going per-night rate for a regular slot — kept separate from the one-off floor.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="riderNotes" className={labelCls}>
+              How you perform &amp; what you need
+            </label>
+            <textarea
+              id="riderNotes"
+              name="riderNotes"
+              rows={4}
+              placeholder={"How your set works and what the venue provides — space, power, sound, setup time, what you bring, what's included."}
+              defaultValue={profile.riderNotes ?? ""}
+              className={inputCls}
+            />
+            <p className={hintCls}>
+              Your rider, in plain words. The agent uses it to answer setup questions in replies — and never invents one.
             </p>
           </div>
           <div className="sm:col-span-2">

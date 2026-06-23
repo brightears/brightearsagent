@@ -65,7 +65,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="name" className={labelCls}>
-            Business name
+            Stage / artist name
           </label>
           <input
             id="name"
@@ -74,7 +74,9 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             defaultValue={business.name}
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-ink-stage/50">This is the name your clients see on every reply.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">
+            The name clients and venues see — on every reply, your press kit, and every pitch.
+          </p>
         </div>
         <div>
           <label htmlFor="ownerName" className={labelCls}>

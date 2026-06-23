@@ -24,6 +24,7 @@ export interface PitchBusinessProfile {
   eventTypes: string[];
   serviceCities: string[];
   gigTypes?: string[]; // "one-off" / "residency" — lets the pitch offer a regular slot
+  riderNotes?: string | null; // how they perform & what they need — distilled into one honest line
   feeFloor?: number | null; // cents — NEVER quoted below; prefer no price at all
   feeSweetSpot?: number | null;
   reviewQuotes: string[];
@@ -160,6 +161,9 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     // a "regular slot?" pitch for bars/hotels/clubs that book ongoing rotations.
     b.gigTypes?.includes("residency") &&
       `Open to a regular residency slot, not just one-off bookings`,
+    // Setup/needs let a pitch be honest about fit ("I bring my own rig, just need
+    // a power outlet") — never a price (rule 6 still binds), never invented (2b).
+    b.riderNotes && `Setup & needs: ${b.riderNotes}`,
     b.serviceCities.length > 0 && `Based around: ${b.serviceCities.join(", ")}`,
     b.notableVenues.length > 0 && `Rooms played: ${b.notableVenues.join(", ")}`,
     b.reviewQuotes.length > 0 &&

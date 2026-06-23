@@ -65,6 +65,7 @@ export async function generateDraftForLead(
       voiceSamples: lead.business.voiceSamples,
       websiteUrl: lead.business.websiteUrl,
       bookingLinkUrl: lead.business.bookingLinkUrl,
+      riderNotes: lead.business.riderNotes,
     },
     packages: lead.business.packages.map((p) => ({
       name: p.name,

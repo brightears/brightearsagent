@@ -103,6 +103,17 @@ describe("prompt assembly", () => {
     expect(buildVenuePitchSystem(oneOff)).not.toContain("regular residency slot");
     expect(buildVenuePitchSystem(req)).not.toContain("regular residency slot");
   });
+
+  it("carries riderNotes (setup/needs) as ammo when present, omits it otherwise", () => {
+    const withRider = {
+      ...req,
+      business: { ...req.business, riderNotes: "I bring my own rig; just need two power outlets near the booth." },
+    };
+    const sys = buildVenuePitchSystem(withRider);
+    expect(sys).toContain("Setup & needs:");
+    expect(sys).toContain("two power outlets");
+    expect(buildVenuePitchSystem(req)).not.toContain("Setup & needs:");
+  });
 });
 
 describe("pitchLanguageFor", () => {

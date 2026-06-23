@@ -39,6 +39,9 @@ export function buildVoicePrompt(business: BusinessProfile, packages: PackageInf
       ? `VOICE — match the tone, warmth and phrasing of these real replies by ${business.ownerName}:\n"""${business.voiceSamples}"""`
       : `VOICE — warm, personal, professional; plain language; genuinely excited about the client's event without being salesy.`,
     `PACKAGES & PRICING (the ONLY prices you may ever state):\n${packageLines || "- (no packages configured — never state any price)"}`,
+    business.riderNotes
+      ? `SETUP & REQUIREMENTS (how you perform and what you need — use ONLY if the client asks about space, power, sound, what's included, or how it works; never volunteer it unprompted):\n"""${business.riderNotes}"""`
+      : ``,
     `HARD RULES:`,
     `1. NEVER invent or estimate prices, dates, availability, or services. Only use what is given in this prompt and the request context.`,
     `2. Availability honesty: state availability EXACTLY as the context says — never affirm a date that has a conflict; for partial availability, affirm naturally without listing internal roster details. When the date is NOT available, do not pitch packages or pricing — focus on the alternative (flexible date? a recommendation?).`,

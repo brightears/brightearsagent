@@ -117,12 +117,35 @@ const artistProfileSchema = z.object({
     .min(1, "Give yourself a one-line description — the first thing a venue reads")
     .max(80, "Keep it to one line — under 80 characters"),
   bio: z.string().trim().max(2000, "That bio is a press release — keep it to ~120 words"),
+  riderNotes: z.string().trim().max(2000, "Keep your setup notes to a paragraph or two"),
 });
+
+/**
+ * Lenient link splitter for the OPTIONAL onboarding link fields — paste-friendly
+ * (newline or comma separated), bare domains get https://, deduped + capped. No
+ * hard rejection: these are optional, and a validation wall mid-onboarding is
+ * exactly the friction the redesign removed. The Control Room editor enforces
+ * strict z.url() later when the artist polishes the profile.
+ */
+function splitLinks(raw: string, max: number): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => (/^https?:\/\//i.test(s) ? s : `https://${s}`)),
+    ),
+  ].slice(0, max);
+}
 
 export async function saveArtistProfile(input: {
   genres: string;
   headline: string;
   bio: string;
+  videoLinks: string;
+  socialLinks: string;
+  riderNotes: string;
   gigTypes: string[];
   acceptsTravel: boolean;
   feeFloor: string;
@@ -130,7 +153,11 @@ export async function saveArtistProfile(input: {
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
-  const parsed = artistProfileSchema.safeParse({ headline: input.headline, bio: input.bio });
+  const parsed = artistProfileSchema.safeParse({
+    headline: input.headline,
+    bio: input.bio,
+    riderNotes: input.riderNotes,
+  });
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
   const genres = [
@@ -156,6 +183,9 @@ export async function saveArtistProfile(input: {
       genres,
       headline: parsed.data.headline,
       bio: parsed.data.bio || null,
+      videoLinks: splitLinks(input.videoLinks, 6),
+      socialLinks: splitLinks(input.socialLinks, 12),
+      riderNotes: parsed.data.riderNotes || null,
       gigTypes: GIG_TYPES.filter((t) => input.gigTypes.includes(t)),
       acceptsTravel: input.acceptsTravel,
       feeFloor,

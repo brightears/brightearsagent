@@ -398,6 +398,8 @@ export default async function ControlRoomPage({
                   pitchLanguages: business.pitchLanguages,
                   videoLinks: business.videoLinks,
                   photoUrls: business.photoUrls,
+                  socialLinks: business.socialLinks,
+                  riderNotes: business.riderNotes,
                   reviewQuotes: business.reviewQuotes,
                   notableVenues: business.notableVenues,
                   insured: business.insured,

@@ -9,7 +9,7 @@
 //   4 Your calendar   → addBookedDates (skippable)
 //   5 Connect leads   → walkthroughs + live verifier polling /api/onboarding/verify
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   addBookedDates,
@@ -83,14 +83,186 @@ export interface WizardBusiness {
 // June 2026). Fees are whole-currency strings for the inputs; the action
 // converts to cents. Currency is derived from the step-1 country, not stored here.
 export interface WizardProfile {
-  genres: string; // comma-separated tags
+  genres: string; // comma-separated tags (label adapts per performer kind)
   headline: string; // the one-line "vibe" descriptor
   bio: string;
+  videoLinks: string; // newline-separated YouTube/Vimeo links
+  socialLinks: string; // newline-separated IG/TikTok/SoundCloud/Spotify/etc.
+  riderNotes: string; // "how you perform & what you need"
   gigTypes: string[]; // "one-off" / "residency"
   acceptsTravel: boolean;
   feeFloor: string; // whole currency units (one-off floor)
   residencyRate: string; // whole currency units (per-night residency rate)
 }
+
+// Per-performer-kind copy for step 2 — so a magician never sees "open format,
+// house, disco". Keyed to the PerformerKind enum; OTHER is the safe fallback.
+// Sourced from per-kind booking-platform research (June 2026).
+type KindCopy = {
+  styleLabel: string;
+  stylePlaceholder: string;
+  styleHint: string;
+  oneLinerPlaceholder: string;
+  bioPlaceholder: string;
+  showcaseNote: string; // what media actually wins bookings for this kind
+  socialPlaceholder: string;
+  riderLabel: string;
+  riderPlaceholder: string;
+  gigTypeHint: string; // how one-off vs residency reads for this kind
+};
+
+const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
+  DJ: {
+    styleLabel: "Your sound",
+    stylePlaceholder: "house, open-format, hip-hop, techno, Top 40, disco, weddings",
+    styleHint: "The genres you actually fill floors with — pick a few, add your own.",
+    oneLinerPlaceholder: "Open-format DJ keeping the floor moving from dinner to last call",
+    bioPlaceholder:
+      "A few lines in your own voice: how you read a room, the nights you play (residencies, weddings, brand nights), and what makes your set yours.",
+    showcaseNote:
+      "Bookers want to hear you read a room — lead with a full mix or set (SoundCloud / Mixcloud), then a short clip of you working a live floor.",
+    socialPlaceholder: "https://soundcloud.com/you\nhttps://mixcloud.com/you\nhttps://instagram.com/you",
+    riderLabel: "How you play & what you need",
+    riderPlaceholder:
+      "I bring USBs, headphones, my own controller if needed. Venue provides a DJ booth or table, CDJs + mixer (or I bring my own), one booth monitor, and power near the booth. Setup 30 min before doors.",
+    gigTypeHint: "Residency = a recurring weekly/monthly slot at one venue (steady, lower per-night); one-off = parties, weddings and brand nights at a premium.",
+  },
+  BAND: {
+    styleLabel: "Your style",
+    stylePlaceholder: "soul & funk, Top 40 covers, indie rock, jazz, wedding band, Latin",
+    styleHint: "What you play and the vibe you bring — a few tags is plenty.",
+    oneLinerPlaceholder: "5-piece soul & funk band that turns any room into a dance floor",
+    bioPlaceholder:
+      "Who you are as a live act: the line-up, the rooms you fill (weddings, corporate, festivals), and how you tailor a setlist to the night.",
+    showcaseNote:
+      "Live video is the single biggest trust-builder — lead with one strong full-song live clip (YouTube), then Spotify / Bandcamp for the studio sound.",
+    socialPlaceholder: "https://youtube.com/@you\nhttps://open.spotify.com/artist/...\nhttps://instagram.com/you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "5-piece (vocals, guitar, bass, keys, drums). Venue provides PA + engineer, monitor mixes, min stage size, power circuits. We bring our own backline. Load-in 90 min, soundcheck 45 min. Stage plot + input list available.",
+    gigTypeHint: "Residency = a regular recurring slot (e.g. weekly at a hotel/bar) at a steady rate; one-off = weddings and corporate at a higher per-event fee.",
+  },
+  SINGER: {
+    styleLabel: "Your style",
+    stylePlaceholder: "jazz standards, soul, acoustic pop, wedding ceremonies, lounge, R&B",
+    styleHint: "The genres and moments you sing best — ceremonies, lounges, parties.",
+    oneLinerPlaceholder: "Soul & jazz vocalist for weddings, lounges and intimate events",
+    bioPlaceholder:
+      "What you do to a room: the styles you sing, whether you perform to tracks / with a pianist / with a band, and the moments you own (ceremonies, lounges, parties).",
+    showcaseNote:
+      "A clean live vocal clip is what closes the booking — lead with one live performance video (YouTube), then Spotify for your recorded work.",
+    socialPlaceholder: "https://youtube.com/@you\nhttps://open.spotify.com/artist/...\nhttps://instagram.com/you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "Solo vocalist. I perform with backing tracks (I bring on USB / send ahead) or live with a pianist. Venue provides PA with an aux/DI input, a vocal mic + stand, one monitor, power. Setup 20 min.",
+    gigTypeHint: "Residency = a recurring slot (e.g. a weekly hotel lounge set) at a steady rate; one-off = weddings and private events at a higher per-event fee.",
+  },
+  MUSICIAN: {
+    styleLabel: "Your style",
+    stylePlaceholder: "solo acoustic guitar, jazz piano, saxophone, singer-songwriter, cello, looping",
+    styleHint: "Your instrument and the mood you create — name a few styles you cover.",
+    oneLinerPlaceholder: "Solo acoustic guitarist & singer for relaxed dinners and ceremonies",
+    bioPlaceholder:
+      "How you fill a space without overwhelming it: your instrument, the moods you cover, and the events you play (dinners, ceremonies, lounges).",
+    showcaseNote:
+      "A raw live clip proves you can hold a room on your own — lead with one live video (YouTube), then Spotify / Bandcamp for the recorded sound.",
+    socialPlaceholder: "https://youtube.com/@you\nhttps://open.spotify.com/artist/...\nhttps://bandcamp.com/you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "Solo acoustic act (guitar + vocals). I bring my own instrument, amp and a small PA for rooms up to ~80. Larger rooms: venue provides PA + DI and a vocal mic, one monitor, power. Footprint ~2x2m. Setup 20 min.",
+    gigTypeHint: "Residency = a recurring weekly/monthly venue slot at a steady per-night rate; one-off = weddings and private events at a higher fee.",
+  },
+  MAGICIAN: {
+    styleLabel: "What kind of magic do you do?",
+    stylePlaceholder: "close-up, strolling, parlour, stage illusion, mentalism, kids & family, comedy magic",
+    styleHint: "Add every style you perform — we use these to match you to the right rooms and events.",
+    oneLinerPlaceholder: "Close-up magician turning cocktail hours into the moment everyone talks about",
+    bioPlaceholder:
+      "A few sentences in your own voice: the kind of magic you do, the rooms you light up, how long you've performed, a signature effect, and the feeling guests walk away with.",
+    showcaseNote:
+      "A 2-3 minute demo reel is what books magicians — front-load real audience reactions and the climax of a routine (the vanish, the reveal, the gasp). Add a few crowd-reaction photos.",
+    socialPlaceholder: "https://instagram.com/you\nhttps://youtube.com/@you\nhttps://tiktok.com/@you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "Strolling close-up: I move table to table, no stage needed. Parlour/stage: ~10x10 ft performance area with clear sightlines, a sturdy table, a wireless mic for rooms over ~40 guests, decent lighting. Sets run [length]. I bring my own props; I arrive [setup time] early.",
+    gigTypeHint: "Most magic is one-off events — but residency is real too: a weekly strolling night at a restaurant/bar, a resident speakeasy spot, or a resort/cruise season.",
+  },
+  DANCER: {
+    styleLabel: "Your styles of dance & performance",
+    stylePlaceholder: "contemporary, hip-hop, go-go, burlesque, fire / flow, LED, aerial, cultural, stilt",
+    styleHint: "Add every style and act you perform — bookers search by these, and the AI uses them to pitch the right rooms.",
+    oneLinerPlaceholder: "High-energy go-go and LED dancers who turn a dance floor into a show",
+    bioPlaceholder:
+      "Who you are and what they're getting: your training, the acts you offer (solo / duo / troupe), the rooms you light up, and signature moments (fire finale, aerial drop, choreographed reveal).",
+    showcaseNote:
+      "Video is what books a dancer — a 60-90 second performance reel cut from real shows. Then action photos: mid-move, in costume, in front of a crowd, plus specialty shots (fire lit, aerial in the air, LED glowing).",
+    socialPlaceholder: "https://instagram.com/you\nhttps://tiktok.com/@you\nhttps://youtube.com/@you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "Set length & format (e.g. 30 min of dancing per hour, or roaming). Floor: clean, flat, dry surface and how much clear space you need. Aerial: ceiling height + a load-tested rigging point. Fire: outdoor / high ceiling, safe clearance, permits. Private changing room. Music format. Power for LED/go-boxes. Setup / rigging time.",
+    gigTypeHint: "Residency is very real for dancers — a regular go-go or themed night at a club/bar/rooftop; one-off = weddings, corporate and brand events.",
+  },
+  MC: {
+    styleLabel: "What you host",
+    stylePlaceholder: "wedding host, corporate emcee, awards & gala host, charity auctioneer, hype MC, quiz host",
+    styleHint: "Add every kind of room you can carry — the more specific, the better we match you.",
+    oneLinerPlaceholder: "The host who keeps the night running on time and the room on their feet",
+    bioPlaceholder:
+      "What a couple or a company gets when you hold the mic: the rooms you've worked, how you read and lift a crowd, languages you host in, and the energy you bring.",
+    showcaseNote:
+      "A 60-90 second hosting showreel wins bookings — clients want to see you live: reading the room, landing a line, running an awards reveal or auction. Clips from events like the ones you want matter most.",
+    socialPlaceholder: "https://youtube.com/@you\nhttps://instagram.com/you\nhttps://linkedin.com/in/you",
+    riderLabel: "How you host & what you need on the day",
+    riderPlaceholder:
+      "One wireless handheld mic + a backup, a mic stand, soundcheck 30 min before doors. I need the final run-of-show in advance, a confidence monitor or printed sheet for names/timings, and an input to the sound desk for music and cues. Note your typical hosting block.",
+    gigTypeHint: "Residency = recurring host gigs (a weekly quiz/bingo/karaoke night, a resident venue slot) — some of the steadiest work; one-off = weddings and single galas.",
+  },
+  COMEDIAN: {
+    styleLabel: "Your style of comedy",
+    stylePlaceholder: "clean / corporate, observational, improv, roast, storytelling, musical, host spots",
+    styleHint: "Include your content rating — clean / family-friendly, PG-13, or club / adult — so we only pitch rooms that fit.",
+    oneLinerPlaceholder: "Clean, quick and corporate-safe — the comic you can book without a nervous laugh from HR",
+    bioPlaceholder:
+      "What kind of laugh you bring and who you kill for: your style and content rating, the rooms you crush (corporate, clubs, weddings), credits, set lengths, and what makes your voice yours.",
+    showcaseNote:
+      "Tight live clips are everything — a sizzle reel or your best 3-5 minutes of real laughs with visible crowd reaction. For corporate work, a clean-set clip and a list of credits seal it.",
+    socialPlaceholder: "https://instagram.com/you\nhttps://tiktok.com/@you\nhttps://youtube.com/@you",
+    riderLabel: "How you perform & what you need",
+    riderPlaceholder:
+      "A working mic + stand, a backless stool, room-temp water, and a stage light so the crowd can see me. I do a 20-min feature, 30-45 headline, or up to an hour. My set is [clean / PG-13 / club] — let's agree the content rating up front.",
+    gigTypeHint: "Residency = recurring club nights or a room you host monthly (steady gigs); one-off = corporate shows and private events.",
+  },
+  PHOTO_BOOTH: {
+    styleLabel: "Your booth types",
+    stylePlaceholder: "open-air, enclosed, 360, mirror, vintage glam",
+    styleHint: "The booths you run, comma-separated — this is how venues and planners search for you.",
+    oneLinerPlaceholder: "360 + open-air booths with instant prints, GIFs, and an attendant who keeps the line moving",
+    bioPlaceholder:
+      "The experience you bring: your booth types, instant prints / GIFs / texts, the attendant, custom backdrops and branded strips, and the prop kit — what makes your booth the centerpiece of the party.",
+    showcaseNote:
+      "Two kinds of media win here: photos of the booth looking sharp in a real venue, and sample outputs (printed strips, GIFs, 360 clips). A short reel of a packed booth with a live line is your strongest asset.",
+    socialPlaceholder: "https://instagram.com/you\nhttps://tiktok.com/@you\nhttps://yoursite.com",
+    riderLabel: "How you set up & what you need on site",
+    riderPlaceholder:
+      "Floor space (e.g. 8x8 ft open-air, 10x10 ft for 360), two dedicated power outlets within 15 ft, a 6 ft table with linen, wifi or strong signal for instant sharing, a spot out of direct sunlight. We arrive ~90 min early; setup ~30 min.",
+    gigTypeHint: "Mostly one-off events (weddings, parties, corporate). Residency reframes as a recurring venue activation — a standing weekly/monthly booth night — keep it if you run those.",
+  },
+  OTHER: {
+    styleLabel: "What you do",
+    stylePlaceholder: "caricature artist, balloon artist, stilt walker, living statue, fire performer, face painter",
+    styleHint: "Describe your act in a few plain tags, comma-separated — this is how venues and planners find you.",
+    oneLinerPlaceholder: "Roaming caricature artist who turns the line for the bar into the best part of the night",
+    bioPlaceholder:
+      "The experience you bring that people don't expect: how you read a room or hold a crowd, how easy you are to work with, and how you shape the act to fit the event.",
+    showcaseNote:
+      "Because the act is unfamiliar until people see it, live video carries the most weight — short clips of you performing and the crowd reacting, plus a few photos of you in action at a real event.",
+    socialPlaceholder: "https://instagram.com/you\nhttps://youtube.com/@you\nhttps://tiktok.com/@you",
+    riderLabel: "How you perform & what you need on site",
+    riderPlaceholder:
+      "Your space, power and setup needs in your own words — e.g. a 6x6 ft area to perform (or free roam), one power outlet if you use sound/lights, a stool/table for seated work, and setup time. Note anything venue-specific (ceiling height for stilts, clearance for fire).",
+    gigTypeHint: "Mostly one-off events. Residency still applies as a recurring slot (a regular roaming act at a venue's weekly night or brunch) — keep it if that's you.",
+  },
+};
 
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
 // glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
@@ -144,7 +316,7 @@ function StepBusiness({
   onDone,
 }: {
   initial: WizardBusiness;
-  onDone: (country: string) => void;
+  onDone: (country: string, performerKind: PerformerKind) => void;
 }) {
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
@@ -158,9 +330,10 @@ function StepBusiness({
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
       });
-      // Hand the chosen country up so step 2 can label fees in the right
-      // currency immediately (THB for Thailand), without a page reload.
-      if (res.ok) onDone(country || initial.country);
+      // Hand the chosen country AND craft up so step 2 can label fees in the
+      // right currency (THB for Thailand) and adapt its copy to the performer
+      // kind (a magician sees magic prompts), without a page reload.
+      if (res.ok) onDone(country || initial.country, kind);
       return res;
     },
     null,
@@ -214,15 +387,16 @@ function StepBusiness({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="ob-name" className={labelStyles}>Business name</label>
+          <label htmlFor="ob-name" className={labelStyles}>Stage / artist name</label>
           <input
             id="ob-name"
             name="name"
             required
             defaultValue={initial.name}
-            placeholder="Midnight Groove Entertainment"
+            placeholder="DJ Midnight (or Midnight Groove)"
             className={inputStyles}
           />
+          <p className="mt-1 text-xs text-ink-stage/50">The name clients and venues see — use what you perform under.</p>
         </div>
         <div>
           <label htmlFor="ob-owner" className={labelStyles}>Your name</label>
@@ -329,19 +503,30 @@ const GIG_TYPE_OPTIONS = [
   { v: "residency", label: "Residencies (regular slots)" },
 ] as const;
 
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-3 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
+      {children}
+    </p>
+  );
+}
+
 function StepProfile({
   profile,
+  performerKind,
   currency,
   onChange,
   onDone,
   onBack,
 }: {
   profile: WizardProfile;
+  performerKind: PerformerKind;
   currency: string;
   onChange: (p: WizardProfile) => void;
   onDone: () => void;
   onBack: () => void;
 }) {
+  const copy = PERFORMER_KIND_COPY[performerKind] ?? PERFORMER_KIND_COPY.OTHER;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -371,6 +556,9 @@ function StepProfile({
         genres: profile.genres,
         headline: profile.headline,
         bio: profile.bio,
+        videoLinks: profile.videoLinks,
+        socialLinks: profile.socialLinks,
+        riderNotes: profile.riderNotes,
         gigTypes: profile.gigTypes,
         acceptsTravel: profile.acceptsTravel,
         feeFloor: profile.feeFloor,
@@ -384,58 +572,96 @@ function StepProfile({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <StepHeading
         step={1}
         title="Who you are"
-        blurb="This is what the agent pitches with — the richer your profile, the more (and better) venues it matches you to. No rigid event packages: just your craft, your sound, and how you work."
+        blurb="This is what the agent pitches and replies with — the more it knows you, the better (and more often) it can win you the right rooms. The essentials take a minute; add the rest now or anytime."
       />
 
-      <div>
-        <label htmlFor="ob-genres" className={labelStyles}>Your sound / style</label>
-        <input
-          id="ob-genres"
-          value={profile.genres}
-          onChange={(e) => set("genres", e.target.value)}
-          placeholder="open format, house, disco, funk"
-          className={inputStyles}
-        />
-        <p className="mt-1 text-xs text-ink-stage/50">
-          Comma-separated. This is how the agent matches you — go broad; it never narrows your search.
+      {/* A — IDENTITY (the matching + press-kit basics) */}
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="ob-style" className={labelStyles}>{copy.styleLabel}</label>
+          <input
+            id="ob-style"
+            value={profile.genres}
+            onChange={(e) => set("genres", e.target.value)}
+            placeholder={copy.stylePlaceholder}
+            className={inputStyles}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">{copy.styleHint}</p>
+        </div>
+
+        <div>
+          <label htmlFor="ob-headline" className={labelStyles}>Describe your act in one line</label>
+          <input
+            id="ob-headline"
+            value={profile.headline}
+            maxLength={80}
+            onChange={(e) => set("headline", e.target.value)}
+            placeholder={copy.oneLinerPlaceholder}
+            className={inputStyles}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">
+            The first line a venue reads. {Math.max(0, 80 - profile.headline.length)} characters left.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="ob-bio" className={labelStyles}>
+            Short bio{" "}
+            <span className="font-normal normal-case text-ink-stage/40">(optional — but it lands more gigs)</span>
+          </label>
+          <textarea
+            id="ob-bio"
+            value={profile.bio}
+            onChange={(e) => set("bio", e.target.value)}
+            rows={3}
+            placeholder={copy.bioPlaceholder}
+            className={`${inputStyles} resize-y`}
+          />
+        </div>
+      </div>
+
+      {/* B — SHOWCASE (optional links; what wins bookings for THIS kind) */}
+      <div className="space-y-4 rounded-2xl border border-cream bg-cream/20 p-4">
+        <div>
+          <SectionLabel>Show them what you do</SectionLabel>
+          <p className="-mt-1 text-xs text-ink-stage/55">{copy.showcaseNote}</p>
+        </div>
+        <div>
+          <label htmlFor="ob-video" className={labelStyles}>Video links</label>
+          <textarea
+            id="ob-video"
+            value={profile.videoLinks}
+            onChange={(e) => set("videoLinks", e.target.value)}
+            rows={2}
+            placeholder={"https://youtube.com/watch?v=...\nhttps://vimeo.com/..."}
+            className={`${inputStyles} font-mono text-xs leading-relaxed`}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">YouTube or Vimeo, one per line. The first one headlines your press kit.</p>
+        </div>
+        <div>
+          <label htmlFor="ob-social" className={labelStyles}>Social &amp; streaming links</label>
+          <textarea
+            id="ob-social"
+            value={profile.socialLinks}
+            onChange={(e) => set("socialLinks", e.target.value)}
+            rows={3}
+            placeholder={copy.socialPlaceholder}
+            className={`${inputStyles} font-mono text-xs leading-relaxed`}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">One link per line — they appear on your press kit page.</p>
+        </div>
+        <p className="text-xs text-ink-stage/45">
+          Photo uploads are coming — for now, link them above. Add or change any of this anytime from your profile.
         </p>
       </div>
 
-      <div>
-        <label htmlFor="ob-headline" className={labelStyles}>Describe your act in one line</label>
-        <input
-          id="ob-headline"
-          value={profile.headline}
-          maxLength={80}
-          onChange={(e) => set("headline", e.target.value)}
-          placeholder="Open-format DJ that keeps dance floors full"
-          className={inputStyles}
-        />
-        <p className="mt-1 text-xs text-ink-stage/50">
-          The first line a venue reads. {Math.max(0, 80 - profile.headline.length)} characters left.
-        </p>
-      </div>
-
-      <div>
-        <label htmlFor="ob-bio" className={labelStyles}>
-          Short bio{" "}
-          <span className="font-normal normal-case text-ink-stage/40">(optional — but it lands more gigs)</span>
-        </label>
-        <textarea
-          id="ob-bio"
-          value={profile.bio}
-          onChange={(e) => set("bio", e.target.value)}
-          rows={3}
-          placeholder="A sentence or two in your own voice — who you are, where you've played, what a crowd gets when you're on."
-          className={`${inputStyles} resize-y`}
-        />
-      </div>
-
+      {/* C — HOW YOU WORK (the dials + the rider) */}
       <div className="space-y-4 rounded-2xl border border-dashed border-ink-stage/20 bg-cream/30 p-4">
+        <SectionLabel>How you work &amp; what you need</SectionLabel>
         <div>
           <span className={labelStyles}>What you take on</span>
           <div className="flex flex-wrap gap-2">
@@ -455,9 +681,7 @@ function StepProfile({
               </button>
             ))}
           </div>
-          <p className="mt-1 text-xs text-ink-stage/50">
-            Most artists do both — a one-off and a regular slot price differently, so we ask for each.
-          </p>
+          <p className="mt-1 text-xs text-ink-stage/50">{copy.gigTypeHint}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -500,11 +724,25 @@ function StepProfile({
           />
           I&apos;m open to travel beyond my home cities
         </label>
-      </div>
 
-      <p className="rounded-2xl bg-cream/50 px-4 py-3 text-xs text-ink-stage/55">
-        Photos, videos and press come next — add them anytime from your profile to lift how often you get picked.
-      </p>
+        <div>
+          <label htmlFor="ob-rider" className={labelStyles}>
+            {copy.riderLabel}{" "}
+            <span className="font-normal normal-case text-ink-stage/40">(optional)</span>
+          </label>
+          <textarea
+            id="ob-rider"
+            value={profile.riderNotes}
+            onChange={(e) => set("riderNotes", e.target.value)}
+            rows={4}
+            placeholder={copy.riderPlaceholder}
+            className={`${inputStyles} resize-y`}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">
+            The agent uses this to answer setup questions in your replies — and never makes one up.
+          </p>
+        </div>
+      </div>
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
@@ -520,7 +758,7 @@ function StepProfile({
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
       {!canAdvance && !error && (
         <p className="text-right text-xs text-ink-stage/50">
-          Add your sound, a one-line description, and your one-off floor to continue.
+          Add your {copy.styleLabel.toLowerCase().replace(/[?]/g, "")}, a one-line description, and your one-off floor to continue.
         </p>
       )}
     </div>
@@ -969,10 +1207,12 @@ export function OnboardingWizard({
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
   );
   const [profile, setProfile] = useState<WizardProfile>(initialProfile);
-  // Step 1 derives the fee currency from the chosen country (THB for Thailand),
-  // tracked here so step 2's fee labels are right even mid-session, no reload.
+  // Step 1 derives the fee currency from the chosen country (THB for Thailand)
+  // and the craft drives step 2's adaptive copy; both tracked here so step 2 is
+  // right even when changed mid-session, without a page reload.
   const [country, setCountry] = useState(business.country);
   const currency = currencyForCountry(country);
+  const [performerKind, setPerformerKind] = useState<PerformerKind>(business.performerKind);
   const [voice, setVoice] = useState<{ samples: string; tones: Tone[] }>(() => ({
     samples: stripToneNote(business.voiceSamples),
     tones: [],
@@ -1096,8 +1336,9 @@ export function OnboardingWizard({
           {step === 0 && (
             <StepBusiness
               initial={business}
-              onDone={(c) => {
+              onDone={(c, k) => {
                 setCountry(c);
+                setPerformerKind(k);
                 goTo(1);
               }}
             />
@@ -1105,6 +1346,7 @@ export function OnboardingWizard({
           {step === 1 && (
             <StepProfile
               profile={profile}
+              performerKind={performerKind}
               currency={currency}
               onChange={setProfile}
               onDone={() => goTo(2)}
