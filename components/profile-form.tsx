@@ -3,9 +3,10 @@
 // Artist-profile editor (Phase 10.1) — the ammunition the sales agent pitches
 // with. One form, sectioned into white Cards with editorial Kickers (DESIGN.md
 // v2.1 rule 2). Tag inputs are comma-separated text, split server-side (v1).
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateArtistProfile } from "@/app/actions/profile";
 import { Card, Kicker, buttonStyles } from "@/components/ui";
+import { PhotoUploader } from "@/components/photo-uploader";
 
 export type ArtistProfile = {
   headline: string | null;
@@ -38,12 +39,21 @@ const hintCls = "mt-1 text-xs text-ink-stage/45";
 
 const cents = (v: number | null) => (v === null ? "" : String(v / 100));
 
-export function ProfileForm({ profile }: { profile: ArtistProfile }) {
+export function ProfileForm({
+  profile,
+  uploadsEnabled,
+}: {
+  profile: ArtistProfile;
+  uploadsEnabled: boolean;
+}) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
       updateArtistProfile(formData),
     null,
   );
+  // When uploads are on, photos are managed by the uploader and submitted via a
+  // hidden field; otherwise the textarea (paste URLs) carries them.
+  const [photoUrls, setPhotoUrls] = useState(profile.photoUrls);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -151,17 +161,31 @@ export function ProfileForm({ profile }: { profile: ArtistProfile }) {
             <label htmlFor="photoUrls" className={labelCls}>
               Photos
             </label>
-            <textarea
-              id="photoUrls"
-              name="photoUrls"
-              rows={4}
-              placeholder={"https://...jpg — one image URL per line"}
-              defaultValue={profile.photoUrls.join("\n")}
-              className={`${inputCls} font-mono text-xs leading-relaxed`}
-            />
-            <p className={hintCls}>
-              Paste direct image URLs (your site, Google Photos share, Dropbox) — at least 3. Uploads come later.
-            </p>
+            {uploadsEnabled ? (
+              <>
+                <PhotoUploader
+                  value={photoUrls}
+                  onAdd={(u) => setPhotoUrls((p) => [...p, u])}
+                  onRemove={(u) => setPhotoUrls((p) => p.filter((x) => x !== u))}
+                />
+                <input type="hidden" name="photoUrls" value={photoUrls.join("\n")} />
+                <p className={hintCls}>A great action shot wins bookings — add a few, your best first.</p>
+              </>
+            ) : (
+              <>
+                <textarea
+                  id="photoUrls"
+                  name="photoUrls"
+                  rows={4}
+                  placeholder={"https://...jpg — one image URL per line"}
+                  defaultValue={profile.photoUrls.join("\n")}
+                  className={`${inputCls} font-mono text-xs leading-relaxed`}
+                />
+                <p className={hintCls}>
+                  Paste direct image URLs (your site, Google Photos share, Dropbox) — at least 3. Uploads come later.
+                </p>
+              </>
+            )}
           </div>
           <div>
             <label htmlFor="socialLinks" className={labelCls}>

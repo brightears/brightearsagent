@@ -145,6 +145,7 @@ export async function saveArtistProfile(input: {
   bio: string;
   videoLinks: string;
   socialLinks: string;
+  photoUrls: string[];
   riderNotes: string;
   gigTypes: string[];
   acceptsTravel: boolean;
@@ -185,6 +186,9 @@ export async function saveArtistProfile(input: {
       bio: parsed.data.bio || null,
       videoLinks: splitLinks(input.videoLinks, 6),
       socialLinks: splitLinks(input.socialLinks, 12),
+      // Uploaded R2 image URLs — already minted by our presigned-upload route,
+      // so they're trusted; just dedupe + cap.
+      photoUrls: [...new Set(input.photoUrls.filter((u) => typeof u === "string" && u))].slice(0, 24),
       riderNotes: parsed.data.riderNotes || null,
       gigTypes: GIG_TYPES.filter((t) => input.gigTypes.includes(t)),
       acceptsTravel: input.acceptsTravel,

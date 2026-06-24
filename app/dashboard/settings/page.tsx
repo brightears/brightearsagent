@@ -11,6 +11,7 @@
 // white/cream cards, cyan = interface, mono kickers, NO emoji ever.
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { uploadsEnabled } from "@/lib/uploads/r2";
 import { Card, Badge, buttonStyles, Kicker, PageHeader, StatPill } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
 import { SettingsForm, CopyButton } from "@/components/settings-form";
@@ -412,6 +413,7 @@ export default async function ControlRoomPage({
                   epkEnabled: business.epkEnabled,
                   currency: business.currency,
                 }}
+                uploadsEnabled={uploadsEnabled}
               />
             </Section>
 

@@ -9,7 +9,15 @@
 //   4 Your calendar   → addBookedDates (skippable)
 //   5 Connect leads   → walkthroughs + live verifier polling /api/onboarding/verify
 
-import { type ReactNode, useActionState, useEffect, useMemo, useState } from "react";
+import {
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useActionState,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   addBookedDates,
@@ -20,6 +28,7 @@ import {
 import { buttonStyles, BrightEarsLogo, Card } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
+import { PhotoUploader } from "@/components/photo-uploader";
 import { COUNTRIES, currencyForCountry } from "@/lib/geo/countries";
 import { stripToneNote } from "@/lib/voice/tone-note";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
@@ -88,6 +97,7 @@ export interface WizardProfile {
   bio: string;
   videoLinks: string; // newline-separated YouTube/Vimeo links
   socialLinks: string; // newline-separated IG/TikTok/SoundCloud/Spotify/etc.
+  photoUrls: string[]; // uploaded R2 image URLs (or empty until uploads are on)
   riderNotes: string; // "how you perform & what you need"
   gigTypes: string[]; // "one-off" / "residency"
   acceptsTravel: boolean;
@@ -515,6 +525,7 @@ function StepProfile({
   profile,
   performerKind,
   currency,
+  uploadsEnabled,
   onChange,
   onDone,
   onBack,
@@ -522,7 +533,8 @@ function StepProfile({
   profile: WizardProfile;
   performerKind: PerformerKind;
   currency: string;
-  onChange: (p: WizardProfile) => void;
+  uploadsEnabled: boolean;
+  onChange: Dispatch<SetStateAction<WizardProfile>>;
   onDone: () => void;
   onBack: () => void;
 }) {
@@ -531,15 +543,20 @@ function StepProfile({
   const [error, setError] = useState<string | null>(null);
 
   const set = <K extends keyof WizardProfile>(key: K, value: WizardProfile[K]) =>
-    onChange({ ...profile, [key]: value });
+    onChange((p) => ({ ...p, [key]: value }));
+
+  // Functional updates so concurrent photo uploads never clobber each other.
+  const addPhoto = (url: string) => onChange((p) => ({ ...p, photoUrls: [...p.photoUrls, url] }));
+  const removePhoto = (url: string) =>
+    onChange((p) => ({ ...p, photoUrls: p.photoUrls.filter((u) => u !== url) }));
 
   function toggleGigType(t: string) {
-    onChange({
-      ...profile,
-      gigTypes: profile.gigTypes.includes(t)
-        ? profile.gigTypes.filter((x) => x !== t)
-        : [...profile.gigTypes, t],
-    });
+    onChange((p) => ({
+      ...p,
+      gigTypes: p.gigTypes.includes(t)
+        ? p.gigTypes.filter((x) => x !== t)
+        : [...p.gigTypes, t],
+    }));
   }
 
   const doesResidency = profile.gigTypes.includes("residency");
@@ -558,6 +575,7 @@ function StepProfile({
         bio: profile.bio,
         videoLinks: profile.videoLinks,
         socialLinks: profile.socialLinks,
+        photoUrls: profile.photoUrls,
         riderNotes: profile.riderNotes,
         gigTypes: profile.gigTypes,
         acceptsTravel: profile.acceptsTravel,
@@ -630,6 +648,15 @@ function StepProfile({
           <SectionLabel>Show them what you do</SectionLabel>
           <p className="-mt-1 text-xs text-ink-stage/55">{copy.showcaseNote}</p>
         </div>
+        {uploadsEnabled && (
+          <div>
+            <span className={labelStyles}>Photos</span>
+            <PhotoUploader value={profile.photoUrls} onAdd={addPhoto} onRemove={removePhoto} />
+            <p className="mt-1 text-xs text-ink-stage/50">
+              A great action shot wins bookings — add a few, your best first.
+            </p>
+          </div>
+        )}
         <div>
           <label htmlFor="ob-video" className={labelStyles}>Video links</label>
           <textarea
@@ -655,7 +682,9 @@ function StepProfile({
           <p className="mt-1 text-xs text-ink-stage/50">One link per line — they appear on your press kit page.</p>
         </div>
         <p className="text-xs text-ink-stage/45">
-          Photo uploads are coming — for now, link them above. Add or change any of this anytime from your profile.
+          {uploadsEnabled
+            ? "Add or change any of this anytime from your profile."
+            : "Photo uploads are coming — for now, link them above. Add or change any of this anytime from your profile."}
         </p>
       </div>
 
@@ -1198,10 +1227,12 @@ export function OnboardingWizard({
   initialStep,
   business,
   initialProfile,
+  uploadsEnabled,
 }: {
   initialStep: number;
   business: WizardBusiness;
   initialProfile: WizardProfile;
+  uploadsEnabled: boolean;
 }) {
   const [step, setStep] = useState(() =>
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
@@ -1348,6 +1379,7 @@ export function OnboardingWizard({
               profile={profile}
               performerKind={performerKind}
               currency={currency}
+              uploadsEnabled={uploadsEnabled}
               onChange={setProfile}
               onDone={() => goTo(2)}
               onBack={() => goTo(0)}

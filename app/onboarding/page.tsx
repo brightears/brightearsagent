@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { uploadsEnabled } from "@/lib/uploads/r2";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +43,14 @@ export default async function OnboardingPage() {
         bio: business.bio ?? "",
         videoLinks: business.videoLinks.join("\n"),
         socialLinks: business.socialLinks.join("\n"),
+        photoUrls: business.photoUrls,
         riderNotes: business.riderNotes ?? "",
         gigTypes: business.gigTypes,
         acceptsTravel: business.acceptsTravel,
         feeFloor: wholeUnits(business.feeFloor),
         residencyRate: wholeUnits(business.residencyRate),
       }}
+      uploadsEnabled={uploadsEnabled}
     />
   );
 }
