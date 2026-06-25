@@ -74,6 +74,16 @@ const REFUSAL_LANGUAGE =
 const AFFIRM_LANGUAGE =
   /(is (wide )?open|we('| a)re (free|available|open)|date is (free|available)|happy to say we('| a)re free|have (that date|your date) (open|free)|is available)/i;
 
+// Cross-checks for the auto-attach intent flags — the model's self-report is the
+// same unreliable class as availabilityStatement, so (mirroring that) we only
+// honor wantsQuote/wantsProfile when the CLIENT's message actually contains the
+// matching language. Conservative on purpose: a binding quote should never
+// auto-attach off a hallucinated intent.
+const PRICE_LANGUAGE =
+  /(price|pricing|cost|costs|rate\b|rates|quote|quotation|\bfee\b|\bfees\b|budget|how much|charge|per hour|per night|\$|฿|€|£)/i;
+const PROFILE_LANGUAGE =
+  /(profile|press[\s-]?kit|\bepk\b|portfolio|examples?|demo|samples?|more (info|details|information)|tell me more|what do you (do|offer)|hear (you|your)|see (you|your)|send (me )?(more|your|some))/i;
+
 /**
  * The model's enum self-report is unreliable (~25% mislabels) while its BODIES
  * are consistently correct — so the label that drives UI badges and evals is
@@ -95,7 +105,12 @@ function normalizeStatement(req: DraftRequest, result: DraftResult): DraftResult
     if (!AFFIRM_LANGUAGE.test(result.body)) statement = "not_addressed";
   }
 
-  return statement === result.availabilityStatement ? result : { ...result, availabilityStatement: statement };
+  // Gate the auto-attach intent flags on real client language (see above).
+  const message = req.lead.message ?? "";
+  const wantsQuote = result.wantsQuote && PRICE_LANGUAGE.test(message);
+  const wantsProfile = result.wantsProfile && PROFILE_LANGUAGE.test(message);
+
+  return { ...result, availabilityStatement: statement, wantsQuote, wantsProfile };
 }
 
 /** Pure draft generation — no DB access; evals call this directly. */

@@ -4,7 +4,7 @@
 import { fetchImageDataUris } from "@/lib/pdf/images";
 import { renderPressKitPdf, type PressKitData } from "@/lib/pdf/press-kit";
 import { renderQuotationPdf, type QuotationData } from "@/lib/pdf/quotation";
-import { computeQuote } from "@/lib/quote/compute";
+import { computeQuote, titleCaseEvent } from "@/lib/quote/compute";
 
 /** The Business fields a press kit needs — the Prisma row satisfies this. */
 export type BusinessForPressKit = {
@@ -63,7 +63,6 @@ export type BusinessForQuote = {
   feeFloor: number | null;
   feeSweetSpot: number | null;
   residencyRate: number | null;
-  gigTypes: string[];
   replyToEmail: string | null;
   ownerEmail: string;
   websiteUrl: string | null;
@@ -79,8 +78,6 @@ export type LeadForQuote = {
   venue: string | null;
   guestCount: number | null;
 };
-
-const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 function fmtDate(d: Date, tz: string): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -106,7 +103,6 @@ export async function renderQuotationForLead(
     feeFloor: business.feeFloor,
     feeSweetSpot: business.feeSweetSpot,
     residencyRate: business.residencyRate,
-    gigTypes: business.gigTypes,
     packages: business.packages,
     eventType: lead.eventType,
   });
@@ -119,7 +115,7 @@ export async function renderQuotationForLead(
     websiteUrl: business.websiteUrl,
     bookingLinkUrl: business.bookingLinkUrl,
     clientName: lead.clientName,
-    eventType: lead.eventType ? titleCase(lead.eventType) : null,
+    eventType: lead.eventType ? titleCaseEvent(lead.eventType) : null,
     eventDateLabel: lead.eventDate ? fmtDate(lead.eventDate, business.timezone) : null,
     venue: lead.venue,
     guestCount: lead.guestCount,

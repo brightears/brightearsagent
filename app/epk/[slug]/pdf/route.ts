@@ -14,7 +14,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
     return new Response("Not found", { status: 404 });
   }
 
-  const pdf = await renderPressKitForBusiness(business);
+  let pdf: Buffer;
+  try {
+    pdf = await renderPressKitForBusiness(business);
+  } catch {
+    // Match the send path's graceful degradation — never a raw 500.
+    return new Response("Press kit unavailable", { status: 503 });
+  }
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
