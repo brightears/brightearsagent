@@ -100,6 +100,29 @@ export default async function LeadDetailPage({
       />
 
       <div className="space-y-6">
+        {/* Documents — generate the artist's PDF quote / press kit for this lead. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-cream/10 bg-ink-raised px-4 py-3">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/50">
+            Documents
+          </span>
+          <a
+            href={`/api/quote/${lead.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
+          >
+            Generate quote (PDF)
+          </a>
+          <a
+            href={`/epk/${business.slug}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
+          >
+            Press kit (PDF)
+          </a>
+        </div>
+
         {lead.spamReason && (
           /* Orange-soft alert card — opaque fill so it reads on the ink canvas;
              deep-amber #7a4100 lead-in on #ffdfba (~7:1, the checked pairing). */
