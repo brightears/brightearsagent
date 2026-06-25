@@ -9,6 +9,11 @@ export interface BusinessProfile {
   country: string;
   currency: string; // ISO-4217 — the artist's own fee currency (e.g. THB), NOT our USD billing
   voiceSamples?: string | null;
+  // Structured voice signals — explicit controls the samples may not pin down.
+  voiceGreeting?: string | null;
+  voiceSignoff?: string | null;
+  voiceUsesEmoji?: boolean | null; // null = unspecified, true = occasional, false = never
+  voicePhrases?: string | null;
   websiteUrl?: string | null;
   bookingLinkUrl?: string | null; // owner's existing booking/contract/deposit page — the close
   riderNotes?: string | null; // how they perform & what they need — answers client setup questions

@@ -389,7 +389,15 @@ export default async function ControlRoomPage({
                 canPitch={strength.canPitch}
                 epkUrl={`/epk/${business.slug}`}
               />
-              <VoiceCard voiceSamples={business.voiceSamples} />
+              <VoiceCard
+                voice={{
+                  voiceSamples: business.voiceSamples,
+                  voiceGreeting: business.voiceGreeting,
+                  voiceSignoff: business.voiceSignoff,
+                  voiceUsesEmoji: business.voiceUsesEmoji,
+                  voicePhrases: business.voicePhrases,
+                }}
+              />
               <ProfileForm
                 profile={{
                   headline: business.headline,

@@ -52,4 +52,24 @@ describe("buildVoicePrompt", () => {
   it("keeps the white-label rule (never mention AI)", () => {
     expect(buildVoicePrompt(base, [pkg]).toLowerCase()).toContain("never mention ai");
   });
+
+  it("emits a VOICE DETAILS block only for the signals that are set", () => {
+    expect(buildVoicePrompt(base, [])).not.toContain("VOICE DETAILS");
+    const withDetails = buildVoicePrompt(
+      { ...base, voiceGreeting: "Yo [name]!", voiceSignoff: "Big love, Maya", voicePhrases: "let's lock it in" },
+      [],
+    );
+    expect(withDetails).toContain("VOICE DETAILS");
+    expect(withDetails).toContain("Yo [name]!");
+    expect(withDetails).toContain("Big love, Maya");
+    expect(withDetails).toContain("let's lock it in");
+  });
+
+  it("maps the emoji tri-state to the right rule (never / light / unspecified)", () => {
+    expect(buildVoicePrompt({ ...base, voiceUsesEmoji: false }, [])).toContain("never use them");
+    expect(buildVoicePrompt({ ...base, voiceUsesEmoji: true }, [])).toMatch(/light touch|where it feels natural/i);
+    // null / unspecified → no emoji rule at all
+    const none = buildVoicePrompt({ ...base, voiceUsesEmoji: null }, []);
+    expect(none).not.toContain("Emojis:");
+  });
 });

@@ -84,6 +84,12 @@ model Business {
   bookingLinkUrl       String? // owner's EXISTING booking/contract/deposit page — the AI carries it to the close
   replyToEmail         String? // Reply-To on outbound; defaults to ownerEmail
   voiceSamples         String? // pasted past replies — seeds draft voice
+  // Structured voice signals (June 2026) — complement the samples; drafter emits
+  // a rule only for fields that are set. voiceUsesEmoji: null=unspecified.
+  voiceGreeting        String? // how they open ("Hey [name]!", "Hi [name],")
+  voiceSignoff         String? // how they sign off ("Cheers, Sam", "Talk soon —")
+  voiceUsesEmoji       Boolean? // null = unspecified, true = occasional, false = never
+  voicePhrases         String? // words/expressions they lean on
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
   plan                 PlanTier      @default(TRIAL)
   trialEndsAt          DateTime?

@@ -86,7 +86,21 @@ export interface WizardBusiness {
   timezone: string;
   websiteUrl: string | null;
   voiceSamples: string | null;
+  voiceGreeting: string | null;
+  voiceSignoff: string | null;
+  voiceUsesEmoji: boolean | null;
+  voicePhrases: string | null;
 }
+
+// Step 3 voice state — multiple sample boxes + the structured voice signals.
+type VoiceState = {
+  samples: string[]; // one per box; non-empty boxes are joined on save
+  tones: Tone[];
+  greeting: string;
+  signoff: string;
+  emoji: boolean | null; // null = unset, true = now & then, false = never
+  phrases: string;
+};
 
 // Step 2 state — WHO the artist is + the work/pricing dials (replaced packages,
 // June 2026). Fees are whole-currency strings for the inputs; the action
@@ -798,57 +812,104 @@ function StepProfile({
 // Step 3 — Your voice
 // ---------------------------------------------------------------------------
 
+const SAMPLE_PLACEHOLDERS = [
+  "Hi Sarah — congrats on the engagement! June 14th is wide open, I'd love to be part of your day…",
+  "Hi Tom, thanks for thinking of me! I'm actually booked that Saturday, but here's what I'd suggest…",
+  "Hi again Jess — just circling back on the 14th in case my note slipped through…",
+];
+
 function StepVoice({
-  samples,
-  tones,
+  voice,
   onChange,
   onDone,
   onBack,
 }: {
-  samples: string;
-  tones: Tone[];
-  onChange: (next: { samples: string; tones: Tone[] }) => void;
+  voice: VoiceState;
+  onChange: Dispatch<SetStateAction<VoiceState>>;
   onDone: () => void;
   onBack: () => void;
 }) {
-  const [result, formAction, pending] = useActionState<ActionResult, FormData>(
-    async () => {
-      const res = await saveVoiceSamples({ samples, tones });
-      if (res.ok) onDone();
-      return res;
-    },
-    null,
-  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function toggleTone(t: Tone) {
-    onChange({
-      samples,
-      tones: tones.includes(t) ? tones.filter((x) => x !== t) : [...tones, t],
-    });
+  const setSample = (i: number, val: string) =>
+    onChange((v) => ({ ...v, samples: v.samples.map((s, idx) => (idx === i ? val : s)) }));
+  const addSample = () =>
+    onChange((v) => (v.samples.length >= 3 ? v : { ...v, samples: [...v.samples, ""] }));
+  const removeSample = (i: number) =>
+    onChange((v) => ({ ...v, samples: v.samples.filter((_, idx) => idx !== i) }));
+  const toggleTone = (t: Tone) =>
+    onChange((v) => ({
+      ...v,
+      tones: v.tones.includes(t) ? v.tones.filter((x) => x !== t) : [...v.tones, t],
+    }));
+  const setEmoji = (val: boolean) => onChange((v) => ({ ...v, emoji: v.emoji === val ? null : val }));
+
+  async function handleNext() {
+    setError(null);
+    const joined = voice.samples.map((s) => s.trim()).filter(Boolean).join("\n\n———\n\n");
+    setPending(true);
+    try {
+      const res = await saveVoiceSamples({
+        samples: joined,
+        tones: voice.tones,
+        greeting: voice.greeting,
+        signoff: voice.signoff,
+        emoji: voice.emoji,
+        phrases: voice.phrases,
+      });
+      if (!res.ok) return setError(res.error ?? "Could not save — try again");
+      onDone();
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <div className="space-y-5">
       <StepHeading
         step={2}
         title="Your voice"
-        blurb="This is the secret sauce. Paste 2-3 replies you've actually sent to clients — we'll write every draft the way you would, so nobody can tell you didn't type it."
+        blurb="This is the secret sauce — paste a few real replies you've actually sent, then answer a couple of quick questions. We'll write every draft the way you would, so nobody can tell you didn't type it."
       />
 
       <div>
-        <label htmlFor="ob-voice" className={labelStyles}>
-          Replies you’ve sent (the real ones, typos and all)
-        </label>
-        <textarea
-          id="ob-voice"
-          rows={9}
-          value={samples}
-          onChange={(e) => onChange({ samples: e.target.value, tones })}
-          placeholder={
-            "Hey Jess! Congrats on the engagement 🎉 June 14th is wide open for us…\n\nHi Mark — thanks for reaching out about the gala. Our corporate package starts at…"
-          }
-          className={`${inputStyles} font-mono text-xs leading-relaxed`}
-        />
+        <span className={labelStyles}>Replies you&apos;ve sent (the real ones, typos and all)</span>
+        <p className="mb-2 mt-1 text-xs text-ink-stage/50">
+          Two or three is the sweet spot — a quick yes, a follow-up, a tricky date. One per box; the more range, the more it sounds like you.
+        </p>
+        <div className="space-y-2">
+          {voice.samples.map((s, i) => (
+            <div key={i} className="relative">
+              <textarea
+                value={s}
+                onChange={(e) => setSample(i, e.target.value)}
+                rows={4}
+                placeholder={SAMPLE_PLACEHOLDERS[i] ?? "Another reply you've sent…"}
+                className={`${inputStyles} font-mono text-xs leading-relaxed`}
+                aria-label={`Sample reply ${i + 1}`}
+              />
+              {voice.samples.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeSample(i)}
+                  className="absolute right-2 top-2 rounded-md bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-ink-stage/45 hover:text-ink-stage"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {voice.samples.length < 3 && (
+          <button
+            type="button"
+            onClick={addSample}
+            className="mt-2 text-sm font-semibold text-brand-cyan hover:opacity-80"
+          >
+            + Add another reply
+          </button>
+        )}
       </div>
 
       <div>
@@ -859,10 +920,9 @@ function StepVoice({
               type="button"
               key={t}
               onClick={() => toggleTone(t)}
-              aria-pressed={tones.includes(t)}
+              aria-pressed={voice.tones.includes(t)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                // Selected = cyan (interface voice); ink text on cyan (~7.5:1).
-                tones.includes(t)
+                voice.tones.includes(t)
                   ? "bg-brand-cyan text-ink-stage shadow-sm"
                   : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
               }`}
@@ -873,16 +933,71 @@ function StepVoice({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <BackButton onBack={onBack} />
-        <div className="flex items-center gap-3">
-          {result && !result.ok && <p className="text-sm text-red-600">{result.error}</p>}
-          <button type="submit" disabled={pending} className={buttonStyles.primary}>
-            {pending ? "Saving…" : "Next: your calendar →"}
-          </button>
+      {/* Quick voice check — explicit signals a single sample may not pin down. */}
+      <div className="space-y-4 rounded-2xl border border-cream bg-cream/20 p-4">
+        <SectionLabel>A few quick things (optional — they sharpen the match)</SectionLabel>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="ob-greeting" className={labelStyles}>How you open</label>
+            <input
+              id="ob-greeting"
+              value={voice.greeting}
+              onChange={(e) => onChange((v) => ({ ...v, greeting: e.target.value }))}
+              placeholder="Hey [name]! / Hi [name],"
+              className={inputStyles}
+            />
+          </div>
+          <div>
+            <label htmlFor="ob-signoff" className={labelStyles}>How you sign off</label>
+            <input
+              id="ob-signoff"
+              value={voice.signoff}
+              onChange={(e) => onChange((v) => ({ ...v, signoff: e.target.value }))}
+              placeholder="Cheers, Sam / Talk soon —"
+              className={inputStyles}
+            />
+          </div>
+        </div>
+        <div>
+          <span className={labelStyles}>Emojis?</span>
+          <div className="flex flex-wrap gap-2">
+            {[{ v: false, label: "Never" }, { v: true, label: "Now & then" }].map((o) => (
+              <button
+                type="button"
+                key={o.label}
+                onClick={() => setEmoji(o.v)}
+                aria-pressed={voice.emoji === o.v}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                  voice.emoji === o.v
+                    ? "bg-brand-cyan text-ink-stage shadow-sm"
+                    : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label htmlFor="ob-phrases" className={labelStyles}>Any words or phrases you lean on?</label>
+          <input
+            id="ob-phrases"
+            value={voice.phrases}
+            onChange={(e) => onChange((v) => ({ ...v, phrases: e.target.value }))}
+            placeholder="let's lock it in, stoked, no worries"
+            className={inputStyles}
+          />
         </div>
       </div>
-    </form>
+
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <BackButton onBack={onBack} />
+        <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
+          {pending ? "Saving…" : "Next: your calendar →"}
+        </button>
+      </div>
+      {error && <p className="text-right text-xs text-red-600">{error}</p>}
+    </div>
   );
 }
 
@@ -1244,9 +1359,15 @@ export function OnboardingWizard({
   const [country, setCountry] = useState(business.country);
   const currency = currencyForCountry(country);
   const [performerKind, setPerformerKind] = useState<PerformerKind>(business.performerKind);
-  const [voice, setVoice] = useState<{ samples: string; tones: Tone[] }>(() => ({
-    samples: stripToneNote(business.voiceSamples),
+  const [voice, setVoice] = useState<VoiceState>(() => ({
+    // Resume puts the existing samples in the first box; a fresh start shows two
+    // empty boxes so "more than one" is obvious.
+    samples: business.voiceSamples ? [stripToneNote(business.voiceSamples)] : ["", ""],
     tones: [],
+    greeting: business.voiceGreeting ?? "",
+    signoff: business.voiceSignoff ?? "",
+    emoji: business.voiceUsesEmoji ?? null,
+    phrases: business.voicePhrases ?? "",
   }));
   const [gigRows, setGigRows] = useState<GigRow[]>([
     { date: "", title: "" },
@@ -1387,8 +1508,7 @@ export function OnboardingWizard({
           )}
           {step === 2 && (
             <StepVoice
-              samples={voice.samples}
-              tones={voice.tones}
+              voice={voice}
               onChange={setVoice}
               onDone={() => goTo(3)}
               onBack={() => goTo(1)}

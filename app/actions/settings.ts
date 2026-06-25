@@ -93,9 +93,17 @@ export async function updateVoice(formData: FormData): Promise<ActionResult> {
   const business = await getCurrentBusiness();
   const edited = optional(formData, "voiceSamples");
   const voiceSamples = edited === null ? null : withToneNote(edited, toneNoteOf(business.voiceSamples));
+  // Tri-state emoji from the select: "never" → false, "sometimes" → true, "" → null.
+  const emojiRaw = optional(formData, "voiceUsesEmoji");
   await db.business.update({
     where: { id: business.id },
-    data: { voiceSamples },
+    data: {
+      voiceSamples,
+      voiceGreeting: optional(formData, "voiceGreeting"),
+      voiceSignoff: optional(formData, "voiceSignoff"),
+      voicePhrases: optional(formData, "voicePhrases"),
+      voiceUsesEmoji: emojiRaw === "never" ? false : emojiRaw === "sometimes" ? true : null,
+    },
   });
 
   revalidatePath("/dashboard/settings");

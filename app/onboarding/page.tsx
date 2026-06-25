@@ -36,6 +36,10 @@ export default async function OnboardingPage() {
         timezone: business.timezone,
         websiteUrl: business.websiteUrl,
         voiceSamples: business.voiceSamples,
+        voiceGreeting: business.voiceGreeting,
+        voiceSignoff: business.voiceSignoff,
+        voiceUsesEmoji: business.voiceUsesEmoji,
+        voicePhrases: business.voicePhrases,
       }}
       initialProfile={{
         genres: business.genres.join(", "),

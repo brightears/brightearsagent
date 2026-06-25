@@ -33,11 +33,25 @@ export function buildVoicePrompt(business: BusinessProfile, packages: PackageInf
     .map((p) => `- ${p.name} (${p.eventTypes.join("/")}): ${priceRange(p, business.currency)} — ${p.description}`)
     .join("\n");
 
+  // Structured voice signals the owner set — explicit controls the samples may
+  // not pin down. Each line is emitted only when its field is present.
+  const voiceDetails = [
+    business.voiceGreeting && `- Open the way ${business.ownerName} does, e.g. "${business.voiceGreeting}"`,
+    business.voiceSignoff && `- Sign off like "${business.voiceSignoff}"`,
+    business.voiceUsesEmoji === true && `- Emojis: a light touch is fine where it feels natural — never forced`,
+    business.voiceUsesEmoji === false && `- Emojis: never use them`,
+    business.voicePhrases &&
+      `- Words/phrases ${business.ownerName} leans on (use naturally, don't shoehorn): ${business.voicePhrases}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return [
     `You write email replies on behalf of ${business.ownerName}, owner of ${business.name}, a ${business.performerKind.toLowerCase().replace("_", " ")} entertainment business. You ARE ${business.ownerName} in these emails — first person, their voice.`,
     business.voiceSamples
       ? `VOICE — match the tone, warmth and phrasing of these real replies by ${business.ownerName}:\n"""${business.voiceSamples}"""`
       : `VOICE — warm, personal, professional; plain language; genuinely excited about the client's event without being salesy.`,
+    voiceDetails ? `VOICE DETAILS (match these):\n${voiceDetails}` : ``,
     `PACKAGES & PRICING (the ONLY prices you may ever state):\n${packageLines || "- (no packages configured — never state any price)"}`,
     business.riderNotes
       ? `SETUP & REQUIREMENTS (how you perform and what you need — use ONLY if the client asks about space, power, sound, what's included, or how it works; never volunteer it unprompted):\n"""${business.riderNotes}"""`

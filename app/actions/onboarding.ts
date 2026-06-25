@@ -217,15 +217,24 @@ const voiceSchema = z.object({
     .min(20, "Paste at least a sentence or two — real replies you've sent work best")
     .max(20_000, "That's plenty! Trim it to your 2-3 favourite replies"),
   tones: z.array(z.enum(TONE_HINTS)).max(TONE_HINTS.length),
+  greeting: z.string().trim().max(120, "Keep your greeting short").transform((s) => s || null),
+  signoff: z.string().trim().max(120, "Keep your sign-off short").transform((s) => s || null),
+  phrases: z.string().trim().max(300, "A few phrases is plenty").transform((s) => s || null),
 });
 
 /**
- * Saves pasted past replies to Business.voiceSamples; selected tone chips are
- * appended as a bracketed tone note the drafter reads alongside the samples.
+ * Saves pasted past replies to Business.voiceSamples (selected tone chips are
+ * appended as a bracketed tone note the drafter reads), plus the structured
+ * voice signals (greeting/sign-off/emoji/phrases) the drafter uses as explicit
+ * rules. Touches only the voice fields.
  */
 export async function saveVoiceSamples(input: {
   samples: string;
   tones: string[];
+  greeting: string;
+  signoff: string;
+  emoji: boolean | null;
+  phrases: string;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
@@ -237,7 +246,13 @@ export async function saveVoiceSamples(input: {
 
   await db.business.update({
     where: { id: business.id },
-    data: { voiceSamples: `${samples}${toneNote}` },
+    data: {
+      voiceSamples: `${samples}${toneNote}`,
+      voiceGreeting: parsed.data.greeting,
+      voiceSignoff: parsed.data.signoff,
+      voiceUsesEmoji: input.emoji,
+      voicePhrases: parsed.data.phrases,
+    },
   });
 
   revalidatePath("/onboarding");
