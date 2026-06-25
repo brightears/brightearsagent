@@ -355,6 +355,16 @@ export default async function EpkPage({ params }: Props) {
               >
                 Check availability
               </a>
+              <p className="mt-5">
+                <a
+                  href={`/epk/${business.slug}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-cream/55 underline-offset-4 hover:text-cream-bright hover:underline"
+                >
+                  Download one-pager (PDF)
+                </a>
+              </p>
             </div>
           </div>
         </section>

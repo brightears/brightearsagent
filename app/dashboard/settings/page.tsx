@@ -143,7 +143,7 @@ function StrengthMeter({
           Fully loaded. Every pitch goes out with the whole arsenal behind it.
         </p>
       )}
-      <p className="mt-4 text-sm">
+      <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
         <a
           href={epkUrl}
           target="_blank"
@@ -151,6 +151,14 @@ function StrengthMeter({
           className="font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
         >
           View your press kit &rarr;
+        </a>
+        <a
+          href={`${epkUrl}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
+        >
+          Download PDF &darr;
         </a>
       </p>
     </div>
