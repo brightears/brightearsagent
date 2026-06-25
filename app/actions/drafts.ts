@@ -15,9 +15,19 @@ import { sendDraftReply } from "@/lib/agent/send-reply";
  * lib/agent/send-reply.ts so the inbound pipeline's AUTO-SEND (Pro+) runs the
  * exact same path — manual approve and auto-send can never diverge.
  */
-export async function approveDraft(draftId: string, editedBody?: string) {
+export async function approveDraft(
+  draftId: string,
+  editedBody?: string,
+  attach?: { pressKit?: boolean; quote?: boolean },
+) {
   const business = await getCurrentBusiness();
-  const result = await sendDraftReply({ draftId, businessId: business.id, editedBody });
+  const result = await sendDraftReply({
+    draftId,
+    businessId: business.id,
+    editedBody,
+    attachPressKit: attach?.pressKit,
+    attachQuote: attach?.quote,
+  });
   if (result.ok) revalidatePath("/dashboard");
   return result;
 }

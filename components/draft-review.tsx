@@ -24,17 +24,23 @@ export function DraftReview({
   leadId,
   subject,
   body,
+  canAttachPressKit = false,
+  canAttachQuote = false,
 }: {
   draftId: string;
   leadId: string;
   subject: string;
   body: string;
+  canAttachPressKit?: boolean;
+  canAttachQuote?: boolean;
 }) {
   const router = useRouter();
   const [editedBody, setEditedBody] = useState(body);
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState<Note | null>(null);
   const [done, setDone] = useState(false);
+  const [attachPressKit, setAttachPressKit] = useState(false);
+  const [attachQuote, setAttachQuote] = useState(false);
 
   const busy = isPending || done;
 
@@ -62,7 +68,11 @@ export function DraftReview({
   const onApprove = () => {
     const changed = editedBody.trim() !== body.trim();
     run(
-      () => approveDraft(draftId, changed ? editedBody : undefined),
+      () =>
+        approveDraft(draftId, changed ? editedBody : undefined, {
+          pressKit: attachPressKit,
+          quote: attachQuote,
+        }),
       (r) =>
         r.transport === "dev"
           ? "Reply sent via the dev transport — saved to .dev-outbox/ (no real email until Postmark is connected)."
@@ -143,6 +153,38 @@ export function DraftReview({
           >
             {note.text}
           </p>
+        )}
+
+        {(canAttachPressKit || canAttachQuote) && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-white/60 px-3 py-2.5">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
+              Attach
+            </span>
+            {canAttachPressKit && (
+              <label className="flex items-center gap-2 text-sm text-ink-stage/80">
+                <input
+                  type="checkbox"
+                  checked={attachPressKit}
+                  onChange={(e) => setAttachPressKit(e.target.checked)}
+                  disabled={busy}
+                  className="size-4 accent-brand-cyan"
+                />
+                Press kit
+              </label>
+            )}
+            {canAttachQuote && (
+              <label className="flex items-center gap-2 text-sm text-ink-stage/80">
+                <input
+                  type="checkbox"
+                  checked={attachQuote}
+                  onChange={(e) => setAttachQuote(e.target.checked)}
+                  disabled={busy}
+                  className="size-4 accent-brand-cyan"
+                />
+                Quote
+              </label>
+            )}
+          </div>
         )}
 
         <div className="flex flex-wrap items-center gap-3">

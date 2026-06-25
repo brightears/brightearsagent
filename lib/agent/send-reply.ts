@@ -11,7 +11,7 @@
 // follow-ups, keep ENGAGED from restarting the sequence, start the sequence on
 // the first reply.
 import { db } from "@/lib/db";
-import { sendEmail } from "@/lib/outbound/send";
+import { sendEmail, type OutboundAttachment } from "@/lib/outbound/send";
 import { complianceFooter } from "@/lib/optout";
 
 export type SendReplyResult =
@@ -24,11 +24,15 @@ export async function sendDraftReply(opts: {
   businessId: string;
   /** Owner edits (manual approve only); auto-send never edits. */
   editedBody?: string;
+  /** Attach the artist's press-kit PDF to this reply. */
+  attachPressKit?: boolean;
+  /** Attach a grounded quote PDF (skipped silently if there's no pricing to quote from). */
+  attachQuote?: boolean;
 }): Promise<SendReplyResult> {
-  const { draftId, businessId, editedBody } = opts;
+  const { draftId, businessId, editedBody, attachPressKit, attachQuote } = opts;
   const draft = await db.draft.findFirst({
     where: { id: draftId, lead: { businessId } }, // tenant-scoped
-    include: { lead: { include: { business: true } } },
+    include: { lead: { include: { business: { include: { packages: { where: { active: true } } } } } } },
   });
   if (!draft || draft.status !== "PENDING") return { ok: false, error: "draft not pending" };
 
@@ -53,12 +57,39 @@ export async function sendDraftReply(opts: {
   const body = draft.isFollowUp
     ? approvedBody + complianceFooter(lead.business.name, lead.id)
     : approvedBody;
+
+  // PDF attachments (opt-in). Dynamic import keeps @react-pdf out of the hot
+  // inbound/send path unless an attachment is actually requested. A quote with
+  // no pricing to ground it is skipped silently — never a fabricated price, and
+  // never a failed send just because there's nothing to quote.
+  const attachments: OutboundAttachment[] = [];
+  if (attachPressKit || attachQuote) {
+    const { renderPressKitForBusiness, renderQuotationForLead } = await import("@/lib/pdf/build");
+    if (attachPressKit) {
+      try {
+        const pdf = await renderPressKitForBusiness(lead.business);
+        attachments.push({ filename: `${lead.business.slug}-press-kit.pdf`, content: pdf, contentType: "application/pdf" });
+      } catch {
+        // A press-kit render failure must never block the actual reply.
+      }
+    }
+    if (attachQuote) {
+      try {
+        const pdf = await renderQuotationForLead(lead, lead.business);
+        if (pdf) attachments.push({ filename: `quote-${lead.id.slice(-6)}.pdf`, content: pdf, contentType: "application/pdf" });
+      } catch {
+        // Same: never block the reply on a quote render.
+      }
+    }
+  }
+
   const sent = await sendEmail({
     fromName: lead.business.name,
     to: lead.clientEmail,
     replyTo: lead.business.replyToEmail ?? lead.business.ownerEmail,
     subject: draft.subject,
     textBody: body,
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   await db.$transaction([

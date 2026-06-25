@@ -1,3 +1,9 @@
+export interface OutboundAttachment {
+  filename: string;
+  content: Buffer; // raw bytes; base64-encoded for Postmark
+  contentType: string; // e.g. "application/pdf"
+}
+
 export interface OutboundEmail {
   fromName: string; // the business name — white-label invariant
   to: string;
@@ -5,6 +11,7 @@ export interface OutboundEmail {
   subject: string;
   textBody: string;
   headers?: Record<string, string>;
+  attachments?: OutboundAttachment[]; // e.g. the artist's press kit / a quote PDF
 }
 
 export interface SendResult {
@@ -38,6 +45,9 @@ export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
       `To: ${email.to}`,
       `Subject: ${email.subject}`,
       ...Object.entries(email.headers ?? {}).map(([k, v]) => `${k}: ${v}`),
+      ...(email.attachments ?? []).map(
+        (a) => `X-Attachment: ${a.filename} (${a.contentType}, ${a.content.length} bytes)`,
+      ),
       "",
       email.textBody,
     ].join("\n");
@@ -60,6 +70,15 @@ export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
       TextBody: email.textBody,
       MessageStream: "outbound",
       Headers: Object.entries(email.headers ?? {}).map(([Name, Value]) => ({ Name, Value })),
+      ...(email.attachments && email.attachments.length > 0
+        ? {
+            Attachments: email.attachments.map((a) => ({
+              Name: a.filename,
+              Content: a.content.toString("base64"),
+              ContentType: a.contentType,
+            })),
+          }
+        : {}),
     }),
   });
   if (!res.ok) {

@@ -197,6 +197,8 @@ export default async function LeadDetailPage({
               leadId={lead.id}
               subject={pendingDraft.subject}
               body={pendingDraft.body}
+              canAttachPressKit={business.epkEnabled}
+              canAttachQuote={business.feeFloor != null || business.residencyRate != null}
             />
           </section>
         )}
