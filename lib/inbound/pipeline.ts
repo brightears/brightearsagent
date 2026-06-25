@@ -178,7 +178,8 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         try {
           const draftId = await generateDraftForLead(leadId, 0, { suppressPush: true });
           if (!draftId) return; // deduped / closed — nothing to send
-          const res = await sendDraftReply({ draftId, businessId: business.id });
+          // autoAttach: honor the artist's auto-attach toggles + detected intent.
+          const res = await sendDraftReply({ draftId, businessId: business.id, autoAttach: true });
           await pushToBusiness(business.id, {
             title: res.ok
               ? `Auto-replied: ${clientName ?? "new lead"}`

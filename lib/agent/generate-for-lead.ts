@@ -106,6 +106,8 @@ export async function generateDraftForLead(
         body: result.body,
         isFollowUp: sequenceStep > 0,
         sequenceStep: sequenceStep > 0 ? sequenceStep : null,
+        wantsProfile: result.wantsProfile,
+        wantsQuote: result.wantsQuote,
         // Drafts go stale: after the event date, or after 14 days.
         expiresAt: lead.eventDate ?? new Date(Date.now() + 14 * 24 * 3600 * 1000),
       },
@@ -118,9 +120,15 @@ export async function generateDraftForLead(
   // One-tap approve from the phone — the core loop. Suppressed when the caller
   // is about to auto-send (it pushes its own "auto-replied" note instead).
   if (!opts.suppressPush) {
+    // Flag intent so the owner knows to attach before approving.
+    const asked = result.wantsQuote
+      ? " · they asked about pricing"
+      : result.wantsProfile
+        ? " · they asked for your profile"
+        : "";
     void pushToBusiness(lead.businessId, {
       title: `Reply ready: ${lead.clientName ?? "new lead"}`,
-      body: result.subject,
+      body: `${result.subject}${asked}`,
       url: `/dashboard/leads/${lead.id}`,
     }).catch(() => null);
   }

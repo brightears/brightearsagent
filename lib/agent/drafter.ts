@@ -16,6 +16,16 @@ const DraftSchema = z.object({
     .describe(
       "what the body says about the requested date: affirmed = body says/implies the date is open; conflicted = body tells the client the date is already booked/taken/unavailable (ANY honest refusal of the date = conflicted); not_addressed = the body does not discuss date availability at all",
     ),
+  wantsProfile: z
+    .boolean()
+    .describe(
+      "true if the CLIENT is asking for more about the act — a profile, press kit, EPK, examples, 'send me details/info/your portfolio'. Judge the client's message, not the reply.",
+    ),
+  wantsQuote: z
+    .boolean()
+    .describe(
+      "true if the CLIENT is asking about price/cost/rates/a quote, or is clearly ready to talk numbers for a specific event. Judge the client's message, not the reply.",
+    ),
 });
 
 function describeAvailability(req: DraftRequest): string {

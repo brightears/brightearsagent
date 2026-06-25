@@ -137,6 +137,25 @@ export async function updateAutoSendSources(formData: FormData): Promise<ActionR
   return { ok: true };
 }
 
+/**
+ * Smart-attachment autonomy — auto-attach the press kit / a quote when the
+ * drafter detects the client asked for one. Both default off; a binding quote
+ * is opt-in. Its own writer (touches only these two columns).
+ */
+export async function updateAttachmentAutonomy(formData: FormData): Promise<ActionResult> {
+  const business = await getCurrentBusiness();
+  await db.business.update({
+    where: { id: business.id },
+    data: {
+      autoAttachProfile: formData.get("autoAttachProfile") === "on",
+      autoAttachQuote: formData.get("autoAttachQuote") === "on",
+    },
+  });
+  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 /** Register (or refresh) a device for approve-from-phone push. Upserts on endpoint. */
 export async function savePushSubscription(sub: {
   endpoint: string;

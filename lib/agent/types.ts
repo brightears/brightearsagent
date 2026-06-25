@@ -67,4 +67,8 @@ export interface DraftResult {
   body: string;
   /** Model's self-report — must match the availability input; evals assert it. */
   availabilityStatement: "affirmed" | "conflicted" | "not_addressed";
+  /** Client asked for a profile/press kit (drives the attach prompt + autonomy). */
+  wantsProfile: boolean;
+  /** Client asked about price / is ready for a quote. */
+  wantsQuote: boolean;
 }

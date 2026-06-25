@@ -91,6 +91,10 @@ model Business {
   voiceUsesEmoji       Boolean? // null = unspecified, true = occasional, false = never
   voicePhrases         String? // words/expressions they lean on
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
+  // Smart-attachment autonomy: auto-attach the press kit / a quote when the
+  // drafter detects the client wants one. Default off (a binding quote is opt-in).
+  autoAttachProfile    Boolean       @default(false)
+  autoAttachQuote      Boolean       @default(false)
   plan                 PlanTier      @default(TRIAL)
   trialEndsAt          DateTime?
   stripeCustomerId     String?       @unique
@@ -290,6 +294,10 @@ model Draft {
   expiresAt    DateTime? // stale drafts expire (event passed, lead dead)
   isFollowUp   Boolean     @default(false)
   sequenceStep Int?
+  // Drafter intent flags (June 2026) — did the inquiry ask for a profile / a
+  // price? Drives the attach prompts + auto-attach autonomy.
+  wantsProfile Boolean     @default(false)
+  wantsQuote   Boolean     @default(false)
   message      Message?
 
   @@index([leadId, status])

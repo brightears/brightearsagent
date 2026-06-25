@@ -12,6 +12,7 @@
 // the first reply.
 import { db } from "@/lib/db";
 import { sendEmail, type OutboundAttachment } from "@/lib/outbound/send";
+import { resolveAttachments } from "@/lib/agent/attach-policy";
 import { complianceFooter } from "@/lib/optout";
 
 export type SendReplyResult =
@@ -24,12 +25,15 @@ export async function sendDraftReply(opts: {
   businessId: string;
   /** Owner edits (manual approve only); auto-send never edits. */
   editedBody?: string;
-  /** Attach the artist's press-kit PDF to this reply. */
+  /** Attach the artist's press-kit PDF to this reply (manual approve). */
   attachPressKit?: boolean;
   /** Attach a grounded quote PDF (skipped silently if there's no pricing to quote from). */
   attachQuote?: boolean;
+  /** AUTO-SEND path: derive attachments from the artist's autonomy toggles +
+   *  the draft's detected intent, instead of explicit owner choices. */
+  autoAttach?: boolean;
 }): Promise<SendReplyResult> {
-  const { draftId, businessId, editedBody, attachPressKit, attachQuote } = opts;
+  const { draftId, businessId, editedBody, attachPressKit, attachQuote, autoAttach } = opts;
   const draft = await db.draft.findFirst({
     where: { id: draftId, lead: { businessId } }, // tenant-scoped
     include: { lead: { include: { business: { include: { packages: { where: { active: true } } } } } } },
@@ -62,10 +66,22 @@ export async function sendDraftReply(opts: {
   // inbound/send path unless an attachment is actually requested. A quote with
   // no pricing to ground it is skipped silently — never a fabricated price, and
   // never a failed send just because there's nothing to quote.
+  // Auto-send derives attachments from the artist's toggles + the draft's
+  // detected intent; manual approve uses the owner's explicit choices.
+  const { pressKit: wantPressKit, quote: wantQuote } = resolveAttachments({
+    autoAttach: !!autoAttach,
+    attachPressKit,
+    attachQuote,
+    autoAttachProfile: lead.business.autoAttachProfile,
+    autoAttachQuote: lead.business.autoAttachQuote,
+    wantsProfile: draft.wantsProfile,
+    wantsQuote: draft.wantsQuote,
+  });
+
   const attachments: OutboundAttachment[] = [];
-  if (attachPressKit || attachQuote) {
+  if (wantPressKit || wantQuote) {
     const { renderPressKitForBusiness, renderQuotationForLead } = await import("@/lib/pdf/build");
-    if (attachPressKit) {
+    if (wantPressKit) {
       try {
         const pdf = await renderPressKitForBusiness(lead.business);
         attachments.push({ filename: `${lead.business.slug}-press-kit.pdf`, content: pdf, contentType: "application/pdf" });
@@ -73,7 +89,7 @@ export async function sendDraftReply(opts: {
         // A press-kit render failure must never block the actual reply.
       }
     }
-    if (attachQuote) {
+    if (wantQuote) {
       try {
         const pdf = await renderQuotationForLead(lead, lead.business);
         if (pdf) attachments.push({ filename: `quote-${lead.id.slice(-6)}.pdf`, content: pdf, contentType: "application/pdf" });

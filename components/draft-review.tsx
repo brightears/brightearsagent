@@ -26,6 +26,10 @@ export function DraftReview({
   body,
   canAttachPressKit = false,
   canAttachQuote = false,
+  suggestPressKit = false,
+  suggestQuote = false,
+  autoAttachProfile = false,
+  autoAttachQuote = false,
 }: {
   draftId: string;
   leadId: string;
@@ -33,14 +37,21 @@ export function DraftReview({
   body: string;
   canAttachPressKit?: boolean;
   canAttachQuote?: boolean;
+  /** Drafter detected the client asked for a profile / quote. */
+  suggestPressKit?: boolean;
+  suggestQuote?: boolean;
+  /** The artist's auto-attach toggles — pre-tick the box when intent matches. */
+  autoAttachProfile?: boolean;
+  autoAttachQuote?: boolean;
 }) {
   const router = useRouter();
   const [editedBody, setEditedBody] = useState(body);
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState<Note | null>(null);
   const [done, setDone] = useState(false);
-  const [attachPressKit, setAttachPressKit] = useState(false);
-  const [attachQuote, setAttachQuote] = useState(false);
+  // Pre-tick when the artist enabled auto-attach AND the client asked for it.
+  const [attachPressKit, setAttachPressKit] = useState(autoAttachProfile && suggestPressKit);
+  const [attachQuote, setAttachQuote] = useState(autoAttachQuote && suggestQuote);
 
   const busy = isPending || done;
 
@@ -170,6 +181,9 @@ export function DraftReview({
                   className="size-4 accent-brand-cyan"
                 />
                 Press kit
+                {suggestPressKit && (
+                  <span className="font-semibold text-brand-cyan">· they asked</span>
+                )}
               </label>
             )}
             {canAttachQuote && (
@@ -182,6 +196,9 @@ export function DraftReview({
                   className="size-4 accent-brand-cyan"
                 />
                 Quote
+                {suggestQuote && (
+                  <span className="font-semibold text-brand-cyan">· they asked</span>
+                )}
               </label>
             )}
           </div>

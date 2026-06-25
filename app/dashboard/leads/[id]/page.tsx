@@ -199,6 +199,10 @@ export default async function LeadDetailPage({
               body={pendingDraft.body}
               canAttachPressKit={business.epkEnabled}
               canAttachQuote={business.feeFloor != null || business.residencyRate != null}
+              suggestPressKit={pendingDraft.wantsProfile}
+              suggestQuote={pendingDraft.wantsQuote}
+              autoAttachProfile={business.autoAttachProfile}
+              autoAttachQuote={business.autoAttachQuote}
             />
           </section>
         )}
