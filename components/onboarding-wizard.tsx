@@ -1330,17 +1330,21 @@ function StepConnect({
   tookTooLong: boolean;
   onBack: () => void;
 }) {
+  const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
+
   return (
     <div className="space-y-4">
       <StepHeading
         step={4}
-        title="Connect your leads"
-        blurb="One forwarding rule and you're done forever: every inquiry — email, website form, The Knot, WeddingWire — lands here with a reply already drafted."
+        title="Point your inquiries here"
+        blurb="One address. Forward any inquiry to it and a reply comes back in your voice — automatically. Set it once and you never write a first reply again."
       />
 
+      {/* The address — the hero. Plain-language explainer so a non-technical
+          artist knows what it is and the ONE thing to do with it: forward here. */}
       <div className="rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/30 p-4">
         <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/60">
-          Your lead address
+          Your assistant’s address
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <code className="select-all break-all rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-ink-stage shadow-sm">
@@ -1348,112 +1352,30 @@ function StepConnect({
           </code>
           <CopyButton text={leadAddress} />
         </div>
+        <p className="mt-3 text-sm leading-relaxed text-ink-stage/70">
+          Think of this as your assistant’s inbox. Anything you send here, it reads and replies to — in
+          your voice. Your own inbox keeps every original; we just get a copy.
+        </p>
       </div>
 
-      <div className="space-y-2">
-        <Walkthrough title="Gmail / Google Workspace">
-          <ol className="list-decimal space-y-1.5 pl-5">
-            <li>
-              In Gmail, click the gear → <strong>See all settings</strong> →{" "}
-              <strong>Forwarding and POP/IMAP</strong>.
-            </li>
-            <li>
-              Click <strong>Add a forwarding address</strong> and paste your lead address above.
-              Gmail sends a confirmation email — it shows up in your Bright Ears pipeline within a
-              minute; open it there and click the confirmation link inside.
-            </li>
-            <li>
-              Back in settings, open <strong>Filters and Blocked Addresses</strong> →{" "}
-              <strong>Create a new filter</strong>.
-            </li>
-            <li>
-              In <strong>From</strong>, list where your leads come from, e.g.{" "}
-              <code className="rounded bg-cream px-1 font-mono text-xs">
-                theknot.com OR weddingwire.com OR forms@yoursite.com
-              </code>{" "}
-              → <strong>Create filter</strong>.
-            </li>
-            <li>
-              Tick <strong>“Forward it to:”</strong>, choose your lead address →{" "}
-              <strong>Create filter</strong>. New leads now copy over automatically — the originals
-              stay in your inbox.
-            </li>
-          </ol>
-        </Walkthrough>
-
-        <Walkthrough title="Outlook / Microsoft 365">
-          <ol className="list-decimal space-y-1.5 pl-5">
-            <li>
-              In Outlook on the web, click the gear → <strong>Mail</strong> →{" "}
-              <strong>Rules</strong> → <strong>Add new rule</strong>.
-            </li>
-            <li>Name it “Bright Ears leads”.</li>
-            <li>
-              Condition: <strong>From</strong> → add the senders your leads arrive from (The Knot
-              and WeddingWire notifications, your website form’s sender).
-            </li>
-            <li>
-              Action: <strong>Forward to</strong> → paste your lead address.
-            </li>
-            <li>Save — Outlook starts forwarding immediately, no confirmation step.</li>
-          </ol>
-        </Walkthrough>
-
-        <Walkthrough title="The Knot & WeddingWire">
-          <p className="mb-2">
-            Both platforms email you a notification for every new lead — that notification is what
-            we read. Two ways to route it:
-          </p>
-          <ol className="list-decimal space-y-1.5 pl-5">
-            <li>
-              <strong>Easiest:</strong> nothing to change on the platforms — your Gmail/Outlook
-              rule above forwards their notification emails the moment they arrive.
-            </li>
-            <li>
-              <strong>Direct:</strong> in The Knot vendor account (vendors.theknot.com) open{" "}
-              <strong>Account → Notifications</strong> and set the lead-notification email to your
-              lead address. WeddingWire vendors: <strong>Account → Email notifications</strong>,
-              same idea. Your login email stays unchanged.
-            </li>
-          </ol>
-        </Walkthrough>
-
-        <Walkthrough title="Your website's contact form">
-          <ol className="list-decimal space-y-1.5 pl-5">
-            <li>
-              Open your form’s settings — WPForms / Gravity Forms / Contact Form 7 on WordPress,
-              or the form block settings on Squarespace / Wix.
-            </li>
-            <li>
-              Find <strong>“notification email”</strong> (sometimes “send entries to”) and add your
-              lead address as a recipient. Keep your own email on the list if you like a copy.
-            </li>
-            <li>
-              Submit your own form once to test — that counts for the live check below.
-            </li>
-          </ol>
-        </Walkthrough>
-      </div>
-
+      {/* Primary action + live proof (or the celebration once a lead lands). */}
       {leadDetected ? (
-        // The celebration moment — full magenta→orange gradient with sticker
-        // chips (the show voice; ink text — white fails on the orange end).
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             <StickerChip tone="cream" rotate={-4}>
-              First lead caught ✓
+              First inquiry caught ✓
             </StickerChip>
             <StickerChip tone="ink" rotate={3}>
               Now playing — your reply
             </StickerChip>
           </div>
           <p className="mt-4 text-xl font-extrabold tracking-tight text-ink-stage">
-            Your first lead just landed — forwarding works.
+            Your first inquiry just landed — it works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it and parsed it. Your assistant is set up and ready to reply in your voice and
-            hunt venues for you — choose a plan to switch it on, and it goes to work on this lead and
-            every one after.
+            We caught it and read it. Your assistant is set up and ready to reply in your voice and hunt
+            venues for you — choose a plan to switch it on, and it goes to work on this one and every
+            one after.
           </p>
           <Link
             href="/dashboard/settings#billing"
@@ -1464,26 +1386,90 @@ function StepConnect({
         </div>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
-          <p className="font-bold text-ink-stage">Prove it works — right now</p>
-          <p className="mt-1 text-sm text-ink-stage/70">
-            Send any email to your lead address from your phone — or forward a real inquiry sitting
-            in your inbox. The second it arrives, this box lights up.
+          <p className="font-bold text-ink-stage">Try it now — forward one inquiry</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
+            Open any inquiry in your email and forward it to the address above — or just send a quick
+            test from your phone. The moment it lands, this lights up and a reply starts drafting.
           </p>
           <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-stage/65">
             <span className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan" aria-hidden />
-            Listening for your first lead… (we check every 5 seconds)
+            Listening for your first inquiry… (we check every 5 seconds)
           </p>
-          {/* Calm fallback after ~90s (audit C2) — we keep listening; this just
-              points at the usual culprit and reassures them they can move on. */}
           {tookTooLong && (
             <p className="mt-3 rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/70">
-              Taking longer than expected? Double-check your forwarding rule is
-              pointing at the address above — or skip this and we&apos;ll catch your
-              first lead whenever it arrives.
+              Taking longer than expected? Make sure you forwarded to the exact address above — or skip
+              this and we&apos;ll catch your first inquiry whenever it arrives.
             </p>
           )}
         </div>
       )}
+
+      {/* Everything provider-specific is optional + tucked away (progressive
+          disclosure) so the step reads as one address + one action. */}
+      <div className="space-y-2">
+        <Walkthrough title="Make it automatic (optional)">
+          <p className="mb-3">
+            Set a one-time rule so every inquiry forwards itself and you never touch it again — the
+            originals still land in your normal inbox.
+          </p>
+          <div className="mb-3 inline-flex rounded-full border border-cream bg-white p-0.5">
+            {(["gmail", "outlook"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setProvider(p)}
+                className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+                  provider === p ? "bg-brand-cyan text-ink-stage" : "text-ink-stage/55 hover:text-ink-stage"
+                }`}
+              >
+                {p === "gmail" ? "Gmail" : "Outlook"}
+              </button>
+            ))}
+          </div>
+          {provider === "gmail" ? (
+            <ol className="list-decimal space-y-1.5 pl-5">
+              <li>
+                Gmail → gear ⚙ → <strong>See all settings</strong> →{" "}
+                <strong>Forwarding and POP/IMAP</strong>.
+              </li>
+              <li>
+                <strong>Add a forwarding address</strong> → paste your address above. Gmail sends a
+                confirmation — it arrives in your Bright Ears pipeline within a minute; open it there
+                and click the link.
+              </li>
+              <li>
+                Choose <strong>“Forward a copy of incoming mail to”</strong> your address → keep
+                Gmail’s copy in the Inbox → <strong>Save</strong>. Done — every inquiry now arrives on
+                its own.
+              </li>
+            </ol>
+          ) : (
+            <ol className="list-decimal space-y-1.5 pl-5">
+              <li>
+                Outlook on the web → gear ⚙ → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
+                <strong>Add new rule</strong>.
+              </li>
+              <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
+              <li>
+                Action: <strong>Forward to</strong> → paste your address → <strong>Save</strong>. No
+                confirmation step — it starts immediately.
+              </li>
+            </ol>
+          )}
+        </Walkthrough>
+
+        <Walkthrough title="Getting inquiries from somewhere else?">
+          <p>
+            The Knot, WeddingWire, your website’s contact form — they all <strong>email you</strong>{" "}
+            when a new inquiry comes in, so a forward (or the automatic rule above) catches them with
+            nothing extra to set up.
+          </p>
+          <p className="mt-2">
+            <strong>Power move:</strong> paste your assistant’s address straight into your website
+            form’s notification settings so those inquiries arrive on their own too.
+          </p>
+        </Walkthrough>
+      </div>
 
       <div className="flex items-center justify-between gap-3 pt-2">
         <BackButton onBack={onBack} />
@@ -1492,7 +1478,7 @@ function StepConnect({
             href="/dashboard"
             className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
           >
-            I’ll test this later — take me to my dashboard
+            I’ll set this up later — take me to my dashboard
           </Link>
         )}
       </div>
