@@ -309,11 +309,21 @@ export async function addBookedDates(
 // into individual booked nights, so the availability check just works.
 // ---------------------------------------------------------------------------
 
+// Optional "HH:MM", or "" (which becomes null = an all-day booking).
+const optionalTime = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 19:00")
+  .optional()
+  .or(z.literal(""));
+
 const residencySchema = z.object({
   weekday: z.number().int().min(0).max(6),
   title: z.string().trim().min(1, "Add the venue or a name for the residency").max(120, "Keep the name short"),
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a start date"),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick an end date"),
+  startTime: optionalTime,
+  endTime: optionalTime,
 });
 
 export async function addResidency(input: {
@@ -321,6 +331,8 @@ export async function addResidency(input: {
   title: string;
   from: string;
   to: string;
+  startTime?: string;
+  endTime?: string;
 }): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
   const business = await getCurrentBusiness();
 
@@ -334,12 +346,19 @@ export async function addResidency(input: {
     return { ok: false, error: `No ${WEEKDAY_NAMES[weekday]}s fall in that range` };
   }
 
+  // A time makes it a windowed commitment (7-9pm slot) rather than an all-day
+  // block, so the artist stays quotable for a late gig elsewhere that night.
+  const startTime = parsed.data.startTime || null;
+  const endTime = parsed.data.endTime || null;
+
   // Noon-UTC convention (same as addBookedDates), one Gig per residency night.
   const { count } = await db.gig.createMany({
     data: dates.map((date) => ({
       businessId: business.id,
       date: new Date(`${date}T12:00:00Z`),
       title,
+      startTime,
+      endTime,
     })),
   });
 

@@ -44,6 +44,7 @@ export type Availability =
   | { state: "free" }
   | { state: "partial"; freePerformers: string[] } // some performers booked, these are free
   | { state: "conflict"; bookedTitles: string[] }
+  | { state: "timed"; busyWindows: string[] } // committed during these windows, likely free around them
   | { state: "unknown" }; // no date on the lead
 
 export interface ThreadMessage {

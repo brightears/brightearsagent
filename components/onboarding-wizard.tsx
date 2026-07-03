@@ -1050,6 +1050,8 @@ function StepCalendar({
     title: "",
     from: isoToday(),
     to: isoToday(3),
+    startTime: "",
+    endTime: "",
   });
   const [resPending, setResPending] = useState(false);
   const [resNote, setResNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -1065,12 +1067,23 @@ function StepCalendar({
     if (!res.from || !res.to) return setResNote({ ok: false, text: "Pick a start and end date." });
     setResPending(true);
     try {
-      const r = await addResidency({ weekday: res.weekday, title: res.title.trim(), from: res.from, to: res.to });
+      const r = await addResidency({
+        weekday: res.weekday,
+        title: res.title.trim(),
+        from: res.from,
+        to: res.to,
+        startTime: res.startTime,
+        endTime: res.endTime,
+      });
       if (!r.ok) return setResNote({ ok: false, text: r.error });
       onSaved(r.added); // bump the "N dates saved" banner
       const day = WEEKDAYS.find((d) => d.value === res.weekday)?.label ?? "";
-      setResNote({ ok: true, text: `Added ${r.added} ${day} night${r.added === 1 ? "" : "s"} — ${res.title.trim()}.` });
-      setRes((prev) => ({ ...prev, weekday: null, title: "" })); // ready for the next residency; keep the dates
+      const when = res.startTime ? ` ${res.startTime}${res.endTime ? `–${res.endTime}` : ""}` : "";
+      setResNote({
+        ok: true,
+        text: `Added ${r.added} ${day} night${r.added === 1 ? "" : "s"}${when} — ${res.title.trim()}.`,
+      });
+      setRes((prev) => ({ ...prev, weekday: null, title: "" })); // ready for the next residency; keep dates+time
     } finally {
       setResPending(false);
     }
@@ -1211,6 +1224,30 @@ function StepCalendar({
               className={inputStyles}
             />
           </div>
+        </div>
+        <div>
+          <span className={labelStyles}>
+            Time <span className="font-normal normal-case text-ink-stage/40">(optional — keeps you free around the slot)</span>
+          </span>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="time"
+              aria-label="Residency start time"
+              value={res.startTime}
+              onChange={(e) => setRes((p) => ({ ...p, startTime: e.target.value }))}
+              className={inputStyles}
+            />
+            <input
+              type="time"
+              aria-label="Residency end time"
+              value={res.endTime}
+              onChange={(e) => setRes((p) => ({ ...p, endTime: e.target.value }))}
+              className={inputStyles}
+            />
+          </div>
+          <p className="mt-1 text-xs text-ink-stage/50">
+            Add a time (e.g. 7:00pm–9:00pm) and we&apos;ll only block that window — so a late gig elsewhere that night still counts you as free. Leave blank to block the whole day.
+          </p>
         </div>
         <button
           type="button"

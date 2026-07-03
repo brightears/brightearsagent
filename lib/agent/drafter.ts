@@ -37,6 +37,8 @@ function describeAvailability(req: DraftRequest): string {
       return `AVAILABILITY: the requested date is OPEN (covered by: ${a.freePerformers.join(", ")}). Affirm availability naturally — do NOT mention roster internals or other bookings.`;
     case "conflict":
       return "AVAILABILITY: the requested date is ALREADY BOOKED. Be honest and kind about it; do NOT affirm the date; offer to recommend an alternative or ask if their date is flexible. Never name the other client.";
+    case "timed":
+      return `AVAILABILITY: you have a regular commitment that day during ${a.busyWindows.join(", ")}, but you may well be free before or after it. Do NOT say you're fully booked, and do NOT flatly affirm the date either. Mention honestly that you have a set slot that evening and ask what time their event runs, so you can see whether it works around your commitment. Never name the other venue or client.`;
     case "unknown":
       return "AVAILABILITY: no event date known yet. Do not claim availability; warmly ask for their date.";
   }
@@ -100,6 +102,12 @@ function normalizeStatement(req: DraftRequest, result: DraftResult): DraftResult
   } else if (state === "free" || state === "partial") {
     if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed";
     else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted"; // model contradicted input — surface it
+  } else if (state === "timed") {
+    // A windowed commitment: the right reply asks about timing (not_addressed).
+    // Flag if the model instead flatly affirmed or flatly refused the date.
+    if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed";
+    else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted";
+    else statement = "not_addressed";
   } else {
     // unknown date: nothing to affirm
     if (!AFFIRM_LANGUAGE.test(result.body)) statement = "not_addressed";
