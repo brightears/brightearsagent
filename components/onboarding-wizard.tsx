@@ -1143,11 +1143,16 @@ function StepCalendar({
               className={inputStyles}
               aria-label={`Title for booked date ${i + 1}`}
             />
+            {/* Remove only shows once a row has content — an empty default row
+                has nothing to remove, so the control would just read as a
+                confusing dot. Kept in the layout (invisible) so nothing shifts. */}
             <button
               type="button"
               onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
-              className="flex-none rounded-full px-2 py-1 text-ink-stage/40 hover:text-red-600 transition-colors"
-              aria-label={`Remove row ${i + 1}`}
+              aria-label={`Remove booked date ${i + 1}`}
+              className={`flex-none rounded-lg px-2 py-1.5 text-lg leading-none text-ink-stage/35 transition-colors hover:bg-red-50 hover:text-red-600 ${
+                row.date || row.title.trim() ? "" : "invisible"
+              }`}
             >
               ×
             </button>
