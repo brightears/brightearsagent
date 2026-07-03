@@ -1318,6 +1318,20 @@ function Walkthrough({
   );
 }
 
+/** The assistant's address, shown ONLY inside the actions that need it —
+ *  it's plumbing, not a hero (founder feedback: a big unexplained address
+ *  reads as something the artist must figure out). */
+function LeadAddressPill({ address }: { address: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2.5">
+      <code className="select-all break-all rounded-full border border-cream bg-cream/40 px-3.5 py-1.5 font-mono text-[13px] font-semibold text-ink-stage">
+        {address}
+      </code>
+      <CopyButton text={address} />
+    </div>
+  );
+}
+
 function StepConnect({
   leadAddress,
   leadDetected,
@@ -1337,28 +1351,36 @@ function StepConnect({
       <StepHeading
         step={4}
         title="Point your inquiries here"
-        blurb="One address. Forward any inquiry to it and a reply comes back in your voice — automatically. Set it once and you never write a first reply again."
+        blurb="A client emails you like always. Your inbox slips a copy to your assistant, a reply drafts itself in your voice, and you approve it from your phone. Set it up once — or try it by hand right now."
       />
 
-      {/* The address — the hero. Plain-language explainer so a non-technical
-          artist knows what it is and the ONE thing to do with it: forward here. */}
-      <div className="rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/30 p-4">
-        <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/60">
-          Your assistant’s address
+      {/* The mental model, in three plain steps — this is what makes the page
+          make sense to a non-technical artist. */}
+      <div className="rounded-2xl bg-cream/40 p-4">
+        <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55">
+          How it works
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <code className="select-all break-all rounded-full bg-white px-4 py-2 font-mono text-sm font-semibold text-ink-stage shadow-sm">
-            {leadAddress}
-          </code>
-          <CopyButton text={leadAddress} />
-        </div>
-        <p className="mt-3 text-sm leading-relaxed text-ink-stage/70">
-          Think of this as your assistant’s inbox. Anything you send here, it reads and replies to — in
-          your voice. Your own inbox keeps every original; we just get a copy.
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-stage/75">
+          <li>A client emails you — nothing changes for them.</li>
+          <li>
+            A copy of that email reaches your assistant (you forward it, or a one-time rule does it
+            for you).
+          </li>
+          <li>
+            It drafts the reply in your voice → you approve → it sends as your business. The
+            client&apos;s answer lands back in your normal inbox, and every inquiry shows up in your
+            Pipeline here.
+          </li>
+        </ol>
+        <p className="mt-2.5 text-xs leading-relaxed text-ink-stage/55">
+          Clients and venues never see your assistant&apos;s address — it&apos;s internal, only your
+          inbox uses it. Venue outreach is separate: those emails go out from your own Gmail once you
+          connect it in your Control Room.
         </p>
       </div>
 
-      {/* Primary action + live proof (or the celebration once a lead lands). */}
+      {/* Primary action + live proof (or the celebration once a lead lands).
+          The address lives HERE, at the moment it's needed. */}
       {leadDetected ? (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
           <div className="flex flex-wrap items-center justify-center gap-2.5">
@@ -1388,9 +1410,12 @@ function StepConnect({
         <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
           <p className="font-bold text-ink-stage">Try it now — forward one inquiry</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
-            Open any inquiry in your email and forward it to the address above — or just send a quick
-            test from your phone. The moment it lands, this lights up and a reply starts drafting.
+            Grab any inquiry sitting in your email — or send a quick test from your phone — and
+            forward it to your assistant:
           </p>
+          <div className="mt-3">
+            <LeadAddressPill address={leadAddress} />
+          </div>
           <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-stage/65">
             <span className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan" aria-hidden />
             Listening for your first inquiry… (we check every 5 seconds)
@@ -1405,13 +1430,16 @@ function StepConnect({
       )}
 
       {/* Everything provider-specific is optional + tucked away (progressive
-          disclosure) so the step reads as one address + one action. */}
+          disclosure) so the step reads as one idea + one action. */}
       <div className="space-y-2">
         <Walkthrough title="Make it automatic (optional)">
           <p className="mb-3">
             Set a one-time rule so every inquiry forwards itself and you never touch it again — the
-            originals still land in your normal inbox.
+            originals still land in your normal inbox. You&apos;ll paste this address:
           </p>
+          <div className="mb-3">
+            <LeadAddressPill address={leadAddress} />
+          </div>
           <div className="mb-3 inline-flex rounded-full border border-cream bg-white p-0.5">
             {(["gmail", "outlook"] as const).map((p) => (
               <button
@@ -1433,8 +1461,8 @@ function StepConnect({
                 <strong>Forwarding and POP/IMAP</strong>.
               </li>
               <li>
-                <strong>Add a forwarding address</strong> → paste your address above. Gmail sends a
-                confirmation — it arrives in your Bright Ears pipeline within a minute; open it there
+                <strong>Add a forwarding address</strong> → paste the address above. Gmail sends a
+                confirmation — it arrives in your Bright Ears Pipeline within a minute; open it there
                 and click the link.
               </li>
               <li>
@@ -1451,8 +1479,8 @@ function StepConnect({
               </li>
               <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
               <li>
-                Action: <strong>Forward to</strong> → paste your address → <strong>Save</strong>. No
-                confirmation step — it starts immediately.
+                Action: <strong>Forward to</strong> → paste the address above → <strong>Save</strong>.
+                No confirmation step — it starts immediately.
               </li>
             </ol>
           )}
@@ -1464,10 +1492,11 @@ function StepConnect({
             when a new inquiry comes in, so a forward (or the automatic rule above) catches them with
             nothing extra to set up.
           </p>
-          <p className="mt-2">
+          <p className="mt-2 mb-2">
             <strong>Power move:</strong> paste your assistant’s address straight into your website
-            form’s notification settings so those inquiries arrive on their own too.
+            form’s notification settings so those inquiries arrive on their own too:
           </p>
+          <LeadAddressPill address={leadAddress} />
         </Walkthrough>
       </div>
 
