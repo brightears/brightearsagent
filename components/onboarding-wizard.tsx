@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import {
   addBookedDates,
+  addResidency,
   saveArtistProfile,
   saveBusinessBasics,
   saveVoiceSamples,
@@ -72,6 +73,24 @@ const KINDS: { kind: PerformerKind; label: string }[] = [
 
 const TONES = ["Fun & casual", "Warm & professional", "High-energy"] as const;
 type Tone = (typeof TONES)[number];
+
+// Weekday chips for the residency logger (value = getUTCDay: 0=Sun..6=Sat).
+const WEEKDAYS: { label: string; value: number }[] = [
+  { label: "Mon", value: 1 },
+  { label: "Tue", value: 2 },
+  { label: "Wed", value: 3 },
+  { label: "Thu", value: 4 },
+  { label: "Fri", value: 5 },
+  { label: "Sat", value: 6 },
+  { label: "Sun", value: 0 },
+];
+
+/** today / today + n months as YYYY-MM-DD, for the residency date defaults. */
+function isoToday(offsetMonths = 0): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + offsetMonths);
+  return d.toISOString().slice(0, 10);
+}
 
 // ---------------------------------------------------------------------------
 // Props + shared bits
@@ -1025,8 +1044,36 @@ function StepCalendar({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Residency logger — a recurring weekly slot expanded into booked nights.
+  const [res, setRes] = useState({
+    weekday: null as number | null,
+    title: "",
+    from: isoToday(),
+    to: isoToday(3),
+  });
+  const [resPending, setResPending] = useState(false);
+  const [resNote, setResNote] = useState<{ ok: boolean; text: string } | null>(null);
+
   function updateRow(i: number, patch: Partial<GigRow>) {
     setRows(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  async function addResidencyNights() {
+    setResNote(null);
+    if (res.weekday === null) return setResNote({ ok: false, text: "Pick the day of the week." });
+    if (!res.title.trim()) return setResNote({ ok: false, text: "Add the venue or a name." });
+    if (!res.from || !res.to) return setResNote({ ok: false, text: "Pick a start and end date." });
+    setResPending(true);
+    try {
+      const r = await addResidency({ weekday: res.weekday, title: res.title.trim(), from: res.from, to: res.to });
+      if (!r.ok) return setResNote({ ok: false, text: r.error });
+      onSaved(r.added); // bump the "N dates saved" banner
+      const day = WEEKDAYS.find((d) => d.value === res.weekday)?.label ?? "";
+      setResNote({ ok: true, text: `Added ${r.added} ${day} night${r.added === 1 ? "" : "s"} — ${res.title.trim()}.` });
+      setRes((prev) => ({ ...prev, weekday: null, title: "" })); // ready for the next residency; keep the dates
+    } finally {
+      setResPending(false);
+    }
   }
 
   async function handleNext() {
@@ -1102,6 +1149,83 @@ function StepCalendar({
       >
         + Add another date
       </button>
+
+      {/* Residency — log a recurring weekly slot once; we expand every night. */}
+      <div className="space-y-3 rounded-2xl border border-dashed border-ink-stage/20 bg-cream/30 p-4">
+        <div>
+          <SectionLabel>Got a residency? Log it once</SectionLabel>
+          <p className="-mt-1 text-xs text-ink-stage/55">
+            Playing a regular weekly slot? Pick the day and the run of dates — we&apos;ll block every one, so
+            you&apos;re never shown as free that night. Add each residency separately (e.g. Wednesdays at one
+            venue, Fridays at another).
+          </p>
+        </div>
+        <div>
+          <span className={labelStyles}>Which day?</span>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map((d) => (
+              <button
+                type="button"
+                key={d.value}
+                onClick={() => setRes((p) => ({ ...p, weekday: d.value }))}
+                aria-pressed={res.weekday === d.value}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  res.weekday === d.value
+                    ? "bg-brand-cyan text-ink-stage"
+                    : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label htmlFor="res-title" className={labelStyles}>Venue / name</label>
+          <input
+            id="res-title"
+            value={res.title}
+            onChange={(e) => setRes((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Sing Sing (Wed residency)"
+            className={inputStyles}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="res-from" className={labelStyles}>From</label>
+            <input
+              id="res-from"
+              type="date"
+              value={res.from}
+              onChange={(e) => setRes((p) => ({ ...p, from: e.target.value }))}
+              className={inputStyles}
+            />
+          </div>
+          <div>
+            <label htmlFor="res-to" className={labelStyles}>Until</label>
+            <input
+              id="res-to"
+              type="date"
+              value={res.to}
+              onChange={(e) => setRes((p) => ({ ...p, to: e.target.value }))}
+              className={inputStyles}
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={addResidencyNights}
+          disabled={resPending}
+          className={`${buttonStyles.secondaryOnLight} w-full`}
+        >
+          {resPending ? "Adding…" : "Add residency nights"}
+        </button>
+        {resNote && (
+          <p className={`text-xs ${resNote.ok ? "font-semibold text-brand-cyan" : "text-red-600"}`}>
+            {resNote.text}
+          </p>
+        )}
+      </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 

@@ -14,6 +14,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
+import { residencyDates, WEEKDAY_NAMES } from "@/lib/calendar/residency";
 import { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -294,6 +295,51 @@ export async function addBookedDates(
       businessId: business.id,
       date: new Date(`${row.date}T12:00:00Z`),
       title: row.title,
+    })),
+  });
+
+  revalidatePath("/onboarding");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/calendar");
+  return { ok: true, added: count };
+}
+
+// ---------------------------------------------------------------------------
+// Step 4 (residency) — a recurring slot ("every Wednesday at Venue A") expanded
+// into individual booked nights, so the availability check just works.
+// ---------------------------------------------------------------------------
+
+const residencySchema = z.object({
+  weekday: z.number().int().min(0).max(6),
+  title: z.string().trim().min(1, "Add the venue or a name for the residency").max(120, "Keep the name short"),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a start date"),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick an end date"),
+});
+
+export async function addResidency(input: {
+  weekday: number;
+  title: string;
+  from: string;
+  to: string;
+}): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
+  const business = await getCurrentBusiness();
+
+  const parsed = residencySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
+  const { weekday, title, from, to } = parsed.data;
+  if (from > to) return { ok: false, error: "The end date is before the start date" };
+
+  const dates = residencyDates(weekday, from, to);
+  if (dates.length === 0) {
+    return { ok: false, error: `No ${WEEKDAY_NAMES[weekday]}s fall in that range` };
+  }
+
+  // Noon-UTC convention (same as addBookedDates), one Gig per residency night.
+  const { count } = await db.gig.createMany({
+    data: dates.map((date) => ({
+      businessId: business.id,
+      date: new Date(`${date}T12:00:00Z`),
+      title,
     })),
   });
 
