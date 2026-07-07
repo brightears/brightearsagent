@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
 import { autoDraftPitches } from "@/lib/venues/auto-draft";
 import { draftHotFollowUps } from "@/lib/venues/follow-up";
+import { rescoreVenues } from "@/lib/venues/rescore";
 import { notifyBusiness } from "@/lib/notify";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCron } from "@/lib/ops-stamp";
@@ -77,6 +78,12 @@ export async function GET(req: NextRequest) {
       let pitchesDrafted = 0;
       const business = await db.business.findUnique({ where: { id: b.id } });
       if (business) {
+        // Feed hygiene BEFORE drafting (P8.8/8.9): re-score the live feed from
+        // stored signals (pure functions, DB-only) so stale HOT cards arc to
+        // WARM, timing decays honestly, and the skip-taught kind downweights
+        // apply — auto-draft below then picks from FRESH scores. This pass
+        // also normalizes anything ingest scored before the training signal.
+        await rescoreVenues(b.id);
         const drafted = await autoDraftPitches(business);
         // The one polite HOT bump (P8.4) rides the same daily tick — its
         // drafts join the approve queue and the digest below.

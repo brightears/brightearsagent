@@ -52,6 +52,13 @@ export type MatchProfile = {
    * existing callers/tests default it to false (home-base-only).
    */
   acceptsTravel?: boolean;
+  /**
+   * Skip-taught kinds (P8.9): venue kinds this tenant has skipped 2+ times
+   * with WRONG_VIBE. Kind credit is halved and the card says so — rejections
+   * finally tune the matching instead of vanishing (computed in
+   * lib/venues/rescore.ts::downweightedKinds).
+   */
+  downweightKinds?: VenueKind[];
 };
 
 export type VenueScore = {
@@ -188,11 +195,19 @@ export function scoreVenue(
   const affinity = KIND_AFFINITY[venue.kind];
   const genreFit = tagsOverlap(profile.genres, affinity.genres);
   const eventFit = tagsOverlap(profile.eventTypes, affinity.eventTypes);
+  // Skip-taught downweight (P8.9): halve whatever kind credit this venue
+  // earns when the tenant keeps skipping this kind as "wrong vibe" — and say
+  // so, visibly, so rejections read as training instead of nagging.
+  const downweighted = profile.downweightKinds?.includes(venue.kind) ?? false;
+  const kindCredit = downweighted ? 0.5 : 1;
+  if (downweighted) {
+    reasons.push(`You've skipped ${KIND_LABEL[venue.kind].toLowerCase()}s before — showing fewer`);
+  }
   if (genreFit) {
-    score += W_KIND;
+    score += W_KIND * kindCredit;
     reasons.push(`${KIND_LABEL[venue.kind]} — your sound fits the room`);
   } else if (eventFit) {
-    score += W_KIND / 2;
+    score += (W_KIND / 2) * kindCredit;
     reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you play`);
   } else if (venue.kind === "OTHER") {
     caution ??= "Venue type unclear — may not host live acts";

@@ -9,10 +9,12 @@ const mockDb = vi.hoisted(() => ({
 const mockAutoDraft = vi.hoisted(() => vi.fn());
 const mockNotify = vi.hoisted(() => vi.fn());
 const mockFollowUps = vi.hoisted(() => vi.fn());
+const mockRescore = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("@/lib/discovery/scan", () => ({ runDiscoveryScan: vi.fn() }));
 vi.mock("@/lib/venues/auto-draft", () => ({ autoDraftPitches: mockAutoDraft }));
 vi.mock("@/lib/venues/follow-up", () => ({ draftHotFollowUps: mockFollowUps }));
+vi.mock("@/lib/venues/rescore", () => ({ rescoreVenues: mockRescore }));
 vi.mock("@/lib/notify", () => ({ notifyBusiness: mockNotify }));
 
 import { GET } from "@/app/api/cron/discovery/route";
@@ -46,6 +48,7 @@ beforeEach(() => {
   mockDb.opsStamp.upsert.mockResolvedValue({});
   mockAutoDraft.mockResolvedValue({ attempted: 1, created: 1, stoppedBy: null });
   mockFollowUps.mockResolvedValue({ drafted: 0 });
+  mockRescore.mockResolvedValue({ rescored: 0, arcedToWarm: 0 });
   mockNotify.mockResolvedValue(undefined);
   scanMock.mockImplementation(async (id: string) => ranResult(id));
 });

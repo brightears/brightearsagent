@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { ActivationChecklist } from "@/components/activation-checklist";
+import { ReceiptsStrip } from "@/components/receipts-strip";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
@@ -241,6 +242,10 @@ export default async function Dashboard({
           </>
         }
       />
+
+      {/* Receipts first (P8.7): what the agent did in the last 24h, in plain
+          words — proof of work before any stats. Hidden on quiet days. */}
+      <ReceiptsStrip businessId={tenant.id} />
 
       {/* ONE activation surface (audit C4, recut 2026-07): profile+voice, home
           city, leads, plan — in order, one primary CTA. Hidden once live. */}
