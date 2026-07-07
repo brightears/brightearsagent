@@ -165,6 +165,17 @@ export default async function LeadDetailPage({
           >
             Press kit (PDF)
           </a>
+          {/* Gig brief (P11.3): booked leads only — the one-pager for the day. */}
+          {lead.status === "BOOKED" && (
+            <a
+              href={`/api/gig-brief/${lead.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
+            >
+              Gig brief (PDF)
+            </a>
+          )}
         </div>
 
         {lead.spamReason && (
