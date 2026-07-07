@@ -1,11 +1,13 @@
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
-import { meterState } from "@/lib/billing/metering";
+import { meterState, isAgentPaused } from "@/lib/billing/metering";
+import { notifyBusiness } from "@/lib/notify";
 
 export interface TickResult {
   expiredDrafts: number;
   backfilledRuns: number;
   redraftedLeads: number;
+  agingPings: number;
   stepsFired: number;
   exhausted: number;
   skipped: number;
@@ -24,7 +26,7 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
-  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
+  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, agingPings: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
 
   // 1. Expire stale drafts.
   const expired = await db.draft.updateMany({
@@ -32,6 +34,30 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     data: { status: "EXPIRED", decidedAt: now },
   });
   result.expiredDrafts = expired.count;
+
+  // 1a. Draft-aging re-ping (P4.3): ONE "still waiting" nudge per draft, ever,
+  // once it's sat unapproved ~4h — one ping at creation was fragile for people
+  // who work nights, and more than two would be spam. The stamp is written
+  // FIRST so an overlapping tick can't double-ping. Paused tenants are
+  // stamped-but-silent (their standing state lives on the dashboard).
+  const AGING_MS = 4 * 3600 * 1000;
+  const aging = await db.draft.findMany({
+    where: { status: "PENDING", agingPingAt: null, createdAt: { lt: new Date(now.getTime() - AGING_MS) } },
+    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true } } } } },
+    take: 50,
+  });
+  for (const draft of aging) {
+    await db.draft.update({ where: { id: draft.id }, data: { agingPingAt: now } });
+    if (isAgentPaused(draft.lead.business.plan)) continue;
+    const hours = Math.round((now.getTime() - draft.createdAt.getTime()) / 3600_000);
+    void notifyBusiness(draft.lead.business, {
+      title: `Still waiting: ${draft.lead.clientName ?? "a lead"}`,
+      body: `A reply has been ready for ${hours}h — one tap sends it.`,
+      url: `/dashboard/leads/${draft.leadId}`,
+      emailBody: `A drafted reply for ${draft.lead.clientName ?? "a lead"} has been waiting ${hours} hours for your approval.\n\nSpeed wins these — one tap and it goes out in your voice.`,
+    }).catch(() => null);
+    result.agingPings++;
+  }
 
   // 1b. Redraft sweep: leads that should have a reply draft waiting but don't —
   // capped-then-upgraded leads, leads whose webhook-time draft threw, or leads

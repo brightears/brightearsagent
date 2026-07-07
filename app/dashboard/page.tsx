@@ -61,6 +61,11 @@ function fmtDate(d: Date | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Whole hours between a timestamp and the page's render clock. */
+function hoursSince(d: Date, now: Date) {
+  return Math.floor((now.getTime() - d.getTime()) / 3600_000);
+}
+
 // Hunt-feed statuses: the proactive cards still awaiting action. Everything
 // from PITCHED onward lives in the reply/pipeline flow, not the rail.
 const HUNT_STATUSES = [
@@ -88,6 +93,7 @@ export default async function Dashboard({
         venue: true,
         status: true,
         bookedAt: true,
+        updatedAt: true, // aging chip: DRAFTED-at time proxy (P4.3)
       },
     }),
     db.lead.count({ where: { businessId: tenant.id, status: "SPAM" } }),
@@ -359,6 +365,14 @@ export default async function Dashboard({
                         </p>
                         {lead.venue && (
                           <p className="mt-0.5 text-xs text-ink-stage/45">{lead.venue}</p>
+                        )}
+                        {/* Aging nudge (P4.3): a reply that's sat ≥4h is a gig
+                            leaking away — the median-response stat the weekly
+                            report sells depends on these getting tapped. */}
+                        {status === "DRAFTED" && hoursSince(lead.updatedAt, now) >= 4 && (
+                          <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-neon-orange">
+                            waiting {hoursSince(lead.updatedAt, now)}h
+                          </p>
                         )}
                       </Link>
                     </li>

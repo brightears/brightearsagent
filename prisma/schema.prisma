@@ -305,6 +305,10 @@ model Draft {
   // price? Drives the attach prompts + auto-attach autonomy.
   wantsProfile Boolean     @default(false)
   wantsQuote   Boolean     @default(false)
+  // Draft-aging re-ping (P4.3, July 2026): stamped when the one-and-only
+  // "still waiting" nudge went out, ~4h after the draft was created. One push
+  // per draft was fragile for people who work nights; more than two is spam.
+  agingPingAt  DateTime?
   message      Message?
 
   @@index([leadId, status])

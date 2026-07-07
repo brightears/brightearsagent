@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { Badge, Card, EmptyState, LEAD_STATUS_META, PageHeader, StatPill } from "@/components/ui";
 import { DraftReview } from "@/components/draft-review";
+import { PushPrompt } from "@/components/push-prompt";
 import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
@@ -192,6 +193,9 @@ export default async function LeadDetailPage({
 
         {pendingDraft && (
           <section>
+            {/* First-value ask (P4.2): the artist is looking at a ready draft —
+                THE moment enabling the ping is obviously worth it. */}
+            <PushPrompt />
             <DraftReview
               draftId={pendingDraft.id}
               leadId={lead.id}

@@ -8,8 +8,8 @@ import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { sendDraftReply } from "@/lib/agent/send-reply";
 import { meterState } from "@/lib/billing/metering";
 import { canAutoSend } from "@/lib/inbound/auto-send";
-import { pushToBusiness } from "@/lib/push";
 import { notifyBusiness } from "@/lib/notify";
+import { reportError } from "@/lib/report-error";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -104,6 +104,16 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
       throw err;
     }
+    // A prospect writing back is the closest thing to money in the pipeline —
+    // that moment used to be silent (audit 2026-07). Dual-channel, always.
+    // (Drafting the mid-thread answer lands with the continue-conversation
+    // task mode — P10.8; until then the artist replies from the thread view.)
+    void notifyBusiness(business, {
+      title: `They wrote back: ${existing.clientName ?? "a lead"}`,
+      body: email.subject || "Open the thread to reply while it's hot.",
+      url: `/dashboard/leads/${existing.id}`,
+      emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered). Open the thread and reply while it's hot.`,
+    }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
   }
 
@@ -192,11 +202,26 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   if (!isSpam) {
     const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
     if (meter.overCap) {
-      void pushToBusiness(business.id, {
-        title: "Lead cap reached",
-        body: `${meter.used}/${meter.cap} leads this month — new inquiries are waiting. Upgrade to keep replies flowing.`,
-        url: "/dashboard/settings#billing",
-      }).catch(() => null);
+      // Transition-triggered only (audit 2026-07: this fired on EVERY lead) —
+      // and the copy tells the truth per state. For a subscribed tenant the
+      // cap-crossing lead is the strongest possible upgrade evidence; for an
+      // unsubscribed one, the first inquiry of the month is the activation
+      // nudge. Both dual-channel; repeats stay silent (the dashboard banner
+      // and checklist carry the standing state).
+      const subscribed = !!business.stripeSubscriptionId;
+      const justCrossed = subscribed ? meter.used === meter.cap + 1 : meter.used === 1;
+      if (justCrossed) {
+        void notifyBusiness(business, {
+          title: subscribed ? "Your agent hit this month's cap" : "A new inquiry is waiting",
+          body: subscribed
+            ? `It answered ${meter.cap} inquiries this month — new ones are waiting. Upgrade to keep replies flowing.`
+            : "Subscribe and your agent answers it in your voice — usually within minutes.",
+          url: "/dashboard/settings#billing",
+          emailBody: subscribed
+            ? `Your agent answered ${meter.cap} inquiries this month — and more are arriving. Drafting is paused (never a surprise bill); one tap and the next tier keeps replies flowing.`
+            : "An inquiry just arrived at your lead address. Your agent is set up and paused — subscribe and it answers this one, and every one after, in your voice.",
+        }).catch(() => null);
+      }
     } else if (canAutoSend(business.plan, business.autoSendSources, parsed.source)) {
       // Auto-send autonomy (Pro+ tier capability): draft AND send without waiting
       // for approval, but ONLY from a source the owner trusts (and never a
@@ -211,17 +236,36 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           if (!draftId) return; // deduped / closed — nothing to send
           // autoAttach: honor the artist's auto-attach toggles + detected intent.
           const res = await sendDraftReply({ draftId, businessId: business.id, autoAttach: true });
-          await pushToBusiness(business.id, {
-            title: res.ok
-              ? `Auto-replied: ${clientName ?? "new lead"}`
-              : `Reply ready: ${clientName ?? "new lead"}`,
-            body: res.ok
-              ? "Sent in your voice — tap to view the thread."
-              : "Tap to review and send.",
+          if (res.ok) {
+            // Informational receipt — push only. Emailing the owner for every
+            // reply the agent sent on its own would defeat the point of
+            // autonomy (the weekly report totals these).
+            await notifyBusiness(business, {
+              title: `Auto-replied: ${clientName ?? "new lead"}`,
+              body: "Sent in your voice — tap to view the thread.",
+              url: `/dashboard/leads/${leadId}`,
+              pushOnly: true,
+            }).catch(() => null);
+          } else {
+            // Blocked send degrades to a normal approval — that's action
+            // needed, so it goes dual-channel like every "Reply ready".
+            await notifyBusiness(business, {
+              title: `Reply ready: ${clientName ?? "new lead"}`,
+              body: "Auto-send was blocked for this one — tap to review and send.",
+              url: `/dashboard/leads/${leadId}`,
+            }).catch(() => null);
+          }
+        } catch (err) {
+          // Background failure used to vanish into console.error (audit
+          // 2026-07): now the founder hears about it (rate-limited ops alert)
+          // AND the owner gets the normal action ping — the draft, if it was
+          // created, is sitting in PENDING either way.
+          void reportError(err, { kind: "auto-send", businessId: business.id, leadId });
+          await notifyBusiness(business, {
+            title: `New inquiry needs you: ${clientName ?? "new lead"}`,
+            body: "The automatic reply didn't go out — tap to review.",
             url: `/dashboard/leads/${leadId}`,
           }).catch(() => null);
-        } catch (err) {
-          console.error(`auto-send failed for lead ${leadId}`, err);
         }
       })();
     } else {
