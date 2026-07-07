@@ -9,7 +9,8 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P1–P4 COMPLETE** · next: P5 (billing edges: webhook out-of-order guard, dup-subscription guard, portal deep-links, plan ladder, plan-param funnel)
+- Current phase: **P1–P5 COMPLETE** · next: P6 (honesty + marketing sweep — the big copy phase)
+- Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
@@ -69,13 +70,13 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P5 — Billing edges (launch-blocker #6)
 
-- [ ] 5.1 `subscription.updated` out-of-order guard (skip pause when `sub.id !== business.stripeSubscriptionId`; re-retrieve sub for live statuses). Tests incl. the abandoned-then-retried checkout scenario. (`lib/billing/webhook.ts:112-118`)
+- [x] 5.1 `updated` out-of-order guard + re-retrieve (orphan can't pause a paying tenant; stale active can't resurrect a dead plan). Regression tests for both. *(e3a3189)*
 - [ ] 5.2 `startCheckout` already-subscribed guard → portal redirect instead of second subscription. (`app/actions/billing.ts:29`)
-- [ ] 5.3 Stripe portal deep-link flows (`flow_data: subscription_update_confirm`) so at-cap "Upgrade" is genuinely one tap; portal configuration scripted in `stripe-setup.ts` (idempotent), incl. webhook-endpoint creation + printed cutover checklist (for later live run).
-- [ ] 5.4 Plan ladder visible to subscribed users in the billing card (current tier marked, effort-axis framing).
-- [ ] 5.5 Carry chosen plan pricing → onboarding → checkout (query param; terminal wizard step opens checkout for that plan).
-- [ ] 5.6 TRIAL plan features fail closed (leadCap 0 / autoSend false / homeCityCap 1) + settings meter shows "subscribe to activate". (`lib/billing/plan-features.ts:32`)
-- [ ] 5.7 At-cap push: transition-triggered only, copy branches subscribed vs not; add the cap-hit **sales email** ("N answered, M waiting — upgrade").
+- [x] 5.3 openPlanChange deep-links subscription_update_confirm (proration shown, one confirm); stripe-setup.ts upserts portal config (RAN in test mode — STRIPE_PORTAL_CONFIG in .env.local) + optional --with-webhook endpoint registration + founder checklist print. *(211cae0)*
+- [x] 5.4 Plan ladder for subscribers (current marked, Upgrade/Switch one-tap); blurbs recut to enforced claims, "inquiries" vocabulary. *(351222a)*
+- [x] 5.5 ?plan= rides pricing → sign-up → wizard; step-5 finale opens checkout for exactly that plan. *(351222a)*
+- [x] 5.6 TRIAL fails closed (0 / false / 1); stale mirror-PRO rationale removed; contract tests updated. *(25a3290)*
+- [x] 5.7 Done in P4.1 (transition-only, state-branched copy, dual-channel sales email). *(36732aa)*
 
 ## P6 — Honesty + marketing sweep (launch-blockers #4, #7 + copy recs)
 
