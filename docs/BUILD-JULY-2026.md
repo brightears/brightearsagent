@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P12 DONE** (all 9 — the every-artist engine is real) — next: P13 Studio minimal roster (start at 13.1)
+- Current phase: **P13 DONE** (roster CRUD + per-performer visibility + rosterCap + claims restored in one commit) — next: P14 security mediums
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 516/516 tests · build OK · live draft eval 19/19
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 522/522 tests · build OK · live draft eval 19/19
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -171,10 +171,10 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P13 — Studio minimal roster (restores the recut claims honestly)
 
-- [ ] 13.1 Performer CRUD in Control Room (add/edit/deactivate performer; kind + name).
-- [ ] 13.2 Gigs taggable to a performer (calendar assignment UI exists per Phase-3 build — verify + surface); availability engine already multi-performer.
-- [ ] 13.3 Inbound draft availability uses per-performer free/partial logic visibly ("DJ Nok is free; Mai has a wedding").
-- [ ] 13.4 THEN restore Studio multi-performer claims across pricing/comparisons/settings/llms.txt/Stripe catalog — claims and code ship in the same commit. plan-features gains `rosterCap` (Starter 1 / Pro 1 / Studio N) enforced at save.
+- [x] 13.1 Roster section in Control room: add/rename/re-kind/deactivate-reactivate (history kept, tenant-scoped). *(1f2018f)*
+- [x] 13.2 Verified existing: gig form performer select + chip render + multi-performer availability engine — surfaced as-is. *(1f2018f)*
+- [x] 13.3 Lead page roster-on-the-date strip (2+ active performers + a date): "Nok — free · Mai — booked (title)"; client copy still never names names. *(1f2018f)*
+- [x] 13.4 rosterCap 1/1/1/10 in plan-features (enforced at save AND reactivation, tested); Studio claims restored (pricing feature+FAQ, plan card, Stripe catalog) in the SAME commit as enforcement. *(1f2018f)*
 
 ## P14 — Security mediums (pre-cutover hardening)
 
