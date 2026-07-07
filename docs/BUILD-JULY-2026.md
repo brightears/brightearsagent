@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P8 in progress — 8.1–8.5 DONE · next: 8.6 weekly report v2, 8.7 receipts strip, 8.8 feed hygiene, 8.9 skip tuning
+- Current phase: **P8 COMPLETE — the agent acts** · next: P9 (the 30-second phone habit)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
@@ -120,10 +120,10 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 8.3 Reply capture live: Reply-To = parse address; first venue reply → ENGAGED Lead (VENUE_OUTREACH, Lead.venueId) in the existing close pipeline; later replies ride normal reply-match; venue REPLIED/IN_CONVERSATION + repliedAt (10.9 measurable); dual-channel "venue wrote back" ping. Drafted RESPONSE deferred to 10.8's continue-thread mode (noted at 8.x). *(20e114b)*
 - [x] 8.4 Deterministic HOT bump at +6d (one ever, STANDARD-only, PITCHED-only, HOT cap counted; migration hot_follow_up), rides the daily tick + digest. *(committed this iteration)*
 - [x] 8.5 Sequence steps auto-send on Pro/Studio trusted sources via sendDraftReply; receipts pushOnly, failures degrade to PENDING + dual ping. *(committed this iteration)*
-- [ ] 8.6 **Weekly report v2:** Hunt numbers (cities scanned, venues found, pitches sent, replies, booked) + big-number scannable format, no emoji, "N drafts waiting" action line.
-- [ ] 8.7 **Receipts strip** on dashboard home: "While you were away — scanned 2 cities, found 3 venues, drafted 2 pitches", each deep-linking.
-- [ ] 8.8 Feed hygiene: re-score all non-suppressed venues each scan (pure function, free), stale-HOT auto-arc (opening decided → WARM/archive), monthly query-template rotation.
-- [ ] 8.9 Skip reasons tune matching (cheap rules: 2+ WRONG_VIBE on a kind → downweight; repeated TOO_FAR in a city → radius note) + visible acknowledgment ("Got it — fewer hotel lobbies").
+- [x] 8.6 Report v2: INQUIRIES/THE HUNT/IN MOTION/BOOKED big-line layout, venue replies counted, one action line, hunt-only weeks report. *(this iteration)*
+- [x] 8.7 ReceiptsStrip (last-24h proof of work, timestamp-derived, hidden on quiet days) above the checklist. *(this iteration)*
+- [x] 8.8 rescoreVenues on every scan + 60d stale-HOT→WARM arc, ordered BEFORE auto-draft. Template rotation folds into P12.1's battery rewrite. *(this iteration)*
+- [x] 8.9 downweightedKinds (2+ WRONG_VIBE) halves kind credit with the visible 'skipped rooms like this before' reason, applied in the rescore pass. TOO_FAR/radius rule deferred (homeRadiusKm is still advisory). *(this iteration)*
 
 ## P9 — The 30-second phone habit (Theme B)
 
