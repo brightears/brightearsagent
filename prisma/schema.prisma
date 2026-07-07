@@ -505,6 +505,12 @@ model VenuePitch {
   body       String // clean editable copy — the jurisdiction footer is NEVER stored here
   language   String           @default("en")
   status     VenuePitchStatus @default(PENDING)
+  // HOT follow-up (P8.4): the one polite bump ~6 days after a HOT pitch went
+  // out unanswered. Self-relation: a child pitch points at the pitch it bumps;
+  // "no follow-up yet" = no child exists. WARM/SEED never get one (10.2c law).
+  followUpOfId String?
+  followUpOf   VenuePitch?  @relation("PitchFollowUp", fields: [followUpOfId], references: [id], onDelete: SetNull)
+  followUps    VenuePitch[] @relation("PitchFollowUp")
   // 10.2c: temperature SNAPSHOT at draft time — drives the daily caps count
   // (lib/outreach/caps.ts) and the sequencing guard: WARM/SEED pitches must
   // NEVER enter any follow-up sequence (one polite intro is the whole play).

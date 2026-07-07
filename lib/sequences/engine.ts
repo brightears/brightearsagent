@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { sendDraftReply } from "@/lib/agent/send-reply";
+import { canAutoSend } from "@/lib/inbound/auto-send";
 import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
@@ -117,7 +119,17 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     where: { stoppedAt: null, nextRunAt: { lte: now } },
     orderBy: { nextRunAt: "asc" },
     take: 200,
-    include: { template: true, lead: { include: { drafts: { where: { status: "PENDING" } } } } },
+    include: {
+      template: true,
+      lead: {
+        include: {
+          drafts: { where: { status: "PENDING" } },
+          // Autopilot (P8.5): plan + trusted sources decide whether this
+          // step SENDS or waits for approval.
+          business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true } },
+        },
+      },
+    },
   });
 
   for (const run of due) {
@@ -154,9 +166,39 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // A transient draft failure must not abort the whole tick (starving every
     // other tenant's runs) — isolate it; the run's nextRunAt is left in the past
     // so the next tick retries this lead.
+    //
+    // AUTOPILOT (P8.5): on Pro/Studio, follow-ups to sources the owner
+    // explicitly trusts SEND on their own — the same compliance-hardened
+    // sendDraftReply the approve button uses (footer at send, opt-out and
+    // terminal hard-stops enforced at the boundary; GigSalad never eligible
+    // via canAutoSend, rule 4). "Runs until booked-or-dead" finally means
+    // RUNS, not "drafts and waits". A blocked/failed send degrades to the
+    // normal PENDING draft + action ping — nothing is ever lost.
+    const autopilot = canAutoSend(lead.business.plan, lead.business.autoSendSources, lead.source);
     try {
-      // Draft follow-up #nextStep (lands as PENDING + push to the owner's phone).
-      await generateDraftForLead(lead.id, nextStep);
+      const draftId = await generateDraftForLead(lead.id, nextStep, { suppressPush: autopilot });
+      if (autopilot && draftId) {
+        const sent = await sendDraftReply({
+          draftId,
+          businessId: lead.business.id,
+          autoAttach: true,
+        });
+        void notifyBusiness(
+          lead.business,
+          sent.ok
+            ? {
+                title: `Follow-up sent: ${lead.clientName ?? "a lead"}`,
+                body: `Step ${nextStep} went out in your voice — tap to view the thread.`,
+                url: `/dashboard/leads/${lead.id}`,
+                pushOnly: true, // informational receipt; the weekly report totals these
+              }
+            : {
+                title: `Follow-up ready: ${lead.clientName ?? "a lead"}`,
+                body: "Auto-send was blocked for this one — tap to review and send.",
+                url: `/dashboard/leads/${lead.id}`,
+              },
+        ).catch(() => null);
+      }
     } catch (err) {
       void reportError(err, { kind: "sequence-step", leadId: lead.id, step: nextStep });
       result.skipped++;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
 import { autoDraftPitches } from "@/lib/venues/auto-draft";
+import { draftHotFollowUps } from "@/lib/venues/follow-up";
 import { notifyBusiness } from "@/lib/notify";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCron } from "@/lib/ops-stamp";
@@ -77,7 +78,10 @@ export async function GET(req: NextRequest) {
       const business = await db.business.findUnique({ where: { id: b.id } });
       if (business) {
         const drafted = await autoDraftPitches(business);
-        pitchesDrafted = drafted.created;
+        // The one polite HOT bump (P8.4) rides the same daily tick — its
+        // drafts join the approve queue and the digest below.
+        const bumps = await draftHotFollowUps(business);
+        pitchesDrafted = drafted.created + bumps.drafted;
         if (pitchesDrafted > 0 || venuesCreated > 0) {
           const pendingPitches = await db.venuePitch.count({
             where: { businessId: b.id, status: "PENDING" },
