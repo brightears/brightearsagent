@@ -263,7 +263,10 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/onboarding"
+                  // The chosen plan rides the whole funnel (P5.5): sign-up →
+                  // wizard → the step-5 finale opens checkout for THIS plan,
+                  // so nobody re-decides at the activation moment.
+                  href={`/onboarding?plan=${plan.name.toLowerCase()}`}
                   className={`mt-8 block rounded-full text-center font-bold px-4 py-3 transition-opacity ${
                     plan.highlighted
                       ? "bg-neon-magenta text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90"

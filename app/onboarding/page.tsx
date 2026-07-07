@@ -14,8 +14,18 @@ export const metadata: Metadata = {
 
 const wholeUnits = (cents: number | null) => (cents === null ? "" : String(cents / 100));
 
-export default async function OnboardingPage() {
+const CHOSEN_PLANS = { starter: "STARTER", pro: "PRO", studio: "STUDIO" } as const;
+
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
   const business = await getCurrentBusiness();
+  // The plan the visitor picked on the pricing page rides the funnel (P5.5) —
+  // the step-5 finale opens checkout for it directly. Unknown values drop.
+  const { plan } = await searchParams;
+  const chosenPlan = plan ? (CHOSEN_PLANS[plan.toLowerCase() as keyof typeof CHOSEN_PLANS] ?? null) : null;
 
   // Resume heuristic (June 2026): step 2 is now the artist PROFILE, so its
   // completion is what tells us how far the user got — genres + a one-liner +
@@ -53,6 +63,7 @@ export default async function OnboardingPage() {
   return (
     <OnboardingWizard
       initialStep={initialStep}
+      chosenPlan={chosenPlan}
       business={{
         slug: business.slug,
         // The provisioning default ("Norbert's Business") is not a stage name —

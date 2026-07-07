@@ -27,6 +27,7 @@ import {
   saveBusinessBasics,
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
+import { startCheckout } from "@/app/actions/billing";
 import { buttonStyles, BrightEarsLogo, Card, CheckMark as UiCheckMark } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
@@ -1465,6 +1466,7 @@ function StepConnect({
   tookTooLong,
   licenseReady,
   forwardingConfirm,
+  chosenPlan,
   onBack,
 }: {
   leadAddress: string;
@@ -1475,9 +1477,12 @@ function StepConnect({
   licenseReady: boolean;
   /** Gmail's forwarding-approval link/code, once its verification email landed. */
   forwardingConfirm: { url: string | null; code: string | null } | null;
+  /** Plan picked on the pricing page — the finale opens checkout for it. */
+  chosenPlan: "STARTER" | "PRO" | "STUDIO" | null;
   onBack: () => void;
 }) {
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
+  const [checkoutPending, setCheckoutPending] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -1584,12 +1589,30 @@ function StepConnect({
               </>
             )}
           </p>
-          <Link
-            href="/dashboard/settings#billing"
-            className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
-          >
-            Choose your plan →
-          </Link>
+          {chosenPlan ? (
+            // They already chose on the pricing page — open checkout for that
+            // plan directly; no re-deciding at the activation moment (P5.5).
+            <button
+              type="button"
+              disabled={checkoutPending}
+              onClick={() => {
+                setCheckoutPending(true);
+                void startCheckout(chosenPlan).catch(() => setCheckoutPending(false));
+              }}
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {checkoutPending
+                ? "Opening checkout…"
+                : `Activate ${chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()} →`}
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/settings#billing"
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
+            >
+              Choose your plan →
+            </Link>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
@@ -1709,11 +1732,14 @@ export function OnboardingWizard({
   business,
   initialProfile,
   uploadsEnabled,
+  chosenPlan = null,
 }: {
   initialStep: number;
   business: WizardBusiness;
   initialProfile: WizardProfile;
   uploadsEnabled: boolean;
+  /** Plan picked on the pricing page — the finale opens checkout for it (P5.5). */
+  chosenPlan?: "STARTER" | "PRO" | "STUDIO" | null;
 }) {
   const [step, setStep] = useState(() =>
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
@@ -1932,6 +1958,7 @@ export function OnboardingWizard({
               tookTooLong={tookTooLong}
               licenseReady={licenseReady}
               forwardingConfirm={forwardingConfirm}
+              chosenPlan={chosenPlan}
               onBack={() => goTo(3)}
             />
           )}

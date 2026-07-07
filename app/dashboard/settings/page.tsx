@@ -24,7 +24,7 @@ import { AutoSendCard } from "@/components/auto-send-card";
 import { AttachmentAutonomyCard } from "@/components/attachment-autonomy-card";
 import { ControlRoomNav, type ControlRoomSection } from "@/components/control-room-nav";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
-import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
+import { startCheckout, openBillingPortal, openPlanChange, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
 import { planFeatures } from "@/lib/billing/plan-features";
 import { profileStrength } from "@/lib/profile/strength";
@@ -44,12 +44,17 @@ const SECTIONS: ControlRoomSection[] = [
 ];
 
 // ADR-003 tier recut: every plan is the complete assistant — blurbs gate
-// capacity/autonomy (leads, performers, autopilot, team), never capability.
+// capacity/autonomy (inquiries, autonomy, cities), never capability. Every
+// claim here is enforced via lib/billing/plan-features.ts; multi-performer/
+// team claims return only when the roster ships (P13).
 const PLAN_CARDS = [
-  { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues for you + answers leads · ${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer` },
-  { plan: "PRO" as const, price: "$79", blurb: `Same engine, more headroom · ${PLAN_LEAD_CAPS.PRO} leads/mo · auto-send autopilot` },
-  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine for the roster · ${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
+  { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues + answers inquiries · ${PLAN_LEAD_CAPS.STARTER} inquiries/mo · you approve every send` },
+  { plan: "PRO" as const, price: "$79", blurb: `Same engine, working harder · ${PLAN_LEAD_CAPS.PRO} inquiries/mo · auto-send autopilot · hunts 3 cities` },
+  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine at full stretch · ${PLAN_LEAD_CAPS.STUDIO} inquiries/mo · auto-send · hunts all your cities` },
 ];
+
+/** Ladder position for upgrade-vs-switch button labels. */
+const PLAN_RANK = { STARTER: 0, PRO: 1, STUDIO: 2 } as const;
 
 /** A Control Room section: ink-canvas heading + intro, then its card(s). */
 function Section({
@@ -175,7 +180,7 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
           off still sees that drafting paused and how to fix it. */}
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-ink-stage/60">
-          <span>Leads this month</span>
+          <span>Inquiries this month</span>
           <span className="font-mono font-semibold text-ink-stage/75">
             {meter.used} / {meter.cap}
           </span>
@@ -196,12 +201,57 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
       {!state.enabled ? (
         <p className="text-sm text-ink-stage/60">Billing isn&apos;t configured in this environment yet.</p>
       ) : state.subscribed ? (
-        <form action={openBillingPortal}>
-          <p className="text-sm text-ink-stage/60 mb-3">
-            Manage your payment method, change plans, or cancel — no emails, no hoops.
+        // The ladder stays visible after subscribing (audit 2026-07): upgrades
+        // are the only revenue-expansion path, and "how hard the AI works" is
+        // the axis — turning the machine up should always be one tap away.
+        <div>
+          <p className="text-sm text-ink-stage/60 mb-5">
+            Turn the machine up or down anytime — plan switches prorate automatically and apply on
+            one confirm. Payment method, invoices and cancelling live under Manage billing.
           </p>
-          <button className={buttonStyles.secondaryOnLight}>Manage billing</button>
-        </form>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {PLAN_CARDS.map((p) => {
+              const current = p.plan === state.plan;
+              const upgrade =
+                state.plan in PLAN_RANK &&
+                PLAN_RANK[p.plan] > PLAN_RANK[state.plan as keyof typeof PLAN_RANK];
+              return (
+                <form
+                  key={p.plan}
+                  action={current ? openBillingPortal : openPlanChange.bind(null, p.plan)}
+                  className={`relative flex flex-col gap-2 rounded-2xl bg-cream p-5 ${
+                    current ? "ring-2 ring-brand-cyan" : ""
+                  }`}
+                >
+                  {current && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      <Badge tone="cyan">Your plan</Badge>
+                    </div>
+                  )}
+                  <div className="font-bold text-ink-stage">
+                    {p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}
+                  </div>
+                  <div className="text-3xl font-extrabold tracking-tight text-ink-stage">
+                    {p.price}
+                    <span className="text-sm font-normal text-ink-stage/50">/mo</span>
+                  </div>
+                  <div className="text-xs text-ink-stage/60 flex-1">{p.blurb}</div>
+                  <button
+                    className={
+                      current
+                        ? buttonStyles.secondaryOnLight
+                        : upgrade
+                          ? buttonStyles.primary
+                          : buttonStyles.secondaryOnLight
+                    }
+                  >
+                    {current ? "Manage billing" : upgrade ? "Upgrade" : "Switch"}
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+        </div>
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
