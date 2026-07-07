@@ -8,6 +8,7 @@ const mockDb = vi.hoisted(() => ({
   message: { count: vi.fn() },
   venue: { count: vi.fn() },
   venuePitch: { count: vi.fn() },
+  gig: { aggregate: vi.fn() },
 }));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 
@@ -33,6 +34,10 @@ beforeEach(() => {
     Promise.resolve(where.sentAt?.gte ? 5 : 12),
   );
   mockDb.message.count.mockResolvedValue(8);
+  // Booked value (11.1): month window (lead.bookedAt gte) vs all-time.
+  mockDb.gig.aggregate.mockImplementation(({ where }: { where: { lead?: unknown } }) =>
+    Promise.resolve({ _sum: { value: where.lead ? 1500000 : 4200000 } }),
+  );
   // Three leads first-replied this month: 10, 50, 30 minutes → median 30.
   const base = new Date("2026-06-10T00:00:00Z").getTime();
   mockDb.lead.findMany.mockResolvedValue([
@@ -53,9 +58,11 @@ describe("computeResults", () => {
       venuesFound: 7,
       pitchesSent: 5,
       gigsBookedThisMonth: 1,
+      bookedValueThisMonth: 1500000,
       gigsBookedAllTime: 6,
       venuesFoundAllTime: 20,
       pitchesSentAllTime: 12,
+      bookedValueAllTime: 4200000,
     });
     expect(r.monthStart.toISOString()).toBe("2026-06-01T00:00:00.000Z");
   });
@@ -77,7 +84,9 @@ describe("hasResults", () => {
     monthStart: new Date(),
     newInquiries: 0, spamFiltered: 0, repliesSent: 0, medianFirstReplyMinutes: null,
     conversationsActive: 0, venuesFound: 0, pitchesSent: 0, gigsBookedThisMonth: 0,
+    bookedValueThisMonth: 0,
     gigsBookedAllTime: 0, venuesFoundAllTime: 0, pitchesSentAllTime: 0,
+    bookedValueAllTime: 0,
   };
   it("false for a brand-new account, true once anything happened", () => {
     expect(hasResults(empty)).toBe(false);

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
 import { reportError } from "@/lib/report-error";
+import { formatMinor } from "@/lib/quote/fee";
 
 export interface WeeklyNumbers {
   businessId: string;
@@ -11,6 +12,10 @@ export interface WeeklyNumbers {
   repliesSent: number;
   engaged: number;
   booked: number;
+  /** 11.1: sum of captured gig fees for the week (minor units); 0 = none captured. */
+  bookedValue: number;
+  /** The artist's own currency (Business.currency) for the value line. */
+  currency: string;
   inSequence: number;
   // The Hunt (P8.6 — the report used to cover only the reactive half, so the
   // agent's proactive week was invisible unless the artist opened the app):
@@ -27,7 +32,7 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
   const since = new Date(now.getTime() - WEEK);
   const business = await db.business.findUniqueOrThrow({ where: { id: businessId } });
 
-  const [leadsIn, spamFiltered, repliedLeads, repliesSent, engaged, booked, inSequence, venuesFound, pitchesSent, venueReplies, draftsWaiting] =
+  const [leadsIn, spamFiltered, repliedLeads, repliesSent, engaged, booked, inSequence, venuesFound, pitchesSent, venueReplies, draftsWaiting, bookedValue] =
     await Promise.all([
       db.lead.count({ where: { businessId, createdAt: { gte: since }, status: { not: "SPAM" } } }),
       db.lead.count({ where: { businessId, createdAt: { gte: since }, status: "SPAM" } }),
@@ -45,6 +50,12 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
       db.venuePitch.count({ where: { businessId, sentAt: { gte: since } } }),
       db.venue.count({ where: { businessId, repliedAt: { gte: since } } }),
       db.draft.count({ where: { status: "PENDING", lead: { businessId } } }),
+      db.gig
+        .aggregate({
+          _sum: { value: true },
+          where: { businessId, value: { not: null }, lead: { bookedAt: { gte: since } } },
+        })
+        .then((a) => a._sum.value ?? 0),
     ]);
 
   const replyMinutes = repliedLeads
@@ -63,6 +74,8 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
     repliesSent,
     engaged,
     booked,
+    bookedValue,
+    currency: business.currency,
     inSequence,
     venuesFound,
     pitchesSent,
@@ -93,7 +106,7 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
       `            ${replyLine}`,
       `THE HUNT    ${n.venuesFound} venues found · ${n.pitchesSent} pitches out · ${n.venueReplies} venue ${n.venueReplies === 1 ? "reply" : "replies"}`,
       `IN MOTION   ${n.engaged} conversations going · ${n.inSequence} in automatic follow-up`,
-      `BOOKED      ${n.booked}`,
+      `BOOKED      ${n.booked}${n.bookedValue > 0 ? ` — worth ${formatMinor(n.bookedValue, n.currency)}` : ""}`,
       ``,
       n.draftsWaiting > 0
         ? `${n.draftsWaiting} draft${n.draftsWaiting === 1 ? " is" : "s are"} waiting for your tap: ${process.env.APP_URL ?? "http://localhost:3000"}/dashboard`

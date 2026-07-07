@@ -7,6 +7,7 @@ import { DraftReview } from "@/components/draft-review";
 import { PushPrompt } from "@/components/push-prompt";
 import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
 import { holdScheduledSend } from "@/app/actions/drafts";
+import { computeQuote } from "@/lib/quote/compute";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -61,14 +62,34 @@ export default async function LeadDetailPage({
   const { id } = await params;
   const business = await getCurrentBusiness();
 
-  const lead = await db.lead.findFirst({
-    where: { id, businessId: business.id },
-    include: {
-      messages: { orderBy: { createdAt: "asc" } },
-      drafts: { where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 1 },
-    },
-  });
+  const [lead, activePackages] = await Promise.all([
+    db.lead.findFirst({
+      where: { id, businessId: business.id },
+      include: {
+        messages: { orderBy: { createdAt: "asc" } },
+        drafts: { where: { status: "PENDING" }, orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    }),
+    db.package.findMany({
+      where: { businessId: business.id, active: true },
+      select: { name: true, description: true, priceMin: true, priceMax: true, eventTypes: true },
+    }),
+  ]);
   if (!lead) notFound();
+
+  // 11.1 fee capture prefill: the same grounded quote engine that prices the
+  // PDF — package match, else the sweet spot/floor. Never per-night (a
+  // residency total is theirs to type), never invented.
+  const quote = computeQuote({
+    currency: business.currency,
+    feeFloor: business.feeFloor,
+    feeSweetSpot: business.feeSweetSpot,
+    residencyRate: business.residencyRate,
+    packages: activePackages,
+    eventType: lead.eventType,
+  });
+  const suggestedFeeMinor =
+    quote && !quote.perNight ? (quote.typicalAmount ?? quote.minAmount) : null;
 
   const pendingDraft = lead.drafts[0];
   const tz = business.timezone;
@@ -262,13 +283,19 @@ export default async function LeadDetailPage({
                       inboxUrl: PLATFORM_INBOXES[lead.source] ?? null,
                     }
               }
+              feeCurrency={business.currency}
+              suggestedFeeMinor={suggestedFeeMinor}
             />
           </section>
         )}
 
         {!pendingDraft && !terminal && (
           <section>
-            <LeadOutcomeControls leadId={lead.id} />
+            <LeadOutcomeControls
+              leadId={lead.id}
+              feeCurrency={business.currency}
+              suggestedFeeMinor={suggestedFeeMinor}
+            />
           </section>
         )}
       </div>

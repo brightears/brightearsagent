@@ -136,10 +136,16 @@ export async function rejectDraft(draftId: string) {
   return { ok: true };
 }
 
-export async function markBooked(leadId: string) {
+export async function markBooked(leadId: string, feeMinor?: number) {
   const business = await getCurrentBusiness();
   const lead = await db.lead.findFirst({ where: { id: leadId, businessId: business.id } });
   if (!lead) return { ok: false, error: "lead not found" };
+  // 11.1 fee capture: optional, validated, minor units in the artist's own
+  // currency. Bad input degrades to "no value recorded" - never an error.
+  const value =
+    typeof feeMinor === "number" && Number.isInteger(feeMinor) && feeMinor > 0
+      ? Math.min(feeMinor, 1_000_000_000)
+      : null;
   await db.$transaction([
     db.lead.update({ where: { id: leadId }, data: { status: "BOOKED", bookedAt: new Date() } }),
     db.sequenceRun.updateMany({
@@ -154,6 +160,7 @@ export async function markBooked(leadId: string) {
               date: lead.eventDate,
               title: `${lead.clientName ?? "Client"} — ${lead.eventType ?? "event"}`,
               venue: lead.venue,
+              value,
               leadId,
             },
           }),

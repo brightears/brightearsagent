@@ -233,6 +233,10 @@ model Gig {
   endTime     String?
   title       String
   venue       String?
+  // 11.1 money-loop-lite: what the gig is worth, minor units in the artist's
+  // own currency (Business.currency). Captured optionally at "Mark booked" -
+  // powers booked-value receipts (Results, weekly report, ROI email).
+  value       Int?
   leadId      String?    @unique
   lead        Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
 

@@ -14,6 +14,7 @@ import {
 } from "@/app/actions/drafts";
 import { buttonStyles } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
+import { parseFeeToMinor } from "@/lib/quote/fee";
 
 // "Mark booked" is the celebration: ghost pill at rest, magenta→orange
 // gradient on hover (ink text — white fails contrast on the orange end).
@@ -37,6 +38,8 @@ export function DraftReview({
   autoAttachProfile = false,
   autoAttachQuote = false,
   platform = null,
+  feeCurrency = "USD",
+  suggestedFeeMinor = null,
 }: {
   draftId: string;
   leadId: string;
@@ -56,6 +59,9 @@ export function DraftReview({
    * "Approve & send" for Copy reply → open the platform → "I sent it there".
    */
   platform?: { name: string; inboxUrl: string | null } | null;
+  /** 11.1 fee capture: the artist's currency + a grounded prefill (quote). */
+  feeCurrency?: string;
+  suggestedFeeMinor?: number | null;
 }) {
   const router = useRouter();
   const [editedBody, setEditedBody] = useState(body);
@@ -65,6 +71,12 @@ export function DraftReview({
   // Pre-tick when the artist enabled auto-attach AND the client asked for it.
   const [attachPressKit, setAttachPressKit] = useState(autoAttachProfile && suggestPressKit);
   const [attachQuote, setAttachQuote] = useState(autoAttachQuote && suggestQuote);
+  // 11.1 fee capture: revealed by "Mark booked", prefilled from the grounded
+  // quote when one exists. Optional - blank still books.
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [fee, setFee] = useState(
+    suggestedFeeMinor != null ? String(suggestedFeeMinor / 100) : "",
+  );
 
   const busy = isPending || done;
 
@@ -137,7 +149,7 @@ export function DraftReview({
 
   const onBooked = () =>
     run(
-      () => markBooked(leadId),
+      () => markBooked(leadId, parseFeeToMinor(fee) ?? undefined),
       () => "Marked booked — follow-ups stopped and the gig is on your calendar.",
     );
 
@@ -313,14 +325,55 @@ export function DraftReview({
             Already settled this one outside the thread? Set the outcome — follow-ups stop
             instantly.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={onBooked} disabled={busy} className={bookedButtonStyle}>
-              Mark booked
-            </button>
-            <button type="button" onClick={onDead} disabled={busy} className={buttonStyles.danger}>
-              Mark dead
-            </button>
-          </div>
+          {bookingOpen ? (
+            <div className="space-y-2">
+              <label
+                htmlFor="booked-fee"
+                className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
+              >
+                Fee — optional, stays private ({feeCurrency})
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  id="booked-fee"
+                  inputMode="decimal"
+                  value={fee}
+                  onChange={(e) => setFee(e.target.value)}
+                  disabled={busy}
+                  placeholder="e.g. 15000"
+                  className="w-36 rounded-xl border border-ink-stage/15 bg-white px-3 py-2 text-base sm:text-sm text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
+                />
+                <button type="button" onClick={onBooked} disabled={busy} className={bookedButtonStyle}>
+                  Confirm booked
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBookingOpen(false)}
+                  disabled={busy}
+                  className="text-sm font-semibold text-ink-stage/45 transition-colors hover:text-ink-stage/70"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p className="text-[11px] text-ink-stage/50">
+                Powers your booked-value receipts — the client never sees it.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setBookingOpen(true)}
+                disabled={busy}
+                className={bookedButtonStyle}
+              >
+                Mark booked
+              </button>
+              <button type="button" onClick={onDead} disabled={busy} className={buttonStyles.danger}>
+                Mark dead
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
