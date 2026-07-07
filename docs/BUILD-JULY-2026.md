@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P10 nearly done — remaining: 10.3 autonomy graduation prompts, 10.4 'sending soon' 15-min buffer (next: 10.3)
+- Current phase: **P10 DONE** (all 11) — next: P11 money-loop-lite (start at 11.1)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 464/464 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 475/475 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -140,8 +140,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [x] 10.1 Evidence receipts: freshest 3 signals render as hostname provenance chips on Hunt cards (deduped per publication, summary on hover). *(7eb378a)*
 - [x] 10.2 WRONG_VIBE skip acks visibly: redirect to /dashboard?tuned=<kind>; strip says "now rank lower" (2+ skips, the real rescore threshold) or "skip one more". *(7eb378a)*
-- [ ] 10.3 **Autonomy graduation prompts** in the queue ("You approved 10 follow-ups untouched — auto-send these? [Yes] [Keep reviewing]") writing through the same Control Room setting (one-writer invariant).
-- [ ] 10.4 **"Sending soon" 15-min cancel buffer** on all autonomous sends (auto-send replies, autopilot follow-ups): visible holding state + Hold button; queue section lists upcoming sends.
+- [x] 10.3 Graduation prompts: 10 untouched approvals per source → queue offers auto-send; Yes posts THROUGH updateAutoSendSources (one writer); Keep reviewing remembered server-side (autoSendDeclinedSources migration). *(e57235a)*
+- [x] 10.4 Send buffer: Draft.scheduledSendAt (+15m, migration); pipeline + autopilot schedule instead of send; runScheduledSends fires first in the tick; Hold in NeedsYou (auto-sends in Nm) + lead-page strip; approve-early always wins (10.10 claim). *(5e09420)*
 - [x] 10.5 Contact confidence: Hunt autoDraft skips generic info@ (contactConfidence; named contact or events@/bookings@ = high) + card flag; reactive auto-send requires clientEmailGrounded (parser/sender/body-literal) + lead-page verify pill. *(cec121f)*
 - [x] 10.6 Spam folder /dashboard/spam behind the (now linked) pill: spamReason per row, one-tap rescue → NEW + draft + deep-link. *(1f69998)*
 - [x] 10.7 Speed stopwatch: median-first-reply pill in dashboard header (hidden when no data); math shared via medianReplyMinutes; weekly email already had it. *(1f69998)*
