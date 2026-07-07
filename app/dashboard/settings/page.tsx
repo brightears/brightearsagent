@@ -23,6 +23,7 @@ import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
 import { AutoSendCard } from "@/components/auto-send-card";
 import { AttachmentAutonomyCard } from "@/components/attachment-autonomy-card";
 import { ControlRoomNav, type ControlRoomSection } from "@/components/control-room-nav";
+import { RosterCard } from "@/components/roster-card";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
 import { startCheckout, openBillingPortal, openPlanChange, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
@@ -39,6 +40,7 @@ const SECTIONS: ControlRoomSection[] = [
   { id: "identity", label: "Identity" },
   { id: "profile", label: "Voice & profile" },
   { id: "hunt", label: "Where you hunt" },
+  { id: "roster", label: "Roster" },
   { id: "cadence", label: "Cadence" },
   { id: "connections", label: "Connections" },
   { id: "billing", label: "Plan & billing" },
@@ -51,7 +53,7 @@ const SECTIONS: ControlRoomSection[] = [
 const PLAN_CARDS = [
   { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues + answers inquiries · ${PLAN_LEAD_CAPS.STARTER} inquiries/mo · you approve every send` },
   { plan: "PRO" as const, price: "$79", blurb: `Same engine, working harder · ${PLAN_LEAD_CAPS.PRO} inquiries/mo · auto-send autopilot · hunts 3 cities` },
-  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine at full stretch · ${PLAN_LEAD_CAPS.STUDIO} inquiries/mo · auto-send · hunts all your cities` },
+  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine at full stretch · ${PLAN_LEAD_CAPS.STUDIO} inquiries/mo · auto-send · hunts all your cities · roster of performers` },
 ];
 
 /** Ladder position for upgrade-vs-switch button labels. */
@@ -324,7 +326,7 @@ export default async function ControlRoomPage({
 
   // One pass of the reads the cockpit needs: usage meter, billing state, the
   // profile-strength inputs, the live travel windows, and the mailbox state.
-  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate] = await Promise.all([
+  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate, performers] = await Promise.all([
     meterState(business.id, business.plan, new Date(), business.trialEndsAt),
     billingState(),
     db.package.count({ where: { businessId: business.id, active: true } }),
@@ -353,6 +355,11 @@ export default async function ControlRoomPage({
     db.sequenceTemplate.findFirst({
       where: { businessId: business.id, active: true },
       select: { stepsDays: true },
+    }),
+    // P13 roster: every performer, active first (history is kept, not deleted).
+    db.performer.findMany({
+      where: { businessId: business.id },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
     }),
   ]);
 
@@ -509,6 +516,17 @@ export default async function ControlRoomPage({
                 homeRadiusKm={business.homeRadiusKm}
                 homeCityCap={planFeatures(business.plan).homeCityCap}
                 windows={travelWindowRows}
+              />
+            </Section>
+
+            <Section
+              id="roster"
+              title="Roster"
+              intro="Who performs under this act — gigs tag a performer, and the agent checks availability per performer before it promises a date."
+            >
+              <RosterCard
+                performers={performers}
+                rosterCap={planFeatures(business.plan).rosterCap}
               />
             </Section>
 

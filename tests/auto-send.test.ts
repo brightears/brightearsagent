@@ -38,6 +38,12 @@ describe("plan-features (single source of truth)", () => {
     expect(PLAN_FEATURES.PRO.homeCityCap).toBeGreaterThan(PLAN_FEATURES.STARTER.homeCityCap);
     expect(PLAN_FEATURES.STUDIO.homeCityCap).toBeGreaterThan(PLAN_FEATURES.PRO.homeCityCap);
   });
+  it("the roster is Studio's claim (P13): 1 everywhere else", () => {
+    expect(PLAN_FEATURES.TRIAL.rosterCap).toBe(1);
+    expect(PLAN_FEATURES.STARTER.rosterCap).toBe(1);
+    expect(PLAN_FEATURES.PRO.rosterCap).toBe(1);
+    expect(PLAN_FEATURES.STUDIO.rosterCap).toBeGreaterThan(1);
+  });
 });
 
 describe("autoSendEligibleSources", () => {

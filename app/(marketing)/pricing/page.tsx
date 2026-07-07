@@ -73,6 +73,7 @@ const PLANS: Plan[] = [
       "Answers up to 150 of your incoming inquiries a month",
       "Hunts all your cities",
       "Auto-send on the sources you trust — the most headroom for a busy season",
+      "A roster: multiple performers, gigs tagged per performer, availability checked per performer",
     ],
   },
 ];
@@ -80,7 +81,7 @@ const PLANS: Plan[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between Starter, Pro and Studio?",
-    a: "Capacity and autonomy — never features, and never research quality. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, replies to every incoming inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, Travel Mode, approve-from-phone — and the same deep research on every plan. Starter ($25) answers up to 15 of your incoming inquiries a month, hunts your 1 home city, for 1 performer, and you approve every send. Pro ($79) answers up to 60 inquiries, hunts up to 3 cities, and adds auto-send — full autopilot on the sources you trust. Studio ($149) answers up to 150 inquiries, hunts all your cities, with auto-send on the sources you trust. The Hunt's venue-pitch allowance is the same on every plan.",
+    a: "Capacity and autonomy — never features, and never research quality. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, replies to every incoming inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, Travel Mode, approve-from-phone — and the same deep research on every plan. Starter ($25) answers up to 15 of your incoming inquiries a month, hunts your 1 home city, for 1 performer, and you approve every send. Pro ($79) answers up to 60 inquiries, hunts up to 3 cities, and adds auto-send — full autopilot on the sources you trust. Studio ($149) answers up to 150 inquiries, hunts all your cities, with auto-send on the sources you trust — and runs a roster of performers, with gigs and availability tracked per performer. The Hunt's venue-pitch allowance is the same on every plan.",
   },
   {
     q: "Is this only for wedding performers?",

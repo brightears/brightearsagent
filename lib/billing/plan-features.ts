@@ -31,13 +31,17 @@ export interface PlanFeatures {
    *  (lib/discovery/scan.ts slices home targets). Travel windows are separate
    *  and all-tier. 25 ≈ unlimited for a real roster. */
   homeCityCap: number;
+  /** P13: how many ACTIVE performers the roster may hold. Studio is the
+   *  multi-performer tier (its recut claim); enforced at performer save
+   *  (app/actions/performers.ts). 10 ≈ unlimited for a real studio. */
+  rosterCap: number;
 }
 
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
-  TRIAL: { leadCap: 0, autoSend: false, homeCityCap: 1 }, // unsubscribed = fail closed (agent paused anyway)
-  STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1 },
-  PRO: { leadCap: 60, autoSend: true, homeCityCap: 3 },
-  STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25 },
+  TRIAL: { leadCap: 0, autoSend: false, homeCityCap: 1, rosterCap: 1 }, // unsubscribed = fail closed (agent paused anyway)
+  STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1, rosterCap: 1 },
+  PRO: { leadCap: 60, autoSend: true, homeCityCap: 3, rosterCap: 1 },
+  STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25, rosterCap: 10 },
 };
 
 export function planFeatures(plan: PlanTier): PlanFeatures {

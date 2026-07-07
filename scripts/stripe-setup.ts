@@ -15,11 +15,11 @@ import Stripe from "stripe";
 
 // Descriptions follow the tier law (ADR-003): every tier is the complete
 // assistant; tiers differ by capacity + autonomy, never capability. No
-// multi-performer/team claims until the roster ships (P13).
+// Roster shipped (P13) - the Studio description may claim it.
 const CATALOG = [
   { lookupKey: "brightears_starter_monthly", name: "Bright Ears Starter", amount: 2500, description: "The complete agent - up to 15 inbound inquiries/month, you approve every send." },
   { lookupKey: "brightears_pro_monthly", name: "Bright Ears Pro", amount: 7900, description: "The complete agent working harder - up to 60 inquiries/month, auto-send from trusted sources, hunts up to 3 cities." },
-  { lookupKey: "brightears_studio_monthly", name: "Bright Ears Studio", amount: 14900, description: "The complete agent at full stretch - up to 150 inquiries/month, auto-send, hunts all your cities." },
+  { lookupKey: "brightears_studio_monthly", name: "Bright Ears Studio", amount: 14900, description: "The complete agent at full stretch - up to 150 inquiries/month, auto-send, hunts all your cities, multi-performer roster." },
 ];
 
 const PORTAL_HEADLINE = "Bright Ears — manage your plan";

@@ -8,6 +8,7 @@ import { PushPrompt } from "@/components/push-prompt";
 import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
 import { holdScheduledSend } from "@/app/actions/drafts";
 import { computeQuote } from "@/lib/quote/compute";
+import { isoDay } from "@/lib/agent/availability";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,30 @@ export default async function LeadDetailPage({
     .filter(Boolean)
     .join(" · ");
 
+  // Roster availability (P13.3): with a real roster and a known date, show
+  // WHO is free — the owner-facing face of the same per-performer logic the
+  // drafter's availability engine uses. Client-facing copy never names names.
+  const activePerformers = await db.performer.findMany({
+    where: { businessId: business.id, active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+  let rosterDay: { name: string; gigTitle: string | null }[] = [];
+  if (activePerformers.length >= 2 && lead.eventDate) {
+    const day = isoDay(lead.eventDate);
+    const dayGigs = await db.gig.findMany({
+      where: {
+        businessId: business.id,
+        date: { gte: new Date(`${day}T00:00:00Z`), lt: new Date(`${day}T23:59:59.999Z`) },
+      },
+      select: { performerId: true, title: true },
+    });
+    rosterDay = activePerformers.map((perf) => ({
+      name: perf.name,
+      gigTitle: dayGigs.find((g) => g.performerId === perf.id)?.title ?? null,
+    }));
+  }
+
   // Contact confidence (P10.5): a reply address that never appears in the
   // source material (not the sender, not in the body) may be LLM-mistyped —
   // flag it so the owner checks before the reply goes out. Auto-send already
@@ -177,6 +202,22 @@ export default async function LeadDetailPage({
             </a>
           )}
         </div>
+
+        {/* Roster on the date (P13.3) — owner-only; the drafter says "we're
+            covered" to clients without ever leaking who or what. */}
+        {rosterDay.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-2xl border border-cream/10 bg-ink-raised px-4 py-3">
+            <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/50">
+              Roster · {fmtEventDate(lead.eventDate, tz)}
+            </span>
+            {rosterDay.map((r) => (
+              <span key={r.name} className="text-sm text-cream/80">
+                <span className="font-semibold text-cream-bright">{r.name}</span>
+                {r.gigTitle ? ` — booked (${r.gigTitle})` : " — free"}
+              </span>
+            ))}
+          </div>
+        )}
 
         {lead.spamReason && (
           /* Orange-soft alert card — opaque fill so it reads on the ink canvas;
