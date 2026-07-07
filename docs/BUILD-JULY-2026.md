@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P9 nearly done — remaining: 9.5 agenda calendar, 9.6 A2HS prompt, 9.8 GigSalad kit
+- Current phase: **P9 DONE** *(75f8bea)* — next: P10 trust machinery (start at 10.1 evidence chips)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 442/442 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -131,10 +131,10 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 9.2 Approve/Edit/Send now: min-h-11 + full-width below sm. *(fedd536)*
 - [x] 9.3 BottomTabs (Today/Calendar/Results/Packages/Control, Today badge, safe-area). *(this iteration)*
 - [x] 9.4 NeedsYou queue first on the dashboard (drafts deep-linked, pitches anchored, age chips). *(this iteration)*
-- [ ] 9.5 Agenda-list calendar below `sm` (grouped by day; grid stays at sm+). Step-4 row stacking DONE *(fedd536)*.
-- [~] 9.6 Icons DONE (180 apple + 192/512 + maskable, manifest + metadata). A2HS prompt remaining.
+- [x] 9.5 Agenda-list calendar below `sm` (grouped by day; grid stays at sm+; shared GigChip). Step-4 row stacking DONE *(fedd536)*. *(75f8bea)*
+- [x] 9.6 Icons DONE (180 apple + 192/512 + maskable, manifest + metadata). A2HS prompt: dashboard, after first approval, phones only, iOS directions / Chromium beforeinstallprompt button. *(75f8bea)*
 - [x] 9.7 HeroCollage hidden below sm; vinyl-spin reduced-motion kill. *(fedd536)*
-- [ ] 9.8 GigSalad (no-email leads) reply kit: "Copy reply" + "Open on GigSalad" replaces Approve when clientEmail is null.
+- [x] 9.8 GigSalad (no-email leads) reply kit: Copy reply + Open GigSalad + "I sent it there" (markSentOnPlatform: draft resolved, no-email outbound on thread, REPLIED + first-reply stamp, ENGAGED never demoted, no sequence started). *(75f8bea)*
 
 ## P10 — Trust machinery (Theme C)
 
