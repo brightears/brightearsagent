@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isProvisionedBusinessName } from "@/lib/business-name";
 import { uploadsEnabled } from "@/lib/uploads/r2";
@@ -20,10 +21,34 @@ export default async function OnboardingPage() {
   // completion is what tells us how far the user got — genres + a one-liner +
   // a one-off floor is the "step 2 done" bar (the same fields it requires to
   // advance). Step-1 fields always hold signup defaults, so they're no signal.
+  // Voice counts as done with samples OR the skip-default greeting/sign-off
+  // (mirrors lib/onboarding-status.ts). And once there's evidence the user got
+  // past the calendar — any calendar entry (they used step 4) or any lead
+  // (their forwarding already works, so they reached step 5's live test) —
+  // resume to "Connect your leads" instead of replaying the calendar.
   const hasProfile =
     business.genres.length > 0 && Boolean(business.headline?.trim()) && business.feeFloor !== null;
-  const hasVoice = Boolean(business.voiceSamples?.trim());
-  const initialStep = !hasProfile ? (business.genres.length > 0 ? 1 : 0) : hasVoice ? 3 : 2;
+  const hasVoice = Boolean(
+    business.voiceSamples?.trim() ||
+      business.voiceGreeting?.trim() ||
+      business.voiceSignoff?.trim(),
+  );
+  const [gigCount, leadCount] =
+    hasProfile && hasVoice
+      ? await Promise.all([
+          db.gig.count({ where: { businessId: business.id } }),
+          db.lead.count({ where: { businessId: business.id } }),
+        ])
+      : [0, 0];
+  const initialStep = !hasProfile
+    ? business.genres.length > 0
+      ? 1
+      : 0
+    : !hasVoice
+      ? 2
+      : gigCount > 0 || leadCount > 0
+        ? 4
+        : 3;
 
   return (
     <OnboardingWizard

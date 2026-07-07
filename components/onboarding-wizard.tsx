@@ -914,6 +914,30 @@ function StepVoice({
     }
   }
 
+  // "Skip for now": performers without old replies at hand were bouncing off
+  // the 20-character sample wall — the top of the whole funnel. The default
+  // voice keeps drafts neutral-professional; the strength meter nags for real
+  // samples later. Tone chips and the quick-check answers still count.
+  async function handleSkip() {
+    setError(null);
+    setPending(true);
+    try {
+      const res = await saveVoiceSamples({
+        samples: "",
+        skipped: true,
+        tones: voice.tones,
+        greeting: voice.greeting,
+        signoff: voice.signoff,
+        emoji: voice.emoji,
+        phrases: voice.phrases,
+      });
+      if (!res.ok) return setError(res.error ?? "Could not save — try again");
+      onDone();
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <StepHeading
@@ -1041,10 +1065,24 @@ function StepVoice({
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
-        <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Next: your calendar →"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={pending}
+            className="text-sm font-semibold text-ink-stage/45 underline-offset-2 hover:text-ink-stage/70 hover:underline"
+          >
+            Skip for now
+          </button>
+          <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
+            {pending ? "Saving…" : "Next: your calendar →"}
+          </button>
+        </div>
       </div>
+      <p className="text-right text-xs text-ink-stage/40">
+        No old replies at hand? Skip — drafts start in a clean professional tone, and you can paste
+        real ones any time in the Control room.
+      </p>
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
     </div>
   );

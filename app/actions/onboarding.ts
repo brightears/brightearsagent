@@ -248,11 +248,24 @@ const voiceSchema = z.object({
   phrases: z.string().trim().max(300, "A few phrases is plenty").transform((s) => s || null),
 });
 
+// "Skip for now" variant: no samples required. Everything else validates the
+// same, so a skipper's tone chips and quick-check answers still count.
+const voiceSkipSchema = voiceSchema.extend({
+  samples: z.string().trim().max(20_000, "That's plenty! Trim it to your 2-3 favourite replies"),
+});
+
 /**
  * Saves pasted past replies to Business.voiceSamples (selected tone chips are
  * appended as a bracketed tone note the drafter reads), plus the structured
  * voice signals (greeting/sign-off/emoji/phrases) the drafter uses as explicit
  * rules. Touches only the voice fields.
+ *
+ * `skipped` (the wizard's "Skip for now"): performers without old replies at
+ * hand shouldn't bounce off a 20-character wall at the top of the funnel.
+ * A skip writes NO samples (never clobbers existing ones) and guarantees a
+ * professional default greeting/sign-off so the drafter — and setup-complete
+ * (lib/onboarding-status.ts) — have a voice to work with. The profile-strength
+ * meter keeps nagging for real samples; that's intended.
  */
 export async function saveVoiceSamples(input: {
   samples: string;
@@ -261,10 +274,11 @@ export async function saveVoiceSamples(input: {
   signoff: string;
   emoji: boolean | null;
   phrases: string;
+  skipped?: boolean;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
-  const parsed = voiceSchema.safeParse(input);
+  const parsed = (input.skipped ? voiceSkipSchema : voiceSchema).safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
   const { samples, tones } = parsed.data;
@@ -273,9 +287,11 @@ export async function saveVoiceSamples(input: {
   await db.business.update({
     where: { id: business.id },
     data: {
-      voiceSamples: `${samples}${toneNote}`,
-      voiceGreeting: parsed.data.greeting,
-      voiceSignoff: parsed.data.signoff,
+      // Skip never clobbers samples someone saved on an earlier visit; with
+      // samples present this behaves exactly as before.
+      voiceSamples: input.skipped && !samples ? undefined : `${samples}${toneNote}`,
+      voiceGreeting: parsed.data.greeting ?? (input.skipped ? "Hi [name]," : null),
+      voiceSignoff: parsed.data.signoff ?? (input.skipped ? "Best regards" : null),
       voiceUsesEmoji: input.emoji,
       voicePhrases: parsed.data.phrases,
     },
