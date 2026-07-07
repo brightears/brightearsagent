@@ -64,11 +64,11 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
         : `Median first reply: ${Math.round(n.medianFirstReplyMinutes / 60)} hours.`;
 
   return {
-    subject: `Your week: ${n.leadsIn} leads in, ${n.booked} booked`,
+    subject: `Your week: ${n.leadsIn} inquiries in, ${n.booked} booked`,
     body: [
       `Here's what happened at ${n.businessName} this week:`,
       ``,
-      `• New leads: ${n.leadsIn} (plus ${n.spamFiltered} spam/scam emails filtered out — you never saw them)`,
+      `• New inquiries: ${n.leadsIn} (plus ${n.spamFiltered} spam/scam emails filtered out — you never saw them)`,
       `• ${replyLine}`,
       `• Replies sent: ${n.repliesSent}`,
       `• Conversations in progress: ${n.engaged}`,

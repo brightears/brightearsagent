@@ -295,7 +295,7 @@ export default async function Dashboard({
           <div className="relative">
             <EmptyState
               kicker="The inbox is listening"
-              title="No leads yet."
+              title="No inquiries yet."
               accent="yet."
               hint={
                 setup.incomplete

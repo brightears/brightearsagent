@@ -39,6 +39,7 @@ const SECTIONS: ControlRoomSection[] = [
   { id: "identity", label: "Identity" },
   { id: "profile", label: "Voice & profile" },
   { id: "hunt", label: "Where you hunt" },
+  { id: "cadence", label: "Cadence" },
   { id: "connections", label: "Connections" },
   { id: "billing", label: "Plan & billing" },
 ];
@@ -323,7 +324,7 @@ export default async function ControlRoomPage({
 
   // One pass of the reads the cockpit needs: usage meter, billing state, the
   // profile-strength inputs, the live travel windows, and the mailbox state.
-  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn] = await Promise.all([
+  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate] = await Promise.all([
     meterState(business.id, business.plan, new Date(), business.trialEndsAt),
     billingState(),
     db.package.count({ where: { businessId: business.id, active: true } }),
@@ -348,6 +349,11 @@ export default async function ControlRoomPage({
           select: { email: true, status: true, lastError: true },
         })
       : Promise.resolve(null),
+    // Cadence card (P6.15): the tenant's real follow-up day-offsets.
+    db.sequenceTemplate.findFirst({
+      where: { businessId: business.id, active: true },
+      select: { stepsDays: true },
+    }),
   ]);
 
   const strength = profileStrength(business, { activePackages, gigs });
@@ -504,6 +510,98 @@ export default async function ControlRoomPage({
                 homeCityCap={planFeatures(business.plan).homeCityCap}
                 windows={travelWindowRows}
               />
+            </Section>
+
+            <Section
+              id="cadence"
+              title="Cadence"
+              intro="How hard the AI works for you — the rhythm it runs on, and the dials each plan turns up."
+            >
+              <Card className="p-6">
+                <h3 className="mb-1 font-bold text-ink-stage">Follow-up rhythm</h3>
+                <p className="mb-4 text-sm text-ink-stage/60">
+                  After your first reply goes out, the agent nudges quiet prospects on this clock —
+                  and stops the moment they answer, book, or opt out. Tuning it yourself is on the
+                  roadmap; the defaults are the pattern that books gigs without pestering anyone.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(sequenceTemplate?.stepsDays ?? [2, 5, 9]).map((day, i) => (
+                    <span
+                      key={`${day}-${i}`}
+                      className="rounded-full border border-cream bg-cream/40 px-3.5 py-1.5 font-mono text-xs font-bold text-ink-stage/75"
+                    >
+                      Day {day}
+                    </span>
+                  ))}
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
+                    then it closes the loop
+                  </span>
+                </div>
+                <p className="mt-4 text-xs text-ink-stage/50">
+                  Hard stops, always: a reply, a booking, or an opt-out ends the sequence instantly.
+                </p>
+              </Card>
+              <Card className="p-6">
+                <h3 className="mb-1 font-bold text-ink-stage">The dials, per plan</h3>
+                <p className="mb-4 text-sm text-ink-stage/60">
+                  Every plan is the complete engine — these are the only things a plan changes.
+                  Yours is marked.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-sm">
+                    <thead>
+                      <tr className="text-left font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/50">
+                        <th className="pb-2 pr-4 font-bold">Dial</th>
+                        {(["STARTER", "PRO", "STUDIO"] as const).map((p) => (
+                          <th
+                            key={p}
+                            className={`pb-2 pr-4 font-bold ${
+                              business.plan === p ? "text-brand-cyan" : ""
+                            }`}
+                          >
+                            {p.charAt(0) + p.slice(1).toLowerCase()}
+                            {business.plan === p ? " · yours" : ""}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="text-ink-stage/75">
+                      {[
+                        {
+                          dial: "Inquiries answered / month",
+                          values: ["15", "60", "150"] as const,
+                        },
+                        { dial: "Cities hunted", values: ["1", "3", "All"] as const },
+                        {
+                          dial: "Auto-send on trusted sources",
+                          values: ["—", "Yes", "Yes"] as const,
+                        },
+                      ].map((row) => (
+                        <tr key={row.dial} className="border-t border-cream">
+                          <td className="py-2.5 pr-4">{row.dial}</td>
+                          {row.values.map((v, i) => {
+                            const plan = (["STARTER", "PRO", "STUDIO"] as const)[i];
+                            return (
+                              <td
+                                key={plan}
+                                className={`py-2.5 pr-4 font-mono text-xs font-bold ${
+                                  business.plan === plan ? "text-brand-cyan" : ""
+                                }`}
+                              >
+                                {v}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-4 text-xs text-ink-stage/50">
+                  The daily scan and the venue-pitch allowance are the same on every plan — and
+                  research quality is never a dial.
+                </p>
+              </Card>
             </Section>
 
             <Section
