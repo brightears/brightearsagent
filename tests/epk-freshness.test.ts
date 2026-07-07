@@ -15,30 +15,34 @@ const res = (status: number) => ({ status }) as Response;
 
 describe("checkUrl", () => {
   it("404/410 are broken; 200/403/500 are not", async () => {
-    expect((await checkUrl("https://x.example/a", vi.fn(async () => res(404)) as never)).broken).toBe(true);
-    expect((await checkUrl("https://x.example/b", vi.fn(async () => res(410)) as never)).broken).toBe(true);
-    expect((await checkUrl("https://x.example/c", vi.fn(async () => res(200)) as never)).broken).toBe(false);
-    expect((await checkUrl("https://x.example/d", vi.fn(async () => res(403)) as never)).broken).toBe(false);
-    expect((await checkUrl("https://x.example/e", vi.fn(async () => res(500)) as never)).broken).toBe(false);
+    expect((await checkUrl("https://93.184.216.34/a", vi.fn(async () => res(404)) as never)).broken).toBe(true);
+    expect((await checkUrl("https://93.184.216.34/b", vi.fn(async () => res(410)) as never)).broken).toBe(true);
+    expect((await checkUrl("https://93.184.216.34/c", vi.fn(async () => res(200)) as never)).broken).toBe(false);
+    expect((await checkUrl("https://93.184.216.34/d", vi.fn(async () => res(403)) as never)).broken).toBe(false);
+    expect((await checkUrl("https://93.184.216.34/e", vi.fn(async () => res(500)) as never)).broken).toBe(false);
   });
 
   it("retries HEAD-refusing hosts as GET before judging", async () => {
     const fetchFn = vi.fn(async (_u: string, init?: RequestInit) =>
       init?.method === "HEAD" ? res(405) : res(404),
     );
-    expect((await checkUrl("https://x.example/f", fetchFn as never)).broken).toBe(true);
+    expect((await checkUrl("https://93.184.216.34/f", fetchFn as never)).broken).toBe(true);
     expect(fetchFn).toHaveBeenCalledTimes(2);
   });
 
-  it("timeouts are unknown (not broken); dead DNS is broken", async () => {
+  it("a fetch timeout on a reachable host is unknown, not broken", async () => {
     const timeoutFn = vi.fn(async () => {
       throw new Error("aborted");
     });
-    expect((await checkUrl("https://slow.example", timeoutFn as never)).broken).toBe(false);
-    const dnsFn = vi.fn(async () => {
-      throw Object.assign(new Error("fetch failed"), { cause: { code: "ENOTFOUND" } });
-    });
-    expect((await checkUrl("https://gone.example", dnsFn as never)).broken).toBe(true);
+    expect((await checkUrl("https://93.184.216.34/slow", timeoutFn as never)).broken).toBe(false);
+  });
+
+  it("a host that fails DNS resolution is skipped, never fetched (SSRF guard, P15)", async () => {
+    const fetchFn = vi.fn(async () => res(200));
+    // .invalid never resolves -> resolvesToBlockedIp returns true -> not fetched.
+    const r = await checkUrl("https://nope.invalid/x", fetchFn as never);
+    expect(r.broken).toBe(false);
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
 
@@ -46,8 +50,8 @@ describe("checkEpkFreshness + sweep", () => {
   const biz = {
     id: "biz1",
     videoLinks: ["https://youtu.be/abc123def45"],
-    photoUrls: ["https://cdn.example/dead.jpg"],
-    websiteUrl: "https://site.example",
+    photoUrls: ["https://93.184.216.34/dead.jpg"],
+    websiteUrl: "https://93.184.216.35/",
     bookingLinkUrl: null,
   };
 

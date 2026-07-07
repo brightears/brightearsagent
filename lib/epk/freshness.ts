@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 import { videoEmbedUrl } from "@/lib/profile/video";
+import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
 
 /**
  * EPK freshness monitor (P12.6). The one-pager is what every pitch links to
@@ -22,17 +23,29 @@ export async function checkUrl(
   url: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<LinkCheck> {
+  // SSRF guard (P15 review): artist-supplied URLs run server-side from inside
+  // the trust boundary — same discipline as the PDF image fetch. Block
+  // private/loopback/metadata hosts, verify what the NAME resolves to, and
+  // never follow redirects (a public host could 302 to an internal target).
+  // A blocked host is not "broken" (don't nag the owner) — just unchecked.
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return { url, broken: false };
+  }
+  if (isBlockedHost(host) || (await resolvesToBlockedIp(host))) return { url, broken: false };
   try {
     let res = await fetchFn(url, {
       method: "HEAD",
-      redirect: "follow",
+      redirect: "manual",
       signal: AbortSignal.timeout(6000),
     });
     // Plenty of hosts refuse HEAD — retry once as GET before judging.
     if (res.status === 405 || res.status === 501) {
       res = await fetchFn(url, {
         method: "GET",
-        redirect: "follow",
+        redirect: "manual",
         signal: AbortSignal.timeout(6000),
       });
     }

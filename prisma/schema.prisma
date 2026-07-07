@@ -326,6 +326,11 @@ model Draft {
   // price? Drives the attach prompts + auto-attach autonomy.
   wantsProfile Boolean     @default(false)
   wantsQuote   Boolean     @default(false)
+  // P15 review: set when the AGENT sent this itself (auto-send / autopilot /
+  // scheduled buffer). Keeps the graduation prompt honest — "you approved N
+  // without changing a word" must count only OWNER approvals, never the
+  // agent's own autonomous sends.
+  autoSent     Boolean     @default(false)
   // Draft-aging re-ping (P4.3, July 2026): stamped when the one-and-only
   // "still waiting" nudge went out, ~4h after the draft was created. One push
   // per draft was fragile for people who work nights; more than two is spam.

@@ -89,7 +89,7 @@ export default async function Dashboard({
   const huntExpanded = sp.hunt === "all";
   // Tuning ack (P10.2): skipVenueForm redirects here after a WRONG_VIBE skip.
   const tunedKind =
-    typeof sp.tuned === "string" && sp.tuned in KIND_LABEL ? (sp.tuned as VenueKind) : null;
+    typeof sp.tuned === "string" && Object.hasOwn(KIND_LABEL, sp.tuned) ? (sp.tuned as VenueKind) : null;
   const tunedSkips = typeof sp.skips === "string" ? parseInt(sp.skips, 10) || 1 : 1;
   const tenant = await getCurrentBusiness();
   const now = new Date();
@@ -206,10 +206,12 @@ export default async function Dashboard({
       where: { businessId: tenant.id, firstReplyAt: { gte: monthStart(now) } },
       select: { createdAt: true, firstReplyAt: true },
     }),
-    // 10.3: untouched approvals (APPROVED = zero edits; EDITED is excluded by
+    // 10.3: untouched approvals (APPROVED = zero edits; EDITED excluded by
     // definition) — the graduation prompt's evidence, counted per source.
+    // autoSent: false (P15 review) so the agent's OWN autonomous sends never
+    // masquerade as "you approved without changing a word".
     db.draft.findMany({
-      where: { status: "APPROVED", lead: { businessId: tenant.id } },
+      where: { status: "APPROVED", autoSent: false, lead: { businessId: tenant.id } },
       orderBy: { decidedAt: "desc" },
       take: 400,
       select: { lead: { select: { source: true } } },

@@ -69,9 +69,11 @@ export async function draftBookingConfirmation(
       subject: `Booked${when ? ` — ${when}` : ""}: ${lead.eventType ?? "your event"} confirmation`,
       body,
       isConfirmation: true,
-      // Pre-arm the quote PDF attach (the written fee record); the owner's
-      // auto-attach toggle decides the pre-tick, the checkbox stays theirs.
-      wantsQuote: true,
+      // Pre-arm the quote PDF ONLY when no fee was captured (P15 review): the
+      // quote engine prices from packages/floor, which can DIFFER from the
+      // agreed fee stated in the body — attaching both would put two
+      // contradictory numbers in one email. A captured fee IS the record.
+      wantsQuote: feeMinor == null,
       expiresAt: new Date(Date.now() + 14 * 24 * 3600 * 1000),
     },
   });

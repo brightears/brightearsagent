@@ -147,19 +147,28 @@ export async function markBooked(leadId: string, feeMinor?: number) {
     typeof feeMinor === "number" && Number.isInteger(feeMinor) && feeMinor > 0
       ? Math.min(feeMinor, 1_000_000_000)
       : null;
+  const bookedAt = new Date();
+  // A gig is created when there's a date OR a fee to record (P15 review: a
+  // captured fee was silently dropped when the lead had no eventDate, so
+  // booked-value receipts under-reported). Date-less gigs fall back to the
+  // booking date so the value has a home and the owner can fix the date on
+  // the calendar; a fee-less, date-less booking still needs no gig row.
+  const needsGig = !!lead.eventDate || value != null;
   await db.$transaction([
-    db.lead.update({ where: { id: leadId }, data: { status: "BOOKED", bookedAt: new Date() } }),
+    db.lead.update({ where: { id: leadId }, data: { status: "BOOKED", bookedAt } }),
     db.sequenceRun.updateMany({
       where: { leadId, stoppedAt: null },
       data: { stoppedAt: new Date(), stopReason: "booked" },
     }),
-    ...(lead.eventDate
+    ...(needsGig
       ? [
           db.gig.create({
             data: {
               businessId: lead.businessId,
-              date: lead.eventDate,
-              title: `${lead.clientName ?? "Client"} — ${lead.eventType ?? "event"}`,
+              date: lead.eventDate ?? bookedAt,
+              title: `${lead.clientName ?? "Client"} — ${lead.eventType ?? "event"}${
+                lead.eventDate ? "" : " (date TBD)"
+              }`,
               venue: lead.venue,
               value,
               leadId,

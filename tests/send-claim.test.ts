@@ -127,6 +127,21 @@ describe("sendDraftReply atomic claim", () => {
     );
   });
 
+  it("stamps autoSent from the autoAttach signal (graduation honesty, P15)", async () => {
+    await sendDraftReply({ draftId: "d1", businessId: "biz1" }); // manual approve
+    let draftUpdate = mockDb.draft.update.mock.calls.find((c) => "autoSent" in (c[0].data ?? {}));
+    expect(draftUpdate?.[0].data.autoSent).toBe(false);
+
+    vi.clearAllMocks();
+    mockDb.draft.findFirst.mockResolvedValue(pendingDraft);
+    mockDb.draft.updateMany.mockResolvedValue({ count: 1 });
+    mockSendEmail.mockResolvedValue({ transport: "postmark", providerMessageId: "pm1" });
+    mockDb.sequenceTemplate.findFirst.mockResolvedValue(null);
+    await sendDraftReply({ draftId: "d1", businessId: "biz1", autoAttach: true }); // agent send
+    draftUpdate = mockDb.draft.update.mock.calls.find((c) => "autoSent" in (c[0].data ?? {}));
+    expect(draftUpdate?.[0].data.autoSent).toBe(true);
+  });
+
   it("still refuses drafts that are not PENDING at read time", async () => {
     mockDb.draft.findFirst.mockResolvedValue({ ...pendingDraft, status: "APPROVED" });
     const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });

@@ -113,6 +113,10 @@ export default async function LeadDetailPage({
     select: { id: true, name: true },
   });
   let rosterDay: { name: string; gigTitle: string | null }[] = [];
+  // A gig booked on the date with NO performer assigned means SOMEONE is busy
+  // but we don't know who — showing everyone "free" would contradict the
+  // drafter's availability engine (P15 review). Surface it as its own line.
+  let unassignedGigThatDay = 0;
   if (activePerformers.length >= 2 && lead.eventDate) {
     const day = isoDay(lead.eventDate);
     const dayGigs = await db.gig.findMany({
@@ -122,6 +126,7 @@ export default async function LeadDetailPage({
       },
       select: { performerId: true, title: true },
     });
+    unassignedGigThatDay = dayGigs.filter((g) => g.performerId === null).length;
     rosterDay = activePerformers.map((perf) => ({
       name: perf.name,
       gigTitle: dayGigs.find((g) => g.performerId === perf.id)?.title ?? null,
@@ -213,9 +218,20 @@ export default async function LeadDetailPage({
             {rosterDay.map((r) => (
               <span key={r.name} className="text-sm text-cream/80">
                 <span className="font-semibold text-cream-bright">{r.name}</span>
-                {r.gigTitle ? ` — booked (${r.gigTitle})` : " — free"}
+                {r.gigTitle
+                  ? ` — booked (${r.gigTitle})`
+                  : unassignedGigThatDay > 0
+                    ? " — free, but check below"
+                    : " — free"}
               </span>
             ))}
+            {unassignedGigThatDay > 0 && (
+              <span className="w-full text-xs text-neon-orange">
+                {unassignedGigThatDay} gig{unassignedGigThatDay === 1 ? "" : "s"} booked this day with
+                no performer assigned — assign {unassignedGigThatDay === 1 ? "it" : "them"} on the
+                calendar so availability is exact.
+              </span>
+            )}
           </div>
         )}
 

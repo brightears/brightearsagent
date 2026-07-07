@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { sendDraftReply } from "@/lib/agent/send-reply";
+import { sendDraftReply, SEND_ERR } from "@/lib/agent/send-reply";
+import { canAutoSend } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 
@@ -54,11 +55,25 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
   for (const draft of due) {
     const business = draft.lead.business;
     const label = draft.lead.clientName ?? "a lead";
+
+    // Re-validate autonomy at FIRE time (P15 review): the owner may have
+    // untrusted the source or downgraded plan during the 15-min buffer. If
+    // auto-send no longer applies, the draft stays PENDING for approval —
+    // clear its schedule (so it won't retry) and let the normal ping stand.
+    // GigSalad/opt-out cases are still caught downstream in sendDraftReply.
+    if (!canAutoSend(business.plan, business.autoSendSources, draft.lead.source)) {
+      await db.draft
+        .updateMany({ where: { id: draft.id, status: "PENDING" }, data: { scheduledSendAt: null } })
+        .catch(() => null);
+      continue;
+    }
+
     try {
       const res = await sendDraftReply({
         draftId: draft.id,
         businessId: business.id,
         autoAttach: true,
+        requireScheduled: true, // a Hold that cleared the buffer wins the race
       });
       if (res.ok) {
         result.sent++;
@@ -70,12 +85,18 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
           url: `/dashboard/leads/${draft.leadId}`,
           pushOnly: true,
         }).catch(() => null);
-      } else if (res.error === "draft not pending") {
-        // Owner beat the buffer (approved early / rejected) — already handled.
+      } else if (res.error === SEND_ERR.notPending) {
+        // Owner beat the buffer (approved early / rejected / HELD) — the claim
+        // missed. Nothing to do and nothing to say; already handled.
+        continue;
+      } else if (res.error === SEND_ERR.compliance) {
+        // The lead opted out / went DEAD or BOOKED during the buffer.
+        // sendDraftReply already EXPIRED the draft — there is nothing to
+        // "review and send", so DON'T nudge the owner toward a closed lead.
         continue;
       } else {
-        // Blocked (no reachable email, opt-out, closed lead…) — clear the
-        // schedule so it can't loop, degrade to the normal approve flow.
+        // Degradable block (no reachable email) — the draft is still PENDING;
+        // clear the schedule so it can't loop, degrade to the approve flow.
         result.blocked++;
         await db.draft.updateMany({
           where: { id: draft.id, status: "PENDING" },

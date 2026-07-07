@@ -12,7 +12,15 @@ const mockSend = vi.hoisted(() => vi.fn());
 const mockNotify = vi.hoisted(() => vi.fn(async () => ({})));
 const mockReport = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
-vi.mock("@/lib/agent/send-reply", () => ({ sendDraftReply: mockSend }));
+vi.mock("@/lib/agent/send-reply", () => ({
+  sendDraftReply: mockSend,
+  // Keep the real error-string constants — schedule-send branches on them.
+  SEND_ERR: {
+    notPending: "draft not pending",
+    noEmail: "lead has no reachable email (reply on the platform instead)",
+    compliance: "this lead has opted out or is closed — nothing was sent",
+  },
+}));
 vi.mock("@/lib/notify", () => ({ notifyBusiness: mockNotify }));
 vi.mock("@/lib/report-error", () => ({ reportError: mockReport }));
 
@@ -28,7 +36,17 @@ const dueDraft = {
   leadId: "l1",
   isFollowUp: false,
   scheduledSendAt: new Date(now.getTime() - 60_000),
-  lead: { id: "l1", clientName: "Jess", business: { id: "biz1", name: "Sapphire Sounds" } },
+  lead: {
+    id: "l1",
+    clientName: "Jess",
+    source: "PLAIN_EMAIL",
+    business: {
+      id: "biz1",
+      name: "Sapphire Sounds",
+      plan: "PRO",
+      autoSendSources: ["PLAIN_EMAIL"],
+    },
+  },
 };
 
 beforeEach(() => {
@@ -58,7 +76,7 @@ describe("runScheduledSends", () => {
   it("fires elapsed buffers through sendDraftReply (autoAttach) and receipts push-only", async () => {
     const r = await runScheduledSends(now);
     expect(r).toEqual({ sent: 1, blocked: 0 });
-    expect(mockSend).toHaveBeenCalledWith({ draftId: "d1", businessId: "biz1", autoAttach: true });
+    expect(mockSend).toHaveBeenCalledWith({ draftId: "d1", businessId: "biz1", autoAttach: true, requireScheduled: true });
     expect(mockNotify).toHaveBeenCalledWith(
       dueDraft.lead.business,
       expect.objectContaining({ title: "Auto-replied: Jess", pushOnly: true }),
@@ -72,8 +90,31 @@ describe("runScheduledSends", () => {
     expect(mockNotify).not.toHaveBeenCalled();
   });
 
+  it("a compliance-blocked send (opted out / closed) skips silently — no nudge to a closed lead", async () => {
+    mockSend.mockResolvedValue({
+      ok: false,
+      error: "this lead has opted out or is closed — nothing was sent",
+    });
+    const r = await runScheduledSends(now);
+    expect(r).toEqual({ sent: 0, blocked: 0 });
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("autonomy revoked during the buffer (source untrusted) clears schedule, never sends", async () => {
+    mockDb.draft.findMany.mockResolvedValue([
+      { ...dueDraft, lead: { ...dueDraft.lead, business: { ...dueDraft.lead.business, autoSendSources: [] } } },
+    ]);
+    const r = await runScheduledSends(now);
+    expect(r).toEqual({ sent: 0, blocked: 0 });
+    expect(mockSend).not.toHaveBeenCalled();
+    expect(mockDb.draft.updateMany).toHaveBeenCalledWith({
+      where: { id: "d1", status: "PENDING" },
+      data: { scheduledSendAt: null },
+    });
+  });
+
   it("a blocked send clears its schedule and degrades to the approve flow", async () => {
-    mockSend.mockResolvedValue({ ok: false, error: "lead has no reachable email" });
+    mockSend.mockResolvedValue({ ok: false, error: "lead has no reachable email (reply on the platform instead)" });
     const r = await runScheduledSends(now);
     expect(r).toEqual({ sent: 0, blocked: 1 });
     expect(mockDb.draft.updateMany).toHaveBeenCalledWith({

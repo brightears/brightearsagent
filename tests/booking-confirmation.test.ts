@@ -49,7 +49,8 @@ describe("draftBookingConfirmation", () => {
     expect(id).toBe("d9");
     const data = mockDb.draft.create.mock.calls[0][0].data;
     expect(data.isConfirmation).toBe(true);
-    expect(data.wantsQuote).toBe(true);
+    // Fee captured (1500000) => no quote PDF (avoids a contradictory number).
+    expect(data.wantsQuote).toBe(false);
     expect(data.body).toContain("Hey Jess!");
     expect(data.body).toContain("Monday, September 14, 2026");
     expect(data.body).toContain("at The Glasshouse");
@@ -61,6 +62,11 @@ describe("draftBookingConfirmation", () => {
     expect(data.body).not.toMatch(/\bAI\b/i);
     expect(data.body).not.toContain("Bright Ears");
     expect(mockNotify).toHaveBeenCalled();
+  });
+
+  it("pre-arms the quote PDF ONLY when no fee was captured", async () => {
+    await draftBookingConfirmation("l1", null);
+    expect(mockDb.draft.create.mock.calls[0][0].data.wantsQuote).toBe(true);
   });
 
   it("omits the fee and booking-link lines when there's nothing to ground them", async () => {

@@ -31,7 +31,7 @@ function followUpBody(venueName: string, ownerName: string): string {
   return [
     `Just floating this back to the top of your inbox — I know how fast it fills.`,
     ``,
-    `Everything in my last note still stands, and the dates I mentioned are still open as of today. If the timing's wrong, a one-line "not now" is genuinely welcome and I'll leave it there.`,
+    `My last note still stands, and I'd genuinely love to find a slot that works for your room. If the timing's wrong, a one-line "not now" is genuinely welcome and I'll leave it there.`,
     ``,
     `Either way — good luck with everything at ${venueName}.`,
     ``,

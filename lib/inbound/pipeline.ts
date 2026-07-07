@@ -108,6 +108,15 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           where: { leadId: existing.id, stoppedAt: null },
           data: { stoppedAt: new Date(), stopReason: "client_replied" },
         }),
+        // Supersede any PENDING draft (P15 review): the client just changed
+        // the conversation, so a draft that answered the OLD message must not
+        // auto-fire on its buffer AND must not block the fresh mid-thread
+        // draft (generateDraftForLead dedupes on PENDING). Expiring it clears
+        // both — the new answer is written against the full thread below.
+        db.draft.updateMany({
+          where: { leadId: existing.id, status: "PENDING" },
+          data: { status: "EXPIRED", decidedAt: new Date(), scheduledSendAt: null },
+        }),
       ]);
     } catch (err) {
       if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
