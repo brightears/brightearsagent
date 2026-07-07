@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
+import { draftBookingConfirmation } from "@/lib/agent/confirmation";
 import { sendDraftReply } from "@/lib/agent/send-reply";
 
 /**
@@ -167,8 +168,17 @@ export async function markBooked(leadId: string, feeMinor?: number) {
         ]
       : []),
   ]);
+  // 11.2: the booked moment drafts its own confirmation email (deterministic,
+  // carries the booking link + quote PDF option) — owner approves like any
+  // draft. Failure never blocks the booked outcome itself.
+  let confirmationDrafted = false;
+  try {
+    confirmationDrafted = !!(await draftBookingConfirmation(leadId, value));
+  } catch {
+    // Confirmation is a bonus, not a gate — the lead page can redraft.
+  }
   revalidatePath("/dashboard");
-  return { ok: true };
+  return { ok: true, confirmationDrafted };
 }
 
 export async function markDead(leadId: string) {

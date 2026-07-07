@@ -22,7 +22,12 @@ const bookedButtonStyle =
   "rounded-full border-[1.5px] border-ink-stage/30 text-ink-stage/80 font-semibold px-4 py-2 transition-all hover:border-transparent hover:bg-gradient-to-r hover:from-neon-magenta hover:to-neon-orange hover:text-ink-stage disabled:opacity-40";
 
 // Server actions return non-discriminated unions; this wider shape accepts all of them.
-type ActionResult = { ok: boolean; error?: string; transport?: "postmark" | "dev" };
+type ActionResult = {
+  ok: boolean;
+  error?: string;
+  transport?: "postmark" | "dev";
+  confirmationDrafted?: boolean;
+};
 
 type Note = { kind: "success" | "error"; text: string };
 
@@ -150,7 +155,10 @@ export function DraftReview({
   const onBooked = () =>
     run(
       () => markBooked(leadId, parseFeeToMinor(fee) ?? undefined),
-      () => "Marked booked — follow-ups stopped and the gig is on your calendar.",
+      (r) =>
+        r.confirmationDrafted
+          ? "Marked booked — a confirmation email is drafted for your approval."
+          : "Marked booked — follow-ups stopped and the gig is on your calendar.",
     );
 
   const onDead = () =>

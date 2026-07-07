@@ -21,7 +21,7 @@ const bookedButtonStyle =
 const deadButtonStyle =
   "rounded-full border border-red-400/40 text-red-300 font-semibold px-4 py-2 transition-colors hover:bg-red-500/10 disabled:opacity-40";
 
-type ActionResult = { ok: boolean; error?: string };
+type ActionResult = { ok: boolean; error?: string; confirmationDrafted?: boolean };
 type Note = { kind: "success" | "error"; text: string };
 
 export function LeadOutcomeControls({
@@ -112,7 +112,7 @@ export function LeadOutcomeControls({
               onClick={() =>
                 run(
                   () => markBooked(leadId, parseFeeToMinor(fee) ?? undefined),
-                  "Marked booked — follow-ups stopped and the gig is on your calendar.",
+                  "Marked booked — follow-ups stopped; if a confirmation email was drafted it appears below for your approval.",
                 )
               }
               disabled={busy}

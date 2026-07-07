@@ -46,8 +46,14 @@ export async function sendDraftReply(opts: {
   }
   // Compliance hard-stop at the SEND boundary (not just in the cron engine):
   // a draft can sit PENDING while the client opts out or the lead is closed.
-  // Never email an opted-out or terminal lead. (CLAUDE.md rule 5.)
-  if (lead.optedOut || lead.status === "DEAD" || lead.status === "BOOKED") {
+  // Never email an opted-out or terminal lead. (CLAUDE.md rule 5.) The ONE
+  // exception (11.2): a booking-confirmation draft exists precisely BECAUSE
+  // the lead is BOOKED — it may send there (and only there).
+  if (
+    lead.optedOut ||
+    lead.status === "DEAD" ||
+    (lead.status === "BOOKED" && !draft.isConfirmation)
+  ) {
     await db.draft.update({
       where: { id: draft.id },
       data: { status: "EXPIRED", decidedAt: new Date() },
@@ -153,8 +159,16 @@ export async function sendDraftReply(opts: {
       where: { id: lead.id },
       data: {
         // If the client wrote back while this draft was pending (ENGAGED), keep
-        // ENGAGED so the sequence never restarts — replying doesn't undo a reply.
-        status: lead.status === "ENGAGED" ? "ENGAGED" : draft.isFollowUp ? "IN_SEQUENCE" : "REPLIED",
+        // ENGAGED so the sequence never restarts — replying doesn't undo a
+        // reply. BOOKED stays BOOKED (a confirmation send never reopens it).
+        status:
+          lead.status === "BOOKED"
+            ? "BOOKED"
+            : lead.status === "ENGAGED"
+              ? "ENGAGED"
+              : draft.isFollowUp
+                ? "IN_SEQUENCE"
+                : "REPLIED",
         firstReplyAt: lead.firstReplyAt ?? new Date(),
       },
     }),
@@ -162,7 +176,8 @@ export async function sendDraftReply(opts: {
 
   // First reply sent → the follow-up sequence clock starts (engine fires steps).
   // Skip if the client already replied (ENGAGED) — they don't need chasing.
-  if (!draft.isFollowUp && lead.status !== "ENGAGED") {
+  // A booking confirmation NEVER starts a sequence (the deal is closed).
+  if (!draft.isFollowUp && !draft.isConfirmation && lead.status !== "ENGAGED" && lead.status !== "BOOKED") {
     const template = await db.sequenceTemplate.findFirst({
       where: { businessId: lead.businessId, active: true },
     });

@@ -37,6 +37,7 @@ const pendingDraft = {
   subject: "Re: Wedding inquiry",
   body: "Hi Jess — the 14th is open.",
   isFollowUp: false,
+  isConfirmation: false,
   wantsProfile: false,
   wantsQuote: false,
   lead: {
@@ -96,6 +97,34 @@ describe("sendDraftReply atomic claim", () => {
     // Nothing was recorded as sent.
     expect(mockDb.message.create).not.toHaveBeenCalled();
     expect(mockDb.lead.update).not.toHaveBeenCalled();
+  });
+
+  it("a booking confirmation sends on a BOOKED lead, keeps BOOKED, starts no sequence (11.2)", async () => {
+    mockDb.draft.findFirst.mockResolvedValue({
+      ...pendingDraft,
+      isConfirmation: true,
+      lead: { ...pendingDraft.lead, status: "BOOKED" },
+    });
+    const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });
+    expect(result.ok).toBe(true);
+    expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    const leadData = mockDb.lead.update.mock.calls[0][0].data;
+    expect(leadData.status).toBe("BOOKED");
+    // The deal is closed — no follow-up sequence may ever start here.
+    expect(mockDb.sequenceTemplate.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("a REGULAR draft on a BOOKED lead still expires unsent (compliance hard-stop)", async () => {
+    mockDb.draft.findFirst.mockResolvedValue({
+      ...pendingDraft,
+      lead: { ...pendingDraft.lead, status: "BOOKED" },
+    });
+    const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });
+    expect(result.ok).toBe(false);
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(mockDb.draft.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "EXPIRED" }) }),
+    );
   });
 
   it("still refuses drafts that are not PENDING at read time", async () => {
