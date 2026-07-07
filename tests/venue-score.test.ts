@@ -159,3 +159,64 @@ describe("scoreVenue", () => {
     expect(floor.fitScore).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe("KIND_AFFINITY covers every artist (P12.2)", () => {
+  const at = (kind: ScorableVenue["kind"]): ScorableVenue => ({
+    name: "The Room",
+    city: "Manchester",
+    country: "GB",
+    kind,
+    bookingEmail: "events@theroom.example",
+  });
+  // Full kind credit = the same 90 the DJ rooftop case scores (geo 30 +
+  // kind 25 + heat 25 + pitchable 10).
+  const fullCredit = (p: MatchProfile, kind: ScorableVenue["kind"]) =>
+    scoreVenue(at(kind), [freshOpening], p, NOW).fitScore;
+
+  it("a magician earns FULL credit at hotels, event spaces and restaurants", () => {
+    const magician: MatchProfile = {
+      genres: ["close-up magic", "mentalism"],
+      eventTypes: ["weddings", "corporate"],
+      serviceCities: ["Manchester"],
+    };
+    expect(fullCredit(magician, "HOTEL")).toBe(90);
+    expect(fullCredit(magician, "EVENT_SPACE")).toBe(90);
+    expect(fullCredit(magician, "RESTAURANT")).toBe(90);
+  });
+
+  it("a comedian earns FULL credit at bars and clubs", () => {
+    const comedian: MatchProfile = {
+      genres: ["stand-up comedy", "improv"],
+      eventTypes: ["comedy nights", "corporate"],
+      serviceCities: ["Manchester"],
+    };
+    expect(fullCredit(comedian, "BAR")).toBe(90);
+    expect(fullCredit(comedian, "CLUB")).toBe(90);
+  });
+
+  it("a dancer and a photo booth earn FULL credit at their buyers", () => {
+    const dancer: MatchProfile = {
+      genres: ["cabaret", "contemporary dance"],
+      eventTypes: ["dinner shows", "galas"],
+      serviceCities: ["Manchester"],
+    };
+    expect(fullCredit(dancer, "HOTEL")).toBe(90);
+    expect(fullCredit(dancer, "CLUB")).toBe(90);
+    const booth: MatchProfile = {
+      genres: ["photo booth"],
+      eventTypes: ["weddings", "corporate"],
+      serviceCities: ["Manchester"],
+    };
+    expect(fullCredit(booth, "EVENT_SPACE")).toBe(90);
+  });
+
+  it("the reason copy speaks every act, not just sound", () => {
+    const magician: MatchProfile = {
+      genres: ["close-up magic"],
+      eventTypes: ["weddings"],
+      serviceCities: ["Manchester"],
+    };
+    const s = scoreVenue(at("HOTEL"), [freshOpening], magician, NOW);
+    expect(s.reasons.some((r) => r.includes("your act fits the room"))).toBe(true);
+  });
+});

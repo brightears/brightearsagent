@@ -76,39 +76,43 @@ export type VenueScore = {
 // matched by case-insensitive substring either way ("club" matches "club
 // nights"). Tuned by Skip-reasons later (10.4), not by an LLM.
 // ---------------------------------------------------------------------------
+// P12.2 (founder-elevated, every artist): each venue kind's lists carry the
+// NON-MUSIC acts it really books too — magicians, comedians, dancers, photo
+// booths, hosts — so those artists earn FULL kind credit at their real
+// buyers instead of limping in on half event-type credit.
 const KIND_AFFINITY: Record<
   VenueKind,
   { genres: string[]; eventTypes: string[]; blurb: string }
 > = {
   BAR: {
-    genres: ["open format", "top 40", "house", "disco", "funk", "soul", "indie", "rock", "acoustic", "dj"],
-    eventTypes: ["bar", "club night", "residency", "live music", "happy hour"],
-    blurb: "Bars book weekly DJs and live acts",
+    genres: ["open format", "top 40", "house", "disco", "funk", "soul", "indie", "rock", "acoustic", "dj", "comedy", "magic", "karaoke", "variety"],
+    eventTypes: ["bar", "club night", "residency", "live music", "happy hour", "comedy night", "quiz night", "open mic"],
+    blurb: "Bars book weekly acts — DJs, live music, comedy, quiz and magic nights",
   },
   ROOFTOP: {
-    genres: ["house", "deep house", "lounge", "disco", "open format", "chill", "nu disco", "acoustic", "dj"],
+    genres: ["house", "deep house", "lounge", "disco", "open format", "chill", "nu disco", "acoustic", "dj", "saxophone", "percussion", "entertainment"],
     eventTypes: ["sunset session", "residency", "club night", "corporate", "private event"],
-    blurb: "Rooftops run sunset DJ sessions and lounge sets",
+    blurb: "Rooftops run sunset sessions and booked entertainment",
   },
   HOTEL: {
-    genres: ["lounge", "jazz", "acoustic", "house", "soul", "chill", "piano", "dj"],
-    eventTypes: ["wedding", "corporate", "brunch", "residency", "private event", "lobby"],
-    blurb: "Hotels book residencies, weddings and corporate events",
+    genres: ["lounge", "jazz", "acoustic", "house", "soul", "chill", "piano", "dj", "magic", "cabaret", "dance", "comedy", "variety", "entertainment"],
+    eventTypes: ["wedding", "corporate", "brunch", "residency", "private event", "lobby", "family entertainment", "gala"],
+    blurb: "Hotels book residencies, weddings, corporate and family entertainment",
   },
   RESTAURANT: {
-    genres: ["jazz", "acoustic", "soul", "lounge", "latin", "funk", "chill"],
-    eventTypes: ["brunch", "dinner", "live music", "residency", "private event"],
-    blurb: "Restaurants book dinner and brunch entertainment",
+    genres: ["jazz", "acoustic", "soul", "lounge", "latin", "funk", "chill", "magic", "cabaret", "flamenco", "variety"],
+    eventTypes: ["brunch", "dinner", "live music", "residency", "private event", "dinner show"],
+    blurb: "Restaurants book dinner and brunch entertainment — music, close-up magic, shows",
   },
   EVENT_SPACE: {
-    genres: ["open format", "top 40", "wedding", "dj", "band", "acoustic"],
-    eventTypes: ["wedding", "corporate", "private event", "party", "birthday", "gala"],
-    blurb: "Event spaces refer entertainment for every booking",
+    genres: ["open format", "top 40", "wedding", "dj", "band", "acoustic", "magic", "comedy", "dance", "cabaret", "photo booth", "emcee", "host", "circus", "variety", "entertainment"],
+    eventTypes: ["wedding", "corporate", "private event", "party", "birthday", "gala", "awards", "conference", "theater", "show"],
+    blurb: "Event spaces refer entertainment of every kind for every booking",
   },
   CLUB: {
-    genres: ["house", "techno", "edm", "hip hop", "open format", "drum and bass", "top 40", "dj"],
-    eventTypes: ["club night", "residency", "guest set", "party"],
-    blurb: "Clubs book DJs by genre fit",
+    genres: ["house", "techno", "edm", "hip hop", "open format", "drum and bass", "top 40", "dj", "dance", "cabaret", "burlesque", "comedy"],
+    eventTypes: ["club night", "residency", "guest set", "party", "comedy night", "show"],
+    blurb: "Clubs book by fit — DJs, dance shows, comedy nights",
   },
   OTHER: {
     genres: [],
@@ -205,10 +209,10 @@ export function scoreVenue(
   }
   if (genreFit) {
     score += W_KIND * kindCredit;
-    reasons.push(`${KIND_LABEL[venue.kind]} — your sound fits the room`);
+    reasons.push(`${KIND_LABEL[venue.kind]} — your act fits the room`);
   } else if (eventFit) {
     score += (W_KIND / 2) * kindCredit;
-    reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you play`);
+    reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you perform at`);
   } else if (venue.kind === "OTHER") {
     caution ??= "Venue type unclear — may not host live acts";
   } else {
