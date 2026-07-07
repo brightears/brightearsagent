@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P13 DONE** (roster CRUD + per-performer visibility + rosterCap + claims restored in one commit) — next: P14 security mediums
+- Current phase: **P14 DONE** (all 5 security mediums) — next: P15 FINALE (review → staging E2E → docs sync → handoff report)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 522/522 tests · build OK · live draft eval 19/19
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 530/530 tests · build OK · live draft eval 19/19
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -178,11 +178,11 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P14 — Security mediums (pre-cutover hardening)
 
-- [ ] 14.1 http(s)-only scheme allowlist on all artist-supplied URLs (zod refine). (`app/actions/profile.ts:54`)
-- [ ] 14.2 Rate-limit + cache public EPK page + press-kit PDF (IP+slug; Cache-Control + small in-process cache).
-- [ ] 14.3 Rate-limit IP from trusted right-most XFF hop. (`lib/rate-limit.ts:37`)
-- [ ] 14.4 SSRF guard resolves DNS and re-checks IPs against private ranges. (`lib/pdf/images.ts:29`)
-- [ ] 14.5 Fail-closed posture independent of NODE_ENV (require secrets whenever public APP_URL set). (`lib/auth-secret.ts:12`)
+- [x] 14.1 http(s)-only refine on the shared urlSchema. *(e61502a)*
+- [x] 14.2 PDF: IP+slug rate limit + 10-min render cache + public Cache-Control; EPK page → 5-min ISR; inquiry form capped per IP+slug. *(e61502a)*
+- [x] 14.3 clientIp = right-most XFF hop (spoof-proof with one trusted proxy). *(e61502a)*
+- [x] 14.4 resolvesToBlockedIp (all A/AAAA re-checked; ::ffff: unwrapped; unresolvable = blocked; injectable resolver, tested). *(e61502a)*
+- [x] 14.5 failClosed() = production OR public https APP_URL — secret gates deny either way. *(e61502a)*
 
 ## P15 — Finale
 
