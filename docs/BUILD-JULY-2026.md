@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P6 batch A done (6.3, 6.4, 6.9, 6.10, 6.11, 6.13, 6.14-glyphs) · next: P6 batch B (6.1 Studio recut, 6.2 llms.txt, 6.5 compare row, 6.6 meta, 6.7 stats, 6.8 ROI, 6.12 OG, 6.14-vocab, 6.15 cadence card)
+- Current phase: P6 nearly done — remaining: 6.12 (OG metadata + og.png + home JSON-LD + story schema fix), 6.14-vocab remainder, 6.15 (cadence + dials cards)
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
@@ -80,14 +80,14 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P6 — Honesty + marketing sweep (launch-blockers #4, #7 + copy recs)
 
-- [ ] 6.1 **Studio recut:** strip multi-performer/team-seats claims from pricing, comparisons.ts (all 6 spots), settings PLAN_CARDS, `scripts/stripe-setup.ts` catalog, llms.txt — re-anchor on enforced dials (150 inquiries, all cities, autonomy). (Roster ships in P13, claims return then.)
-- [ ] 6.2 **llms.txt rewrite:** Hunt-led, every-performer-kind framing, "designed to" hedges, kill the fabricated median stat; hedge the 3 unhedged comparisons.ts metaDescriptions (337/416/540).
+- [x] 6.1 Studio recut everywhere (pricing card+FAQ, comparisons ×8, llms.txt; settings PLAN_CARDS in 351222a; Stripe catalog in 211cae0). *(c16379f)*
+- [x] 6.2 llms.txt rewritten Hunt-first / all-kinds / hedged; fabricated stat killed. *(c16379f)*
 - [x] 6.3 /design routes deleted. *(e908981)*
 - [x] 6.4 Honest /roadmap page published (shipped/building/roadmap + non-goals line), in sitemap. Compare-hub link check rides with 6.5. *(e908981)*
-- [ ] 6.5 Compare pages: add "Finds gigs for you (the Hunt)" row to all 5 vs-tables; kill the stale reactive-only "exactly one job" line on `/compare/dj-event-planner`.
-- [ ] 6.6 Meta descriptions ≤~155 chars, find→draft→approve hook first (pricing worst at 353 chars).
-- [ ] 6.7 Cite-or-soften recurring stats ("1 in 3 vendors never reply", "3–5 vendors per inquiry", "Bark $28–47") on /story, ROI calculator, /tools/templates.
-- [ ] 6.8 ROI calculator recommends the tier matching the visitor's inputs (stop hardcoding $79).
+- [x] 6.5 Hunt row = row one on all 5 tables (competitor-accurate notes); DJEP framing fixed. *(c16379f)*
+- [x] 6.6 Six compare metaDescriptions + pricing meta rewritten ≤155, hedged, hook-first. *(c16379f)*
+- [x] 6.7 Stats attributed to couples' own accounts + ROI footnote; Bark number pinned to verified-pricing convention. *(c16379f)*
+- [x] 6.8 ROI bridge recommends the input-fitting tier and carries ?plan= into the funnel. *(c16379f)*
 - [x] 6.9 Tagline purged (root title + manifest); branded 404. *(e908981)*
 - [x] 6.10 Sign in links added; /onboarding redirects unauthenticated → Clerk sign-UP (NEXT_PUBLIC_CLERK_SIGN_UP_URL in .env.local; add to Render in P7). *(e908981)*
 - [x] 6.11 Sitemap inversion fixed (+/roadmap). *(e908981)*
