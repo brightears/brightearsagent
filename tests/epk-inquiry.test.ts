@@ -7,6 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockProcess = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/inbound/pipeline", () => ({ processInbound: mockProcess }));
 vi.mock("@/lib/report-error", () => ({ reportError: vi.fn(async () => {}) }));
+// Server-action headers() (14.2 rate limit reads the client IP). Unique IP
+// per test run keeps the in-process limiter from cross-test interference.
+vi.mock("next/headers", () => ({
+  headers: async () => ({
+    get: (name: string) =>
+      name.toLowerCase() === "x-forwarded-for" ? `10.9.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` : null,
+  }),
+}));
 
 import { submitEpkInquiry } from "@/app/actions/epk";
 

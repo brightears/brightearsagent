@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { processInbound } from "@/lib/inbound/pipeline";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { reportError } from "@/lib/report-error";
 
 export type EpkInquiryState = { ok: boolean; error?: string } | null;
@@ -33,6 +35,13 @@ export async function submitEpkInquiry(
 
   // Honeypot: real people never fill a field they can't see.
   if (field("website")) return { ok: true };
+
+  // 14.2: each submission costs an LLM parse + triage — cap per IP+slug.
+  const ip = clientIp({ headers: await headers() });
+  const rl = rateLimit(`epk-inquiry:${slug}:${ip}`, 5, 10 * 60 * 1000);
+  if (!rl.ok) {
+    return { ok: false, error: "Too many messages just now — try again in a few minutes." };
+  }
 
   const name = field("name", 120);
   const email = field("email", 200);

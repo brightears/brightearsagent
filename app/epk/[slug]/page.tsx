@@ -12,7 +12,9 @@ import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/component
 import { EpkInquiryForm } from "@/components/epk-inquiry-form";
 import { medianReplyMinutes } from "@/lib/reports/results";
 
-export const dynamic = "force-dynamic";
+// 14.2: the EPK is fully public and read-only — 5-minute ISR IS the cache
+// (and the rate limit: repeat hits serve statically, no DB/render cost).
+export const revalidate = 300;
 
 type Props = { params: Promise<{ slug: string }> };
 

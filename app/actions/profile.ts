@@ -51,7 +51,11 @@ function parseGigTypes(values: FormDataEntryValue[]): string[] {
   return GIG_TYPES.filter((t) => set.has(t));
 }
 
-const urlSchema = z.url("That doesn't look like a link — paste the full https:// URL");
+// 14.1: http(s) ONLY — javascript:/data:/file: pseudo-links from a hostile
+// profile must never land in EPK hrefs or server-side fetches.
+const urlSchema = z
+  .url("That doesn't look like a link — paste the full https:// URL")
+  .refine((u) => /^https?:\/\//i.test(u), "Links must start with http:// or https://");
 
 const profileSchema = z.object({
   headline: z

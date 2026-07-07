@@ -1,6 +1,13 @@
 import { timingSafeEqual } from "node:crypto";
 
-const isProd = process.env.NODE_ENV === "production";
+/**
+ * Fail-closed posture (14.5): closed in production AND whenever a public
+ * https origin is configured — a misbuilt NODE_ENV must never silently open
+ * webhook/cron endpoints on a reachable host. Read per call so tests and
+ * runtime env changes behave predictably.
+ */
+const failClosed = () =>
+  process.env.NODE_ENV === "production" || !!process.env.APP_URL?.startsWith("https://");
 
 /**
  * Shared-secret gate for internal endpoints (webhooks, cron). Fail-CLOSED in
@@ -9,7 +16,7 @@ const isProd = process.env.NODE_ENV === "production";
  * (so local testing needs no setup).
  */
 export function checkSharedSecret(envVar: string | undefined, provided: string | null): boolean {
-  if (!envVar) return !isProd; // prod + unset secret = denied
+  if (!envVar) return !failClosed(); // fail-closed posture + unset secret = denied
   if (!provided) return false;
   const a = Buffer.from(envVar);
   const b = Buffer.from(provided);
@@ -40,7 +47,7 @@ export function providedSecret(req: {
 /** Resolve a required secret, throwing in production if it's missing. */
 export function requireSecret(envVar: string | undefined, name: string): string {
   if (!envVar) {
-    if (isProd) throw new Error(`${name} must be set in production`);
+    if (failClosed()) throw new Error(`${name} must be set in production`);
     return `dev-${name}`; // deterministic dev fallback, never reached in prod
   }
   return envVar;
