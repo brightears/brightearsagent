@@ -17,7 +17,7 @@
 
 ## Ground rules
 
-1. **Gates green every batch:** `npx tsc --noEmit` · `npm run lint` · `npm test` · `npx next build`. Commit per completed item (small, clear messages, end with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`), push to `main` after each green batch (auto-deploys staging). Verify `/api/health` 200 after deploys.
+1. **Gates green every batch:** `npx tsc --noEmit` · `npm run lint` · `npm test` · `npx next build`. Commit per completed item (small, clear messages, end with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`). **All work on branch `build/july-2026`** — push that branch after each green batch; NEVER push `main` directly (harness policy + founder review model). At the finale, open a PR — the founder's review = the merge; staging deploys on his merge.
 2. **Never touch** `../brightears` or `../brightears26`. Never run destructive DB ops. Additive migrations only, named properly (no `" 2.sql"` dupes).
 3. **Copy law:** subscribe-to-activate; no "no card"/trial language; no outcome promises (process promise only); no emoji anywhere in UI/emails; "inquiries" vocabulary user-facing; all-performer-kinds framing (never DJ-only). Design law = `docs/DESIGN.md` v2.1 (ink canvas, cyan interface / magenta-orange celebration voices, mono kickers, reduced-motion safety).
 4. **Never-do guardrails (from research, permanent):** no credits/per-lead metering; no auto-renew traps (pausing stays trivial); no volume blasts (caps stay); disclosure-on-challenge stays hardcoded; never quote below floor; never imply the art is AI-made; never sit between artist and client; never silently expand autonomy; no digests on empty days.
@@ -201,3 +201,4 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - 2026-07-07: Studio strategy = recut copy NOW (P6.1), build minimal roster later in this loop (P13), claims return with the code.
 - 2026-07-07: Auto-draft nightly = YES (draft-only is tier-safe); autonomous SENDS stay behind autonomy settings + new 15-min cancel buffer.
 - 2026-07-07: Reply-To reply capture = YES (white-label preserved: Reply-To is the artist's own parse address, From stays the artist's Gmail).
+- 2026-07-07: Direct pushes to `main` denied by harness policy → all work lives on `build/july-2026`; PR at finale = founder's review moment; staging E2E (15.3) runs against a local dev server pre-merge, staging re-verify happens post-merge.
