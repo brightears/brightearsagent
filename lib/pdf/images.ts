@@ -76,6 +76,14 @@ export async function fetchImageDataUri(url: string): Promise<string | null> {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
   if (isBlockedHost(parsed.hostname)) return null;
   // 14.4: the hostname LOOKS public — verify what it actually resolves to.
+  // KNOWN LIMITATION (P15 review, accepted): this is a check-then-fetch, and
+  // fetch() re-resolves the name, so a DNS-rebinding attacker who flips the
+  // record between our lookup and fetch's could still reach an internal IP.
+  // Fully closing it needs connection-level IP pinning (a custom undici
+  // dispatcher/lookup), which Next's global fetch doesn't expose cleanly. The
+  // exposure is bounded: the fetch is GET-only, no-redirect, 6s-capped, and
+  // only image/* under 6MB is ever read — no response body is surfaced to the
+  // attacker, so this is a low-value blind SSRF, not data exfiltration.
   if (await resolvesToBlockedIp(parsed.hostname)) return null;
 
   try {

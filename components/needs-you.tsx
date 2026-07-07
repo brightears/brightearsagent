@@ -101,7 +101,10 @@ export async function NeedsYou({ businessId, now }: { businessId: string; now: D
         {pitches.map((p) => (
           <li key={p.id}>
             <a
-              href={`#venue-${p.venue.id}`}
+              // Anchor into the EXPANDED feed (P15 review): a SEED/over-cap venue is
+              // collapsed on the default dashboard, so a bare #anchor would land
+              // nowhere. ?hunt=all guarantees the card is rendered.
+              href={`/dashboard?hunt=all#venue-${p.venue.id}`}
               className="flex min-h-11 items-center justify-between gap-3 py-2 group"
             >
               <span className="min-w-0 truncate text-sm font-semibold text-ink-stage group-hover:text-brand-cyan transition-colors">

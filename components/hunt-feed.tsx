@@ -418,6 +418,20 @@ export function HuntSection({
             />
           );
         })()
+      ) : venues.length === 0 ? (
+        // Counted but all collapsed (P15 review): every found venue is a SEED
+        // (or past the cap), so the default HOT/WARM feed is empty. Say so and
+        // hand over the expansion instead of rendering a blank grid under "N found".
+        <p className="text-sm text-cream/70">
+          {totalCount} {totalCount === 1 ? "venue is" : "venues are"} on file as longer-term
+          introductions — nothing hot right now.{" "}
+          <Link
+            href="/dashboard?hunt=all"
+            className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
+          >
+            View all →
+          </Link>
+        </p>
       ) : (
         <>
           <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
