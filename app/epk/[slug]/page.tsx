@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { videoEmbedUrl } from "@/lib/profile/video";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
+import { EpkInquiryForm } from "@/components/epk-inquiry-form";
 
 export const dynamic = "force-dynamic";
 
@@ -136,12 +137,13 @@ export default async function EpkPage({ params }: Props) {
       : money.format(minCents / 100);
 
   const embedUrl = business.videoLinks.map(videoEmbedUrl).find((u): u is string => u !== null);
-  const contactEmail = business.replyToEmail || business.ownerEmail;
-  const mailto = `mailto:${contactEmail}?subject=${encodeURIComponent(
-    `Availability inquiry — ${business.name}`,
-  )}`;
   const headline = business.headline || business.name;
   const quote = business.reviewQuotes[0];
+  // 12.5 booker-first: bookers skim — the hero bio is clamped to ~100 words
+  // (the PDF one-pager keeps the full text).
+  const bioWords = (business.bio ?? "").trim().split(/\s+/).filter(Boolean);
+  const shortBio =
+    bioWords.length > 100 ? `${bioWords.slice(0, 100).join(" ")}…` : business.bio;
 
   return (
     <main className="min-h-screen bg-ink-stage text-cream-bright">
@@ -157,9 +159,9 @@ export default async function EpkPage({ params }: Props) {
             <div className="mt-4 max-w-3xl">
               <PaintedHeadline text={headline} />
             </div>
-            {business.bio && (
+            {shortBio && (
               <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-cream/70">
-                {business.bio}
+                {shortBio}
               </p>
             )}
             {business.genres.length > 0 && (
@@ -177,7 +179,7 @@ export default async function EpkPage({ params }: Props) {
             )}
             <div className="mt-9">
               <a
-                href={mailto}
+                href="#inquire"
                 className="inline-block rounded-full bg-neon-magenta px-7 py-3 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
                 Check availability
@@ -185,6 +187,17 @@ export default async function EpkPage({ params }: Props) {
             </div>
           </div>
         </header>
+
+        {/* Sticky availability CTA (P12.5): bookers decide mid-scroll — the
+            one action on this page rides along instead of hiding at the ends. */}
+        <div className="pointer-events-none sticky bottom-5 z-40 -mb-12 mt-4 flex justify-center">
+          <a
+            href="#inquire"
+            className="pointer-events-auto rounded-full bg-neon-magenta px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
+          >
+            Check availability
+          </a>
+        </div>
 
         {/* VIDEO — the first recognizable YouTube/Vimeo link, lazy iframe. */}
         {embedUrl && (
@@ -211,7 +224,9 @@ export default async function EpkPage({ params }: Props) {
           <section className="mt-14">
             <EpkKicker>The room, mid-set</EpkKicker>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {business.photoUrls.slice(0, 9).map((url, i) => (
+              {/* 12.5 booker-first: three strong photos beat nine — the page
+                  stays fast and the media stays above the packages. */}
+              {business.photoUrls.slice(0, 3).map((url, i) => (
                 /* External URLs (v1, no upload infra) — plain img, not next/image. */
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -338,8 +353,9 @@ export default async function EpkPage({ params }: Props) {
           </section>
         )}
 
-        {/* CLOSING CTA — one action on this page, repeated once at the end. */}
-        <section className="mt-16">
+        {/* INQUIRY FORM (P12.5) — the one action on this page. Submissions
+            feed the artist's own inbound pipeline: the loop closes on itself. */}
+        <section id="inquire" className="mt-16 scroll-mt-8">
           <div className="relative overflow-hidden rounded-3xl bg-ink-raised border border-cream/10 px-7 py-12 sm:px-10 text-center">
             <GradientBlob tone="show" className="-top-12 left-1/2 h-32 w-64 -translate-x-1/2" />
             <div className="relative">
@@ -349,13 +365,10 @@ export default async function EpkPage({ params }: Props) {
                   mind?
                 </span>
               </p>
-              <a
-                href={mailto}
-                className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
-              >
-                Check availability
-              </a>
-              <p className="mt-5">
+              <div className="mt-8">
+                <EpkInquiryForm slug={business.slug} artistName={business.name} />
+              </div>
+              <p className="mt-6">
                 <a
                   href={`/epk/${business.slug}/pdf`}
                   target="_blank"
