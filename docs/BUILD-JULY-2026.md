@@ -9,9 +9,9 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P0
+- Current phase: P1 (P0 complete: commits 8ec3657, 4c29910)
 - Founder gates collected so far: (none yet)
-- Last green gate run: (pending)
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 415/415 tests · build OK
 
 ---
 
@@ -33,8 +33,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P0 — Housekeeping
 
-- [ ] 0.1 Commit currently-untracked `.claude/skills/*` (gstack port, provenance README) and `docs/PRODUCT-AUDIT-JULY-2026.md` + this doc. Verify repo clean.
-- [ ] 0.2 Fix the 3 existing eslint errors (audit: `components/control-room-nav.tsx:69` +2) so the lint gate is honest from the start.
+- [x] 0.1 Commit currently-untracked `.claude/skills/*` (gstack port, provenance README) and `docs/PRODUCT-AUDIT-JULY-2026.md` + this doc. Verify repo clean. *(8ec3657)*
+- [x] 0.2 Fix the 3 existing eslint errors (control-room-nav rAF seed, wizard tz via useSyncExternalStore, test directive placement). *(4c29910)*
 
 ## P1 — Day-one activation (audit §onboarding, launch-blocker #1)
 
