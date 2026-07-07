@@ -177,7 +177,7 @@ export default async function Dashboard({
   // incomplete the OnboardingBanner is the single CTA, so the no-leads welcome
   // drops its competing "Connect your leads" button and points at finishing
   // setup; once setup is done the banner hides and the welcome owns the CTA.
-  const setup = await getSetupStatus(tenant);
+  const setup = getSetupStatus(tenant);
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
   // only — the query filtered, so the cast on status is honest). Travel Mode:

@@ -6,8 +6,10 @@ import { GradientBlob, HaloRing, StickerChip } from "@/components/collage";
 
 /**
  * "Resume setup" nudge on the dashboard. Onboarding is considered incomplete
- * while the business has no packages OR no voice samples — the two things the
- * drafter can't work without. Renders nothing once both exist.
+ * while the profile essentials (sound/style, one-liner, fee floor) or the
+ * voice are missing — the things the drafter and the Hunt actually feed on
+ * (lib/onboarding-status.ts). Renders nothing once both exist, so a finished
+ * wizard never sees this again.
  *
  * v2 (docs/DESIGN.md): a cream poster band floating on the ink — ink sticker
  * chip (setup is interface work, not a celebration) + the cyan primary CTA.
@@ -16,15 +18,15 @@ export async function OnboardingBanner() {
   const business = await getCurrentBusiness().catch(() => null);
   if (!business) return null;
 
-  const { needsPackages, needsVoice, incomplete } = await getSetupStatus(business);
+  const { needsProfile, needsVoice, incomplete } = getSetupStatus(business);
   if (!incomplete) return null;
 
   const missing =
-    needsPackages && needsVoice
-      ? "your packages and your voice"
-      : needsPackages
-        ? "your packages"
-        : "your voice samples";
+    needsProfile && needsVoice
+      ? "who you are and how you sound"
+      : needsProfile
+        ? "who you are (your sound, one-liner and rate floor)"
+        : "how you sound";
 
   return (
     <div className="relative mb-6">
@@ -35,8 +37,8 @@ export async function OnboardingBanner() {
           Soundcheck pending
         </StickerChip>
         <p className="relative min-w-48 flex-1 text-sm text-ink-stage/75">
-          <span className="font-bold text-ink-stage">Almost there —</span> once we have {missing}, the
-          Hunt starts finding venues that fit you and the assistant can reply in your voice.
+          <span className="font-bold text-ink-stage">Almost there —</span> once we know {missing},
+          replies sound like you and the Hunt knows exactly what to look for.
         </p>
         <Link href="/onboarding" className={`relative ${buttonStyles.primary} text-sm`}>
           Resume setup →
