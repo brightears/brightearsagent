@@ -30,11 +30,21 @@ def read_env(path):
 
 SECRET = read_env("/tmp/prod-secrets.env")["CRON_SECRET"]
 
-# Node one-liner: ping the endpoint, fail (non-zero exit) on error so Render flags it.
+# Node one-liner (P7.3, audit 2026-07 — the old version was a FALSE-GREEN
+# wrapper AND a secret leak): it resolved on any HTTP status (a 401 from a
+# rotated secret or a 500 from a crashing tick printed the body and exited 0,
+# so Render's cron dashboard showed success forever) and it passed the secret
+# as ?secret= (into access logs). Now: Authorization header, res.ok checked,
+# non-2xx exits 1, and a 120s abort so a hung tick shows up as a failure too.
+# NOTE: the LIVE cron jobs still carry the old ?secret= command — reconfigure
+# them (Render dashboard or API) to match; tracked in BUILD-JULY-2026 P7.3.
 def cmd(path):
-    url = f"{BASE}{path}?secret={SECRET}"
+    url = f"{BASE}{path}"
     return (
-        f"node -e \"fetch('{url}').then(r=>r.text()).then(t=>{{console.log(t);}})"
+        f"node -e \"fetch('{url}',{{headers:{{Authorization:'Bearer {SECRET}'}},"
+        f"signal:AbortSignal.timeout(120000)}})"
+        f".then(async r=>{{const t=await r.text();console.log(r.status,t);"
+        f"if(!r.ok)process.exit(1)}})"
         f".catch(e=>{{console.error(e);process.exit(1)}})\""
     )
 

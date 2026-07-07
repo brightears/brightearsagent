@@ -29,6 +29,16 @@ export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
   const token = process.env.POSTMARK_SERVER_TOKEN;
   const fromAddress = process.env.OUTBOUND_FROM ?? "replies@dev.invalid";
 
+  // Fail CLOSED in production (audit 2026-07): a missing token used to
+  // silently write .eml files to the ephemeral disk — replies, notifications
+  // and reports would "send" into a void nobody reads. Opting into the file
+  // transport must be explicit.
+  if (!token && process.env.NODE_ENV === "production" && process.env.EMAIL_TRANSPORT !== "dev") {
+    throw new Error(
+      "POSTMARK_SERVER_TOKEN is missing in production — outbound email would vanish into .eml files. Set the token, or set EMAIL_TRANSPORT=dev to explicitly opt into the file transport.",
+    );
+  }
+
   // EMAIL_TRANSPORT=dev forces the file transport even when a token exists —
   // test scripts set this so they never hit the real Postmark API.
   if (!token || process.env.EMAIL_TRANSPORT === "dev") {

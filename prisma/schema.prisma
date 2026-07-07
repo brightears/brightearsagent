@@ -628,3 +628,12 @@ model ProcessedStripeEvent {
   type        String // event.type, for debugging/audit
   processedAt DateTime @default(now())
 }
+
+// Ops heartbeat stamps (P7.4): each cron upserts its key at tick start so
+// /api/health can flag a silently-dead cron — the sequences tick IS the
+// product ("follow-up until booked-or-dead"), and before this a stopped cron
+// looked green everywhere (the Render wrapper even exited 0 on HTTP failure).
+model OpsStamp {
+  key String   @id // "cron:sequences" | "cron:discovery" | "cron:weekly-report" | "cron:margin-guardrail"
+  at  DateTime
+}

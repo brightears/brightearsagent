@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
+import { reportError } from "@/lib/report-error";
 
 export interface TickResult {
   expiredDrafts: number;
@@ -84,7 +85,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       await generateDraftForLead(lead.id);
       result.redraftedLeads++;
     } catch (err) {
-      console.error(`redraft sweep failed for lead ${lead.id}`, err);
+      void reportError(err, { kind: "sequence-redraft", leadId: lead.id });
     }
   }
 
@@ -151,7 +152,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       // Draft follow-up #nextStep (lands as PENDING + push to the owner's phone).
       await generateDraftForLead(lead.id, nextStep);
     } catch (err) {
-      console.error(`sequence draft failed for lead ${lead.id} step ${nextStep}`, err);
+      void reportError(err, { kind: "sequence-step", leadId: lead.id, step: nextStep });
       result.skipped++;
       continue;
     }

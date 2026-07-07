@@ -270,7 +270,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       })();
     } else {
       void generateDraftForLead(lead.id).catch((err) =>
-        console.error(`draft generation failed for lead ${lead.id}`, err),
+        reportError(err, { kind: "draft-generation", businessId: business.id, leadId: lead.id }),
       );
     }
   }

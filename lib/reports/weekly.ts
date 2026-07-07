@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
+import { reportError } from "@/lib/report-error";
 
 export interface WeeklyNumbers {
   businessId: string;
@@ -82,22 +83,30 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
   };
 }
 
-/** Send the weekly report to every active business owner. */
-export async function sendWeeklyReports(now = new Date()): Promise<number> {
+/** Send the weekly report to every active business owner. Per-tenant errors
+ *  are isolated (P7.7): one bad address or transient send failure must never
+ *  stop the rest of the fleet's reports. */
+export async function sendWeeklyReports(now = new Date()): Promise<{ sent: number; failed: number }> {
   const businesses = await db.business.findMany({ select: { id: true, ownerEmail: true } });
   let sent = 0;
+  let failed = 0;
   for (const b of businesses) {
-    const numbers = await computeWeekly(b.id, now);
-    if (numbers.leadsIn === 0 && numbers.repliesSent === 0 && numbers.inSequence === 0) continue; // nothing to report
-    const { subject, body } = renderWeeklyEmail(numbers);
-    await sendEmail({
-      fromName: "Bright Ears",
-      to: b.ownerEmail,
-      replyTo: "support@brightears.io",
-      subject,
-      textBody: body,
-    });
-    sent++;
+    try {
+      const numbers = await computeWeekly(b.id, now);
+      if (numbers.leadsIn === 0 && numbers.repliesSent === 0 && numbers.inSequence === 0) continue; // nothing to report
+      const { subject, body } = renderWeeklyEmail(numbers);
+      await sendEmail({
+        fromName: "Bright Ears",
+        to: b.ownerEmail,
+        replyTo: "support@brightears.io",
+        subject,
+        textBody: body,
+      });
+      sent++;
+    } catch (err) {
+      failed++;
+      void reportError(err, { kind: "weekly-report", businessId: b.id });
+    }
   }
-  return sent;
+  return { sent, failed };
 }

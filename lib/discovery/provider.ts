@@ -157,5 +157,13 @@ export function getDiscoveryProvider(): DiscoveryProvider {
   if (process.env.SERPER_API_KEY || process.env.DISCOVERY_PROVIDER === "serper") {
     return new SerperDiscoveryProvider();
   }
+  // Fail CLOSED in production (audit 2026-07): a missing key used to silently
+  // serve FIXTURE venues — fake rooms with fake booking emails — to paying
+  // artists. Serving fixtures must be an explicit choice.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SERPER_API_KEY is missing in production — the Hunt would serve fixture venues with fake contacts. Set the key, or set DISCOVERY_PROVIDER=stub to explicitly opt into fixtures.",
+    );
+  }
   return new StubDiscoveryProvider();
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
+import { stampCron } from "@/lib/ops-stamp";
+import { reportError } from "@/lib/report-error";
 
 export const maxDuration = 300;
 
@@ -17,6 +19,7 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  await stampCron("cron:discovery");
 
   const businesses = await db.business.findMany({
     where: {
@@ -56,7 +59,7 @@ export async function GET(req: NextRequest) {
           : {}),
       });
     } catch (err) {
-      console.error(`discovery scan failed for tenant ${b.slug}`, err);
+      void reportError(err, { kind: "discovery-scan", businessId: b.id });
       results.push({ slug: b.slug, ran: false, error: String(err) });
     }
   }

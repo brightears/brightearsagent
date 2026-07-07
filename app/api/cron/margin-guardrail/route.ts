@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { computeMargins } from "@/lib/billing/margin";
 import { sendEmail } from "@/lib/outbound/send";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
+import { stampCron } from "@/lib/ops-stamp";
 
 export const maxDuration = 300;
 
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  await stampCron("cron:margin-guardrail");
 
   const rows = await computeMargins();
   const flagged = rows.filter((r) => r.flagged);
