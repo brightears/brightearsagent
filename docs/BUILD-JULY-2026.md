@@ -9,9 +9,10 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P1 COMPLETE** (all 10 items) · next: P2 (Gmail forwarding unblock), then P3 (coverage rotation)
+- Current phase: **P1 + P2 COMPLETE** · next: P3 (coverage rotation — the sold-cities truth fix)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 421/421 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 426/426 tests · build OK
+- Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
 
@@ -51,7 +52,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P2 — Gmail forwarding unblock (launch-blocker #2)
 
-- [ ] 2.1 Detect provider forwarding-confirmation senders (forwarding-noreply@google.com, Outlook equivalents) BEFORE parse/triage; store + surface confirmation link/code in onboarding step 5; notify owner (push+email). Fixture + test. (`lib/inbound/pipeline.ts:105`)
+- [x] 2.1 Gmail forwarding-confirmation intercepted before parse/triage (exact-sender, spoof-guard tested); link+code stored on Business (migration `forwarding_confirmation`); live approval card in step 5 via the verify poll; owner pinged via new `lib/notify.ts` (push+email); walkthrough copy fixed. Outlook needs no equivalent (settings-confirmed, no email). *(789433d)*
 
 ## P3 — Coverage truth (launch-blocker #3)
 
