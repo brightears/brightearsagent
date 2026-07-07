@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P1–P5 COMPLETE** · next: P6 (honesty + marketing sweep — the big copy phase)
+- Current phase: P6 batch A done (6.3, 6.4, 6.9, 6.10, 6.11, 6.13, 6.14-glyphs) · next: P6 batch B (6.1 Studio recut, 6.2 llms.txt, 6.5 compare row, 6.6 meta, 6.7 stats, 6.8 ROI, 6.12 OG, 6.14-vocab, 6.15 cadence card)
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
@@ -82,17 +82,17 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [ ] 6.1 **Studio recut:** strip multi-performer/team-seats claims from pricing, comparisons.ts (all 6 spots), settings PLAN_CARDS, `scripts/stripe-setup.ts` catalog, llms.txt — re-anchor on enforced dials (150 inquiries, all cities, autonomy). (Roster ships in P13, claims return then.)
 - [ ] 6.2 **llms.txt rewrite:** Hunt-led, every-performer-kind framing, "designed to" hedges, kill the fabricated median stat; hedge the 3 unhedged comparisons.ts metaDescriptions (337/416/540).
-- [ ] 6.3 Delete `/design/a|b|c` routes (their job is done; they carry banned copy + emoji).
-- [ ] 6.4 Publish an honest `/roadmap` page (shipped / building / on the roadmap incl. quote→e-sign→deposit) — or reword the 3 /compare citations; add to sitemap + link from compare.
+- [x] 6.3 /design routes deleted. *(e908981)*
+- [x] 6.4 Honest /roadmap page published (shipped/building/roadmap + non-goals line), in sitemap. Compare-hub link check rides with 6.5. *(e908981)*
 - [ ] 6.5 Compare pages: add "Finds gigs for you (the Hunt)" row to all 5 vs-tables; kill the stale reactive-only "exactly one job" line on `/compare/dj-event-planner`.
 - [ ] 6.6 Meta descriptions ≤~155 chars, find→draft→approve hook first (pricing worst at 353 chars).
 - [ ] 6.7 Cite-or-soften recurring stats ("1 in 3 vendors never reply", "3–5 vendors per inquiry", "Bark $28–47") on /story, ROI calculator, /tools/templates.
 - [ ] 6.8 ROI calculator recommends the tier matching the visitor's inputs (stop hardcoding $79).
-- [ ] 6.9 Purge retired tagline "your gigs, answered and booked" (root layout default title, manifest.json description); branded 404 page with nav home.
-- [ ] 6.10 "Sign in" link in marketing nav + mobile menu; "Get started" lands on sign-UP flow (not sign-in).
-- [ ] 6.11 Sitemap: add 6 `/compare/*` pages, drop noindexed legal + auth-gated `/onboarding`.
+- [x] 6.9 Tagline purged (root title + manifest); branded 404. *(e908981)*
+- [x] 6.10 Sign in links added; /onboarding redirects unauthenticated → Clerk sign-UP (NEXT_PUBLIC_CLERK_SIGN_UP_URL in .env.local; add to Render in P7). *(e908981)*
+- [x] 6.11 Sitemap inversion fixed (+/roadmap). *(e908981)*
 - [ ] 6.12 OG/Twitter/canonical metadata site-wide (`metadataBase`, per-page og titles/descriptions) + one branded 1200×630 `og.png` (design per DESIGN.md, render via headless screenshot). Home page gets Organization + SoftwareApplication JSON-LD ($25/$79/$149 offers); fix /story Organization schema (url/logo currently point at the agency site, logo 404s).
-- [ ] 6.13 **Env-gated indexing:** while `APP_URL` is the onrender.com staging host, serve `X-Robots-Tag: noindex` / robots disallow (flips automatically at cutover). Prevents staging becoming the canonical "Bright Ears".
+- [x] 6.13 Staging noindex: robots.ts disallow-all + root-metadata robots flag, both keyed on onrender.com in APP_URL. *(e908981)*
 - [ ] 6.14 Vocabulary: "inquiries" user-facing everywhere (billing card, cap banner, weekly email); weekly-report emoji removed; wizard ✓/⚙ glyphs → SVG/text; schema.prisma TRIAL comment updated to subscribe-to-activate.
 - [ ] 6.15 Control Room: read-only "Follow-up cadence" card (day 2/5/9 + hard-stops) + per-plan effort-dials display ("how hard the AI works", current plan highlighted).
 
