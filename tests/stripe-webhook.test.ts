@@ -52,6 +52,16 @@ beforeEach(() => {
   mockDb.business.update.mockResolvedValue({});
   mockDb.business.findUnique.mockResolvedValue(null);
   mockDb.business.findFirst.mockResolvedValue(null);
+  // `updated` re-retrieves the subscription (trust Stripe NOW, not the event
+  // payload). Default: Stripe agrees the sub is live on PRO; tests exercising
+  // stale/orphan events override per-case.
+  mockStripe.subscriptions.retrieve.mockImplementation(async (id: string) => ({
+    id,
+    status: "active",
+    items: { data: [{ price: { lookup_key: PRO } }] },
+    customer: "cus_1",
+    metadata: {},
+  }));
 });
 
 describe("checkout.session.completed", () => {
@@ -133,6 +143,12 @@ describe("customer.subscription.updated", () => {
 
   it("S4: pauses (plan→TRIAL) on a non-live status (canceled)", async () => {
     mockDb.business.findUnique.mockResolvedValue({ id: "biz1", plan: "PRO", stripeSubscriptionId: "sub_1" });
+    mockStripe.subscriptions.retrieve.mockResolvedValue({
+      id: "sub_1",
+      status: "canceled",
+      items: { data: [{ price: { lookup_key: PRO } }] },
+      customer: "cus_1",
+    });
     await applyStripeEvent(subEvent("updated", { id: "sub_1", status: "canceled", businessId: "biz1" }));
     expect(mockDb.business.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ plan: "TRIAL", stripeSubscriptionId: null }) }),
@@ -141,10 +157,45 @@ describe("customer.subscription.updated", () => {
 
   it("keeps the agent live during past_due (dunning grace)", async () => {
     mockDb.business.findUnique.mockResolvedValue({ id: "biz1", plan: "PRO", stripeSubscriptionId: "sub_1" });
+    mockStripe.subscriptions.retrieve.mockResolvedValue({
+      id: "sub_1",
+      status: "past_due",
+      items: { data: [{ price: { lookup_key: PRO } }] },
+      customer: "cus_1",
+    });
     await applyStripeEvent(subEvent("updated", { id: "sub_1", status: "past_due", businessId: "biz1" }));
     expect(mockDb.business.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ plan: "PRO" }) }),
     );
+  });
+
+  it("orphan guard: an abandoned-then-retried checkout's expiring orphan never pauses the paying tenant", async () => {
+    // The audit's concrete failure: first checkout abandoned (incomplete sub
+    // with businessId metadata) → user retries and subscribes (live_sub) →
+    // ~23h later the orphan fires updated(incomplete_expired).
+    mockDb.business.findUnique.mockResolvedValue({ id: "biz1", plan: "PRO", stripeSubscriptionId: "live_sub" });
+    const res = await applyStripeEvent(
+      subEvent("updated", { id: "orphan_sub", status: "incomplete_expired", businessId: "biz1" }),
+    );
+    expect(res.applied).toBe(false);
+    expect(mockDb.business.update).not.toHaveBeenCalled();
+  });
+
+  it("resurrection guard: a stale queued updated(active) after cancellation trusts Stripe NOW", async () => {
+    mockDb.business.findUnique.mockResolvedValue({ id: "biz1", plan: "TRIAL", stripeSubscriptionId: null });
+    // Event payload claims active; Stripe's current truth is canceled.
+    mockStripe.subscriptions.retrieve.mockResolvedValue({
+      id: "sub_z",
+      status: "canceled",
+      items: { data: [{ price: { lookup_key: PRO } }] },
+      customer: "cus_1",
+    });
+    await applyStripeEvent(subEvent("updated", { id: "sub_z", status: "active", businessId: "biz1" }));
+    // No live plan may be written from the stale payload.
+    for (const call of mockDb.business.update.mock.calls) {
+      expect(call[0].data.plan).not.toBe("PRO");
+    }
+    expect(mockActivationScan).not.toHaveBeenCalled();
   });
 
   it("S5: signals RETRY (don't record) when an OURS event can't resolve its tenant", async () => {
