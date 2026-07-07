@@ -285,6 +285,7 @@ export async function runContactPass(
         country: venue.country,
         kind: venue.kind as VenueKind,
         bookingEmail: email,
+        travelWindowId: venue.travelWindowId,
       },
       signals,
       business,

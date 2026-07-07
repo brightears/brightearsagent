@@ -135,9 +135,12 @@ describe("runDiscoveryScan orchestration", () => {
 
     const result = await runDiscoveryScan("biz1", { now: NOW, provider });
 
-    expect(result.metros.map((m) => m.city)).toEqual(["Manchester", "Leeds"]); // Liverpool capped off
+    // Per-scan spend stays 2 metros; counter 1 rotates the window to
+    // [Leeds, Liverpool] — Manchester's turn comes next scan; no city is ever
+    // "capped off" permanently (audit 2026-07).
+    expect(result.metros.map((m) => m.city)).toEqual(["Leeds", "Liverpool"]);
     expect(spy).toHaveBeenCalledTimes(2);
-    expect(spy.mock.calls[0][0]).toEqual({ city: "Manchester", country: "GB" });
+    expect(spy.mock.calls[0][0]).toEqual({ city: "Leeds", country: "GB" });
     expect(spy.mock.calls[0][1]).toMatchObject({ now: NOW, businessId: "biz1" });
     expect(ingestSignals).toHaveBeenCalledTimes(2);
     expect(runContactPass).toHaveBeenCalledWith("biz1", expect.objectContaining({ gl: "gb" }));
@@ -186,5 +189,106 @@ describe("runDiscoveryScan warm wheel (10.2c)", () => {
     const result = await runDiscoveryScan("biz1", { now: NOW, provider, forceWarm: true });
     expect(warmSeen).toBe(true);
     expect(result.warm).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Coverage rotation (audit 2026-07): the old home-first slice meant city 3+
+// NEVER scanned and 2+ home cities starved Travel Mode forever — coverage the
+// pricing page sold but the scanner never delivered. Same 2-metro spend per
+// scan; the counter rotates who gets it.
+// ---------------------------------------------------------------------------
+describe("runDiscoveryScan coverage rotation", () => {
+  const cityOf = (r: Awaited<ReturnType<typeof runDiscoveryScan>>) =>
+    r.metros.map((m) => m.city);
+
+  const liveWindow = (id: string, city: string, venues = 1) => ({
+    id,
+    city,
+    country: "PT",
+    startDate: hoursAgo(24),
+    endDate: new Date(NOW.getTime() + 5 * 24 * 3600 * 1000),
+    status: "ACTIVE",
+    _count: { venues }, // ≥1 venue = scans every time (no 1-in-3 gate)
+  });
+
+  it("rotates a Pro's 3 home cities so every city scans within days", async () => {
+    const seen = new Set<string>();
+    for (const count of [1, 2, 3]) {
+      mockDb.business.findUniqueOrThrow.mockResolvedValue(
+        business({
+          plan: "PRO",
+          serviceCities: ["Austin", "Dallas", "Houston"],
+          discoveryScanCount: count,
+        }),
+      );
+      const result = await runDiscoveryScan("biz1", { now: NOW, provider: fakeProvider() });
+      expect(result.metros).toHaveLength(2);
+      for (const c of cityOf(result)) seen.add(c);
+    }
+    // Three consecutive daily scans cover ALL three cities (old code: Houston never).
+    expect([...seen].sort()).toEqual(["Austin", "Dallas", "Houston"]);
+  });
+
+  it("never rotates past the plan's homeCityCap (legacy over-stored cities)", async () => {
+    const seen = new Set<string>();
+    for (const count of [0, 1, 2, 3, 4, 5]) {
+      mockDb.business.findUniqueOrThrow.mockResolvedValue(
+        business({
+          plan: "PRO", // cap 3 — the stored 4th city must never scan
+          serviceCities: ["Austin", "Dallas", "Houston", "El Paso"],
+          discoveryScanCount: count,
+        }),
+      );
+      const result = await runDiscoveryScan("biz1", { now: NOW, provider: fakeProvider() });
+      for (const c of cityOf(result)) seen.add(c);
+    }
+    expect(seen.has("El Paso")).toBe(false);
+    expect(seen.size).toBe(3);
+  });
+
+  it("a live travel window reserves one slot even with 2+ home cities", async () => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({
+        serviceCities: ["Manchester", "Leeds"],
+        travelWindows: [liveWindow("w1", "Lisbon")],
+      }),
+    );
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider: fakeProvider() });
+    const cities = cityOf(result);
+    expect(cities).toHaveLength(2);
+    expect(cities).toContain("Lisbon"); // old code: home filled both slots, Lisbon never scanned
+    const lisbon = result.metros.find((m) => m.city === "Lisbon")!;
+    expect(lisbon.travelWindowId).toBe("w1");
+    expect(lisbon.country).toBe("PT"); // jurisdiction follows the destination
+    // Exactly one home city rides along this scan; the other's turn comes next.
+    expect(cities.filter((c) => c !== "Lisbon")).toHaveLength(1);
+  });
+
+  it("alternates WHICH home city rides along across scans", async () => {
+    const homeSeen = new Set<string>();
+    for (const count of [1, 2]) {
+      mockDb.business.findUniqueOrThrow.mockResolvedValue(
+        business({
+          serviceCities: ["Manchester", "Leeds"],
+          discoveryScanCount: count,
+          travelWindows: [liveWindow("w1", "Lisbon")],
+        }),
+      );
+      const result = await runDiscoveryScan("biz1", { now: NOW, provider: fakeProvider() });
+      for (const c of cityOf(result)) if (c !== "Lisbon") homeSeen.add(c);
+    }
+    expect([...homeSeen].sort()).toEqual(["Leeds", "Manchester"]);
+  });
+
+  it("with no home cities, travel windows may take every slot", async () => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({
+        serviceCities: [],
+        travelWindows: [liveWindow("w1", "Lisbon"), liveWindow("w2", "Porto")],
+      }),
+    );
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider: fakeProvider() });
+    expect(cityOf(result).sort()).toEqual(["Lisbon", "Porto"]);
   });
 });

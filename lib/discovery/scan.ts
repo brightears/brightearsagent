@@ -147,30 +147,46 @@ export async function runDiscoveryScan(
 
   const provider = opts.provider ?? getDiscoveryProvider();
 
-  // Build the scan plan: HOME metros first (serviceCities, the home country),
-  // then LIVE travel windows. A travel target carries the WINDOW's country (so
-  // jurisdiction follows the destination) and its id (so discovered venues are
-  // tagged + outreach is date-bounded). Speculative (0-venue) windows scan at a
-  // reduced 1-in-3 cadence; windows with ≥1 venue scan every time. The
-  // MAX_METROS_PER_SCAN cap still bounds total Serper spend (home wins the cap).
+  // Build the scan plan. MAX_METROS_PER_SCAN bounds Serper spend per scan; the
+  // plan's homeCityCap bounds which cities are covered AT ALL. Between those
+  // two caps, coverage must actually rotate (audit 2026-07: the old
+  // home-first slice meant city 3+ NEVER scanned and any tenant with 2+ home
+  // cities starved Travel Mode forever — coverage that was sold but never ran):
+  //  - A LIVE travel window reserves ONE slot — travel outranks the second
+  //    home city while a window is live (that trip is time-boxed; home isn't).
+  //  - Home cities fill the remaining slots ROUND-ROBIN by discoveryScanCount,
+  //    so every covered city scans within days at the same per-scan spend.
+  //  - Multiple live windows rotate through the reserved slot the same way;
+  //    with no home cities, travel may take every slot.
+  // A travel target carries the WINDOW's country (jurisdiction follows the
+  // destination) and its id (venues tagged, outreach date-bounded).
+  // Speculative (0-venue) windows keep their reduced 1-in-3 cadence.
   type ScanTarget = { metro: Metro; travelWindowId: string | null };
-  // Coverage gate: the plan caps how many HOME cities the Hunt scans. Saves are
-  // already trimmed (app/actions/travel.ts), but slice here too so a legacy or
-  // downgraded tenant with more stored cities never scans beyond its plan.
-  const homeTargets: ScanTarget[] = business.serviceCities
+  // Coverage gate: saves are already trimmed (app/actions/travel.ts), but
+  // slice here too so a legacy or downgraded tenant never scans past its plan.
+  const homeAll: ScanTarget[] = business.serviceCities
     .slice(0, planFeatures(business.plan).homeCityCap)
     .map((city) => ({
       metro: { city, country: business.country },
       travelWindowId: null,
     }));
-  const travelTargets: ScanTarget[] = business.travelWindows
+  const travelAll: ScanTarget[] = business.travelWindows
     .filter((w) => isWindowLive(w, now))
     .filter((w) => shouldScanWindowThisScan(w._count.venues > 0, business.discoveryScanCount))
     .map((w) => ({
       metro: { city: w.city, country: w.country },
       travelWindowId: w.id,
     }));
-  const targets = [...homeTargets, ...travelTargets].slice(0, MAX_METROS_PER_SCAN);
+  const rotate = <T,>(arr: T[], by: number): T[] =>
+    arr.length <= 1 ? arr : arr.map((_, i) => arr[(by + i) % arr.length]);
+  const travelSlots = Math.min(travelAll.length, 1, MAX_METROS_PER_SCAN);
+  const homePick = rotate(homeAll, homeAll.length ? business.discoveryScanCount % homeAll.length : 0)
+    .slice(0, Math.max(0, MAX_METROS_PER_SCAN - travelSlots));
+  const travelPick = rotate(
+    travelAll,
+    travelAll.length ? business.discoveryScanCount % travelAll.length : 0,
+  ).slice(0, MAX_METROS_PER_SCAN - homePick.length);
+  const targets = [...homePick, ...travelPick];
 
   const result: ScanResult = { ...base, ran: true };
   const queriesBefore = queriesUsed(provider);

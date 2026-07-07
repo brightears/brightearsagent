@@ -35,6 +35,9 @@ export type ScorableVenue = {
   country: string;
   kind: VenueKind;
   bookingEmail?: string | null;
+  /** Set when the venue was discovered FOR a travel window — in-area by
+   *  definition (the artist chose that city and dates), never geo-penalized. */
+  travelWindowId?: string | null;
 };
 
 /** The slice of the Business profile that matching reads (10.1 fields). */
@@ -160,11 +163,17 @@ export function scoreVenue(
   let caution: string | undefined;
   let score = 0;
 
-  // --- Geo (30): the agent hunts where the artist plays — but an artist who's
-  // open to travel can take a room out of area, so that earns half geo + a soft
-  // note rather than the hard "outside your area" caution.
+  // --- Geo (30): the agent hunts where the artist plays. A venue found FOR a
+  // travel window is in-area by definition — the artist picked that city and
+  // dates — so it earns full geo (half-crediting your own trip made travel
+  // finds rank low and starved them out of the contact pass, audit 2026-07).
+  // Otherwise: home cities full credit; open-to-travel out-of-area earns half
+  // + a soft note rather than the hard caution.
   const inServiceArea = profile.serviceCities.map(norm).includes(norm(venue.city));
-  if (inServiceArea) {
+  if (venue.travelWindowId) {
+    score += W_GEO;
+    reasons.push(`In ${venue.city} — found for your trip`);
+  } else if (inServiceArea) {
     score += W_GEO;
     reasons.push(`In ${venue.city} — one of your service cities`);
   } else if (profile.acceptsTravel) {
