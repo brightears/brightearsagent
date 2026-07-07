@@ -19,6 +19,7 @@
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe, planForLookupKey } from "@/lib/billing/stripe";
+import { scheduleActivationScan } from "@/lib/discovery/activation";
 
 /** applied → safe to record as processed; retry → return 5xx, do NOT record. */
 export type ApplyResult = { applied: boolean; retry: boolean };
@@ -84,6 +85,10 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
           trialEndsAt: null,
         },
       });
+      // Subscribe-to-activate means day one IS the trial: hunt the moment the
+      // plan flips instead of waiting for the daily cron. Post-response; the
+      // scan itself refuses tenants with no cities yet.
+      scheduleActivationScan(businessId, { force: true });
       return APPLIED;
     }
 
@@ -109,6 +114,10 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
             trialEndsAt: null,
           },
         });
+        // Paused → live transition only (business.plan is the pre-write value):
+        // a re-activation deserves an immediate hunt; routine renewals and plan
+        // switches don't re-burn the scan budget.
+        if (business.plan === "TRIAL") scheduleActivationScan(business.id, { force: true });
       } else {
         // canceled / unpaid / incomplete_expired / paused → pause the agent.
         await db.business.update({

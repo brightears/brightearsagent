@@ -38,6 +38,7 @@ export default async function OnboardingPage() {
         ownerName: business.ownerName,
         performerKind: business.performerKind,
         country: business.country,
+        homeCity: business.serviceCities[0] ?? "",
         timezone: business.timezone,
         websiteUrl: business.websiteUrl,
         voiceSamples: business.voiceSamples,

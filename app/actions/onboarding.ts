@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { scheduleActivationScan } from "@/lib/discovery/activation";
 import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
 import { residencyDates, WEEKDAY_NAMES } from "@/lib/calendar/residency";
 import { PerformerKind } from "@/app/generated/prisma/enums";
@@ -31,6 +32,11 @@ const basicsSchema = z.object({
   name: z.string().trim().min(1, "Your business needs a name"),
   ownerName: z.string().trim().min(1, "Tell us your name"),
   performerKind: z.enum(PerformerKind, "Pick what you perform"),
+  homeCity: z
+    .string()
+    .trim()
+    .min(1, "Tell us your home city — it's where the agent hunts first")
+    .max(80, "That looks like more than a city name"),
   country: z
     .string()
     .trim()
@@ -72,6 +78,7 @@ export async function saveBusinessBasics(input: {
   ownerName: string;
   performerKind: string;
   country: string;
+  homeCity: string;
   timezone: string;
   websiteUrl: string;
 }): Promise<ActionResult> {
@@ -80,12 +87,30 @@ export async function saveBusinessBasics(input: {
   const parsed = basicsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
+  // Home base = serviceCities[0]. Replace only the first slot and dedupe —
+  // extra cities and their order (Control Room "Where you hunt") stay intact
+  // when someone revisits step 1.
+  const { homeCity, ...basics } = parsed.data;
+  const extraCities = business.serviceCities
+    .slice(1)
+    .filter((c) => c.toLowerCase() !== homeCity.toLowerCase());
+  const hadNoCities = business.serviceCities.length === 0;
+
   // Derive the artist's fee currency from their country (THB for Thailand) so
   // the drafter quotes clients in local money — separate from USD billing.
   await db.business.update({
     where: { id: business.id },
-    data: { ...parsed.data, currency: currencyForCountry(parsed.data.country) },
+    data: {
+      ...basics,
+      currency: currencyForCountry(basics.country),
+      serviceCities: [homeCity, ...extraCities],
+    },
   });
+
+  // First city ever: hunt NOW, not at tomorrow's 05:00 UTC cron — day one is
+  // the trial. Bounded: only fires when serviceCities was empty, and the
+  // scan's own guards refuse unsubscribed tenants (no spend on free users).
+  if (hadNoCities) scheduleActivationScan(business.id, { force: true });
 
   revalidatePath("/onboarding");
   revalidatePath("/dashboard");

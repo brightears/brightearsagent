@@ -8,12 +8,14 @@ const mockDb = vi.hoisted(() => ({
   business: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
 }));
 const mockStripe = vi.hoisted(() => ({ subscriptions: { retrieve: vi.fn() } }));
+const mockActivationScan = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("@/lib/billing/stripe", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/billing/stripe")>();
   return { ...actual, stripe: () => mockStripe, stripeEnabled: true };
 });
+vi.mock("@/lib/discovery/activation", () => ({ scheduleActivationScan: mockActivationScan }));
 
 import { applyStripeEvent } from "@/lib/billing/webhook";
 
@@ -78,6 +80,8 @@ describe("checkout.session.completed", () => {
         data: expect.objectContaining({ plan: "PRO", stripeSubscriptionId: "sub_1" }),
       }),
     );
+    // Day one is the trial: activation kicks an immediate (post-response) hunt.
+    expect(mockActivationScan).toHaveBeenCalledWith("biz1", { force: true });
   });
 
   it("S6: does NOT activate on an unmapped lookup_key (paid, off-catalog price)", async () => {
@@ -111,6 +115,20 @@ describe("customer.subscription.updated", () => {
         data: expect.objectContaining({ plan: "PRO", stripeSubscriptionId: "new_sub" }),
       }),
     );
+    // Already live before the event (STARTER) — a plan switch must NOT re-burn
+    // the scan budget; only a paused→live transition hunts immediately.
+    expect(mockActivationScan).not.toHaveBeenCalled();
+  });
+
+  it("kicks an immediate hunt on a paused→live transition (re-activation)", async () => {
+    mockDb.business.findUnique.mockResolvedValue({
+      id: "biz1",
+      plan: "TRIAL",
+      stripeSubscriptionId: null,
+    });
+    const res = await applyStripeEvent(subEvent("updated", { id: "sub_9", status: "active", businessId: "biz1" }));
+    expect(res.applied).toBe(true);
+    expect(mockActivationScan).toHaveBeenCalledWith("biz1", { force: true });
   });
 
   it("S4: pauses (plan→TRIAL) on a non-live status (canceled)", async () => {

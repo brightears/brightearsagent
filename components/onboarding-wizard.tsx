@@ -108,6 +108,9 @@ export interface WizardBusiness {
   ownerName: string;
   performerKind: PerformerKind;
   country: string;
+  /** Home base = serviceCities[0]; the wizard collects the first one so the
+   *  Hunt is never structurally idle. More cities live in the Control Room. */
+  homeCity: string;
   timezone: string;
   websiteUrl: string | null;
   voiceSamples: string | null;
@@ -376,6 +379,7 @@ function StepBusiness({
         ownerName: String(fd.get("ownerName") ?? ""),
         performerKind: kind,
         country,
+        homeCity: String(fd.get("homeCity") ?? ""),
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
       });
@@ -519,6 +523,22 @@ function StepBusiness({
             your June 14th.
           </p>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="ob-city" className={labelStyles}>Where are you based?</label>
+        <input
+          id="ob-city"
+          name="homeCity"
+          required
+          defaultValue={initial.homeCity}
+          placeholder="Bangkok · Manchester · Austin"
+          className={inputStyles}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          Your home city — the first place the agent hunts for venues and gigs. You can add more
+          cities (and travel plans) later in the Control room.
+        </p>
       </div>
 
       <div>
