@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
+import { autoDraftPitches } from "@/lib/venues/auto-draft";
+import { notifyBusiness } from "@/lib/notify";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCron } from "@/lib/ops-stamp";
 import { reportError } from "@/lib/report-error";
@@ -49,6 +51,7 @@ export async function GET(req: NextRequest) {
     venuesUpdated?: number;
     contactsFound?: number;
     serperQueries?: number;
+    pitchesDrafted?: number;
     error?: string;
   }> = [];
 
@@ -64,18 +67,51 @@ export async function GET(req: NextRequest) {
     }
     try {
       const scan = await runDiscoveryScan(b.id);
+      const venuesCreated = scan.ran ? scan.metros.reduce((n, m) => n + m.created, 0) : 0;
+
+      // The agent ACTS (P8.1): after the scan, draft pitches for the best
+      // contactable venues up to the same daily caps the manual button obeys.
+      // Then the morning digest (P8.2) — ONLY when something actually
+      // happened (no digests on empty days; that's product law).
+      let pitchesDrafted = 0;
+      const business = await db.business.findUnique({ where: { id: b.id } });
+      if (business) {
+        const drafted = await autoDraftPitches(business);
+        pitchesDrafted = drafted.created;
+        if (pitchesDrafted > 0 || venuesCreated > 0) {
+          const pendingPitches = await db.venuePitch.count({
+            where: { businessId: b.id, status: "PENDING" },
+          });
+          const parts = [
+            pendingPitches > 0
+              ? `${pendingPitches} pitch${pendingPitches === 1 ? "" : "es"} ready to approve`
+              : null,
+            venuesCreated > 0
+              ? `${venuesCreated} new venue${venuesCreated === 1 ? "" : "s"} found`
+              : null,
+          ].filter(Boolean);
+          void notifyBusiness(business, {
+            title: "Your agent worked overnight",
+            body: parts.join(" · "),
+            url: "/dashboard",
+            emailBody: `While you were away, the Hunt ran your cities.\n\n${parts.join("\n")}\n\nEach pitch is drafted in your voice and waiting for one tap.`,
+          }).catch(() => null);
+        }
+      }
+
       results.push({
         slug: b.slug,
         ran: scan.ran,
         ...(scan.reason ? { reason: scan.reason } : {}),
         ...(scan.ran
           ? {
-              venuesCreated: scan.metros.reduce((n, m) => n + m.created, 0),
+              venuesCreated,
               venuesUpdated: scan.metros.reduce((n, m) => n + m.updated, 0),
               contactsFound: scan.contacts?.found.length ?? 0,
               serperQueries: scan.serperQueries,
+              pitchesDrafted,
             }
-          : {}),
+          : { pitchesDrafted }),
       });
     } catch (err) {
       void reportError(err, { kind: "discovery-scan", businessId: b.id });
