@@ -4,6 +4,7 @@ import { reconcileStripe, computeHeartbeat, renderHeartbeat } from "@/lib/ops/ni
 import { sendEmail } from "@/lib/outbound/send";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCron } from "@/lib/ops-stamp";
+import { sendMonthlyRoiReceipts } from "@/lib/reports/roi";
 
 export const maxDuration = 300;
 
@@ -16,6 +17,9 @@ export const maxDuration = 300;
  *     and two desync classes have already been found the hard way.
  *  3. Heartbeat digest (P7.12): one proof-of-life email to OPS_ALERT_EMAIL,
  *     sent EVERY night, so a silent day reads as the anomaly it is.
+ *  4. Monthly ROI receipts (P11.4): on the 1st (UTC), paying tenants get
+ *     last month's work next to what they paid. Once-daily cadence IS the
+ *     idempotency (same as the weekly report).
  */
 export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
@@ -41,6 +45,9 @@ export async function GET(req: NextRequest) {
   const reconcile = await reconcileStripe();
   const heartbeat = await computeHeartbeat();
 
+  const now = new Date();
+  const roi = now.getUTCDate() === 1 ? await sendMonthlyRoiReceipts(now) : null;
+
   if (process.env.OPS_ALERT_EMAIL) {
     await sendEmail({
       fromName: "Bright Ears Ops",
@@ -58,5 +65,6 @@ export async function GET(req: NextRequest) {
     flagged: flagged.map((r) => r.businessName),
     reconcile,
     heartbeat,
+    roi,
   });
 }
