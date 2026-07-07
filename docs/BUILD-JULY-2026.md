@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P10 in progress — DONE: 10.6/10.7 *(1f69998)*, 10.9/10.10/10.11 *(6b82b88)*; remaining: 10.1, 10.2, 10.3, 10.4, 10.5, 10.8 (next: 10.8 continue-thread mode)
+- Current phase: P10 in progress — DONE: 10.6/10.7 *(1f69998)*, 10.8 *(b9c41db)*, 10.9/10.10/10.11 *(6b82b88)*; remaining: 10.1 evidence chips, 10.2 not-my-kind, 10.3 graduation prompts, 10.4 send buffer, 10.5 contact confidence (next: 10.1)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 454/454 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 458/458 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -145,7 +145,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [ ] 10.5 Contact-confidence gating: only auto-actions to high-confidence addresses; low-confidence → "verify before sending" flag on the card.
 - [x] 10.6 Spam folder /dashboard/spam behind the (now linked) pill: spamReason per row, one-tap rescue → NEW + draft + deep-link. *(1f69998)*
 - [x] 10.7 Speed stopwatch: median-first-reply pill in dashboard header (hidden when no data); math shared via medianReplyMinutes; weekly email already had it. *(1f69998)*
-- [ ] 10.8 Mid-conversation draft mode (third task mode: continue the thread, don't re-introduce). (`lib/agent/drafter.ts:130`)
+- [x] 10.8 Mid-conversation draft mode: continue-the-thread task; client reply-match + venue replies fire cap-gated mid-thread drafts (suppressPush); venue lead threads seeded with the sent pitch (backdated OUTBOUND). *(b9c41db)*
 - [x] 10.9 HTML-only inbound stripped once at the top of processInbound (lib/inbound/html-to-text.ts — labeled form fields keep field-per-line shape). *(6b82b88)*
 - [x] 10.10 Atomic claim in sendDraftReply: updateMany PENDING→SENDING (new enum value, additive migration); thrown send releases claim to PENDING. *(6b82b88)*
 - [x] 10.11 Fallback classifies form-system senders as WEBSITE_FORM; auto-send card drops Thumbtack/Other (never produced). *(6b82b88)*
