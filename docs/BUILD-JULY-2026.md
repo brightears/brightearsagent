@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P6 nearly done — remaining: 6.12 (OG metadata + og.png + home JSON-LD + story schema fix), 6.14-vocab remainder, 6.15 (cadence + dials cards)
+- Current phase: **P0–P6 COMPLETE** (all launch-blocker copy/honesty debt cleared) · next: P7 ops hardening (fail-closed env, cron wrapper + Render reconfigure, reportError wiring, health+monitoring, CI, backups)
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
@@ -91,10 +91,10 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 6.9 Tagline purged (root title + manifest); branded 404. *(e908981)*
 - [x] 6.10 Sign in links added; /onboarding redirects unauthenticated → Clerk sign-UP (NEXT_PUBLIC_CLERK_SIGN_UP_URL in .env.local; add to Render in P7). *(e908981)*
 - [x] 6.11 Sitemap inversion fixed (+/roadmap). *(e908981)*
-- [ ] 6.12 OG/Twitter/canonical metadata site-wide (`metadataBase`, per-page og titles/descriptions) + one branded 1200×630 `og.png` (design per DESIGN.md, render via headless screenshot). Home page gets Organization + SoftwareApplication JSON-LD ($25/$79/$149 offers); fix /story Organization schema (url/logo currently point at the agency site, logo 404s).
+- [x] 6.12 metadataBase + canonical './' + OG defaults; app/opengraph-image.tsx (next/og ImageResponse — better than a static og.png: no asset to 404); pageMeta() per-page og titles on 9 key pages + compare/[slug]; home Organization+SoftwareApplication JSON-LD; story schema env-driven. *(4c8a527)*
 - [x] 6.13 Staging noindex: robots.ts disallow-all + root-metadata robots flag, both keyed on onrender.com in APP_URL. *(e908981)*
-- [ ] 6.14 Vocabulary: "inquiries" user-facing everywhere (billing card, cap banner, weekly email); weekly-report emoji removed; wizard ✓/⚙ glyphs → SVG/text; schema.prisma TRIAL comment updated to subscribe-to-activate.
-- [ ] 6.15 Control Room: read-only "Follow-up cadence" card (day 2/5/9 + hard-stops) + per-plan effort-dials display ("how hard the AI works", current plan highlighted).
+- [x] 6.14 Vocab + glyph sweep complete (billing card 351222a; glyphs/schema e908981; at-cap banner, weekly email, dashboard welcome 18b8b74). *(18b8b74)*
+- [x] 6.15 Cadence section in the Control Room: real stepsDays rhythm card + per-plan dials table with the tenant's plan marked. *(18b8b74)*
 
 ## P7 — Ops hardening (launch-blocker #8)
 
