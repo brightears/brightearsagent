@@ -245,7 +245,7 @@ export default async function Dashboard({
 
       {/* Receipts first (P8.7): what the agent did in the last 24h, in plain
           words — proof of work before any stats. Hidden on quiet days. */}
-      <ReceiptsStrip businessId={tenant.id} />
+      <ReceiptsStrip businessId={tenant.id} now={now} />
 
       {/* ONE activation surface (audit C4, recut 2026-07): profile+voice, home
           city, leads, plan — in order, one primary CTA. Hidden once live. */}

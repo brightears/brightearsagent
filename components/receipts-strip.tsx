@@ -7,8 +7,10 @@ import { db } from "@/lib/db";
  * churn. Derived entirely from timestamps (last 24h); renders nothing on a
  * quiet day — the strip must never manufacture activity.
  */
-export async function ReceiptsStrip({ businessId }: { businessId: string }) {
-  const since = new Date(Date.now() - 24 * 3600 * 1000);
+export async function ReceiptsStrip({ businessId, now }: { businessId: string; now: Date }) {
+  // `now` comes from the page's render clock (the react compiler lint forbids
+  // impure calls during render, even in an async server component).
+  const since = new Date(now.getTime() - 24 * 3600 * 1000);
   const [venuesFound, pitchesDrafted, pitchesSent, repliesSent, venueReplies] = await Promise.all([
     db.venue.count({ where: { businessId, createdAt: { gte: since } } }),
     db.venuePitch.count({ where: { businessId, createdAt: { gte: since } } }),
