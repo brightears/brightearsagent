@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P8 COMPLETE — the agent acts** · next: P9 (the 30-second phone habit)
+- Current phase: P9 in progress — 9.1, 9.2, 9.5-partial, 9.7 DONE (+ a Studio-teaser 6.1 escapee swept) · next: 9.3 bottom tabs, 9.4 Today queue, 9.5 agenda calendar, 9.6 PWA icons + A2HS, 9.8 GigSalad kit
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
@@ -127,13 +127,13 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P9 — The 30-second phone habit (Theme B)
 
-- [ ] 9.1 16px form controls at base breakpoint (kills iOS focus-zoom) across wizard/settings/drafts (~6 shared style constants).
-- [ ] 9.2 44px min tap targets + full-width mobile Approve on venue-pitch-review + hunt-feed (copy draft-review's pattern).
+- [x] 9.1 16px base on all five shared constants + draft textarea. *(fedd536)*
+- [x] 9.2 Approve/Edit/Send now: min-h-11 + full-width below sm. *(fedd536)*
 - [ ] 9.3 **Bottom tab bar** below lg: Today / Hunt / Calendar / Control room, count badges, safe-area-inset padding.
 - [ ] 9.4 **"Today" approval-queue-first** mobile home: pending lead drafts + pending pitches stacked, count-badged, above Hunt/pipeline.
-- [ ] 9.5 Agenda-list calendar below `sm` (grouped by day; grid stays at sm+); step-4 date rows stack on mobile.
+- [ ] 9.5 Agenda-list calendar below `sm` (grouped by day; grid stays at sm+). Step-4 row stacking DONE *(fedd536)*.
 - [ ] 9.6 PWA finish: 180px apple-touch-icon, maskable 192/512 icons, manifest description update (+ screenshots for the rich install sheet); custom A2HS prompt right after first approval.
-- [ ] 9.7 Trim HeroCollage below `sm` (demo widget arrives a screen sooner); vinyl-spin gets prefers-reduced-motion kill.
+- [x] 9.7 HeroCollage hidden below sm; vinyl-spin reduced-motion kill. *(fedd536)*
 - [ ] 9.8 GigSalad (no-email leads) reply kit: "Copy reply" + "Open on GigSalad" replaces Approve when clientEmail is null.
 
 ## P10 — Trust machinery (Theme C)
