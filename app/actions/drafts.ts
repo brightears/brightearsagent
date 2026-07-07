@@ -102,6 +102,28 @@ export async function rescueFromSpam(leadId: string) {
   return { ok: true as const, leadId };
 }
 
+/**
+ * Hold a "sending soon" autonomous send (P10.4): clears the buffer clock so
+ * the draft drops back to the normal approve flow. PENDING-only and
+ * tenant-scoped; racing the tick is safe — sendDraftReply's atomic claim
+ * means a draft that already started sending can't be held (count 0).
+ */
+export async function holdScheduledSend(draftId: string) {
+  const business = await getCurrentBusiness();
+  const updated = await db.draft.updateMany({
+    where: {
+      id: draftId,
+      status: "PENDING",
+      scheduledSendAt: { not: null },
+      lead: { businessId: business.id },
+    },
+    data: { scheduledSendAt: null },
+  });
+  if (updated.count === 0) return { ok: false as const, error: "nothing scheduled to hold" };
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}
+
 export async function rejectDraft(draftId: string) {
   const business = await getCurrentBusiness();
   // Tenant-scoped count guard: only reject a PENDING draft of our own lead.

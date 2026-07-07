@@ -6,7 +6,7 @@ import { detectForwardingConfirmation } from "@/lib/inbound/forwarding-confirmat
 import { htmlToText } from "@/lib/inbound/html-to-text";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
-import { sendDraftReply } from "@/lib/agent/send-reply";
+import { scheduleAutonomousSend } from "@/lib/agent/schedule-send";
 import { meterState } from "@/lib/billing/metering";
 import { canAutoSend, clientEmailGrounded } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
@@ -354,38 +354,25 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         fromSourceParser,
       })
     ) {
-      // Auto-send autonomy (Pro+ tier capability): draft AND send without waiting
-      // for approval, but ONLY from a source the owner trusts (and never a
-      // ToS-ineligible one — guaranteed by canAutoSend). Degrades gracefully: if
-      // the send fails or is blocked (no client email, opted-out, etc.) the draft
-      // stays PENDING and the owner gets the normal "approve" ping to send it.
+      // Auto-send autonomy (Pro+ tier capability): draft, then SCHEDULE the
+      // send behind the 15-minute "sending soon" buffer (P10.4) — never fire
+      // instantly. The owner gets a holding-state ping with a Hold path;
+      // approving early sends immediately; the sequence tick fires whatever
+      // elapsed (lib/agent/schedule-send.ts owns blocked/failure degrades).
       const clientName = lead.clientName;
       const leadId = lead.id;
       void (async () => {
         try {
           const draftId = await generateDraftForLead(leadId, 0, { suppressPush: true });
           if (!draftId) return; // deduped / closed — nothing to send
-          // autoAttach: honor the artist's auto-attach toggles + detected intent.
-          const res = await sendDraftReply({ draftId, businessId: business.id, autoAttach: true });
-          if (res.ok) {
-            // Informational receipt — push only. Emailing the owner for every
-            // reply the agent sent on its own would defeat the point of
-            // autonomy (the weekly report totals these).
-            await notifyBusiness(business, {
-              title: `Auto-replied: ${clientName ?? "new lead"}`,
-              body: "Sent in your voice — tap to view the thread.",
-              url: `/dashboard/leads/${leadId}`,
-              pushOnly: true,
-            }).catch(() => null);
-          } else {
-            // Blocked send degrades to a normal approval — that's action
-            // needed, so it goes dual-channel like every "Reply ready".
-            await notifyBusiness(business, {
-              title: `Reply ready: ${clientName ?? "new lead"}`,
-              body: "Auto-send was blocked for this one — tap to review and send.",
-              url: `/dashboard/leads/${leadId}`,
-            }).catch(() => null);
-          }
+          const at = await scheduleAutonomousSend(draftId);
+          if (!at) return; // draft already moved — its own flow notified
+          await notifyBusiness(business, {
+            title: `Sending soon: ${clientName ?? "new lead"}`,
+            body: "The reply goes out in 15 minutes — open it to read, hold, or send now.",
+            url: `/dashboard/leads/${leadId}`,
+            pushOnly: true,
+          }).catch(() => null);
         } catch (err) {
           // Background failure used to vanish into console.error (audit
           // 2026-07): now the founder hears about it (rate-limited ops alert)

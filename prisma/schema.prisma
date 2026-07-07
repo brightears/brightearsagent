@@ -309,6 +309,10 @@ model Draft {
   editedBody   String? // owner's edited version (feeds voice tuning)
   decidedAt    DateTime?
   expiresAt    DateTime? // stale drafts expire (event passed, lead dead)
+  // 10.4 "sending soon" buffer: autonomous sends (auto-send replies, autopilot
+  // follow-ups) schedule here instead of firing instantly - the owner gets a
+  // window to Hold; the sequence tick fires whatever elapsed. Null = manual.
+  scheduledSendAt DateTime?
   isFollowUp   Boolean     @default(false)
   sequenceStep Int?
   // Drafter intent flags (June 2026) — did the inquiry ask for a profile / a

@@ -6,6 +6,7 @@ import { Badge, Card, EmptyState, LEAD_STATUS_META, PageHeader, StatPill } from 
 import { DraftReview } from "@/components/draft-review";
 import { PushPrompt } from "@/components/push-prompt";
 import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
+import { holdScheduledSend } from "@/app/actions/drafts";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -214,6 +215,31 @@ export default async function LeadDetailPage({
 
         {pendingDraft && (
           <section>
+            {/* "Sending soon" holding state (P10.4): this draft goes out on
+                its own when the buffer elapses — say so, and hand the owner
+                the brake. Approve below still sends instantly. */}
+            {pendingDraft.scheduledSendAt && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-4 py-3">
+                <p className="text-sm text-cream/85">
+                  <span className="font-bold text-cream-bright">Sending soon.</span> This reply
+                  goes out on its own around {fmtTimestamp(pendingDraft.scheduledSendAt, tz)} —
+                  approve it to send now, or hold it to review later.
+                </p>
+                <form
+                  action={async () => {
+                    "use server";
+                    await holdScheduledSend(pendingDraft.id);
+                  }}
+                >
+                  <button
+                    type="submit"
+                    className="rounded-full border-[1.5px] border-cream/30 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/80 transition-colors hover:border-brand-cyan hover:text-brand-cyan"
+                  >
+                    Hold it
+                  </button>
+                </form>
+              </div>
+            )}
             {/* First-value ask (P4.2): the artist is looking at a ready draft —
                 THE moment enabling the ping is obviously worth it. */}
             <PushPrompt />

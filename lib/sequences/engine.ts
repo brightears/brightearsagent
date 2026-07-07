@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
-import { sendDraftReply } from "@/lib/agent/send-reply";
+import { runScheduledSends, scheduleAutonomousSend } from "@/lib/agent/schedule-send";
 import { canAutoSend } from "@/lib/inbound/auto-send";
 import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
@@ -14,6 +14,9 @@ export interface TickResult {
   stepsFired: number;
   exhausted: number;
   skipped: number;
+  /** P10.4 buffer: scheduled autonomous sends fired / degraded this tick. */
+  scheduledSent: number;
+  scheduledBlocked: number;
 }
 
 const DAY = 24 * 3600 * 1000;
@@ -29,7 +32,13 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
-  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, agingPings: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
+  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, agingPings: 0, stepsFired: 0, exhausted: 0, skipped: 0, scheduledSent: 0, scheduledBlocked: 0 };
+
+  // 0. Fire "sending soon" buffers that elapsed (P10.4) — FIRST, so a
+  // scheduled send never waits an extra tick behind step processing.
+  const scheduled = await runScheduledSends(now);
+  result.scheduledSent = scheduled.sent;
+  result.scheduledBlocked = scheduled.blocked;
 
   // 1. Expire stale drafts.
   const expired = await db.draft.updateMany({
@@ -168,36 +177,27 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // so the next tick retries this lead.
     //
     // AUTOPILOT (P8.5): on Pro/Studio, follow-ups to sources the owner
-    // explicitly trusts SEND on their own — the same compliance-hardened
-    // sendDraftReply the approve button uses (footer at send, opt-out and
-    // terminal hard-stops enforced at the boundary; GigSalad never eligible
-    // via canAutoSend, rule 4). "Runs until booked-or-dead" finally means
-    // RUNS, not "drafts and waits". A blocked/failed send degrades to the
-    // normal PENDING draft + action ping — nothing is ever lost.
+    // explicitly trusts SEND on their own — behind the 15-minute "sending
+    // soon" buffer (P10.4): the draft schedules, the owner gets a holding
+    // ping with a Hold path, and runScheduledSends (top of this tick) fires
+    // whatever elapsed through the same compliance-hardened sendDraftReply
+    // the approve button uses (footer at send, opt-out and terminal
+    // hard-stops enforced at the boundary; GigSalad never eligible via
+    // canAutoSend, rule 4). A blocked/failed send degrades to the normal
+    // PENDING draft + action ping — nothing is ever lost.
     const autopilot = canAutoSend(lead.business.plan, lead.business.autoSendSources, lead.source);
     try {
       const draftId = await generateDraftForLead(lead.id, nextStep, { suppressPush: autopilot });
       if (autopilot && draftId) {
-        const sent = await sendDraftReply({
-          draftId,
-          businessId: lead.business.id,
-          autoAttach: true,
-        });
-        void notifyBusiness(
-          lead.business,
-          sent.ok
-            ? {
-                title: `Follow-up sent: ${lead.clientName ?? "a lead"}`,
-                body: `Step ${nextStep} went out in your voice — tap to view the thread.`,
-                url: `/dashboard/leads/${lead.id}`,
-                pushOnly: true, // informational receipt; the weekly report totals these
-              }
-            : {
-                title: `Follow-up ready: ${lead.clientName ?? "a lead"}`,
-                body: "Auto-send was blocked for this one — tap to review and send.",
-                url: `/dashboard/leads/${lead.id}`,
-              },
-        ).catch(() => null);
+        const at = await scheduleAutonomousSend(draftId, now);
+        if (at) {
+          void notifyBusiness(lead.business, {
+            title: `Follow-up sending soon: ${lead.clientName ?? "a lead"}`,
+            body: `Step ${nextStep} goes out in 15 minutes — open it to read, hold, or send now.`,
+            url: `/dashboard/leads/${lead.id}`,
+            pushOnly: true, // holding-state ping; the send gets its own receipt
+          }).catch(() => null);
+        }
       }
     } catch (err) {
       void reportError(err, { kind: "sequence-step", leadId: lead.id, step: nextStep });
