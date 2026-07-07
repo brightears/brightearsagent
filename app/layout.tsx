@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   description:
     "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
   manifest: "/manifest.json",
+  // iOS reads apple-touch-icon from metadata, not the manifest (P9.6) — the
+  // whole approve-from-phone pitch rides on A2HS looking like a real app.
+  icons: { apple: "/brand/apple-touch-icon.png" },
   // OG/Twitter defaults (P6.12): metadataBase absolutizes og:url + the
   // opengraph-image file convention's og:image; key marketing pages set their
   // own og titles via lib/marketing/site.ts pageMeta (Next inherits the ROOT

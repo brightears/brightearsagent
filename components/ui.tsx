@@ -11,9 +11,19 @@ import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 import { RingsBackdrop, VinylDisc } from "@/components/collage";
 
 /** White data card floating on the ink canvas. Never tilted (app rule). */
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Card({
+  children,
+  className = "",
+  id,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Optional anchor target (e.g. the NeedsYou queue jumping to a venue card). */
+  id?: string;
+}) {
   return (
     <div
+      id={id}
       className={`rounded-3xl bg-white border border-cream/10 shadow-[0_16px_40px_rgba(0,0,0,0.35)] ${className}`}
     >
       {children}

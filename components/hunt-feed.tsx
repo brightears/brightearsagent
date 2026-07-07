@@ -87,8 +87,9 @@ function VenueCard({
   // the note + footer for fresh renders.
   const jurisdiction = jurisdictionFor(venue.country);
   return (
-    // White data card on the ink stage — never tilted (app rule).
-    <Card className="flex flex-col p-5">
+    // White data card on the ink stage — never tilted (app rule). The id is
+    // the NeedsYou queue's anchor target (P9.4) — scroll-mt clears the nav.
+    <Card id={`venue-${venue.id}`} className="flex scroll-mt-20 flex-col p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-bold leading-tight text-ink-stage">{venue.name}</p>

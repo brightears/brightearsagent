@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { ActivationChecklist } from "@/components/activation-checklist";
 import { ReceiptsStrip } from "@/components/receipts-strip";
+import { NeedsYou } from "@/components/needs-you";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
@@ -243,7 +244,11 @@ export default async function Dashboard({
         }
       />
 
-      {/* Receipts first (P8.7): what the agent did in the last 24h, in plain
+      {/* The Today queue first (P9.4): what needs a tap, before anything
+          else — the 30-seconds-a-day habit surface. Hidden when clear. */}
+      <NeedsYou businessId={tenant.id} now={now} />
+
+      {/* Receipts (P8.7): what the agent did in the last 24h, in plain
           words — proof of work before any stats. Hidden on quiet days. */}
       <ReceiptsStrip businessId={tenant.id} now={now} />
 
