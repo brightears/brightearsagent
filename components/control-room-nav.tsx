@@ -64,10 +64,15 @@ export function ControlRoomNav({ sections }: { sections: ControlRoomSection[] })
     };
 
     // Seed from the URL hash on arrival (deep-link to #profile etc.) so the
-    // first frame lands close before scroll math refines it; then compute.
+    // first paint lands close before scroll math refines it; then compute.
+    // Scheduled on a frame (not synchronously in the effect body) so the seed
+    // never triggers a cascading render during mount.
     const hash = window.location.hash.slice(1);
-    if (hash && els.some(([id]) => id === hash)) setActive(hash);
-    compute();
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (hash && els.some(([id]) => id === hash)) setActive(hash);
+      compute();
+    });
 
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(compute);

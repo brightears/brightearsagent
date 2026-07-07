@@ -17,6 +17,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import Link from "next/link";
 import {
@@ -35,6 +36,11 @@ import { stripToneNote } from "@/lib/voice/tone-note";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
+
+// Stable no-op subscription for useSyncExternalStore reads of browser-only,
+// never-changing values (e.g. the device timezone). Module-scope so the store
+// never resubscribes across renders.
+const subscribeToNothing = () => () => {};
 
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputStyles =
@@ -405,13 +411,17 @@ function StepBusiness({
 
   // Pre-select the visitor's ACTUAL timezone — the browser knows it — so a new
   // signup almost never has to open the list (a Bangkok user lands on
-  // Asia/Bangkok, not America/New_York). Set after mount so the SSR'd default
-  // doesn't cause a hydration mismatch.
-  const [tz, setTz] = useState(initial.timezone);
-  useEffect(() => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (detected && timezones.includes(detected)) setTz(detected);
-  }, [timezones]);
+  // Asia/Bangkok, not America/New_York). useSyncExternalStore's server snapshot
+  // is the saved value, so SSR markup never mismatches; the browser value only
+  // takes over after hydration, and an explicit user choice always wins.
+  const detectedTz = useSyncExternalStore(
+    subscribeToNothing,
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => initial.timezone,
+  );
+  const [tzChoice, setTzChoice] = useState<string | null>(null);
+  const tz =
+    tzChoice ?? (detectedTz && timezones.includes(detectedTz) ? detectedTz : initial.timezone);
 
   // Keep an already-saved country selectable even if it's not in the list
   // (e.g. a legacy/excluded code on an existing business) so editing never
@@ -491,7 +501,7 @@ function StepBusiness({
             id="ob-tz"
             name="timezone"
             value={tz}
-            onChange={(e) => setTz(e.target.value)}
+            onChange={(e) => setTzChoice(e.target.value)}
             className={inputStyles}
           >
             {tzGroups.map(([region, zones]) => (

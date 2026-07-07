@@ -26,10 +26,10 @@ const checkoutEvent = (businessId: string | null, subId: string | null, customer
   data: { object: { client_reference_id: businessId, mode: "subscription", subscription: subId, customer } },
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const subEvent = (
   kind: "updated" | "deleted",
   opts: { id: string; status?: string; lookup?: string; businessId?: string; customer?: string },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any => ({
   id: `evt_${kind}_${opts.id}`,
   type: `customer.subscription.${kind}`,
