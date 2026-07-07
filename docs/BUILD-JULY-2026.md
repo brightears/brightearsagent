@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P10 in progress — DONE: 10.6/10.7 *(1f69998)*, 10.8 *(b9c41db)*, 10.9/10.10/10.11 *(6b82b88)*; remaining: 10.1 evidence chips, 10.2 not-my-kind, 10.3 graduation prompts, 10.4 send buffer, 10.5 contact confidence (next: 10.1)
+- Current phase: P10 nearly done — remaining: 10.3 autonomy graduation prompts, 10.4 'sending soon' 15-min buffer (next: 10.3)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 458/458 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 464/464 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -138,11 +138,11 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P10 — Trust machinery (Theme C)
 
-- [ ] 10.1 Evidence chips on Hunt cards (genre match, distance, "hosts live music weekly", source link) — extend existing fit reasons with provenance links.
-- [ ] 10.2 "Not my kind of venue" one-tap → visible tuning ack, feeds P8.9 rules.
+- [x] 10.1 Evidence receipts: freshest 3 signals render as hostname provenance chips on Hunt cards (deduped per publication, summary on hover). *(7eb378a)*
+- [x] 10.2 WRONG_VIBE skip acks visibly: redirect to /dashboard?tuned=<kind>; strip says "now rank lower" (2+ skips, the real rescore threshold) or "skip one more". *(7eb378a)*
 - [ ] 10.3 **Autonomy graduation prompts** in the queue ("You approved 10 follow-ups untouched — auto-send these? [Yes] [Keep reviewing]") writing through the same Control Room setting (one-writer invariant).
 - [ ] 10.4 **"Sending soon" 15-min cancel buffer** on all autonomous sends (auto-send replies, autopilot follow-ups): visible holding state + Hold button; queue section lists upcoming sends.
-- [ ] 10.5 Contact-confidence gating: only auto-actions to high-confidence addresses; low-confidence → "verify before sending" flag on the card.
+- [x] 10.5 Contact confidence: Hunt autoDraft skips generic info@ (contactConfidence; named contact or events@/bookings@ = high) + card flag; reactive auto-send requires clientEmailGrounded (parser/sender/body-literal) + lead-page verify pill. *(cec121f)*
 - [x] 10.6 Spam folder /dashboard/spam behind the (now linked) pill: spamReason per row, one-tap rescue → NEW + draft + deep-link. *(1f69998)*
 - [x] 10.7 Speed stopwatch: median-first-reply pill in dashboard header (hidden when no data); math shared via medianReplyMinutes; weekly email already had it. *(1f69998)*
 - [x] 10.8 Mid-conversation draft mode: continue-the-thread task; client reply-match + venue replies fire cap-gated mid-thread drafts (suppressPush); venue lead threads seeded with the sent pitch (backdated OUTBOUND). *(b9c41db)*
