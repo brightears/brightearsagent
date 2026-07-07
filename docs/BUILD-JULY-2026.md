@@ -9,7 +9,8 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P7 code-side COMPLETE** · remaining P7 = the RENDER/EXTERNAL pass (Chrome on the founder's Render dashboard, or FOUNDER GATE): 7.3 reconfigure live cron commands (header auth + res.ok wrapper), 7.4 healthCheckPath → /api/health + UptimeRobot keyword monitor on "cronsHealthy":true, 7.10 backup verify + restore drill, 7.5-env set NEW Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up. Next phase: P8 (the agent acts).
+- Current phase: P8 in progress — 8.3 reply capture DONE · next: 8.1 auto-draft + 8.2 morning digest (extract a cron-safe pitch-generation path from app/actions/venues.ts), then 8.4-8.9
+- Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
@@ -115,7 +116,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [ ] 8.1 **Nightly auto-draft**: after each scan, draft top-scoring contactable venues up to existing HOT/WARM/SEED caps (isAgentPaused + license + jurisdiction + suppression respected; drafting ≠ sending — safe on all tiers). Costs metered via LlmUsage.
 - [ ] 8.2 **Morning digest** (push + email, ONLY when there's something): "3 pitches ready to approve · 2 venues found" deep-linking to the queue.
-- [ ] 8.3 **Reply capture:** pitch sends set `Reply-To` to the tenant parse address; pipeline recognizes venue replies (match on venue/pitch), status → REPLIED/ENGAGED, notifies owner, drafts a response in the artist's voice, and **instruments reply-rate** (the 10.9 gate finally measurable). Fixtures + tests.
+- [x] 8.3 Reply capture live: Reply-To = parse address; first venue reply → ENGAGED Lead (VENUE_OUTREACH, Lead.venueId) in the existing close pipeline; later replies ride normal reply-match; venue REPLIED/IN_CONVERSATION + repliedAt (10.9 measurable); dual-channel "venue wrote back" ping. Drafted RESPONSE deferred to 10.8's continue-thread mode (noted at 8.x). *(20e114b)*
 - [ ] 8.4 One polite **HOT follow-up** ~6 days after send: approval-gated, STANDARD jurisdictions only, stops on reply/suppression, counts against caps. Scheduler in the daily cron.
 - [ ] 8.5 **Autopilot follow-up sequences** (reactive) actually send on Pro/Studio for owner-trusted sources through `sendDraftReply` (same compliance path); Starter stays approve-each. Honest copy already sells this — make it true.
 - [ ] 8.6 **Weekly report v2:** Hunt numbers (cities scanned, venues found, pitches sent, replies, booked) + big-number scannable format, no emoji, "N drafts waiting" action line.
