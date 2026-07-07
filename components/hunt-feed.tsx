@@ -9,6 +9,7 @@ import { Card, EmptyState, Kicker, StatPill, buttonStyles } from "@/components/u
 import { skipVenueForm } from "@/app/actions/venues";
 import { DraftPitchButton, VenuePitchReview, type HuntPitch } from "@/components/venue-pitch-review";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
+import { contactConfidence } from "@/lib/venues/contact-confidence";
 import {
   SKIP_REASONS,
   TEMPERATURE_CHIP,
@@ -41,6 +42,8 @@ export type HuntVenue = {
   contactSource: string | null;
   /** Evidence receipts (P10.1): freshest signals with WHERE we read them. */
   signals: { id: string; summary: string; sourceUrl: string }[];
+  /** Named person published with the address (P10.5 confidence signal). */
+  bookingContactName: string | null;
   /** Travel Mode: the travel-window city, when this is a travel find (else null). */
   travelCity: string | null;
   /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
@@ -202,9 +205,19 @@ function VenueCard({
           </p>
         )}
         {venue.bookingEmail && (
-          // Provenance builds trust — where the agent found the contact.
+          // Provenance builds trust — where the agent found the contact. A
+          // generic address (info@/hello@) is flagged (P10.5): the agent
+          // won't auto-draft to it, and the owner should check it reaches
+          // the booker before sending.
           <p className="text-[11px] text-ink-stage/45">
             Contact: {venue.contactSource ?? "published booking contact"}
+            {contactConfidence(venue.bookingEmail, venue.bookingContactName) === "low" && (
+              <>
+                {" · "}
+                <span aria-hidden className="mb-px mr-1 inline-block size-1 bg-neon-orange align-middle" />
+                <span className="font-semibold text-ink-stage/70">verify before sending</span>
+              </>
+            )}
           </p>
         )}
         {venue.linkedinUrl && (

@@ -13,7 +13,13 @@ import type { Business } from "@/app/generated/prisma/client";
 // Only plan matters to the paused gate; draftPitchForVenue (mocked) owns the rest.
 const biz = (plan = "PRO") => ({ id: "biz1", plan }) as unknown as Business;
 
-const v = (id: string, temperature: "HOT" | "WARM" | "SEED") => ({ id, temperature });
+// bookings@ = high contact confidence (P10.5) so existing cases pass the gate.
+const v = (
+  id: string,
+  temperature: "HOT" | "WARM" | "SEED",
+  bookingEmail = "bookings@venue.example",
+  bookingContactName: string | null = null,
+) => ({ id, temperature, bookingEmail, bookingContactName });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -26,6 +32,18 @@ describe("autoDraftPitches (P8.1 — the agent acts, draft-only)", () => {
     expect(r).toEqual({ attempted: 0, created: 0, stoppedBy: "paused" });
     expect(mockDb.venue.findMany).not.toHaveBeenCalled();
     expect(mockDraft).not.toHaveBeenCalled();
+  });
+
+  it("skips low-confidence contacts (generic info@) unless a named person is attached (P10.5)", async () => {
+    mockDb.venue.findMany.mockResolvedValue([
+      v("generic", "HOT", "info@venue.example"), // low -> skipped, no LLM spend
+      v("named", "HOT", "info@venue.example", "Dana Ko"), // named person -> high
+      v("booking", "WARM", "events@venue.example"), // booking-specific -> high
+    ]);
+    mockDraft.mockResolvedValue({ ok: true, created: true });
+    const r = await autoDraftPitches(biz());
+    expect(mockDraft.mock.calls.map((c) => c[1])).toEqual(["named", "booking"]);
+    expect(r).toEqual({ attempted: 2, created: 2, stoppedBy: null });
   });
 
   it("drafts best-first and counts what was actually created", async () => {

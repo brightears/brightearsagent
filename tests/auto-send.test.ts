@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAutoSend,
   autoSendEligibleSources,
+  clientEmailGrounded,
   AUTO_SEND_INELIGIBLE_SOURCES,
 } from "@/lib/inbound/auto-send";
 import { PLAN_FEATURES, planFeatures } from "@/lib/billing/plan-features";
@@ -76,5 +77,26 @@ describe("canAutoSend", () => {
         expect(canAutoSend(plan, [], source)).toBe(false);
       }
     }
+  });
+});
+
+describe("clientEmailGrounded (P10.5 contact confidence)", () => {
+  const base = { from: "no-reply@formsystem.com", textBody: "Name: Jess\nEmail: jess@example.com", fromSourceParser: false };
+  it("no address → never groundable", () => {
+    expect(clientEmailGrounded({ ...base, clientEmail: null })).toBe(false);
+  });
+  it("deterministic parser extraction is trusted", () => {
+    expect(clientEmailGrounded({ ...base, clientEmail: "jess@other.com", fromSourceParser: true })).toBe(true);
+  });
+  it("the sender's own address is grounded", () => {
+    expect(
+      clientEmailGrounded({ ...base, from: "jess@example.com", textBody: "hi", clientEmail: "Jess@Example.com" }),
+    ).toBe(true);
+  });
+  it("an address literally present in the body is grounded", () => {
+    expect(clientEmailGrounded({ ...base, clientEmail: "jess@example.com" })).toBe(true);
+  });
+  it("an address appearing nowhere (possible hallucination) is NOT grounded", () => {
+    expect(clientEmailGrounded({ ...base, clientEmail: "jess@exampel.com" })).toBe(false);
   });
 });

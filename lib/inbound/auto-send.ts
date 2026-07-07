@@ -23,6 +23,28 @@ export function autoSendEligibleSources(all: readonly LeadSource[]): LeadSource[
 }
 
 /**
+ * Contact-confidence gate for the reply address (P10.5). An LLM-extracted
+ * clientEmail can be hallucinated or typo'd — the agent must never
+ * AUTONOMOUSLY email an address that isn't grounded in the source email.
+ * Grounded = a deterministic parser extracted it (labeled platform fields),
+ * or it IS the sender, or it literally appears in the body text. Ungrounded
+ * addresses fall back to the approve flow — the owner sees the address on
+ * the lead page (flagged "verify") before anything sends.
+ */
+export function clientEmailGrounded(opts: {
+  clientEmail: string | null | undefined;
+  from: string;
+  textBody: string;
+  fromSourceParser: boolean;
+}): boolean {
+  const email = opts.clientEmail?.toLowerCase();
+  if (!email) return false;
+  if (opts.fromSourceParser) return true;
+  if (email === opts.from.toLowerCase()) return true;
+  return opts.textBody.toLowerCase().includes(email);
+}
+
+/**
  * Should this lead's first reply be auto-sent (no approval step)?
  * True only when: the plan grants auto-send AND the source is ToS-eligible AND
  * the owner has marked that source as trusted. Anything else → draft for approval.

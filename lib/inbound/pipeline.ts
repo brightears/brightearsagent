@@ -8,7 +8,7 @@ import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { sendDraftReply } from "@/lib/agent/send-reply";
 import { meterState } from "@/lib/billing/metering";
-import { canAutoSend } from "@/lib/inbound/auto-send";
+import { canAutoSend, clientEmailGrounded } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 
@@ -343,7 +343,17 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
             : "An inquiry just arrived at your lead address. Your agent is set up and paused — subscribe and it answers this one, and every one after, in your voice.",
         }).catch(() => null);
       }
-    } else if (canAutoSend(business.plan, business.autoSendSources, parsed.source)) {
+    } else if (
+      canAutoSend(business.plan, business.autoSendSources, parsed.source) &&
+      // P10.5: autonomy only toward a grounded reply address — an ungrounded
+      // (possibly hallucinated) clientEmail drops to the normal approve flow.
+      clientEmailGrounded({
+        clientEmail: parsed.clientEmail,
+        from: email.from,
+        textBody: email.textBody,
+        fromSourceParser,
+      })
+    ) {
       // Auto-send autonomy (Pro+ tier capability): draft AND send without waiting
       // for approval, but ONLY from a source the owner trusts (and never a
       // ToS-ineligible one — guaranteed by canAutoSend). Degrades gracefully: if

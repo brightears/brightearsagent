@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { isAgentPaused } from "@/lib/billing/metering";
 import { draftPitchForVenue } from "@/lib/venues/draft-pitch";
+import { contactConfidence } from "@/lib/venues/contact-confidence";
 import type { Business } from "@/app/generated/prisma/client";
 
 export type AutoDraftResult = {
@@ -39,12 +40,16 @@ export async function autoDraftPitches(
     },
     orderBy: [{ temperature: "asc" }, { fitScore: "desc" }],
     take: opts.max ?? 18, // ≤ summed daily caps (HOT 10 + WARM 5 + SEED 3)
-    select: { id: true, temperature: true },
+    select: { id: true, temperature: true, bookingEmail: true, bookingContactName: true },
   });
 
   const cappedTemps = new Set<string>();
   for (const venue of venues) {
     if (cappedTemps.has(venue.temperature)) continue;
+    // Contact-confidence gate (P10.5): autonomy only toward addresses that
+    // plausibly reach the booker. Generic info@/hello@ stays MANUAL — the
+    // card flags "verify before sending" and the owner decides.
+    if (contactConfidence(venue.bookingEmail, venue.bookingContactName) !== "high") continue;
     result.attempted++;
     const r = await draftPitchForVenue(business, venue.id);
     if (r.ok) {

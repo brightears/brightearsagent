@@ -81,6 +81,18 @@ export default async function LeadDetailPage({
     .filter(Boolean)
     .join(" · ");
 
+  // Contact confidence (P10.5): a reply address that never appears in the
+  // source material (not the sender, not in the body) may be LLM-mistyped —
+  // flag it so the owner checks before the reply goes out. Auto-send already
+  // refuses these (clientEmailGrounded in the pipeline).
+  const clientEmailLower = lead.clientEmail?.toLowerCase();
+  const verifyAddress =
+    !!clientEmailLower &&
+    !lead.messages.some(
+      (m) => m.direction === "INBOUND" && m.fromEmail?.toLowerCase() === clientEmailLower,
+    ) &&
+    !lead.rawBody.toLowerCase().includes(clientEmailLower);
+
   return (
     // Ink canvas page (docs/DESIGN.md v2); content constrained inside so the
     // ink runs edge-to-edge under the dashboard chrome.
@@ -103,6 +115,7 @@ export default async function LeadDetailPage({
             <Badge tone={status.badgeTone}>{status.label}</Badge>
             {lead.guestCount != null && <StatPill>{lead.guestCount} guests</StatPill>}
             {lead.clientEmail && <StatPill>{lead.clientEmail}</StatPill>}
+            {verifyAddress && <StatPill>Verify this address before sending</StatPill>}
             {lead.clientPhone && <StatPill>{lead.clientPhone}</StatPill>}
           </>
         }
