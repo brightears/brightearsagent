@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { isProvisionedBusinessName } from "@/lib/business-name";
 import { uploadsEnabled } from "@/lib/uploads/r2";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 
@@ -29,7 +30,11 @@ export default async function OnboardingPage() {
       initialStep={initialStep}
       business={{
         slug: business.slug,
-        name: business.name,
+        // The provisioning default ("Norbert's Business") is not a stage name —
+        // render the field empty (it's required) so the artist types their real
+        // one instead of accidentally keeping a placeholder that would become
+        // the From name on every client-facing email.
+        name: isProvisionedBusinessName(business) ? "" : business.name,
         ownerName: business.ownerName,
         performerKind: business.performerKind,
         country: business.country,

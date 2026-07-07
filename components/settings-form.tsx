@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { updateBusiness } from "@/app/actions/settings";
+import { isProvisionedBusinessName } from "@/lib/business-name";
 import { buttonStyles } from "@/components/ui";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
@@ -71,7 +72,11 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             id="name"
             name="name"
             required
-            defaultValue={business.name}
+            // The provisioning default ("Norbert's Business") is not a stage
+            // name — show it as an empty required field so the artist types
+            // their real one before it fronts a client-facing email.
+            defaultValue={isProvisionedBusinessName(business) ? "" : business.name}
+            placeholder="DJ Midnight (or Midnight Groove)"
             className={inputCls}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
