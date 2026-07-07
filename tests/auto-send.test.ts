@@ -23,13 +23,13 @@ describe("plan-features (single source of truth)", () => {
     expect(planFeatures("STARTER").autoSend).toBe(false);
     expect(planFeatures("PRO").autoSend).toBe(true);
     expect(planFeatures("STUDIO").autoSend).toBe(true);
-    expect(planFeatures("TRIAL").autoSend).toBe(true); // trial = full Pro
+    expect(planFeatures("TRIAL").autoSend).toBe(false); // unsubscribed = fail closed (audit 2026-07)
   });
   it("lead caps match the metering contract", () => {
     expect(PLAN_FEATURES.STARTER.leadCap).toBe(15);
     expect(PLAN_FEATURES.PRO.leadCap).toBe(60);
     expect(PLAN_FEATURES.STUDIO.leadCap).toBe(150);
-    expect(PLAN_FEATURES.TRIAL.leadCap).toBe(60);
+    expect(PLAN_FEATURES.TRIAL.leadCap).toBe(0); // unsubscribed = fail closed
   });
   it("coverage (home city cap) climbs with the tier", () => {
     expect(PLAN_FEATURES.STARTER.homeCityCap).toBe(1);
@@ -64,9 +64,9 @@ describe("canAutoSend", () => {
     expect(canAutoSend("PRO", ["GIGSALAD"], "GIGSALAD")).toBe(false);
   });
 
-  it("Studio and Trial behave like Pro for auto-send", () => {
+  it("Studio auto-sends like Pro; unsubscribed TRIAL never does", () => {
     expect(canAutoSend("STUDIO", ["WEBSITE_FORM"], "WEBSITE_FORM")).toBe(true);
-    expect(canAutoSend("TRIAL", ["WEBSITE_FORM"], "WEBSITE_FORM")).toBe(true);
+    expect(canAutoSend("TRIAL", ["WEBSITE_FORM"], "WEBSITE_FORM")).toBe(false); // unsubscribed never auto-sends
   });
 
   it("default (no trusted sources) means everything waits for approval on every plan", () => {

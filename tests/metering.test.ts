@@ -6,7 +6,7 @@ describe("metering", () => {
     expect(PLAN_LEAD_CAPS.STARTER).toBe(15);
     expect(PLAN_LEAD_CAPS.PRO).toBe(60);
     expect(PLAN_LEAD_CAPS.STUDIO).toBe(150);
-    expect(PLAN_LEAD_CAPS.TRIAL).toBe(60); // TRIAL = free/unsubscribed (agent paused); cap kept for reference
+    expect(PLAN_LEAD_CAPS.TRIAL).toBe(0); // TRIAL = free/unsubscribed — fails closed (agent paused is the primary gate)
   });
 
   it("monthStart is UTC month boundary", () => {

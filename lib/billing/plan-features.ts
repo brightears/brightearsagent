@@ -7,8 +7,13 @@
 // actually consumed by the code. Add a field only when you wire it; the pricing
 // page only renders bullets backed by a field here.
 //
-// TRIAL = "free / not subscribed" (agent paused until subscribe — no auto trial);
-// its caps mirror PRO so a Stripe-comped first month behaves like full Pro.
+// TRIAL = "free / not subscribed" (agent paused until subscribe — no auto
+// trial) and it FAILS CLOSED: zero inbound allowance, no autonomy, one city.
+// The old "mirror PRO for comped months" rationale was stale — a comped first
+// month is a real $0 Stripe subscription whose webhook flips plan to the paid
+// tier, so TRIAL never needs paid caps (audit 2026-07). isAgentPaused is the
+// primary gate; these caps are the belt-and-suspenders for any code path that
+// consults capability without checking the pause.
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 export interface PlanFeatures {
@@ -29,7 +34,7 @@ export interface PlanFeatures {
 }
 
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
-  TRIAL: { leadCap: 60, autoSend: true, homeCityCap: 3 }, // free/unsubscribed; caps mirror PRO (comped first month = full Pro)
+  TRIAL: { leadCap: 0, autoSend: false, homeCityCap: 1 }, // unsubscribed = fail closed (agent paused anyway)
   STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1 },
   PRO: { leadCap: 60, autoSend: true, homeCityCap: 3 },
   STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25 },
