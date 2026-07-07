@@ -394,7 +394,12 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
       toName: venue.bookingContactName ?? undefined,
       subject,
       body,
-      replyToEmail: business.replyToEmail ?? business.ownerEmail,
+      // Reply capture (P8.3, founder-approved 2026-07-07): venue replies route
+      // to the tenant's parse address so they flow into the pipeline — status
+      // flips, a drafted answer, a real reply-rate for the 10.9 gate. From
+      // stays the artist's own Gmail; a venue that just hits Reply lands in
+      // the machine instead of vanishing into an unwatched inbox.
+      replyToEmail: `leads@${business.slug}.in.brightears.io`,
     });
     messageId = result.messageId;
   } catch (err) {

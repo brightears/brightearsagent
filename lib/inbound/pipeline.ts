@@ -17,6 +17,7 @@ export type PipelineResult =
   | { outcome: "reply_attached"; leadId: string }
   | { outcome: "ignored"; reason: string }
   | { outcome: "forwarding_confirmation"; provider: "gmail" }
+  | { outcome: "venue_reply"; leadId: string; venueId: string }
   | { outcome: "lead_created"; leadId: string; status: "NEW" | "SPAM" };
 
 const SLUG_RE = /leads@([a-z0-9-]+)\.in\./i;
@@ -115,6 +116,68 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered). Open the thread and reply while it's hot.`,
     }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
+  }
+
+  // Venue reply capture (P8.3): a venue answering a Hunt pitch — pitches set
+  // Reply-To to this parse address — becomes a Lead in the EXISTING close
+  // pipeline (ADR-004: replies merge into the close flow). Only the FIRST
+  // reply lands here: the Lead it creates carries the venue's email as
+  // clientEmail, so every later message matches the reply-match branch above
+  // like any other conversation. repliedAt is the 10.9 reply-rate stamp.
+  const venue = await db.venue.findFirst({
+    where: {
+      businessId: business.id,
+      bookingEmail: { equals: email.from, mode: "insensitive" },
+      status: { in: ["PITCHED", "REPLIED", "IN_CONVERSATION"] },
+    },
+    orderBy: { pitchedAt: "desc" },
+  });
+  if (venue) {
+    let venueLead;
+    try {
+      venueLead = await db.lead.create({
+        data: {
+          businessId: business.id,
+          source: "VENUE_OUTREACH",
+          status: "ENGAGED", // they replied to OUR outreach — already a conversation
+          venueId: venue.id,
+          clientName: venue.bookingContactName ?? venue.name,
+          clientEmail: email.from,
+          eventType: "venue booking",
+          venue: venue.name,
+          rawSubject: email.subject,
+          rawBody: email.textBody,
+          messages: {
+            create: {
+              direction: "INBOUND",
+              subject: email.subject,
+              body: email.textBody,
+              fromEmail: email.from,
+              toEmail: email.to,
+              providerMessageId: email.providerMessageId,
+            },
+          },
+        },
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
+      throw err;
+    }
+    await db.venue.update({
+      where: { id: venue.id },
+      data: {
+        status: venue.status === "PITCHED" ? "REPLIED" : "IN_CONVERSATION",
+        ...(venue.repliedAt ? {} : { repliedAt: new Date() }),
+      },
+    });
+    // The money moment of the whole Hunt — a venue is talking. Dual-channel.
+    void notifyBusiness(business, {
+      title: `A venue wrote back: ${venue.name}`,
+      body: email.subject || "Open the thread and keep it warm.",
+      url: `/dashboard/leads/${venueLead.id}`,
+      emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for. Open the thread and answer while it's hot.`,
+    }).catch(() => null);
+    return { outcome: "venue_reply", leadId: venueLead.id, venueId: venue.id };
   }
 
   // Parse: deterministic source parsers first, LLM fallback for the rest.

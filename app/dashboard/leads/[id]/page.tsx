@@ -16,6 +16,7 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
   THE_KNOT: "The Knot",
   WEDDINGWIRE: "WeddingWire",
   BARK: "Bark",
+  VENUE_OUTREACH: "Venue reply (the Hunt)",
   GIGSALAD: "GigSalad",
   THUMBTACK: "Thumbtack",
   OTHER: "Other",

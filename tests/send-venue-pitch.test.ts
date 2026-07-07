@@ -107,7 +107,7 @@ describe("sendVenuePitch — happy path", () => {
     expect(sent.body).toContain("Sapphire Sounds · Manchester");
     expect(sent.body).toContain("just reply and tell me");
     expect(sent.toEmail).toBe("events@velvet.co");
-    expect(sent.replyToEmail).toBe("maya@login.com"); // falls back to ownerEmail
+    expect(sent.replyToEmail).toMatch(/^leads@.+\.in\.brightears\.io$/); // reply capture (P8.3): venue replies route into the pipeline
   });
 });
 

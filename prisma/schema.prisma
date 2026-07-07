@@ -40,6 +40,7 @@ enum LeadSource {
   BARK
   GIGSALAD
   THUMBTACK
+  VENUE_OUTREACH // a venue replying to a Hunt pitch (P8.3 reply capture)
   OTHER
 }
 
@@ -242,6 +243,11 @@ model Lead {
   updatedAt    DateTime   @updatedAt
   source       LeadSource
   status       LeadStatus @default(NEW)
+  // Reply capture (P8.3): when a venue replies to a Hunt pitch, the
+  // conversation enters THIS pipeline as a Lead (ADR-004: replies merge into
+  // the existing close flow) — venueId links it back to the Hunt card.
+  venueId      String?
+  sourceVenue  Venue?     @relation(fields: [venueId], references: [id], onDelete: SetNull)
   // Parsed couple/client details (all nullable — parser fills what it finds)
   clientName   String?
   clientEmail  String?
@@ -411,6 +417,7 @@ model Venue {
   id                 String      @id @default(cuid())
   businessId         String
   business           Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  leads              Lead[] // reply-capture conversations (P8.3)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   name               String
@@ -440,6 +447,9 @@ model Venue {
   caution            String? // <=1 plain-language caution
   lastSignalAt       DateTime?
   pitchedAt          DateTime?
+  // Reply capture (P8.3): stamped when the venue's FIRST reply lands in the
+  // pipeline — replies/sent is the 10.9 beta-gate number.
+  repliedAt          DateTime?
   suppressedReason   String?
   // Travel Mode: the TravelWindow this venue was discovered for (null = a
   // home-base hunt). Lets the feed label travel finds ("Travel · Lisbon") and
