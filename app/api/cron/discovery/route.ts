@@ -14,12 +14,21 @@ export const maxDuration = 300;
  * budget guard inside runDiscoveryScan is the v1 throttle (cap/cadence differs
  * by tier later). Sequential with per-tenant isolation: one tenant's failure
  * never blocks the rest.
+ *
+ * The 100-tenant fix (P7.8): tenants are served LEAST-RECENTLY-SCANNED FIRST
+ * (nulls first — new tenants jump the queue) under a wall-clock budget.
+ * `maxDuration` is a Vercel-only export that Render ignores, so the budget is
+ * enforced in code; anyone cut off today is at the FRONT of tomorrow's queue
+ * by construction — no tenant can be tail-starved twice.
  */
+const TICK_BUDGET_MS = 240_000; // headroom under the 300s platform ceiling
+
 export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   await stampCron("cron:discovery");
+  const startedAt = Date.now();
 
   const businesses = await db.business.findMany({
     where: {
@@ -28,6 +37,7 @@ export async function GET(req: NextRequest) {
         { travelWindows: { some: { status: "ACTIVE" } } },
       ],
     },
+    orderBy: { lastDiscoveryScanAt: { sort: "asc", nulls: "first" } },
     select: { id: true, slug: true },
   });
 
@@ -42,7 +52,16 @@ export async function GET(req: NextRequest) {
     error?: string;
   }> = [];
 
+  let cutOff = 0;
   for (const b of businesses) {
+    if (Date.now() - startedAt > TICK_BUDGET_MS) {
+      // Out of budget — the rest are first in line tomorrow (LRU ordering).
+      cutOff = businesses.length - results.length;
+      console.log(
+        JSON.stringify({ level: "info", kind: "discovery-budget", cutOff, ts: new Date().toISOString() }),
+      );
+      break;
+    }
     try {
       const scan = await runDiscoveryScan(b.id);
       results.push({
@@ -64,5 +83,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ tenants: businesses.length, results });
+  return NextResponse.json({ tenants: businesses.length, cutOff, results });
 }

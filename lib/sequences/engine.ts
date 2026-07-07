@@ -108,9 +108,15 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     result.backfilledRuns++;
   }
 
-  // 3 + 4. Fire due runs.
+  // 3 + 4. Fire due runs — MOST OVERDUE FIRST under a per-tick cap (P7.8):
+  // the query was unbounded; a backlog spike (cron outage, bulk import) would
+  // try to fire everything in one request. 200/tick at the */30 cadence is
+  // ~9,600 steps/day of throughput; anything cut off is at the front of the
+  // next tick's queue by construction.
   const due = await db.sequenceRun.findMany({
     where: { stoppedAt: null, nextRunAt: { lte: now } },
+    orderBy: { nextRunAt: "asc" },
+    take: 200,
     include: { template: true, lead: { include: { drafts: { where: { status: "PENDING" } } } } },
   });
 
