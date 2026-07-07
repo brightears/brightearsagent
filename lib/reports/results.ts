@@ -73,12 +73,7 @@ export async function computeResults(businessId: string, now = new Date()): Prom
   ]);
 
   // Median first-reply time (minutes) over leads first-replied this month.
-  const replyMinutes = repliedLeads
-    .map((l) => (l.firstReplyAt!.getTime() - l.createdAt.getTime()) / 60000)
-    .sort((a, b) => a - b);
-  const medianFirstReplyMinutes = replyMinutes.length
-    ? Math.round(replyMinutes[Math.floor(replyMinutes.length / 2)])
-    : null;
+  const medianFirstReplyMinutes = medianReplyMinutes(repliedLeads);
 
   return {
     monthStart: since,
@@ -94,6 +89,17 @@ export async function computeResults(businessId: string, now = new Date()): Prom
     venuesFoundAllTime,
     pitchesSentAllTime,
   };
+}
+
+/** Median inquiry→first-reply gap in whole minutes; null when no data (honesty). */
+export function medianReplyMinutes(
+  rows: { createdAt: Date; firstReplyAt: Date | null }[],
+): number | null {
+  const minutes = rows
+    .filter((r) => r.firstReplyAt)
+    .map((r) => (r.firstReplyAt!.getTime() - r.createdAt.getTime()) / 60000)
+    .sort((a, b) => a - b);
+  return minutes.length ? Math.round(minutes[Math.floor(minutes.length / 2)]) : null;
 }
 
 /** Has the agent done anything yet? Drives the empty-state vs the metric grid. */

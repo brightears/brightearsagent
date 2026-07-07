@@ -80,6 +80,28 @@ export async function markSentOnPlatform(draftId: string, editedBody?: string) {
   return { ok: true };
 }
 
+/**
+ * Spam rescue (P10.6): the triage classifier is allowed to be wrong — what it
+ * can't be is irreversible. One tap flips a SPAM lead back to NEW and drafts
+ * the reply the classifier withheld. spamScore/spamReason stay on the row
+ * (the classifier's verdict is history, the owner's overrule is the status).
+ */
+export async function rescueFromSpam(leadId: string) {
+  const business = await getCurrentBusiness();
+  const updated = await db.lead.updateMany({
+    where: { id: leadId, businessId: business.id, status: "SPAM" },
+    data: { status: "NEW" },
+  });
+  if (updated.count === 0) return { ok: false as const, error: "lead not found" };
+  try {
+    await generateDraftForLead(leadId);
+  } catch {
+    // Lead stays NEW — the lead page's manual "Draft a reply" is the retry.
+  }
+  revalidatePath("/dashboard");
+  return { ok: true as const, leadId };
+}
+
 export async function rejectDraft(draftId: string) {
   const business = await getCurrentBusiness();
   // Tenant-scoped count guard: only reject a PENDING draft of our own lead.

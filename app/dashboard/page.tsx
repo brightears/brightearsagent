@@ -19,7 +19,8 @@ import { AtCapBanner } from "@/components/at-cap-banner";
 import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
-import { meterState } from "@/lib/billing/metering";
+import { meterState, monthStart } from "@/lib/billing/metering";
+import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
 import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +85,8 @@ export default async function Dashboard({
 }) {
   const huntExpanded = (await searchParams).hunt === "all";
   const tenant = await getCurrentBusiness();
-  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox] = await Promise.all([
+  const now = new Date();
+  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox, repliedThisMonth] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -180,6 +182,12 @@ export default async function Dashboard({
       where: { businessId: tenant.id },
       select: { status: true },
     }),
+    // 10.7: the speed stopwatch — leads first-replied this month, for the
+    // median pill in the header. Shown only when the data exists.
+    db.lead.findMany({
+      where: { businessId: tenant.id, firstReplyAt: { gte: monthStart(now) } },
+      select: { createdAt: true, firstReplyAt: true },
+    }),
   ]);
   const business = { ...tenant, leads };
   // First-run dashboard shows ONE next action (audit C4): while setup is
@@ -221,9 +229,9 @@ export default async function Dashboard({
   // Agent-paused surface (audit C3): show it in-app, not just via push.
   // meterState reads an UNSUBSCRIBED tenant as overCap (isAgentPaused); a paid
   // plan is overCap only when used > cap. Subscribed & under-cap → no banner.
-  const now = new Date();
   const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
   const subscribed = !!tenant.stripeSubscriptionId;
+  const medianReply = medianReplyMinutes(repliedThisMonth);
 
   // A2HS eligibility (P9.6): only after the first approval — either half of
   // the product — so the install ask lands right after the loop proved itself.
@@ -249,7 +257,16 @@ export default async function Dashboard({
         stats={
           <>
             <StatPill tone="teal">{business.leads.length} active</StatPill>
-            <StatPill>{spamCount} spam filtered for you</StatPill>
+            {/* The stopwatch (P10.7): speed-to-lead is the product's core
+                promise — show the receipt, but only when data exists. */}
+            {medianReply !== null && (
+              <StatPill>median first reply {formatReplyTime(medianReply)}</StatPill>
+            )}
+            {/* The pill is a door (P10.6): the filter earns trust by being
+                inspectable — tap through to see what it caught and why. */}
+            <Link href="/dashboard/spam" className="transition-opacity hover:opacity-80">
+              <StatPill>{spamCount} spam filtered for you →</StatPill>
+            </Link>
             {bookedThisMonth > 0 && (
               <StickerChip tone="magenta" rotate={-2}>
                 {bookedThisMonth} booked this month
