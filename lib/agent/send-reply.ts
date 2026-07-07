@@ -55,6 +55,16 @@ export async function sendDraftReply(opts: {
     return { ok: false, error: "this lead has opted out or is closed — nothing was sent" };
   }
 
+  // Atomic claim (10.10): a double-tap on Approve, or manual approve racing
+  // the autopilot cron, could both pass the PENDING read above and both send.
+  // updateMany with the status in the WHERE lets exactly one caller through;
+  // the loser sees count 0. Everything before this point only reads.
+  const claimed = await db.draft.updateMany({
+    where: { id: draft.id, status: "PENDING" },
+    data: { status: "SENDING" },
+  });
+  if (claimed.count === 0) return { ok: false, error: "draft not pending" };
+
   const approvedBody = editedBody?.trim() || draft.body;
   // Follow-ups carry the compliance footer (who/why/opt-out) — appended at send
   // time so the owner reviews clean copy and the footer is never edited away.
@@ -99,14 +109,24 @@ export async function sendDraftReply(opts: {
     }
   }
 
-  const sent = await sendEmail({
-    fromName: lead.business.name,
-    to: lead.clientEmail,
-    replyTo: lead.business.replyToEmail ?? lead.business.ownerEmail,
-    subject: draft.subject,
-    textBody: body,
-    attachments: attachments.length > 0 ? attachments : undefined,
-  });
+  let sent: Awaited<ReturnType<typeof sendEmail>>;
+  try {
+    sent = await sendEmail({
+      fromName: lead.business.name,
+      to: lead.clientEmail,
+      replyTo: lead.business.replyToEmail ?? lead.business.ownerEmail,
+      subject: draft.subject,
+      textBody: body,
+      attachments: attachments.length > 0 ? attachments : undefined,
+    });
+  } catch (err) {
+    // Send failed — release the claim so the draft stays retryable (the
+    // behavior a thrown send always had before the claim existed).
+    await db.draft
+      .updateMany({ where: { id: draft.id, status: "SENDING" }, data: { status: "PENDING" } })
+      .catch(() => null);
+    throw err;
+  }
 
   await db.$transaction([
     db.draft.update({

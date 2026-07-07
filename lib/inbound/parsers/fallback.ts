@@ -43,10 +43,16 @@ export async function parseFallback(
   if (!extracted.isInquiry) return null;
 
   // Never default to a form-system/no-reply sender as the client's address.
-  const senderIsSystem = /no-?reply|donotreply|notification|mailer/i.test(email.from);
+  const senderIsSystem =
+    /no-?reply|donotreply|notification|mailer|form(submit|spree|s@)|jotform|typeform|wordpress|wix|squarespace/i.test(
+      email.from,
+    );
 
   return {
-    source: "PLAIN_EMAIL",
+    // A form-system sender IS the website form (10.11) — before this, every
+    // fallback lead was PLAIN_EMAIL, so the auto-send card's "Your website
+    // form" checkbox could never match a real lead.
+    source: senderIsSystem ? "WEBSITE_FORM" : "PLAIN_EMAIL",
     clientName: extracted.clientName ?? (senderIsSystem ? undefined : email.fromName),
     clientEmail: extracted.clientEmail ?? (senderIsSystem ? undefined : email.from),
     clientPhone: extracted.clientPhone ?? undefined,

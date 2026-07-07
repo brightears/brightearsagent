@@ -62,6 +62,7 @@ enum MessageDirection {
 
 enum DraftStatus {
   PENDING
+  SENDING // 10.10: claimed for send (atomic PENDING->SENDING) - closes the double-send window
   APPROVED
   EDITED    // approved with owner edits (edits feed voice tuning)
   REJECTED

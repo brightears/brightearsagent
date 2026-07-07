@@ -3,6 +3,7 @@ import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
 import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
 import { detectForwardingConfirmation } from "@/lib/inbound/forwarding-confirmation";
+import { htmlToText } from "@/lib/inbound/html-to-text";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { sendDraftReply } from "@/lib/agent/send-reply";
@@ -29,6 +30,13 @@ export function extractSlug(toAddress: string): string | null {
 
 /** The whole inbound path: tenant → idempotency → reply-match → parse → triage → Lead. */
 export async function processInbound(email: InboundEmail): Promise<PipelineResult> {
+  // HTML-only senders give Postmark no TextBody (10.9): strip the markup to
+  // text ONCE at the door, so parsers, triage, the thread view, and the
+  // drafter all see the words instead of an empty string.
+  if (!email.textBody.trim() && email.htmlBody) {
+    email = { ...email, textBody: htmlToText(email.htmlBody) };
+  }
+
   const slug = extractSlug(email.to);
   if (!slug) return { outcome: "no_tenant" };
 
