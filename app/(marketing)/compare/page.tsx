@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import { buttonStyles } from "@/components/ui";
 import {
@@ -19,11 +20,10 @@ import {
   ROADMAP_LINE,
 } from "@/lib/marketing/comparisons";
 
-export const metadata: Metadata = {
-  title: "Best DJ Booking Software 2026 — Honest Comparison, Verified Pricing | Bright Ears",
-  description:
-    "The honest 2026 comparison of DJ booking software: DJ Event Planner, GigBuilder, Vibo, Check Cherry, HoneyBook and Bright Ears — the one that hunts venues for you AND answers your leads. Real strengths, real gaps, pricing last verified June 2026.",
-};
+export const metadata: Metadata = pageMeta(
+  "Best DJ Booking Software 2026 — Honest Comparison, Verified Pricing | Bright Ears",
+  "The honest 2026 comparison of DJ booking software: DJ Event Planner, GigBuilder, Vibo, Check Cherry, HoneyBook and Bright Ears — the one that hunts venues for you AND answers your leads. Real strengths, real gaps, pricing last verified June 2026.",
+);
 
 const itemListJsonLd = JSON.stringify({
   "@context": "https://schema.org",

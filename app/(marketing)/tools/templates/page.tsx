@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 
-export const metadata: Metadata = {
-  title: "29 DJ Email Templates: Venue Outreach, Inquiry Replies & Follow-Ups (Free) — Bright Ears",
-  description:
-    "Copy-paste email templates for event DJs: venue outreach to find new gigs (cold intro, follow-up, residency, festival), plus first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
-};
+export const metadata: Metadata = pageMeta(
+  "29 DJ Email Templates: Venue Outreach, Inquiry Replies & Follow-Ups (Free) — Bright Ears",
+  "Copy-paste email templates for event DJs: venue outreach to find new gigs (cold intro, follow-up, residency, festival), plus first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
+);
 
 /* One gradient-painted word in the headline — the design/b signature. */
 const gradText: CSSProperties = {

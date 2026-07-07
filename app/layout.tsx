@@ -22,6 +22,22 @@ export const metadata: Metadata = {
   description:
     "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
   manifest: "/manifest.json",
+  // OG/Twitter defaults (P6.12): metadataBase absolutizes og:url + the
+  // opengraph-image file convention's og:image; key marketing pages set their
+  // own og titles via lib/marketing/site.ts pageMeta (Next inherits the ROOT
+  // og:title otherwise). Canonical "./" = self-referential per route.
+  metadataBase: new URL(
+    (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, ""),
+  ),
+  alternates: { canonical: "./" },
+  openGraph: {
+    siteName: "Bright Ears",
+    type: "website",
+    title: "Bright Ears — the AI that finds gigs for performers",
+    description:
+      "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
+  },
+  twitter: { card: "summary_large_image" },
   // Staging must never outrank (or become) the real site — noindex everything
   // while APP_URL is the onrender.com host; flips itself at cutover. Pairs
   // with the same gate in app/robots.ts.

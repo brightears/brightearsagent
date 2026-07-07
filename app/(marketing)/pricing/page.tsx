@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -9,13 +10,10 @@ import {
 } from "@/components/collage";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 
-export const metadata: Metadata = {
-  title: "Pricing — Bright Ears",
-  // ≤155 chars, hook first (SERPs truncate ~160 — the old 350-char version
-  // cut off before "subscribe to activate").
-  description:
-    "Finds gigs, drafts the pitch and every reply in your voice — you approve. Starter $25, Pro $79, Studio $149. Every plan is the complete engine.",
-};
+export const metadata: Metadata = pageMeta(
+  "Pricing — Bright Ears",
+  "Finds gigs, drafts the pitch and every reply in your voice — you approve. Starter $25, Pro $79, Studio $149. Every plan is the complete engine.",
+);
 
 type Plan = {
   name: string;

@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { LeadRoiCalculator } from "@/components/lead-roi-calculator";
 import { GradientBlob, RingsBackdrop, VinylDisc } from "@/components/collage";
 
-export const metadata: Metadata = {
-  title: "Lead ROI Calculator for DJs — What Missed & Slow Replies Cost — Bright Ears",
-  description:
-    "Free calculator for event performers: estimate what slow replies — and the gigs you never even hear about — cost you per year. Transparent math, honest assumptions, no signup.",
-};
+export const metadata: Metadata = pageMeta(
+  "Lead ROI Calculator for DJs — What Missed & Slow Replies Cost — Bright Ears",
+  "Free calculator for event performers: estimate what slow replies — and the gigs you never even hear about — cost you per year. Transparent math, honest assumptions, no signup.",
+);
 
 /* One gradient-painted word in the headline — the design/b signature. */
 const gradText: CSSProperties = {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -8,18 +9,20 @@ import {
   VinylDisc,
 } from "@/components/collage";
 
-export const metadata: Metadata = {
-  title: "Our story — Bright Ears",
-  description:
-    "Twenty years running an entertainment agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today, finding new rooms and answering every inquiry. Now she works for performers everywhere.",
-};
+export const metadata: Metadata = pageMeta(
+  "Our story — Bright Ears",
+  "Twenty years running an entertainment agency for five-star hotel venues in Bangkok. Drowning in schedules, invoices and messages, we built an AI back office for ourselves — her name is Vinyl, she still runs the agency today, finding new rooms and answering every inquiry. Now she works for performers everywhere.",
+);
 
 const orgJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Bright Ears",
-  url: "https://brightears.io",
-  logo: "https://brightears.io/brand/logo-light.png",
+  // Env-driven origin (audit 2026-07: this pointed search engines at
+  // brightears.io — currently the AGENCY's site — with a 404 logo). Corrects
+  // itself at cutover when APP_URL flips to the real domain.
+  url: (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, ""),
+  logo: `${(process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, "")}/brand/logo.png`,
   description:
     "Bright Ears is the AI back office for event performer businesses: it hunts the web for venues that fit you and drafts the outreach in your voice, AND answers every inquiry that comes in — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
   slogan: "Never miss a gig you never knew existed.",

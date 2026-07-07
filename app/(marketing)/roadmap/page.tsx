@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import { Kicker } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Roadmap — Bright Ears",
-  description:
-    "What's live, what's being built, and what's next for the AI that finds gigs for performers. The public roadmap our comparison pages point to.",
-};
+export const metadata: Metadata = pageMeta(
+  "Roadmap — Bright Ears",
+  "What's live, what's being built, and what's next for the AI that finds gigs for performers. The public roadmap our comparison pages point to.",
+);
 
 // The PUBLIC roadmap (audit 2026-07: /compare cited "our public roadmap" three
 // times — including inside JSON-LD served to search engines — and no such page

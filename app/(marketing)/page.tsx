@@ -12,6 +12,7 @@
 // reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
 // guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
 import type { Metadata } from "next";
+import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -26,11 +27,10 @@ import { DemoWidget } from "@/components/demo-widget";
 import { KineticHeadline, Marquee, RevealOnScroll } from "@/components/motion";
 import { Kicker } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Bright Ears — never miss a gig you never knew existed",
-  description:
-    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
-};
+export const metadata: Metadata = pageMeta(
+  "Bright Ears — never miss a gig you never knew existed",
+  "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
+);
 
 const TRUST_LINE = "Month-to-month · cancel anytime · setup in minutes";
 
@@ -158,6 +158,17 @@ function GradWord({ children }: { children: React.ReactNode }) {
 export default function HomePage() {
   return (
     <div className="overflow-x-clip">
+      {/* Structured data (P6.12): the HOME page had zero JSON-LD while
+          secondary pages had plenty. SoftwareApplication with offers is
+          eligible for price rich results. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd()) }}
+      />
       {/* ---------- Hero — ink stage, rings, kinetic headline, collage poster ---------- */}
       <section className="relative isolate overflow-hidden">
         <RingsBackdrop />
