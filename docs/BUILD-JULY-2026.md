@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P10 DONE** (all 11) — next: P11 money-loop-lite (start at 11.1)
+- Current phase: P11 in progress — 11.1 DONE *(0de2047)*; next: 11.2 booking-confirmation draft, then 11.3 gig-brief PDF, 11.4 ROI receipt
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 475/475 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 478/478 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -152,7 +152,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P11 — Money loop, pre-Gate-1 slice (Theme D)
 
-- [ ] 11.1 Fee capture on "Mark booked" (optional field, prefilled from quote) → Gig.value; booked VALUE in weekly report + Results surface.
+- [x] 11.1 Fee capture on Mark booked (optional, quote-prefilled, both surfaces) → Gig.value (migration); booked-value tiles on Results + weekly "worth X" line; lib/quote/fee.ts parse/format tested. *(0de2047)*
 - [ ] 11.2 Drafted booking-confirmation email on booked (carries bookingLinkUrl + quote PDF; owner approves like any draft).
 - [ ] 11.3 Gig-brief PDF artifact on booking (date, venue, set times, requests, load-in, contact — from the thread; grounded, no invention).
 - [ ] 11.4 Monthly ROI receipt email: answered X, pitched Y, won Z gigs worth <currency>N vs subscription cost (honest, only with real data; no projections).
