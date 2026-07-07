@@ -319,6 +319,74 @@ const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
 // glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
 // EMOJI IN UI). Inherits color via currentColor; size with className per spot.
+/** Live license flags computed by the wizard shell from what's typed so far —
+ *  mirrors the license-critical checks in lib/profile/strength.ts (the server
+ *  truth that actually gates pitching). Shown, never enforced, here. */
+export type LicenseFlags = {
+  video: boolean;
+  photos: boolean;
+  photoCount: number;
+  bio: boolean;
+  headline: boolean;
+  genres: boolean;
+  city: boolean;
+  floor: boolean;
+  gig: boolean;
+};
+
+/**
+ * The hunting license, made visible (audit 2026-07): bio/photos/video are
+ * labelled "optional" by the form — true for finishing the wizard, false for
+ * venue pitching. This meter says exactly what unlocks the Hunt so nobody
+ * subscribes expecting pitches a locked license can't send.
+ */
+function LicenseMeter({ license }: { license: LicenseFlags }) {
+  const items: { label: string; done: boolean }[] = [
+    { label: "A performance video", done: license.video },
+    {
+      label: license.photos ? "3 photos" : `3 photos (${license.photoCount}/3)`,
+      done: license.photos,
+    },
+    { label: "A short bio", done: license.bio },
+    { label: "Your one-liner", done: license.headline },
+    { label: "Your sound / style", done: license.genres },
+    { label: "Home city", done: license.city },
+    { label: "Your fee floor", done: license.floor },
+    { label: "A gig on your calendar (step 4)", done: license.gig },
+  ];
+  const doneCount = items.filter((i) => i.done).length;
+  return (
+    <div className="rounded-2xl border border-cream bg-cream/20 p-4">
+      <SectionLabel>
+        Your hunting license — {doneCount}/{items.length}
+      </SectionLabel>
+      <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
+        Everything else works without these — but the agent pitches venues in your name only once
+        they&apos;re in place. A pitch without a face or a clip gets deleted, so it won&apos;t send a
+        thin one for you.
+      </p>
+      <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center gap-2 text-sm">
+            {item.done ? (
+              <CheckMark className="size-3.5 flex-none text-brand-cyan" />
+            ) : (
+              <span
+                aria-hidden
+                className="size-3 flex-none rounded-full border-[1.5px] border-ink-stage/30"
+              />
+            )}
+            <span className={item.done ? "text-ink-stage/80" : "text-ink-stage/55"}>
+              {item.label}
+            </span>
+            <span className="sr-only">{item.done ? "— done" : "— still to add"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CheckMark({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -368,25 +436,26 @@ function StepBusiness({
   onDone,
 }: {
   initial: WizardBusiness;
-  onDone: (country: string, performerKind: PerformerKind) => void;
+  onDone: (country: string, performerKind: PerformerKind, homeCity: string) => void;
 }) {
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, fd) => {
       const country = String(fd.get("country") ?? "");
+      const homeCity = String(fd.get("homeCity") ?? "");
       const res = await saveBusinessBasics({
         name: String(fd.get("name") ?? ""),
         ownerName: String(fd.get("ownerName") ?? ""),
         performerKind: kind,
         country,
-        homeCity: String(fd.get("homeCity") ?? ""),
+        homeCity,
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
       });
-      // Hand the chosen country AND craft up so step 2 can label fees in the
-      // right currency (THB for Thailand) and adapt its copy to the performer
-      // kind (a magician sees magic prompts), without a page reload.
-      if (res.ok) onDone(country || initial.country, kind);
+      // Hand the chosen country, craft AND home city up so step 2 can label
+      // fees in the right currency, adapt its copy to the performer kind, and
+      // keep the license meter honest — all without a page reload.
+      if (res.ok) onDone(country || initial.country, kind, homeCity.trim() || initial.homeCity);
       return res;
     },
     null,
@@ -589,6 +658,7 @@ function StepProfile({
   performerKind,
   currency,
   uploadsEnabled,
+  license,
   onChange,
   onDone,
   onBack,
@@ -597,6 +667,7 @@ function StepProfile({
   performerKind: PerformerKind;
   currency: string;
   uploadsEnabled: boolean;
+  license: LicenseFlags;
   onChange: Dispatch<SetStateAction<WizardProfile>>;
   onDone: () => void;
   onBack: () => void;
@@ -835,6 +906,8 @@ function StepProfile({
           </p>
         </div>
       </div>
+
+      <LicenseMeter license={license} />
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
@@ -1404,12 +1477,15 @@ function StepConnect({
   leadAddress,
   leadDetected,
   tookTooLong,
+  licenseReady,
   onBack,
 }: {
   leadAddress: string;
   leadDetected: boolean;
   /** ~90s elapsed on this step with no lead detected (audit C2 fallback). */
   tookTooLong: boolean;
+  /** Hunting license complete (client-side view) — gates the finale's promise. */
+  licenseReady: boolean;
   onBack: () => void;
 }) {
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
@@ -1463,9 +1539,19 @@ function StepConnect({
             Your first inquiry just landed — it works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it and read it. Your assistant is set up and ready to reply in your voice and hunt
-            venues for you — choose a plan to switch it on, and it goes to work on this one and every
-            one after.
+            {licenseReady ? (
+              <>
+                We caught it and read it. Your assistant is set up and ready to reply in your voice
+                and hunt venues for you — choose a plan to switch it on, and it goes to work on this
+                one and every one after.
+              </>
+            ) : (
+              <>
+                We caught it and read it. Choose a plan and your assistant answers this inquiry — and
+                every one after — in your voice. Venue pitching unlocks once your hunting license is
+                complete (the checklist on the “Who you are” step: video, photos, a calendar gig).
+              </>
+            )}
           </p>
           <Link
             href="/dashboard/settings#billing"
@@ -1624,6 +1710,7 @@ export function OnboardingWizard({
     { date: "", title: "" },
   ]);
   const [gigsSaved, setGigsSaved] = useState(0);
+  const [homeCity, setHomeCity] = useState(business.homeCity);
   const [leadDetected, setLeadDetected] = useState(false);
   // After ~90s of polling on step 5 with no lead detected, surface a calm
   // fallback (audit C2) so the spinner doesn't appear to hang forever. The live
@@ -1631,6 +1718,24 @@ export function OnboardingWizard({
   const [tookTooLong, setTookTooLong] = useState(false);
 
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
+
+  // The hunting license, computed live from what's typed so far — the display
+  // twin of lib/profile/strength.ts (server truth). Drives the step-2 meter
+  // and the honest step-5 finale.
+  const license: LicenseFlags = {
+    video: profile.videoLinks.trim().length > 0,
+    photos: profile.photoUrls.length >= 3,
+    photoCount: profile.photoUrls.length,
+    bio: profile.bio.trim().length > 0,
+    headline: profile.headline.trim().length > 0,
+    genres: profile.genres.trim().length > 0,
+    city: homeCity.trim().length > 0,
+    floor: profile.feeFloor.trim().length > 0,
+    gig: gigsSaved > 0,
+  };
+  const licenseReady = Object.entries(license).every(
+    ([key, value]) => key === "photoCount" || value === true,
+  );
 
   function goTo(next: number) {
     setStep(Math.min(Math.max(next, 0), STEPS.length - 1));
@@ -1737,9 +1842,10 @@ export function OnboardingWizard({
           {step === 0 && (
             <StepBusiness
               initial={business}
-              onDone={(c, k) => {
+              onDone={(c, k, city) => {
                 setCountry(c);
                 setPerformerKind(k);
+                setHomeCity(city);
                 goTo(1);
               }}
             />
@@ -1750,6 +1856,7 @@ export function OnboardingWizard({
               performerKind={performerKind}
               currency={currency}
               uploadsEnabled={uploadsEnabled}
+              license={license}
               onChange={setProfile}
               onDone={() => goTo(2)}
               onBack={() => goTo(0)}
@@ -1781,6 +1888,7 @@ export function OnboardingWizard({
               leadAddress={leadAddress}
               leadDetected={leadDetected}
               tookTooLong={tookTooLong}
+              licenseReady={licenseReady}
               onBack={() => goTo(3)}
             />
           )}
