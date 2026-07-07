@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P1 + P2 + P3 COMPLETE** · next: P4 (notify by default — wiring `lib/notify.ts` into reply-ready / wrote-back / at-cap / auto-send-fail + push prompt + draft aging)
+- Current phase: **P1–P4 COMPLETE** · next: P5 (billing edges: webhook out-of-order guard, dup-subscription guard, portal deep-links, plan ladder, plan-param funnel)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
@@ -62,10 +62,10 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P4 — Notify by default (launch-blocker #5)
 
-- [ ] 4.1 `notifyBusiness()` helper: web push + **Postmark email fallback to ownerEmail** (deep link, throttled/deduped). Wire: reply-ready, they-wrote-back (ENGAGED), at-cap transition, auto-send failure. Tests.
-- [ ] 4.2 Push-enable prompt at the moment of first value (first draft ready / first approval) — not buried in settings.
-- [ ] 4.3 Draft-aging re-ping via the 30-min sequences cron: PENDING drafts older than ~4h re-notify once; "waiting Nh" age chip in the pipeline column.
-- [ ] 4.4 Auto-send background failures: `reportError` + owner notification (draft still lands as PENDING). (`lib/inbound/pipeline.ts:193`)
+- [x] 4.1 `notifyBusiness()` wired: reply-ready, they-wrote-back (was silent), at-cap TRANSITION-only w/ state-branched copy (covers 5.7's sales email), auto-send success (pushOnly) / blocked (dual) / failure (dual + reportError). *(36732aa)*
+- [x] 4.2 PushPrompt at the first-value moment (ready draft on lead detail); dismiss honored forever; shared plumbing in lib/push-client.ts. *(36732aa)*
+- [x] 4.3 One aging nudge per draft at ~4h (agingPingAt migration; stamp-first, paused tenants silent) + "waiting Nh" chips on drafted cards. *(36732aa)*
+- [x] 4.4 Auto-send failures: reportError(kind:auto-send) + owner action ping. *(36732aa)*
 
 ## P5 — Billing edges (launch-blocker #6)
 
