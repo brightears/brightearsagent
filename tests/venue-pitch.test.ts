@@ -242,18 +242,19 @@ describe("temperature template selection (buildPitchTask)", () => {
     expect(buildVenuePitchSystem(req)).toContain("shall I hold a date?");
   });
 
-  it("WARM is an introduction referencing their EXISTING program, rotation/on-file CTA", () => {
+  it("WARM is an introduction referencing their EXISTING program, trial-night/on-file CTA", () => {
     const task = buildPitchTask("WARM");
     expect(task).toContain("INTRODUCTION");
     expect(task).toContain("have NOT posted any need");
-    expect(task).toMatch(/rotation|on file/i);
+    // 12.4: the converter CTA is a no-risk trial night; on-file is the fallback.
+    expect(task).toMatch(/trial night|on file/i);
     // The evidence facts land in the prompt as the only program grounding.
     const prompt = buildVenuePitchPrompt(warmReq);
     expect(prompt).toContain("Runs Friday DJ nights per its events page");
     expect(prompt).toContain("verified facts");
     // The system CTA rule bans the date-ask for WARM.
     const system = buildVenuePitchSystem(warmReq);
-    expect(system).toMatch(/[Nn]ever ask to hold a date/);
+    expect(system).toMatch(/[Nn]ever ask to hold a (specific )?date/);
     expect(system).not.toContain("shall I hold a date?");
   });
 
@@ -324,5 +325,16 @@ describe("generateVenuePitch — SEED guard wiring", () => {
     const out = await generateVenuePitch(req);
     expect(llmMock).toHaveBeenCalledTimes(1);
     expect(out.body).toContain("follow up");
+  });
+});
+
+describe("WARM trial-night converter (P12.4)", () => {
+  it("the WARM task offers a profit-framed no-risk trial night, no specific date", () => {
+    const task = buildPitchTask("WARM");
+    expect(task).toMatch(/trial night/i);
+    expect(task).toMatch(/profit/i);
+    expect(task).toMatch(/no specific date/i);
+    // The on-file fallback stays for venues where a trial night makes no sense.
+    expect(task).toMatch(/on file/i);
   });
 });

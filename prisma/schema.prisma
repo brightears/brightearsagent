@@ -465,6 +465,12 @@ model Venue {
   // Reply capture (P8.3): stamped when the venue's FIRST reply lands in the
   // pipeline — replies/sent is the 10.9 beta-gate number.
   repliedAt          DateTime?
+  // 12.4 residency play kit: the owner's private field notes on this venue -
+  // names met, visits, vibe. Never leaves the dashboard, never enters a pitch.
+  staffNotes         String?
+  // 12.4: stamped when the 180-day re-touch arc returns a silent PITCHED
+  // venue to the feed as "warm again" (fair to knock twice).
+  retouchedAt        DateTime?
   suppressedReason   String?
   // Travel Mode: the TravelWindow this venue was discovered for (null = a
   // home-base hunt). Lets the feed label travel finds ("Travel · Lisbon") and

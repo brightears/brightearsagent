@@ -24,10 +24,13 @@ export async function downweightedKinds(businessId: string): Promise<VenueKind[]
   return groups.filter((g) => g._count.kind >= 2).map((g) => g.kind);
 }
 
-export type RescoreResult = { rescored: number; arcedToWarm: number };
+/** 12.4: silence this long after a pitch = fair to knock again. */
+export const RETOUCH_MS = 180 * 24 * 3600 * 1000;
+
+export type RescoreResult = { rescored: number; arcedToWarm: number; retouched: number };
 
 export async function rescoreVenues(businessId: string, now = new Date()): Promise<RescoreResult> {
-  const result: RescoreResult = { rescored: 0, arcedToWarm: 0 };
+  const result: RescoreResult = { rescored: 0, arcedToWarm: 0, retouched: 0 };
 
   const business = await db.business.findUnique({
     where: { id: businessId },
@@ -96,5 +99,23 @@ export async function rescoreVenues(businessId: string, now = new Date()): Promi
     result.rescored++;
     if (arcToWarm) result.arcedToWarm++;
   }
+
+  // 12.4 re-touch arc: a venue pitched 180+ days ago that never replied
+  // returns to the feed as WARM AGAIN — the residency game is long, and six
+  // silent months make a second knock polite, not pushy. QUALIFIED is
+  // draftable (draft-pitch guard), retouchedAt drives the card's chip, and
+  // the arc can't repeat (status leaves PITCHED). Replied venues never arc —
+  // a live conversation is the owner's to run.
+  const retouch = await db.venue.updateMany({
+    where: {
+      businessId,
+      status: "PITCHED",
+      repliedAt: null,
+      pitchedAt: { lt: new Date(now.getTime() - RETOUCH_MS) },
+    },
+    data: { status: "QUALIFIED", temperature: "WARM", retouchedAt: now },
+  });
+  result.retouched = retouch.count;
+
   return result;
 }

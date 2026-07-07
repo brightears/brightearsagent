@@ -388,6 +388,23 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
   return { ok: true };
 }
 
+/**
+ * Private venue field notes (P12.4): tenant-scoped, capped, plain text. The
+ * notes never enter pitches or LLM prompts - dashboard memory only.
+ */
+export async function saveVenueNotesForm(venueId: string, formData: FormData): Promise<void> {
+  const parsed = venueIdSchema.safeParse(venueId);
+  if (!parsed.success) return;
+  const business = await getCurrentBusiness();
+  const raw = formData.get("staffNotes");
+  const notes = typeof raw === "string" ? raw.trim().slice(0, 2000) : "";
+  await db.venue.updateMany({
+    where: { id: parsed.data, businessId: business.id },
+    data: { staffNotes: notes || null },
+  });
+  revalidatePath("/dashboard");
+}
+
 /** Form-friendly wrapper (form `action` must return void). */
 export async function skipVenueForm(venueId: string, reason: string): Promise<void> {
   const result = await skipVenue(venueId, reason);

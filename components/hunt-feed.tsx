@@ -10,6 +10,7 @@ import { skipVenueForm } from "@/app/actions/venues";
 import { DraftPitchButton, VenuePitchReview, type HuntPitch } from "@/components/venue-pitch-review";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
 import { contactConfidence } from "@/lib/venues/contact-confidence";
+import { VenueNotes } from "@/components/venue-notes";
 import {
   SKIP_REASONS,
   TEMPERATURE_CHIP,
@@ -44,6 +45,10 @@ export type HuntVenue = {
   signals: { id: string; summary: string; sourceUrl: string }[];
   /** Named person published with the address (P10.5 confidence signal). */
   bookingContactName: string | null;
+  /** P12.4: private field notes (names met, visits) — dashboard-only. */
+  staffNotes: string | null;
+  /** P12.4: set when the 180-day re-touch arc brought this venue back. */
+  retouchedAt: Date | null;
   /** Travel Mode: the travel-window city, when this is a travel find (else null). */
   travelCity: string | null;
   /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
@@ -125,6 +130,13 @@ function VenueCard({
           >
             {TEMPERATURE_CHIP[venue.temperature].label}
           </span>
+          {/* Warm again (P12.4): the re-touch arc brought this one back after
+              180 silent days — fair to knock twice, and the card says so. */}
+          {venue.retouchedAt && (
+            <span className="ml-1.5 mt-1.5 inline-block rounded-full bg-cream px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
+              Warm again — pitched 6+ months ago
+            </span>
+          )}
           {/* Travel Mode tag (no emoji, mono, cyan interface accent): marks a
               find from a travel window so travel finds are distinguishable. */}
           {venue.travelCity && (
@@ -295,6 +307,9 @@ function VenueCard({
           </details>
         </div>
       )}
+
+      {/* Private field notes (P12.4) — the residency game's memory. */}
+      <VenueNotes venueId={venue.id} notes={venue.staffNotes} />
 
       {!canPitch && venue.status !== "PITCH_DRAFTED" && (
         <p className="mt-2 text-[11px] text-ink-stage/55">

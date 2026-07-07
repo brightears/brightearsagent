@@ -139,6 +139,8 @@ export default async function Dashboard({
         bookingEmail: true,
         contactSource: true,
         bookingContactName: true,
+        staffNotes: true,
+        retouchedAt: true,
         // Travel Mode: the window's city, when this venue is a travel find —
         // drives the "Travel · {city}" tag on the card.
         travelWindow: { select: { city: true } },
@@ -185,6 +187,7 @@ export default async function Dashboard({
         kind: true,
         status: true,
         pitchedAt: true,
+        staffNotes: true,
         // Travel Mode: window city for the "Travel · {city}" tag (in play too).
         travelWindow: { select: { city: true } },
       },
