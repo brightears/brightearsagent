@@ -71,7 +71,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 ## P5 — Billing edges (launch-blocker #6)
 
 - [x] 5.1 `updated` out-of-order guard + re-retrieve (orphan can't pause a paying tenant; stale active can't resurrect a dead plan). Regression tests for both. *(e3a3189)*
-- [ ] 5.2 `startCheckout` already-subscribed guard → portal redirect instead of second subscription. (`app/actions/billing.ts:29`)
+- [x] 5.2 startCheckout routes subscribed tenants to openPlanChange — double-subscribe impossible; recursion-guarded. *(211cae0)*
 - [x] 5.3 openPlanChange deep-links subscription_update_confirm (proration shown, one confirm); stripe-setup.ts upserts portal config (RAN in test mode — STRIPE_PORTAL_CONFIG in .env.local) + optional --with-webhook endpoint registration + founder checklist print. *(211cae0)*
 - [x] 5.4 Plan ladder for subscribers (current marked, Upgrade/Switch one-tap); blurbs recut to enforced claims, "inquiries" vocabulary. *(351222a)*
 - [x] 5.5 ?plan= rides pricing → sign-up → wizard; step-5 finale opens checkout for exactly that plan. *(351222a)*
