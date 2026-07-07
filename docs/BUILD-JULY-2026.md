@@ -9,9 +9,9 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P1 + P2 COMPLETE** · next: P3 (coverage rotation — the sold-cities truth fix)
+- Current phase: **P1 + P2 + P3 COMPLETE** · next: P4 (notify by default — wiring `lib/notify.ts` into reply-ready / wrote-back / at-cap / auto-send-fail + push prompt + draft aging)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 426/426 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -56,9 +56,9 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P3 — Coverage truth (launch-blocker #3)
 
-- [ ] 3.1 Round-robin scan targets by `discoveryScanCount` across all plan-capped home cities; **reserve one slot for a live travel window** (travel outranks 2nd home city while a window is live). Tests: 3-city Pro, 25-city Studio, 2-home+travel. (`lib/discovery/scan.ts:160-173`)
-- [ ] 3.2 Travel finds get full geo credit ("found for your trip" reason) + contact-discovery pass. (`lib/venues/score.ts:166`)
-- [ ] 3.3 `splitCities` max honors the largest homeCityCap (25); truncate notice reflects the plan. (`app/actions/travel.ts:191`)
+- [x] 3.1 Round-robin rotation by `discoveryScanCount` within plan cap + reserved travel slot (multi-window rotation, travel-takes-all when no home). 5 new tests incl. the starved multi-city travel case. *(bd94995)*
+- [x] 3.2 Travel finds score full geo ("found for your trip") at ingest, re-ingest AND contact re-score — starvation out of the contact pass fixed via ranking. *(bd94995)*
+- [x] 3.3 `splitCities` sanity bound raised to 100 (> Studio's 25 cap); trim notice now sees everything typed. *(bd94995)*
 
 ## P4 — Notify by default (launch-blocker #5)
 
