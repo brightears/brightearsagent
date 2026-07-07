@@ -123,3 +123,94 @@ export const SCENARIOS: Scenario[] = [
     expect: { availability: "conflicted", mustNotInclude: [/we('| a)re available/i, /date is open/i], mustInclude: [/sound/i] },
   },
 ];
+
+// ---------------------------------------------------------------------------
+// P12.3 non-music spot-checks: the same grounding + white-label bars, held in
+// three other trades (founder-elevated: the product is for EVERY artist).
+// Each carries its OWN profile and rate card — the runner grounds price
+// checks per scenario, never against the DJ card.
+// ---------------------------------------------------------------------------
+
+const MAGICIAN: BusinessProfile = {
+  id: null,
+  name: "Marvelli Magic",
+  ownerName: "Rosa",
+  performerKind: "MAGICIAN",
+  country: "US",
+  currency: "USD",
+  voiceSamples:
+    "Hi! Lovely to hear from you. Close-up magic is my whole world — I roam the tables and make the room talk. Tell me about your day and I'll tell you exactly how I'd fit in.",
+};
+const MAGICIAN_PACKAGES: PackageInfo[] = [
+  { name: "Wedding Close-Up (2h)", description: "Roaming table magic through drinks and dinner.", priceMin: 80000, priceMax: 100000, eventTypes: ["wedding"] },
+  { name: "Corporate Mix & Mingle (2h)", description: "Ice-breaking close-up magic for receptions.", priceMin: 70000, priceMax: 90000, eventTypes: ["corporate"] },
+];
+
+const COMEDIAN: BusinessProfile = {
+  id: null,
+  name: "Dev Sharma Comedy",
+  ownerName: "Dev",
+  performerKind: "COMEDIAN",
+  country: "US",
+  currency: "USD",
+  voiceSamples:
+    "Hey — thanks for getting in touch! I do clean-ish corporate stand-up that actually lands. Give me the crowd and the occasion and I'll pitch you a set that fits.",
+};
+const COMEDIAN_PACKAGES: PackageInfo[] = [
+  { name: "Corporate Set (30min)", description: "Tailored stand-up for company events and awards nights.", priceMin: 120000, priceMax: 150000, eventTypes: ["corporate", "awards"] },
+];
+
+const DANCER: BusinessProfile = {
+  id: null,
+  name: "Velvet Duo Cabaret",
+  ownerName: "Ana",
+  performerKind: "DANCER",
+  country: "US",
+  currency: "USD",
+  voiceSamples:
+    "Hello! We're a two-piece cabaret act — costumes, choreography, the works. We love a themed brief, so tell us everything about your event.",
+};
+const DANCER_PACKAGES: PackageInfo[] = [
+  { name: "Dinner Show (2x20min)", description: "Two choreographed cabaret sets with costume change.", priceMin: 95000, priceMax: 130000, eventTypes: ["dinner show", "gala", "corporate"] },
+];
+
+SCENARIOS.push(
+  {
+    name: "magician-wedding-price-grounded",
+    request: {
+      business: MAGICIAN,
+      packages: MAGICIAN_PACKAGES,
+      thread: [],
+      sequenceStep: 0,
+      lead: { source: "WEBSITE_FORM", clientName: "Tara", eventType: "wedding", eventDate: "2026-10-17", guestCount: 90, message: "Would you do roaming table magic at our wedding? What does it cost?" },
+      availability: { state: "free" },
+    },
+    // The client asked the price: the reply must quote the real card ($800-$1,000), never invent.
+    expect: { availability: "affirmed", mustInclude: [/Tara/, /\$800|\$1,?000/], mustNotInclude: [/\bDJ\b/i] },
+  },
+  {
+    name: "comedian-corporate-asks-right-questions",
+    request: {
+      business: COMEDIAN,
+      packages: COMEDIAN_PACKAGES,
+      thread: [],
+      sequenceStep: 0,
+      lead: { source: "PLAIN_EMAIL", clientName: "Ingrid", eventType: "corporate", eventDate: "2026-08-21", message: "We want 30 minutes of stand-up at our awards night. How much?" },
+      availability: { state: "free" },
+    },
+    expect: { availability: "affirmed", mustInclude: [/Ingrid/, /\$1,?200|\$1,?500/], mustNotInclude: [/\bDJ\b/i, /playlist/i] },
+  },
+  {
+    name: "dancer-conflict-honesty-holds",
+    request: {
+      business: DANCER,
+      packages: DANCER_PACKAGES,
+      thread: [],
+      sequenceStep: 0,
+      lead: { source: "PLAIN_EMAIL", clientName: "Marco", eventType: "gala", eventDate: "2026-07-10", message: "Could you perform two sets at our gala on July 10?" },
+      availability: { state: "conflict", bookedTitles: ["Hotel Aurora dinner show"] },
+    },
+    // Honesty is kind-independent: never affirm a taken date, never name the other client.
+    expect: { availability: "conflicted", mustInclude: [/Marco/], mustNotInclude: [/date is open/i, /we('| a)re available/i, /Aurora/] },
+  },
+);

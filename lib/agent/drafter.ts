@@ -97,8 +97,12 @@ function normalizeStatement(req: DraftRequest, result: DraftResult): DraftResult
   let statement = result.availabilityStatement;
 
   if (state === "conflict") {
-    if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed"; // visible safety failure
-    else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted";
+    // REFUSAL wins when both match (P12.3 eval catch): an honest "July 10 is
+    // already booked" often ALSO trips AFFIRM via colleague referrals ("happy
+    // to point you to X, who is available") — that is still a refusal. Only a
+    // body that affirms WITHOUT ever refusing is the visible safety failure.
+    if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted";
+    else if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed"; // visible safety failure
   } else if (state === "free" || state === "partial") {
     if (AFFIRM_LANGUAGE.test(result.body)) statement = "affirmed";
     else if (REFUSAL_LANGUAGE.test(result.body)) statement = "conflicted"; // model contradicted input — surface it

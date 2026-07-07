@@ -90,3 +90,35 @@ describe("generateDraft task modes", () => {
     expect(prompt).not.toContain("continue this conversation");
   });
 });
+
+describe("normalizeStatement conflict branch (P12.3 eval catch)", () => {
+  it("an honest refusal that also refers an available colleague stays CONFLICTED", async () => {
+    mockLlmObject.mockResolvedValue({
+      subject: "Your July 10 gala",
+      body: "Unfortunately July 10th is already booked on our end. I'm happy to point you to a trusted colleague who is available that night.",
+      availabilityStatement: "affirmed", // the model's wrong self-report
+      wantsProfile: false,
+      wantsQuote: false,
+    });
+    const result = await generateDraft({
+      ...baseReq,
+      availability: { state: "conflict", bookedTitles: ["Hotel Aurora"] },
+    });
+    expect(result.availabilityStatement).toBe("conflicted");
+  });
+
+  it("a body that affirms WITHOUT refusing is still the visible safety failure", async () => {
+    mockLlmObject.mockResolvedValue({
+      subject: "Your July 10 gala",
+      body: "Great news — the date is open and we're available!",
+      availabilityStatement: "not_addressed",
+      wantsProfile: false,
+      wantsQuote: false,
+    });
+    const result = await generateDraft({
+      ...baseReq,
+      availability: { state: "conflict", bookedTitles: ["Hotel Aurora"] },
+    });
+    expect(result.availabilityStatement).toBe("affirmed");
+  });
+});
