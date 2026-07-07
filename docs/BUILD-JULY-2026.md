@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P8 in progress — 8.1 auto-draft, 8.2 digest, 8.3 reply capture DONE · next: 8.4 HOT follow-up, 8.5 autopilot sequences, 8.6 weekly report v2, 8.7 receipts strip, 8.8 feed hygiene, 8.9 skip tuning
+- Current phase: P8 in progress — 8.1–8.5 DONE · next: 8.6 weekly report v2, 8.7 receipts strip, 8.8 feed hygiene, 8.9 skip tuning
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
@@ -118,8 +118,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 8.1 autoDraftPitches on the discovery cron: HOT-first fit-ranked, identical guard ladder via extracted lib/venues/draft-pitch.ts, caps-before-LLM-spend, per-temperature cap stops, 5 tests. *(26adbfd)*
 - [x] 8.2 'Your agent worked overnight' dual-channel digest, only when pitches were drafted or venues found. *(26adbfd)*
 - [x] 8.3 Reply capture live: Reply-To = parse address; first venue reply → ENGAGED Lead (VENUE_OUTREACH, Lead.venueId) in the existing close pipeline; later replies ride normal reply-match; venue REPLIED/IN_CONVERSATION + repliedAt (10.9 measurable); dual-channel "venue wrote back" ping. Drafted RESPONSE deferred to 10.8's continue-thread mode (noted at 8.x). *(20e114b)*
-- [ ] 8.4 One polite **HOT follow-up** ~6 days after send: approval-gated, STANDARD jurisdictions only, stops on reply/suppression, counts against caps. Scheduler in the daily cron.
-- [ ] 8.5 **Autopilot follow-up sequences** (reactive) actually send on Pro/Studio for owner-trusted sources through `sendDraftReply` (same compliance path); Starter stays approve-each. Honest copy already sells this — make it true.
+- [x] 8.4 Deterministic HOT bump at +6d (one ever, STANDARD-only, PITCHED-only, HOT cap counted; migration hot_follow_up), rides the daily tick + digest. *(committed this iteration)*
+- [x] 8.5 Sequence steps auto-send on Pro/Studio trusted sources via sendDraftReply; receipts pushOnly, failures degrade to PENDING + dual ping. *(committed this iteration)*
 - [ ] 8.6 **Weekly report v2:** Hunt numbers (cities scanned, venues found, pitches sent, replies, booked) + big-number scannable format, no emoji, "N drafts waiting" action line.
 - [ ] 8.7 **Receipts strip** on dashboard home: "While you were away — scanned 2 cities, found 3 venues, drafted 2 pitches", each deep-linking.
 - [ ] 8.8 Feed hygiene: re-score all non-suppressed venues each scan (pure function, free), stale-HOT auto-arc (opening decided → WARM/archive), monthly query-template rotation.
