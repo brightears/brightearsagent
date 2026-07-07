@@ -76,7 +76,7 @@ const TRAVEL_MODE = [
 const PRICING_TEASER = [
   { name: "Starter", price: "$25", l: "Answers up to 15 of your inquiries a month · hunts your 1 home city · you approve every send" },
   { name: "Pro", price: "$79", l: "Up to 60 inquiries a month · hunts up to 3 cities · auto-sends from the sources you trust" },
-  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · multi-performer routing" },
+  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · auto-send at full stretch" },
 ];
 
 const STEPS = [
@@ -217,7 +217,9 @@ export default function HomePage() {
               </div>
               <p className="mt-6 text-sm text-cream/65">{TRUST_LINE}</p>
             </div>
-            <HeroCollage />
+            <div className="hidden sm:block">
+              <HeroCollage />
+            </div>
           </div>
         </div>
       </section>

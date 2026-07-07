@@ -217,7 +217,7 @@ export function VenuePitchReview({
               <button
                 type="button"
                 disabled={pending}
-                className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
+                className={`${buttonStyles.primary} min-h-11 w-full px-3.5 py-1.5 text-sm sm:min-h-0 sm:w-auto`}
                 onClick={() => run(() => approveVenuePitch(pitch.id))}
               >
                 Approve
@@ -225,7 +225,7 @@ export function VenuePitchReview({
               <button
                 type="button"
                 disabled={pending}
-                className={`${buttonStyles.secondaryOnLight} px-3.5 py-1.5 text-sm`}
+                className={`${buttonStyles.secondaryOnLight} min-h-11 flex-1 px-3.5 py-1.5 text-sm sm:min-h-0 sm:flex-none`}
                 onClick={() => {
                   setDraftSubject(subject);
                   setDraftBody(body);
@@ -242,7 +242,7 @@ export function VenuePitchReview({
             <button
               type="button"
               disabled={pending}
-              className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
+              className={`${buttonStyles.primary} min-h-11 w-full px-3.5 py-1.5 text-sm sm:min-h-0 sm:w-auto`}
               onClick={() =>
                 run(async () => {
                   const result = await sendVenuePitch(pitch.id);

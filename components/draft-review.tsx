@@ -150,7 +150,7 @@ export function DraftReview({
             onChange={(e) => setEditedBody(e.target.value)}
             disabled={busy}
             rows={10}
-            className="w-full rounded-xl border border-ink-stage/15 bg-white p-3 text-sm leading-relaxed text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
+            className="w-full rounded-xl border border-ink-stage/15 bg-white p-3 text-base sm:text-sm leading-relaxed text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
           />
         </div>
 

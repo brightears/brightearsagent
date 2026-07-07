@@ -36,7 +36,7 @@ export type BusinessProfile = {
 
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputCls =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 export function SettingsForm({ business }: { business: BusinessProfile }) {
@@ -189,7 +189,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
         </button>
         {state?.ok && (
           <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-            Saved ✓
+            Saved
           </span>
         )}
         {state && !state.ok && (

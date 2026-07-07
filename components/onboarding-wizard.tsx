@@ -45,7 +45,7 @@ const subscribeToNothing = () => () => {};
 
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 // ---------------------------------------------------------------------------
@@ -1256,12 +1256,12 @@ function StepCalendar({
 
       <div className="space-y-2">
         {rows.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
               type="date"
               value={row.date}
               onChange={(e) => updateRow(i, { date: e.target.value })}
-              className={`${inputStyles} w-40 flex-none`}
+              className={`${inputStyles} sm:w-40 sm:flex-none`}
               aria-label={`Booked date ${i + 1}`}
             />
             <input
