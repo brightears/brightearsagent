@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P12 in progress — 12.1 *(9a34df1)*, 12.2 *(7e3f610)* DONE; next: 12.3 pitch spot-eval (non-music kinds), then 12.4-12.9
+- Current phase: P12 in progress — 12.1/12.2/12.3 DONE; next: 12.4 residency play kit, then 12.5-12.9
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 499/499 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 501/501 tests · build OK · live draft eval 19/19
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -161,7 +161,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [x] 12.1 Per-kind query packs (lib/discovery/query-packs.ts, all 10 enum kinds): warm battery + extraction prompt speak each kind's buyer language; venue-type expansion in packs (theaters, planners, dinner shows, resorts, corporate spaces → EVENT_SPACE); same 8-query cap recut, never grown; HOT battery stays kind-agnostic by design. *(9a34df1)*
 - [x] 12.2 KIND_AFFINITY carries non-music acts at every venue kind (full credit for magician/comedian/dancer/photo-booth/host at their buyers, tested per kind); reason copy de-musicked; pitch prompt already kind-aware (verified). *(7e3f610)*
-- [ ] 12.3 Pitch-quality spot-eval for 3 non-music kinds (extend the 16-scenario suite minimally) — grounding + white-label hold.
+- [x] 12.3 Non-music spot-evals (magician/comedian/dancer, own rate cards; runner grounds prices per scenario) — live run 19/19 PASS 0 safety; caught+fixed a REAL normalizer bug (conflict branch now refusal-first, both directions unit-tested); runner got the regenerate-once retry. *(c6dd5db)*
 - [ ] 12.4 Residency play kit v1: venue staff-notes field (names met, visits), trial-night converter framing in WARM pitches (profit-framed, "easy life and a profit"), 180-day re-touch surfaced as a "warm again" card (data already stored).
 - [ ] 12.5 EPK booker-first reorder: playable media above the fold, one live video slot, 50–100 word bio, 3 photos, sticky "Check availability" CTA → inquiry form that feeds the tenant's own inbound pipeline (the loop closes on itself).
 - [ ] 12.6 EPK freshness monitor: weekly link-rot check on EPK/media links; nag via notifyBusiness when something 404s or media is missing ("no live video" = bookers' #1 deal-breaker).
