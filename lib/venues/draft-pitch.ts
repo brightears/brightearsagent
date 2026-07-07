@@ -94,6 +94,13 @@ export async function draftPitchForVenue(business: Business, venueId: string): P
   }
 
   const jurisdiction = jurisdictionFor(venue.country);
+  // 12.9 draw-proof: real calendar volume, last 90 days — grounded ammo only.
+  const recentGigs90d = await db.gig.count({
+    where: {
+      businessId: business.id,
+      date: { gte: new Date(Date.now() - 90 * 24 * 3600 * 1000), lte: new Date() },
+    },
+  });
   const req: VenuePitchRequest = {
     business: {
       id: business.id,
@@ -112,6 +119,7 @@ export async function draftPitchForVenue(business: Business, venueId: string): P
       feeSweetSpot: business.feeSweetSpot,
       reviewQuotes: business.reviewQuotes,
       notableVenues: business.notableVenues,
+      recentGigs90d,
     },
     venue: {
       name: venue.name,

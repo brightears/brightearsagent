@@ -100,10 +100,49 @@ export function pickVenueSiteUrl(results: { link: string }[], venueName: string)
   return candidates[0] ?? null;
 }
 
-/** Paths worth trying on a venue site, most-likely-contact first. */
-export const CONTACT_PATHS = ["/contact", "/contact-us", "/private-hire", "/events"] as const;
+/** Paths worth trying on a venue site — events/booking pages FIRST (12.8):
+ *  an events@ found on /events is the booker; info@ on /contact is a lottery. */
+export const CONTACT_PATHS = [
+  "/events",
+  "/private-hire",
+  "/functions",
+  "/weddings",
+  "/contact",
+  "/contact-us",
+] as const;
 
 export type ContactHit = { email: string; source: string };
+
+/** Normalized host ("www." stripped, lowercased) — for domain comparisons. */
+function normHost(host: string): string {
+  return host.toLowerCase().replace(/^www\./, "");
+}
+
+/**
+ * Promoter-vs-venue detection (12.8, bounded): an email whose domain isn't
+ * the venue site's domain usually belongs to an external promoter/agency
+ * running their bookings — worth KNOWING (the label says so on the card),
+ * not worth rejecting (that promoter IS the right contact).
+ */
+export function isExternalDomain(email: string, siteHost: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return false;
+  const host = normHost(siteHost);
+  // Free mail (gmail etc.) is a personal inbox, not an agency — the venue
+  // often genuinely books through it. Never flag it external.
+  if (/^(gmail|googlemail|outlook|hotmail|yahoo|icloud|proton(mail)?)\./.test(domain)) return false;
+  return !(host === domain || host.endsWith(`.${domain}`) || domain.endsWith(`.${host}`));
+}
+
+/** Role label stored in contactSource (12.8) — trust signage on the card. */
+export function roleLabelFor(email: string, siteHost: string): string {
+  const rank = emailRank(email);
+  const role =
+    rank >= 3 ? "events/bookings contact" : rank === 2 ? "general contact" : "listed contact";
+  return isExternalDomain(email, siteHost)
+    ? `${role} — external promoter/agency (${email.split("@")[1]})`
+    : role;
+}
 
 export type ContactDeps = {
   /** 1 Serper /search query — returns organic results. */
@@ -155,7 +194,7 @@ export async function discoverVenueContact(
     if (!email) continue;
     const rank = emailRank(email);
     if (rank > bestRank) {
-      best = { email, source: `venue site ${label}` };
+      best = { email, source: `venue site ${label} — ${roleLabelFor(email, new URL(url).hostname)}` };
       bestRank = rank;
     }
     if (bestRank >= 3) break; // events@/bookings@ found — stop fetching

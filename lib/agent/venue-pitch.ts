@@ -29,6 +29,8 @@ export interface PitchBusinessProfile {
   feeSweetSpot?: number | null;
   reviewQuotes: string[];
   notableVenues: string[];
+  /** 12.9 draw-proof: real gigs on the calendar in the last 90 days (0 = omit). */
+  recentGigs90d?: number;
 }
 
 export interface PitchVenueInfo {
@@ -166,6 +168,10 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     b.riderNotes && `Setup & needs: ${b.riderNotes}`,
     b.serviceCities.length > 0 && `Based around: ${b.serviceCities.join(", ")}`,
     b.notableVenues.length > 0 && `Rooms played: ${b.notableVenues.join(", ")}`,
+    // 12.9 draw-proof: a working act is its own best evidence — grounded in
+    // the artist's real calendar, never invented (rule 2b binds this too).
+    (b.recentGigs90d ?? 0) >= 3 &&
+      `Working schedule: ${b.recentGigs90d} booked gigs in the last 90 days`,
     b.reviewQuotes.length > 0 &&
       `What clients say:\n${b.reviewQuotes.map((q) => `- "${q}"`).join("\n")}`,
   ]
@@ -188,7 +194,7 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     travel
       ? `2c. TRAVEL: you do NOT live in ${travel.city} — you are visiting only on these dates: ${travel.dateRange}. Say so naturally and early (e.g. "I'm in ${travel.city} ${travel.dateRange}"). NEVER claim open-ended or ongoing availability there, never imply you're local, and only offer to play within those dates. The whole point is a date-specific guest spot while you're in town.`
       : null,
-    `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
+    `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room. Where the artist facts include rooms played, a working schedule, or a client quote, you may weave ONE of them in as draw-proof — never more than one, never invented.`,
     `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
     // 10.2c: the CTA shape follows the temperature (the TASK section in the
     // user prompt carries the detail; this rule keeps the count at ONE).
