@@ -1464,6 +1464,7 @@ function StepConnect({
   leadDetected,
   tookTooLong,
   licenseReady,
+  forwardingConfirm,
   onBack,
 }: {
   leadAddress: string;
@@ -1472,6 +1473,8 @@ function StepConnect({
   tookTooLong: boolean;
   /** Hunting license complete (client-side view) — gates the finale's promise. */
   licenseReady: boolean;
+  /** Gmail's forwarding-approval link/code, once its verification email landed. */
+  forwardingConfirm: { url: string | null; code: string | null } | null;
   onBack: () => void;
 }) {
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
@@ -1508,6 +1511,48 @@ function StepConnect({
           connect it in your Control Room.
         </p>
       </div>
+
+      {/* Gmail's forwarding approval — the one click self-serve activation used
+          to dead-end on (the pipeline now catches the verification email the
+          moment it arrives; the poll surfaces it here live). */}
+      {forwardingConfirm && (
+        <div className="rounded-2xl border-2 border-brand-cyan bg-white p-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <StickerChip tone="ink" rotate={-2}>
+              Gmail confirmation caught
+            </StickerChip>
+          </div>
+          <p className="mt-3 font-bold text-ink-stage">One click left — approve the forwarding</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
+            Gmail sent its verification to your assistant and we caught it. Approve it and every
+            inquiry flows in on its own. Already clicked it? You&apos;re done — send yourself a test
+            below.
+          </p>
+          {forwardingConfirm.url ? (
+            <a
+              href={forwardingConfirm.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-3 inline-block ${buttonStyles.primary} text-sm`}
+            >
+              Approve forwarding in Gmail →
+            </a>
+          ) : (
+            <p className="mt-3 text-sm text-ink-stage/70">
+              Open the &quot;Gmail Forwarding Confirmation&quot; email Gmail also sent to your own
+              inbox and click its link.
+            </p>
+          )}
+          {forwardingConfirm.code && (
+            <p className="mt-3 text-sm text-ink-stage/70">
+              Or paste this code into Gmail&apos;s forwarding settings:{" "}
+              <span className="rounded-md bg-cream/60 px-2 py-0.5 font-mono text-xs font-bold text-ink-stage">
+                {forwardingConfirm.code}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Primary action + live proof (or the celebration once a lead lands).
           The address lives HERE, at the moment it's needed. */}
@@ -1602,8 +1647,8 @@ function StepConnect({
               </li>
               <li>
                 <strong>Add a forwarding address</strong> → paste the address above. Gmail sends a
-                confirmation — it arrives in your Bright Ears Pipeline within a minute; open it there
-                and click the link.
+                confirmation — we catch it, and an <strong>approval card appears right here</strong>{" "}
+                within a minute. Click its link.
               </li>
               <li>
                 Choose <strong>“Forward a copy of incoming mail to”</strong> your address → keep
@@ -1698,6 +1743,12 @@ export function OnboardingWizard({
   const [gigsSaved, setGigsSaved] = useState(0);
   const [homeCity, setHomeCity] = useState(business.homeCity);
   const [leadDetected, setLeadDetected] = useState(false);
+  // Gmail's forwarding-approval link, once its verification email hits the
+  // pipeline (intercepted + stored server-side; surfaced by the verify poll).
+  const [forwardingConfirm, setForwardingConfirm] = useState<{
+    url: string | null;
+    code: string | null;
+  } | null>(null);
   // After ~90s of polling on step 5 with no lead detected, surface a calm
   // fallback (audit C2) so the spinner doesn't appear to hang forever. The live
   // verifier keeps running underneath and still flips to success if a lead lands.
@@ -1738,8 +1789,13 @@ export function OnboardingWizard({
       try {
         const res = await fetch("/api/onboarding/verify", { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as { verified: boolean };
-        if (!cancelled && data.verified) setLeadDetected(true);
+        const data = (await res.json()) as {
+          verified: boolean;
+          forwardingConfirmation?: { url: string | null; code: string | null } | null;
+        };
+        if (cancelled) return;
+        if (data.forwardingConfirmation) setForwardingConfirm(data.forwardingConfirmation);
+        if (data.verified) setLeadDetected(true);
       } catch {
         // Network blip — the next poll will catch it.
       }
@@ -1875,6 +1931,7 @@ export function OnboardingWizard({
               leadDetected={leadDetected}
               tookTooLong={tookTooLong}
               licenseReady={licenseReady}
+              forwardingConfirm={forwardingConfirm}
               onBack={() => goTo(3)}
             />
           )}

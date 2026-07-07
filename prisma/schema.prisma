@@ -91,6 +91,13 @@ model Business {
   voiceUsesEmoji       Boolean? // null = unspecified, true = occasional, false = never
   voicePhrases         String? // words/expressions they lean on
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
+  // Gmail forwarding-confirmation capture (P2, July 2026): the provider's
+  // verification email is intercepted BEFORE parse/triage (the LLM fallback
+  // reads it as an automated notice and ignores it — the artist could never
+  // approve forwarding self-serve) and surfaced in onboarding step 5.
+  forwardingConfirmUrl  String?
+  forwardingConfirmCode String?
+  forwardingConfirmAt   DateTime?
   // Smart-attachment autonomy: auto-attach the press kit / a quote when the
   // drafter detects the client wants one. Default off (a binding quote is opt-in).
   autoAttachProfile    Boolean       @default(false)

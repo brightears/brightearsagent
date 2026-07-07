@@ -2,18 +2,21 @@ import { db } from "@/lib/db";
 import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
 import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
+import { detectForwardingConfirmation } from "@/lib/inbound/forwarding-confirmation";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { sendDraftReply } from "@/lib/agent/send-reply";
 import { meterState } from "@/lib/billing/metering";
 import { canAutoSend } from "@/lib/inbound/auto-send";
 import { pushToBusiness } from "@/lib/push";
+import { notifyBusiness } from "@/lib/notify";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
   | { outcome: "no_tenant" }
   | { outcome: "reply_attached"; leadId: string }
   | { outcome: "ignored"; reason: string }
+  | { outcome: "forwarding_confirmation"; provider: "gmail" }
   | { outcome: "lead_created"; leadId: string; status: "NEW" | "SPAM" };
 
 const SLUG_RE = /leads@([a-z0-9-]+)\.in\./i;
@@ -38,6 +41,34 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       select: { id: true },
     });
     if (dupe) return { outcome: "duplicate" };
+  }
+
+  // Provider forwarding confirmations (Gmail's verification email) are the
+  // step the whole inlet hangs on — intercept BEFORE parse/triage, which
+  // would read them as automated notices and drop them. Store the approval
+  // link + code for onboarding step 5 and ping the owner on both channels.
+  const confirmation = detectForwardingConfirmation(email);
+  if (confirmation) {
+    const isNew = business.forwardingConfirmUrl !== confirmation.url;
+    await db.business.update({
+      where: { id: business.id },
+      data: {
+        forwardingConfirmUrl: confirmation.url,
+        forwardingConfirmCode: confirmation.code,
+        forwardingConfirmAt: new Date(),
+      },
+    });
+    // Redeliveries of the same confirmation don't re-ping.
+    if (isNew) {
+      await notifyBusiness(business, {
+        title: "One click left — approve Gmail forwarding",
+        body: "Gmail sent its confirmation. Approve it and every inquiry starts flowing to your assistant.",
+        url: "/onboarding",
+        emailBody:
+          "Gmail just sent the forwarding confirmation for your lead address.\n\nOpen your setup and click the approval link (it's waiting on the 'Connect your leads' step) — that's the last step before every inquiry starts answering itself.",
+      });
+    }
+    return { outcome: "forwarding_confirmation", provider: confirmation.provider };
   }
 
   // Reply-match: a known client writing back attaches to their lead and wakes it up.
