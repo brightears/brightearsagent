@@ -6,6 +6,7 @@
 // pitch is generated.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
@@ -389,7 +390,28 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
 
 /** Form-friendly wrapper (form `action` must return void). */
 export async function skipVenueForm(venueId: string, reason: string): Promise<void> {
-  await skipVenue(venueId, reason);
+  const result = await skipVenue(venueId, reason);
+  // Visible tuning ack (P10.2): a WRONG_VIBE skip actually teaches the hunt
+  // (2+ same-kind skips downweight that kind - lib/venues/rescore.ts), so the
+  // dashboard SAYS so. Silent learning reads as no learning.
+  if (result.ok && reason === "WRONG_VIBE") {
+    const business = await getCurrentBusiness();
+    const venue = await db.venue.findFirst({
+      where: { id: venueId, businessId: business.id },
+      select: { kind: true },
+    });
+    if (venue) {
+      const skips = await db.venue.count({
+        where: {
+          businessId: business.id,
+          status: "SUPPRESSED",
+          suppressedReason: "WRONG_VIBE",
+          kind: venue.kind,
+        },
+      });
+      redirect(`/dashboard?tuned=${venue.kind}&skips=${skips}`);
+    }
+  }
 }
 
 /**

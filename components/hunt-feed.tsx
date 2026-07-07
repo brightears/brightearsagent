@@ -39,6 +39,8 @@ export type HuntVenue = {
   lastSignalAt: Date | null;
   bookingEmail: string | null;
   contactSource: string | null;
+  /** Evidence receipts (P10.1): freshest signals with WHERE we read them. */
+  signals: { id: string; summary: string; sourceUrl: string }[];
   /** Travel Mode: the travel-window city, when this is a travel find (else null). */
   travelCity: string | null;
   /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
@@ -53,7 +55,7 @@ const FIT_CHIP: Record<ReturnType<typeof fitScoreTone>, string> = {
   cool: "bg-cream/40 text-ink-stage/70",
 };
 
-const KIND_LABEL: Record<VenueKind, string> = {
+export const KIND_LABEL: Record<VenueKind, string> = {
   BAR: "Bar",
   ROOFTOP: "Rooftop",
   HOTEL: "Hotel",
@@ -62,6 +64,26 @@ const KIND_LABEL: Record<VenueKind, string> = {
   CLUB: "Club",
   OTHER: "Venue",
 };
+
+/** Hostname label for a source chip — "www." stripped; raw string on bad URLs. */
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url.slice(0, 30);
+  }
+}
+
+/** One chip per publication — three signals from one blog is one receipt. */
+function dedupeByHost(signals: { id: string; summary: string; sourceUrl: string }[]) {
+  const seen = new Set<string>();
+  return signals.filter((s) => {
+    const host = hostLabel(s.sourceUrl);
+    if (seen.has(host)) return false;
+    seen.add(host);
+    return true;
+  });
+}
 
 function VenueCard({
   venue,
@@ -147,6 +169,28 @@ function VenueCard({
           <span aria-hidden className="mt-1.5 size-1 flex-none bg-neon-orange" />
           {venue.caution}
         </p>
+      )}
+
+      {/* Evidence receipts (P10.1): every claim above traces to a source the
+          owner can open — provenance chips by hostname, deduped. */}
+      {venue.signals.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/40">
+            Sources
+          </span>
+          {dedupeByHost(venue.signals).map((s) => (
+            <a
+              key={s.id}
+              href={s.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={s.summary}
+              className="rounded-full bg-cream/70 px-2 py-0.5 font-mono text-[10px] font-bold text-ink-stage/60 transition-colors hover:text-brand-cyan"
+            >
+              {hostLabel(s.sourceUrl)} ↗
+            </a>
+          ))}
+        </div>
       )}
 
       <div className="mt-3 space-y-0.5">

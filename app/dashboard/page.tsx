@@ -14,14 +14,14 @@ import {
   buttonStyles,
 } from "@/components/ui";
 import { GradientBlob, StickerChip } from "@/components/collage";
-import { HUNT_CAP, HuntSection } from "@/components/hunt-feed";
+import { HUNT_CAP, HuntSection, KIND_LABEL } from "@/components/hunt-feed";
 import { AtCapBanner } from "@/components/at-cap-banner";
 import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
 import { meterState, monthStart } from "@/lib/billing/metering";
 import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
-import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
+import type { LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +81,14 @@ const HUNT_STATUSES = [
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ hunt?: string | string[] }>;
+  searchParams: Promise<{ hunt?: string | string[]; tuned?: string | string[]; skips?: string | string[] }>;
 }) {
-  const huntExpanded = (await searchParams).hunt === "all";
+  const sp = await searchParams;
+  const huntExpanded = sp.hunt === "all";
+  // Tuning ack (P10.2): skipVenueForm redirects here after a WRONG_VIBE skip.
+  const tunedKind =
+    typeof sp.tuned === "string" && sp.tuned in KIND_LABEL ? (sp.tuned as VenueKind) : null;
+  const tunedSkips = typeof sp.skips === "string" ? parseInt(sp.skips, 10) || 1 : 1;
   const tenant = await getCurrentBusiness();
   const now = new Date();
   const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox, repliedThisMonth] = await Promise.all([
@@ -134,6 +139,13 @@ export default async function Dashboard({
         // Travel Mode: the window's city, when this venue is a travel find —
         // drives the "Travel · {city}" tag on the card.
         travelWindow: { select: { city: true } },
+        // Evidence chips (P10.1): the freshest signals carry the receipts —
+        // each card links WHERE the agent read it (provenance builds trust).
+        signals: {
+          orderBy: { observedAt: "desc" },
+          take: 3,
+          select: { id: true, summary: true, sourceUrl: true },
+        },
         // The live pitch for the review surface (10.3) — at most one PENDING
         // or parked APPROVED per venue (action-level dedupe guarantee).
         pitches: {
@@ -301,6 +313,25 @@ export default async function Dashboard({
           overCap={meter.overCap}
           subscribed={subscribed}
         />
+      )}
+
+      {/* Tuning ack (P10.2): the WRONG_VIBE skip just taught the hunt — a
+          silent lesson reads as no lesson, so the strip says what changed. */}
+      {tunedKind && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-4 py-3">
+          <p className="text-sm text-cream/85">
+            <span className="font-bold text-cream-bright">Got it — not your kind of room.</span>{" "}
+            {tunedSkips >= 2
+              ? `${KIND_LABEL[tunedKind]}s now rank lower in your hunt.`
+              : `Skip one more ${KIND_LABEL[tunedKind].toLowerCase()} and the hunt ranks them lower.`}
+          </p>
+          <Link
+            href="/dashboard"
+            className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/45 transition-colors hover:text-cream/70"
+          >
+            Dismiss
+          </Link>
+        </div>
       )}
 
       {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
