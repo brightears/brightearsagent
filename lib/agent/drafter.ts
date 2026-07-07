@@ -124,10 +124,17 @@ function normalizeStatement(req: DraftRequest, result: DraftResult): DraftResult
 /** Pure draft generation — no DB access; evals call this directly. */
 export async function generateDraft(req: DraftRequest): Promise<DraftResult> {
   const isFollowUp = req.sequenceStep > 0;
+  // Mid-conversation (10.8): we've already replied and the client wrote back.
+  // The third task mode — without it, this path took the FIRST-reply task and
+  // re-introduced the act mid-thread like a stranger walking in twice.
+  const isMidConversation =
+    !isFollowUp && req.thread.some((m) => m.direction === "OUTBOUND");
 
   const task = isFollowUp
     ? `TASK: write follow-up #${req.sequenceStep} — they haven't replied to our last message. Under 90 words. Re-spark the conversation by referencing something specific about THEIR event; add one small piece of value (a tip, an offer to hold the date if still free, an easy question). Zero pressure, zero guilt. Do not repeat earlier wording.`
-    : `TASK: write the FIRST reply to this inquiry. Answer what they actually asked. If a matching package exists, mention it with its exact price range. End with one clear, easy next step.`;
+    : isMidConversation
+      ? `TASK: continue this conversation — answer the client's LATEST message. You already introduced yourself earlier in the thread: do NOT re-introduce yourself or the act, do NOT restate packages or prices already given, do not repeat earlier wording. Answer exactly what they just asked, keep whatever is in motion moving (date, price talk, logistics), and end with the one next step that brings the booking closer. Match the thread's tone. Usually under 120 words.`
+      : `TASK: write the FIRST reply to this inquiry. Answer what they actually asked. If a matching package exists, mention it with its exact price range. End with one clear, easy next step.`;
 
   const result = await llmObject<DraftResult>({
     purpose: isFollowUp ? "followup" : "draft",

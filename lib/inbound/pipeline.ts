@@ -113,15 +113,27 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
       throw err;
     }
+    // Mid-thread draft (P10.8): the continue-conversation task mode answers
+    // them in the artist's voice — no re-introduction — and waits as a
+    // PENDING draft. Fire-and-forget like the NEW-lead path; the cap gate
+    // keeps drafting paused for unsubscribed/over-cap tenants (the copy
+    // promise: pause, never a surprise bill). suppressPush: the "they wrote
+    // back" ping below is THE ping — two pushes seconds apart is noise.
+    const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
+    const drafting = !meter.overCap;
+    if (drafting) {
+      const leadId = existing.id;
+      void generateDraftForLead(leadId, 0, { suppressPush: true }).catch((err) =>
+        reportError(err, { kind: "mid-thread-draft", businessId: business.id, leadId }),
+      );
+    }
     // A prospect writing back is the closest thing to money in the pipeline —
     // that moment used to be silent (audit 2026-07). Dual-channel, always.
-    // (Drafting the mid-thread answer lands with the continue-conversation
-    // task mode — P10.8; until then the artist replies from the thread view.)
     void notifyBusiness(business, {
       title: `They wrote back: ${existing.clientName ?? "a lead"}`,
       body: email.subject || "Open the thread to reply while it's hot.",
       url: `/dashboard/leads/${existing.id}`,
-      emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered). Open the thread and reply while it's hot.`,
+      emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered).${drafting ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and reply while it's hot.`,
     }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
   }
@@ -141,6 +153,15 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     orderBy: { pitchedAt: "desc" },
   });
   if (venue) {
+    // Seed the thread with the pitch we actually sent (10.8): it went out via
+    // the artist's own Gmail, so it only exists on VenuePitch — without it the
+    // lead thread starts mid-air, the owner can't see what the venue is
+    // answering, and the continue-conversation drafter would re-introduce.
+    const sentPitch = await db.venuePitch.findFirst({
+      where: { venueId: venue.id, businessId: business.id, status: "SENT" },
+      orderBy: { sentAt: "desc" },
+      select: { subject: true, editedSubject: true, body: true, editedBody: true, sentAt: true },
+    });
     let venueLead;
     try {
       venueLead = await db.lead.create({
@@ -156,14 +177,28 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           rawSubject: email.subject,
           rawBody: email.textBody,
           messages: {
-            create: {
-              direction: "INBOUND",
-              subject: email.subject,
-              body: email.textBody,
-              fromEmail: email.from,
-              toEmail: email.to,
-              providerMessageId: email.providerMessageId,
-            },
+            create: [
+              ...(sentPitch
+                ? [
+                    {
+                      direction: "OUTBOUND" as const,
+                      subject: sentPitch.editedSubject ?? sentPitch.subject,
+                      body: sentPitch.editedBody ?? sentPitch.body,
+                      // Backdate to the real send moment so the thread reads
+                      // in order (pitch → their reply).
+                      ...(sentPitch.sentAt ? { createdAt: sentPitch.sentAt } : {}),
+                    },
+                  ]
+                : []),
+              {
+                direction: "INBOUND" as const,
+                subject: email.subject,
+                body: email.textBody,
+                fromEmail: email.from,
+                toEmail: email.to,
+                providerMessageId: email.providerMessageId,
+              },
+            ],
           },
         },
       });
@@ -178,12 +213,27 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         ...(venue.repliedAt ? {} : { repliedAt: new Date() }),
       },
     });
+    // Mid-thread draft (P10.8) — same continue-conversation mode as client
+    // replies; the seeded pitch above gives the drafter the real thread.
+    const venueMeter = await meterState(
+      business.id,
+      business.plan,
+      new Date(),
+      business.trialEndsAt,
+    );
+    const draftingVenueReply = !venueMeter.overCap;
+    if (draftingVenueReply) {
+      const leadId = venueLead.id;
+      void generateDraftForLead(leadId, 0, { suppressPush: true }).catch((err) =>
+        reportError(err, { kind: "mid-thread-draft", businessId: business.id, leadId }),
+      );
+    }
     // The money moment of the whole Hunt — a venue is talking. Dual-channel.
     void notifyBusiness(business, {
       title: `A venue wrote back: ${venue.name}`,
       body: email.subject || "Open the thread and keep it warm.",
       url: `/dashboard/leads/${venueLead.id}`,
-      emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for. Open the thread and answer while it's hot.`,
+      emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for.${draftingVenueReply ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and answer while it's hot.`,
     }).catch(() => null);
     return { outcome: "venue_reply", leadId: venueLead.id, venueId: venue.id };
   }
