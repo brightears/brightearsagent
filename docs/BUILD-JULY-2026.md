@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P14 DONE** (all 5 security mediums) — next: P15 FINALE (review → staging E2E → docs sync → handoff report)
+- Current phase: **LOOP COMPLETE** — P0-P14 done; P15 finale done except staging-only 15.3/15.4 (FOUNDER GATES). PR-ready on build/july-2026.
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 530/530 tests · build OK · live draft eval 19/19
+- Last green gate run: 2026-07-08 — tsc 0 · lint 0 errors (4 benign warnings) · 535/535 tests · build OK · live draft eval 19/19
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -186,18 +186,23 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P15 — Finale
 
-- [ ] 15.1 Full gates + `npx next build`; fix all drift.
-- [ ] 15.2 Multi-agent adversarial code review (workflow) over the entire loop diff; fix confirmed findings.
-- [ ] 15.3 Staging E2E via Chrome: fresh signup → onboarding (all steps incl. home city) → subscribe (Stripe test card) → first scan fires → auto-drafted pitch appears → approve → verify send gates → inbound fixture → reply-ready email lands → mobile (375px) pass on Today/Hunt/approve.
-- [ ] 15.4 Lighthouse re-run on staging (expect Clerk-dev + CDN caveats; record numbers).
-- [ ] 15.5 Sync docs: ROADMAP checkboxes, CLAUDE.md (Studio/roster, notifications, agent-acts reality), PRODUCT-BRIEF drift (trial→subscribe-to-activate §7, dark design §8, all-artists positioning), DEPLOYMENT.md runbook.
-- [ ] 15.6 Update the audit artifact (same URL) into a "what changed" build report; write founder handoff summary + FOUNDER GATES batch list; update memory.
+- [x] 15.1 Full fresh gate sweep green: tsc 0 · eslint 0 err · 535 tests · build clean · draft eval 19/19.
+- [x] 15.2 6-dimension adversarial review + 3-skeptic verify panels; 13 confirmed findings all fixed (2 HIGH send-path races incl.) *(fd7cb8a, 6eb71e4)*; 1 residual TOCTOU documented as accepted risk.
+- [~] 15.3 FOUNDER GATE — staging E2E: runs once the branch is deployed (staging deploys on merge). Script in HANDOFF-JULY-2026.md; I can drive it via Chrome on go-ahead.
+- [~] 15.4 FOUNDER GATE — Lighthouse on staging (post-deploy).
+- [x] 15.5 Docs synced: CLAUDE.md, PRODUCT-BRIEF, DEPLOYMENT, ROADMAP *(ad6f1d8)*.
+- [x] 15.6 Handoff report docs/HANDOFF-JULY-2026.md (what-changed summary + FOUNDER GATES batch + migration list); memory updated.
 
 ---
 
 ## FOUNDER GATES (collect here; batch-ping at the end unless hard-blocked)
 
-*(none yet)*
+1. **Merge the PR** — your review = the merge; staging deploys on merge.
+2. **Render env vars:** `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test) · `NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up`
+3. **15.3 staging E2E** (post-deploy; script in HANDOFF-JULY-2026.md — I can drive via Chrome)
+4. **15.4 Lighthouse** on staging (post-deploy)
+5. **Parked ops (P7, Render dashboard):** 7.3 live cron header-secret reconfigure · 7.4 healthCheckPath + UptimeRobot on `"cronsHealthy":true` · 7.10 backup drill
+Additive migrations to apply on deploy: draft_sending_claim, send_buffer, auto_send_graduation, gig_value, booking_confirmation, residency_play_kit, draft_auto_sent
 
 ## DECISIONS LOG
 
