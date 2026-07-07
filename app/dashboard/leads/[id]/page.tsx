@@ -22,6 +22,13 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
   OTHER: "Other",
 };
 
+// Reply-on-platform inboxes (P9.8): sources that hide the client's email —
+// the reply kit deep-links the owner to where the paste goes. Deep link only,
+// never send (CLAUDE.md rule 4).
+const PLATFORM_INBOXES: Partial<Record<LeadSource, string>> = {
+  GIGSALAD: "https://www.gigsalad.com/members/messages",
+};
+
 // All dates render in the business timezone (CLAUDE.md rule 9).
 function fmtEventDate(d: Date | null, tz: string) {
   if (!d) return "date TBD";
@@ -208,6 +215,14 @@ export default async function LeadDetailPage({
               suggestQuote={pendingDraft.wantsQuote}
               autoAttachProfile={business.autoAttachProfile}
               autoAttachQuote={business.autoAttachQuote}
+              platform={
+                lead.clientEmail
+                  ? null
+                  : {
+                      name: SOURCE_LABELS[lead.source],
+                      inboxUrl: PLATFORM_INBOXES[lead.source] ?? null,
+                    }
+              }
             />
           </section>
         )}

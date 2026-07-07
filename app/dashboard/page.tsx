@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { ActivationChecklist } from "@/components/activation-checklist";
 import { ReceiptsStrip } from "@/components/receipts-strip";
 import { NeedsYou } from "@/components/needs-you";
+import { InstallPrompt } from "@/components/install-prompt";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
@@ -224,6 +225,20 @@ export default async function Dashboard({
   const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
   const subscribed = !!tenant.stripeSubscriptionId;
 
+  // A2HS eligibility (P9.6): only after the first approval — either half of
+  // the product — so the install ask lands right after the loop proved itself.
+  const [approvedDraft, approvedPitch] = await Promise.all([
+    db.draft.findFirst({
+      where: { lead: { businessId: tenant.id }, status: { in: ["APPROVED", "EDITED"] } },
+      select: { id: true },
+    }),
+    db.venuePitch.findFirst({
+      where: { businessId: tenant.id, status: { in: ["APPROVED", "SENDING", "SENT"] } },
+      select: { id: true },
+    }),
+  ]);
+  const approvedOnce = !!(approvedDraft || approvedPitch);
+
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
       <PageHeader
@@ -247,6 +262,9 @@ export default async function Dashboard({
       {/* The Today queue first (P9.4): what needs a tap, before anything
           else — the 30-seconds-a-day habit surface. Hidden when clear. */}
       <NeedsYou businessId={tenant.id} now={now} />
+
+      {/* Install ask (P9.6) — phones only, after first approval, once. */}
+      <InstallPrompt eligible={approvedOnce} />
 
       {/* Receipts (P8.7): what the agent did in the last 24h, in plain
           words — proof of work before any stats. Hidden on quiet days. */}

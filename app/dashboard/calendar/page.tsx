@@ -28,6 +28,56 @@ function shiftMonth(year: number, month: number, delta: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+/**
+ * Gig chip — ink-raised tile: cyan time, cream title (v2 brief). Shared by
+ * the sm+ month grid and the phone agenda list (P9.5).
+ */
+function GigChip({
+  gig,
+}: {
+  gig: {
+    id: string;
+    title: string;
+    venue: string | null;
+    startTime: string | null;
+    endTime: string | null;
+    performer: { name: string } | null;
+  };
+}) {
+  return (
+    <div className="rounded-lg bg-ink-raised px-2 py-1.5 shadow-sm">
+      <div className="flex items-start justify-between gap-1">
+        <div className="min-w-0">
+          {gig.startTime && (
+            <p className="text-[10px] font-bold text-brand-cyan leading-tight">
+              {gig.startTime}
+              {gig.endTime ? `–${gig.endTime}` : ""}
+            </p>
+          )}
+          <p className="text-xs font-semibold leading-tight text-cream-bright">{gig.title}</p>
+        </div>
+        <form
+          action={async () => {
+            "use server";
+            await deleteGig(gig.id);
+          }}
+        >
+          <button
+            type="submit"
+            aria-label={`Remove ${gig.title}`}
+            title="Remove gig"
+            className="text-cream/65 hover:text-red-300 leading-none transition-colors"
+          >
+            ×
+          </button>
+        </form>
+      </div>
+      {gig.performer && <p className="text-[10px] text-cream/65">{gig.performer.name}</p>}
+      {gig.venue && <p className="text-[10px] text-cream/55">{gig.venue}</p>}
+    </div>
+  );
+}
+
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -130,7 +180,38 @@ export default async function CalendarPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 mb-2">
+          {/* Agenda list (P9.5): seven columns at 375px means ~40px cells —
+              gig chips truncate to nothing. Phones get the month as a day
+              list (only days with gigs); the grid returns at sm+. */}
+          <div className="sm:hidden space-y-3">
+            {[...gigsByDay.keys()].sort().map((dayKey) => {
+              const dayGigs = gigsByDay.get(dayKey) ?? [];
+              const dayNum = Number(dayKey.slice(-2));
+              const isToday = dayKey === today;
+              const weekday = new Date(Date.UTC(year, monthNum - 1, dayNum)).toLocaleDateString(
+                "en-US",
+                { weekday: "short", timeZone: "UTC" },
+              );
+              return (
+                <div key={dayKey} className="flex gap-3">
+                  <p
+                    className={`w-14 flex-none pt-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] ${
+                      isToday ? "text-brand-cyan" : "text-ink-stage/45"
+                    }`}
+                  >
+                    {weekday} {dayNum}
+                  </p>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    {dayGigs.map((gig) => (
+                      <GigChip key={gig.id} gig={gig} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="max-sm:hidden grid grid-cols-7 gap-2 mb-2">
             {WEEKDAYS.map((d, i) => (
               <p
                 key={d}
@@ -143,7 +224,7 @@ export default async function CalendarPage({
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
+          <div className="max-sm:hidden grid grid-cols-7 gap-2">
             {cells.map((day, i) => {
               const col = i % 7;
               const isWeekend = col === 0 || col === 6;
@@ -184,37 +265,7 @@ export default async function CalendarPage({
                     )}
                   </p>
                   {dayGigs.map((gig) => (
-                    // Gig chip — ink-raised tile: cyan time, cream title (v2 brief).
-                    <div key={gig.id} className="rounded-lg bg-ink-raised px-2 py-1.5 shadow-sm">
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="min-w-0">
-                          {gig.startTime && (
-                            <p className="text-[10px] font-bold text-brand-cyan leading-tight">
-                              {gig.startTime}
-                              {gig.endTime ? `–${gig.endTime}` : ""}
-                            </p>
-                          )}
-                          <p className="text-xs font-semibold leading-tight text-cream-bright">{gig.title}</p>
-                        </div>
-                        <form
-                          action={async () => {
-                            "use server";
-                            await deleteGig(gig.id);
-                          }}
-                        >
-                          <button
-                            type="submit"
-                            aria-label={`Remove ${gig.title}`}
-                            title="Remove gig"
-                            className="text-cream/65 hover:text-red-300 leading-none transition-colors"
-                          >
-                            ×
-                          </button>
-                        </form>
-                      </div>
-                      {gig.performer && <p className="text-[10px] text-cream/65">{gig.performer.name}</p>}
-                      {gig.venue && <p className="text-[10px] text-cream/55">{gig.venue}</p>}
-                    </div>
+                    <GigChip key={gig.id} gig={gig} />
                   ))}
                 </div>
               );

@@ -32,6 +32,54 @@ export async function approveDraft(
   return result;
 }
 
+/**
+ * Platform reply kit (P9.8): GigSalad hides the client's email, and their ToS
+ * says reply ON the platform — draft + deep link only, never send (CLAUDE.md
+ * rule 4). So the owner copies the draft, pastes it there, and taps "I sent
+ * it" — this records that reality: draft resolved, outbound message on the
+ * thread (no email fields — it went out on the platform), lead REPLIED with
+ * the first-reply clock stamped. No sequence starts: with no reachable email,
+ * follow-ups would have nowhere to go.
+ */
+export async function markSentOnPlatform(draftId: string, editedBody?: string) {
+  const business = await getCurrentBusiness();
+  const draft = await db.draft.findFirst({
+    where: { id: draftId, status: "PENDING", lead: { businessId: business.id } },
+    include: { lead: { select: { id: true, status: true, firstReplyAt: true } } },
+  });
+  if (!draft) return { ok: false, error: "draft not pending" };
+  const body = editedBody?.trim() || draft.body;
+  await db.$transaction([
+    db.draft.update({
+      where: { id: draft.id },
+      data: {
+        status: editedBody?.trim() ? "EDITED" : "APPROVED",
+        editedBody: editedBody?.trim() || null,
+        decidedAt: new Date(),
+      },
+    }),
+    db.message.create({
+      data: {
+        leadId: draft.lead.id,
+        direction: "OUTBOUND",
+        subject: draft.subject,
+        body,
+        draftId: draft.id,
+      },
+    }),
+    db.lead.update({
+      where: { id: draft.lead.id },
+      data: {
+        // Same ENGAGED guard as sendDraftReply — replying doesn't undo a reply.
+        status: draft.lead.status === "ENGAGED" ? "ENGAGED" : "REPLIED",
+        firstReplyAt: draft.lead.firstReplyAt ?? new Date(),
+      },
+    }),
+  ]);
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function rejectDraft(draftId: string) {
   const business = await getCurrentBusiness();
   // Tenant-scoped count guard: only reject a PENDING draft of our own lead.

@@ -5,7 +5,13 @@
 // (owner edits feed voice tuning). Booked/dead controls live in their own row.
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { approveDraft, rejectDraft, markBooked, markDead } from "@/app/actions/drafts";
+import {
+  approveDraft,
+  rejectDraft,
+  markBooked,
+  markDead,
+  markSentOnPlatform,
+} from "@/app/actions/drafts";
 import { buttonStyles } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
 
@@ -30,6 +36,7 @@ export function DraftReview({
   suggestQuote = false,
   autoAttachProfile = false,
   autoAttachQuote = false,
+  platform = null,
 }: {
   draftId: string;
   leadId: string;
@@ -43,6 +50,12 @@ export function DraftReview({
   /** The artist's auto-attach toggles — pre-tick the box when intent matches. */
   autoAttachProfile?: boolean;
   autoAttachQuote?: boolean;
+  /**
+   * Reply-on-platform kit (P9.8): set when the lead has no reachable email
+   * (GigSalad hides it; ToS = reply on the platform, never send). Swaps
+   * "Approve & send" for Copy reply → open the platform → "I sent it there".
+   */
+  platform?: { name: string; inboxUrl: string | null } | null;
 }) {
   const router = useRouter();
   const [editedBody, setEditedBody] = useState(body);
@@ -88,6 +101,31 @@ export function DraftReview({
         r.transport === "dev"
           ? "Reply sent via the dev transport — saved to .dev-outbox/ (no real email until Postmark is connected)."
           : "Reply sent — the lead is now in Replied.",
+    );
+  };
+
+  // Platform kit (P9.8): copy is a browser act, not a server action — the
+  // reply leaves through the platform's own composer, we just hand it over.
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(editedBody);
+      setNote({
+        kind: "success",
+        text: `Copied — paste it into the ${platform?.name} conversation, then tap “I sent it” so follow-through gets recorded.`,
+      });
+    } catch {
+      setNote({
+        kind: "error",
+        text: "Couldn't reach the clipboard — select the reply text and copy it manually.",
+      });
+    }
+  };
+
+  const onSentOnPlatform = () => {
+    const changed = editedBody.trim() !== body.trim();
+    run(
+      () => markSentOnPlatform(draftId, changed ? editedBody : undefined),
+      () => "Recorded — the lead is now in Replied.",
     );
   };
 
@@ -142,7 +180,9 @@ export function DraftReview({
             htmlFor="draft-body"
             className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
           >
-            Reply — edit freely, it sends as you
+            {platform
+              ? `Reply — edit freely, then paste it on ${platform.name}`
+              : "Reply — edit freely, it sends as you"}
           </label>
           <textarea
             id="draft-body"
@@ -166,7 +206,8 @@ export function DraftReview({
           </p>
         )}
 
-        {(canAttachPressKit || canAttachQuote) && (
+        {/* Attachments ride emails — a platform paste can't carry a PDF. */}
+        {!platform && (canAttachPressKit || canAttachQuote) && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-white/60 px-3 py-2.5">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
               Attach
@@ -204,26 +245,68 @@ export function DraftReview({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Approve & send = the daily click → solid CYAN pill (interface voice). */}
-          <button
-            type="button"
-            onClick={onApprove}
-            disabled={busy}
-            className={`${buttonStyles.primary} flex-1 sm:flex-none sm:px-8`}
-          >
-            {isPending ? "Working…" : "Approve & send"}
-          </button>
-          {/* Ghost pill — ink outline on the cream panel (cream outline would vanish here). */}
-          <button
-            type="button"
-            onClick={onReject}
-            disabled={busy}
-            className={buttonStyles.secondaryOnLight}
-          >
-            Reject
-          </button>
-        </div>
+        {platform ? (
+          // Reply-on-platform kit (P9.8): the platform hides the client's
+          // email, so the reply travels by clipboard — copy, paste there,
+          // then record that it happened.
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onCopy}
+              disabled={busy}
+              className={`${buttonStyles.primary} flex-1 sm:flex-none sm:px-8`}
+            >
+              Copy reply
+            </button>
+            {platform.inboxUrl && (
+              <a
+                href={platform.inboxUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonStyles.secondaryOnLight}
+              >
+                Open {platform.name}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onSentOnPlatform}
+              disabled={busy}
+              className={buttonStyles.secondaryOnLight}
+            >
+              {isPending ? "Working…" : "I sent it there"}
+            </button>
+            <button
+              type="button"
+              onClick={onReject}
+              disabled={busy}
+              className="text-sm font-semibold text-ink-stage/45 transition-colors hover:text-ink-stage/70"
+            >
+              Reject
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Approve & send = the daily click → solid CYAN pill (interface voice). */}
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={busy}
+              className={`${buttonStyles.primary} flex-1 sm:flex-none sm:px-8`}
+            >
+              {isPending ? "Working…" : "Approve & send"}
+            </button>
+            {/* Ghost pill — ink outline on the cream panel (cream outline would vanish here). */}
+            <button
+              type="button"
+              onClick={onReject}
+              disabled={busy}
+              className={buttonStyles.secondaryOnLight}
+            >
+              Reject
+            </button>
+          </div>
+        )}
 
         <div className="border-t border-ink-stage/10 pt-4">
           <p className="mb-2 text-xs text-ink-stage/55">
