@@ -260,6 +260,7 @@ export default async function Dashboard({
           businessName={tenant.name}
           homeCity={homeCity}
           mailboxConnected={mailboxConnected}
+          subscribed={subscribed}
         />
       )}
 
@@ -314,6 +315,7 @@ export default async function Dashboard({
                 businessName={tenant.name}
                 homeCity={homeCity}
                 mailboxConnected={mailboxConnected}
+                subscribed={subscribed}
               />
             </div>
           )}

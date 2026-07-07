@@ -262,6 +262,7 @@ export function HuntSection({
   businessName,
   homeCity,
   mailboxConnected = false,
+  subscribed = true,
 }: {
   /** Already capped (or full when expanded), fitScore desc. */
   venues: HuntVenue[];
@@ -275,6 +276,8 @@ export function HuntSection({
   homeCity: string;
   /** 10.5: a sending mailbox is connected — gates "Send now" on STANDARD cards. */
   mailboxConnected?: boolean;
+  /** Subscribe-to-activate: unsubscribed tenants' scans never run. */
+  subscribed?: boolean;
 }) {
   const now = new Date();
   return (
@@ -291,17 +294,57 @@ export function HuntSection({
 
       {totalCount === 0 ? (
         // Typography-first empty state (v2.1 LAW rule 7) — no icons, ever.
-        <EmptyState
-          kicker="The hunt"
-          title="The hunt begins here."
-          accent="here."
-          hint="Finish your profile and the agent starts finding venues that fit you — new openings and rooms for your act land here, scored, with the reasons spelled out and the outreach drafted for you to approve."
-          cta={
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
-              Finish your profile to start the hunt
-            </span>
-          }
-        />
+        // State-aware: names the ACTUAL blocker (plan → city → profile) or,
+        // when nothing blocks, says what happens next. Quiet mono links only —
+        // the activation surfaces above own the loud CTA (audit C4).
+        (() => {
+          const linkCls =
+            "font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80";
+          const state = !subscribed
+            ? {
+                hint: "Your agent is paused. Pick a plan and the hunt switches on — new openings and rooms for your act land here, scored, with the outreach drafted in your voice for you to approve.",
+                cta: (
+                  <Link href="/dashboard/settings#billing" className={linkCls}>
+                    Choose your plan →
+                  </Link>
+                ),
+              }
+            : !homeCity
+              ? {
+                  hint: "The agent is on — it just doesn't know where to hunt yet. Set your home city and every scan combs it for new openings and rooms that fit your act.",
+                  cta: (
+                    <Link href="/dashboard/settings#hunt" className={linkCls}>
+                      Set your home city →
+                    </Link>
+                  ),
+                }
+              : !canPitch
+                ? {
+                    hint: "Venues from your city land here after each scan. To unlock pitching, finish the profile the pitches are built from — video, photos, bio, a gig on your calendar — so the agent never sends a thin one in your name.",
+                    cta: (
+                      <Link href="/dashboard/settings#profile" className={linkCls}>
+                        Finish your profile ({profilePercent}%) →
+                      </Link>
+                    ),
+                  }
+                : {
+                    hint: "You're set. The agent combs your city on every scan — new openings and rooms that fit your act land here scored, with the reasons spelled out and the outreach drafted for you to approve, usually by morning.",
+                    cta: (
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
+                        First scan queued — check back tomorrow
+                      </span>
+                    ),
+                  };
+          return (
+            <EmptyState
+              kicker="The hunt"
+              title="The hunt begins here."
+              accent="here."
+              hint={state.hint}
+              cta={state.cta}
+            />
+          );
+        })()
       ) : (
         <>
           <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
