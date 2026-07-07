@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: **P11 DONE** (all 4) — next: P12 every-artist engine (founder-elevated: ALL performer kinds; start at 12.1)
+- Current phase: P12 in progress — 12.1 *(9a34df1)*, 12.2 *(7e3f610)* DONE; next: 12.3 pitch spot-eval (non-music kinds), then 12.4-12.9
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 491/491 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 499/499 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -159,8 +159,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 ## P12 — Every-artist engine (Theme E — founder-elevated: ALL kinds)
 
-- [ ] 12.1 **Per-performerKind query packs** for the Serper battery (all enum kinds: DJ, band, singer, magician, dancer, actor/entertainer, photo booth, etc.) + venue-type expansion (corporate planners, theaters, event/private-event spaces, hotels, cruise/resort entertainment, wedding venues).
-- [ ] 12.2 KIND_AFFINITY expanded so non-music kinds score their real buyers at full credit; tests per kind; pitch templates stay kind-aware (PERFORMER_KIND_COPY exists — reuse).
+- [x] 12.1 Per-kind query packs (lib/discovery/query-packs.ts, all 10 enum kinds): warm battery + extraction prompt speak each kind's buyer language; venue-type expansion in packs (theaters, planners, dinner shows, resorts, corporate spaces → EVENT_SPACE); same 8-query cap recut, never grown; HOT battery stays kind-agnostic by design. *(9a34df1)*
+- [x] 12.2 KIND_AFFINITY carries non-music acts at every venue kind (full credit for magician/comedian/dancer/photo-booth/host at their buyers, tested per kind); reason copy de-musicked; pitch prompt already kind-aware (verified). *(7e3f610)*
 - [ ] 12.3 Pitch-quality spot-eval for 3 non-music kinds (extend the 16-scenario suite minimally) — grounding + white-label hold.
 - [ ] 12.4 Residency play kit v1: venue staff-notes field (names met, visits), trial-night converter framing in WARM pitches (profit-framed, "easy life and a profit"), 180-day re-touch surfaced as a "warm again" card (data already stored).
 - [ ] 12.5 EPK booker-first reorder: playable media above the fold, one live video slot, 50–100 word bio, 3 photos, sticky "Check availability" CTA → inquiry form that feeds the tenant's own inbound pipeline (the loop closes on itself).
