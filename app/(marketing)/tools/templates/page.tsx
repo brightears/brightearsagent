@@ -458,7 +458,7 @@ const FAQS = [
   },
   {
     q: "How fast should a DJ reply to a wedding inquiry?",
-    a: "Within five minutes if you possibly can, and within the hour at worst. Couples typically message several vendors at once and shortlist whoever responds first — about a third of vendors never reply at all, so speed alone puts you ahead of the pack. A short, specific reply sent fast beats a perfect reply sent that evening.",
+    a: "Within five minutes if you possibly can, and within the hour at worst. Couples typically message several vendors at once and shortlist whoever responds first — by their own accounts, about a third of vendors never reply at all, so speed alone puts you ahead of the pack. A short, specific reply sent fast beats a perfect reply sent that evening.",
   },
   {
     q: "How many times should I follow up on a DJ inquiry?",
@@ -623,8 +623,8 @@ export default function TemplatesPage() {
                 </span>
                 <span>
                   <strong className="text-ink-stage">Reply in the first 5 minutes.</strong> Couples
-                  book whoever replies first, and roughly a third of vendors never reply at all. A
-                  short answer now beats a perfect one tonight.
+                  book whoever replies first — and by their own accounts, roughly a third of
+                  vendors never reply at all. A short answer now beats a perfect one tonight.
                 </span>
               </li>
               <li className="flex gap-3">

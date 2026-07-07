@@ -207,8 +207,8 @@ export default function StoryPage() {
                 </PullQuote>
                 <div className="space-y-5 text-ink-stage/75 leading-relaxed">
                   <p>
-                    Couples book whoever replies first — and a third of vendors never
-                    reply at all. One DJ told us, &ldquo;You don&apos;t want to be the
+                    Couples book whoever replies first — and by couples&apos; own accounts,
+                    a third of vendors never reply at all. One DJ told us, &ldquo;You don&apos;t want to be the
                     5th DJ that reaches out.&rdquo; Another wrote the spec for us
                     without knowing it: &ldquo;I can&apos;t always text the lead
                     within 5 minutes... I want to automate this.&rdquo; And the one

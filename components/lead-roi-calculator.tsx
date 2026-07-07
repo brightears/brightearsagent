@@ -263,12 +263,15 @@ export function LeadRoiCalculator() {
         </div>
       </div>
 
-      {/* Bridge */}
+      {/* Bridge — recommend the tier the visitor's OWN inputs fit (audit
+          2026-07: this hardcoded $79 while the default inputs fit Starter,
+          undercutting the calculator's transparent-math promise). */}
       {!alreadyFast && result.revenueLost > 0 && (
         <div className="relative">
           <div className="relative overflow-hidden rounded-3xl bg-cream p-5 sm:p-7 text-center space-y-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)] rotate-[-0.4deg]">
             <p className="text-ink-stage font-extrabold tracking-tight text-lg">
-              Plugging the leak costs $79/month. The leak costs {usd(result.revenueLost)}/year.
+              Plugging the leak costs {leadsPerMonth <= 15 ? "$25" : leadsPerMonth <= 60 ? "$79" : "$149"}
+              /month at your volume. The leak costs {usd(result.revenueLost)}/year.
             </p>
             <p className="text-sm text-ink-stage/65 max-w-xl mx-auto">
               And that&apos;s only the leak you can measure. Bright Ears goes out and finds new
@@ -277,7 +280,7 @@ export function LeadRoiCalculator() {
               your phone. Month-to-month, cancel anytime.
             </p>
             <Link
-              href="/onboarding"
+              href={`/onboarding?plan=${leadsPerMonth <= 15 ? "starter" : leadsPerMonth <= 60 ? "pro" : "studio"}`}
               className="inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
               Get started

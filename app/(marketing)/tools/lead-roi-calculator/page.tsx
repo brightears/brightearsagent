@@ -117,6 +117,11 @@ export default function LeadRoiCalculatorPage() {
             </div>
           ))}
         </div>
+        <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-cream/40">
+          Patterns from couples&apos; own accounts on wedding forums and 20 years around venues —
+          they set the direction, not lab-grade numbers. The calculator&apos;s math is shown in
+          full below so you can judge it yourself.
+        </p>
       </section>
 
       {/* CTA — cream poster with collage corner */}
