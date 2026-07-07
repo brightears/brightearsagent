@@ -49,6 +49,13 @@ export function MarketingMobileMenu({ links }: { links: { href: string; label: s
               </Link>
             ))}
             <Link
+              href="/dashboard"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-2 py-2 text-cream/80 transition-colors hover:text-brand-cyan"
+            >
+              Sign in
+            </Link>
+            <Link
               href="/onboarding"
               onClick={() => setOpen(false)}
               className="mt-2 rounded-full bg-neon-magenta px-5 py-2.5 text-center font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)]"

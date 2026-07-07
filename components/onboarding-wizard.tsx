@@ -1565,7 +1565,7 @@ function StepConnect({
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             <StickerChip tone="cream" rotate={-4}>
-              First inquiry caught ✓
+              First inquiry caught
             </StickerChip>
             <StickerChip tone="ink" rotate={3}>
               Now playing — your reply
@@ -1665,7 +1665,7 @@ function StepConnect({
           {provider === "gmail" ? (
             <ol className="list-decimal space-y-1.5 pl-5">
               <li>
-                Gmail → gear ⚙ → <strong>See all settings</strong> →{" "}
+                Gmail → the gear (Settings) → <strong>See all settings</strong> →{" "}
                 <strong>Forwarding and POP/IMAP</strong>.
               </li>
               <li>
@@ -1682,7 +1682,7 @@ function StepConnect({
           ) : (
             <ol className="list-decimal space-y-1.5 pl-5">
               <li>
-                Outlook on the web → gear ⚙ → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
+                Outlook on the web → the gear (Settings) → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
                 <strong>Add new rule</strong>.
               </li>
               <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>

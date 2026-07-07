@@ -26,10 +26,10 @@ enum PerformerKind {
 }
 
 enum PlanTier {
-  TRIAL   // 14 days, full capability, no card
-  STARTER // $25/mo — complete assistant: 15 leads/mo, 1 performer, approve every send
-  PRO     // $79/mo — 60 leads/mo + per-source auto-send autopilot
-  STUDIO  // $149/mo — 150 leads/mo, multi-performer routing, team seats
+  TRIAL   // free / not subscribed — agent paused until a paid plan (no auto trial; fails closed)
+  STARTER // $25/mo — complete agent: 15 inquiries/mo, approve every send
+  PRO     // $79/mo — 60 inquiries/mo + per-source auto-send + 3 cities
+  STUDIO  // $149/mo — 150 inquiries/mo, auto-send, all cities (roster lands with P13)
 }
 
 enum LeadSource {

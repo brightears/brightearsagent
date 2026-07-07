@@ -16,10 +16,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bright Ears — your gigs, answered and booked",
+  // Hunt-led (the retired reactive tagline leaked from here onto every 404 —
+  // audit 2026-07). Per-page metadata overrides this; it's the fallback voice.
+  title: "Bright Ears — the AI that finds gigs for performers",
   description:
-    "The AI office for DJ and entertainment businesses: every inquiry answered in minutes, in your voice, with your real availability — you just tap Approve.",
+    "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
   manifest: "/manifest.json",
+  // Staging must never outrank (or become) the real site — noindex everything
+  // while APP_URL is the onrender.com host; flips itself at cutover. Pairs
+  // with the same gate in app/robots.ts.
+  ...(process.env.APP_URL?.includes("onrender.com")
+    ? { robots: { index: false, follow: false } }
+    : {}),
 };
 
 export const viewport: Viewport = {

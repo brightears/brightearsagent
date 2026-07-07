@@ -6,7 +6,20 @@ const BASE = process.env.APP_URL ?? "https://brightears.io";
 /** App-private surfaces; everything marketing-facing stays crawlable. */
 const PRIVATE = ["/dashboard/", "/api/"];
 
+/**
+ * Staging must never become the canonical "Bright Ears" in the index (audit
+ * 2026-07: the onrender.com host was fully crawlable with no canonical
+ * strategy — Google could keep it as THE site after cutover). Env-gated so
+ * this flips itself at cutover, when APP_URL becomes the real domain.
+ */
+const IS_STAGING = BASE.includes("onrender.com");
+
 export default function robots(): MetadataRoute.Robots {
+  if (IS_STAGING) {
+    return {
+      rules: [{ userAgent: "*", disallow: "/" }],
+    };
+  }
   return {
     rules: [
       {

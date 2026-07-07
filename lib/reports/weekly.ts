@@ -73,7 +73,7 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
       `• Replies sent: ${n.repliesSent}`,
       `• Conversations in progress: ${n.engaged}`,
       `• Being followed up automatically: ${n.inSequence}`,
-      `• Booked: ${n.booked} 🎉`,
+      `• Booked: ${n.booked}`,
       ``,
       `Open your pipeline: ${process.env.APP_URL ?? "http://localhost:3000"}/dashboard`,
       ``,

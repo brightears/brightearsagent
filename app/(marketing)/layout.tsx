@@ -39,6 +39,14 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
                 {n.label}
               </Link>
             ))}
+            {/* Returning customers had no way back in (audit 2026-07) — quiet
+                interface-voice link; the CTA keeps the show voice. */}
+            <Link
+              href="/dashboard"
+              className="text-cream/65 transition-colors hover:text-brand-cyan"
+            >
+              Sign in
+            </Link>
             <Link
               href="/onboarding"
               className="whitespace-nowrap rounded-full bg-neon-magenta px-5 py-2 font-bold text-white shadow-[0_6px_24px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"

@@ -1,7 +1,7 @@
 {
   "name": "Bright Ears",
   "short_name": "BrightEars",
-  "description": "Your gigs, answered and booked — approve replies from anywhere.",
+  "description": "The AI that finds gigs for performers \u2014 venues found, outreach drafted in your voice, you approve from anywhere.",
   "start_url": "/dashboard",
   "display": "standalone",
   "theme_color": "#00bbe4",
