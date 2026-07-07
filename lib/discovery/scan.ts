@@ -62,6 +62,7 @@ export async function runDiscoveryScan(
       id: true,
       plan: true,
       country: true,
+      performerKind: true,
       serviceCities: true,
       lastDiscoveryScanAt: true,
       discoveryScanCount: true,
@@ -192,7 +193,7 @@ export async function runDiscoveryScan(
   const queriesBefore = queriesUsed(provider);
 
   for (const { metro, travelWindowId } of targets) {
-    const raw = await provider.searchVenueSignals(metro, { now, businessId, warm });
+    const raw = await provider.searchVenueSignals(metro, { now, businessId, warm, performerKind: business.performerKind });
     const plan = await ingestSignals(businessId, metro, raw, now, travelWindowId);
     result.metros.push({
       city: metro.city,

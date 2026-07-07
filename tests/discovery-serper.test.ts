@@ -8,6 +8,7 @@ vi.mock("@/lib/llm", () => ({
 }));
 import { llmObject } from "@/lib/llm";
 import {
+  buildExtractionSystem,
   buildQueryBattery,
   buildWarmQueryBattery,
   EXTRACTION_CHUNK_SIZE,
@@ -257,9 +258,11 @@ describe("buildWarmQueryBattery", () => {
   });
 
   it("hunts entertainment-buying evidence, with at most ONE instagram query", () => {
+    // No kind passed = the generic OTHER pack (P12.1) — kind-specific
+    // language is covered in the kind-aware battery suite below.
     const battery = buildWarmQueryBattery(MANCHESTER);
     const text = battery.map((q) => q.q).join(" || ");
-    expect(text).toMatch(/DJ nights|live music/i);
+    expect(text).toMatch(/entertainment/i);
     expect(text).toMatch(/wedding venue/i);
     const igQueries = battery.filter((q) => q.q.includes("site:instagram.com"));
     expect(igQueries.length).toBeLessThanOrEqual(1);
@@ -409,5 +412,52 @@ describe("SerperDiscoveryProvider — warm battery + chunked extraction (10.2c)"
     const signals = await provider.searchVenueSignals(MANCHESTER, { now: NOW, warm: true });
     expect(signals.map((s) => s.venueName)).toContain("The Vault");
     expect(signals.map((s) => s.venueName)).toContain("Survivor Bar");
+  });
+});
+
+describe("kind-aware warm battery (P12.1 — every artist, same budget)", () => {
+  const metro = { city: "Manchester", country: "GB" };
+
+  it("every PerformerKind stays within the warm cap and speaks its own buyer language", () => {
+    const kinds = [
+      "DJ", "BAND", "SINGER", "MUSICIAN", "MAGICIAN",
+      "DANCER", "MC", "PHOTO_BOOTH", "COMEDIAN", "OTHER",
+    ];
+    for (const kind of kinds) {
+      const battery = buildWarmQueryBattery(metro, kind);
+      expect(battery.length).toBeLessThanOrEqual(MAX_WARM_QUERIES_PER_METRO);
+      expect(battery.every((q) => q.q.includes("Manchester"))).toBe(true);
+    }
+    // Distinct kinds actually search differently — the pack isn't cosmetic.
+    const dj = buildWarmQueryBattery(metro, "DJ").map((q) => q.q).join("\n");
+    const magician = buildWarmQueryBattery(metro, "MAGICIAN").map((q) => q.q).join("\n");
+    expect(dj).not.toBe(magician);
+    expect(dj).toContain("DJ nights");
+    expect(magician).toContain("magic");
+    expect(magician).not.toContain("DJ nights");
+    expect(buildWarmQueryBattery(metro, "COMEDIAN").map((q) => q.q).join("\n")).toContain("comedy");
+  });
+
+  it("kind-agnostic buyers stay in every pack (weddings + hotel event teams buy every kind)", () => {
+    for (const kind of ["MAGICIAN", "DANCER", "PHOTO_BOOTH"]) {
+      const joined = buildWarmQueryBattery(metro, kind).map((q) => q.q).join("\n");
+      expect(joined).toContain("wedding venue");
+      expect(joined).toContain("events manager");
+    }
+  });
+
+  it("no kind (legacy callers) falls back to the OTHER pack, never crashes", () => {
+    const battery = buildWarmQueryBattery(metro);
+    expect(battery.length).toBeGreaterThan(0);
+    expect(battery.map((q) => q.q).join(" ")).toContain("entertainment");
+  });
+
+  it("the extraction prompt names the act and its program language", () => {
+    const now = new Date("2026-07-07T00:00:00Z");
+    const sys = buildExtractionSystem(metro, now, "MAGICIAN");
+    expect(sys).toContain("a magician");
+    expect(sys).toContain("magic nights");
+    const djSys = buildExtractionSystem(metro, now, "DJ");
+    expect(djSys).toContain("a DJ");
   });
 });

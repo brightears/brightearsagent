@@ -51,6 +51,11 @@ export type DiscoveryOpts = {
    * slower wheel — every 3rd scan per tenant (Business.discoveryScanCount).
    */
   warm?: boolean;
+  /**
+   * P12.1: the tenant's PerformerKind — the warm battery and extraction
+   * prompt speak this kind's buyer language (query packs). Absent = OTHER.
+   */
+  performerKind?: string | null;
 };
 
 export interface DiscoveryProvider {
