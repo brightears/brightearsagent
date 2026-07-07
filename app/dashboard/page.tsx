@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { OnboardingBanner } from "@/components/onboarding-banner";
+import { ActivationChecklist } from "@/components/activation-checklist";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
@@ -174,9 +174,9 @@ export default async function Dashboard({
   ]);
   const business = { ...tenant, leads };
   // First-run dashboard shows ONE next action (audit C4): while setup is
-  // incomplete the OnboardingBanner is the single CTA, so the no-leads welcome
-  // drops its competing "Connect your leads" button and points at finishing
-  // setup; once setup is done the banner hides and the welcome owns the CTA.
+  // incomplete the ActivationChecklist is the single CTA, so the no-leads
+  // welcome drops its competing "Connect your leads" button and points at the
+  // checklist; once setup is done the checklist hides and the welcome owns it.
   const setup = getSetupStatus(tenant);
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
@@ -236,16 +236,21 @@ export default async function Dashboard({
         }
       />
 
-      <OnboardingBanner />
+      {/* ONE activation surface (audit C4, recut 2026-07): profile+voice, home
+          city, leads, plan — in order, one primary CTA. Hidden once live. */}
+      <ActivationChecklist business={tenant} subscribed={subscribed} />
 
-      {/* Agent paused (audit C3): unsubscribed or paid-plan-over-cap. Renders
-          nothing for a subscribed, under-cap plan. */}
-      <AtCapBanner
-        used={meter.used}
-        cap={meter.cap}
-        overCap={meter.overCap}
-        subscribed={subscribed}
-      />
+      {/* Agent paused (audit C3) — for SUBSCRIBED tenants over their cap. The
+          unsubscribed case is the checklist's "Choose your plan" item; showing
+          both would rebuild the banner pile the checklist replaced. */}
+      {subscribed && (
+        <AtCapBanner
+          used={meter.used}
+          cap={meter.cap}
+          overCap={meter.overCap}
+          subscribed={subscribed}
+        />
+      )}
 
       {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
           pipeline. Brand-new tenants (zero leads AND zero venues) keep the

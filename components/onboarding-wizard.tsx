@@ -27,7 +27,7 @@ import {
   saveBusinessBasics,
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
-import { buttonStyles, BrightEarsLogo, Card } from "@/components/ui";
+import { buttonStyles, BrightEarsLogo, Card, CheckMark as UiCheckMark } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
 import { PhotoUploader } from "@/components/photo-uploader";
@@ -388,22 +388,8 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
 }
 
 function CheckMark({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        d="M5 10.5l3.5 3.5L15 6.5"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  // Re-exported convenience: the shared glyph lives in components/ui.tsx.
+  return <UiCheckMark className={className} />;
 }
 
 function StepHeading({ step, title, blurb }: { step: number; title: string; blurb: string }) {
