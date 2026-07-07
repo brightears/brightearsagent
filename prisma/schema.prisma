@@ -93,6 +93,9 @@ model Business {
   voiceUsesEmoji       Boolean? // null = unspecified, true = occasional, false = never
   voicePhrases         String? // words/expressions they lean on
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
+  // 10.3: sources the owner said "keep reviewing" to when the graduation
+  // prompt offered auto-send - remembered so the ask never nags twice.
+  autoSendDeclinedSources LeadSource[] @default([])
   // Gmail forwarding-confirmation capture (P2, July 2026): the provider's
   // verification email is intercepted BEFORE parse/triage (the LLM fallback
   // reads it as an automated notice and ignores it — the artist could never

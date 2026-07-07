@@ -23,6 +23,41 @@ export function autoSendEligibleSources(all: readonly LeadSource[]): LeadSource[
 }
 
 /**
+ * Autonomy graduation (P10.3): after this many UNTOUCHED approvals (status
+ * APPROVED, zero edits) from one source, the queue may ask "auto-send
+ * these?". Ten untouched approvals is real evidence the drafts are landing
+ * right — autonomy is EARNED and offered, never silently expanded
+ * (never-do guardrail #8).
+ */
+export const GRADUATION_THRESHOLD = 10;
+
+/**
+ * Pick the source (if any) the graduation prompt should offer: most
+ * untouched approvals wins; must clear the threshold, be plan-eligible,
+ * ToS-eligible, not already trusted, and not previously declined
+ * ("Keep reviewing" is remembered — the ask never nags twice).
+ */
+export function graduationCandidate(opts: {
+  plan: PlanTier;
+  trusted: readonly LeadSource[];
+  declined: readonly LeadSource[];
+  untouchedApprovals: Partial<Record<LeadSource, number>>;
+}): { source: LeadSource; count: number } | null {
+  if (!planFeatures(opts.plan).autoSend) return null;
+  let best: { source: LeadSource; count: number } | null = null;
+  for (const [source, count] of Object.entries(opts.untouchedApprovals) as [
+    LeadSource,
+    number,
+  ][]) {
+    if (!count || count < GRADUATION_THRESHOLD) continue;
+    if (AUTO_SEND_INELIGIBLE_SOURCES.includes(source)) continue;
+    if (opts.trusted.includes(source) || opts.declined.includes(source)) continue;
+    if (!best || count > best.count) best = { source, count };
+  }
+  return best;
+}
+
+/**
  * Contact-confidence gate for the reply address (P10.5). An LLM-extracted
  * clientEmail can be hallucinated or typo'd — the agent must never
  * AUTONOMOUSLY email an address that isn't grounded in the source email.

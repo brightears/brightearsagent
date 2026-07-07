@@ -138,7 +138,24 @@ export async function updateAutoSendSources(formData: FormData): Promise<ActionR
 }
 
 /**
- * Smart-attachment autonomy — auto-attach the press kit / a quote when the
+ * "Keep reviewing" on the graduation prompt (P10.3) - remember the decline so
+ * the ask never nags twice. Writes ONLY the declined list (prompt state);
+ * autoSendSources keeps its one writer above.
+ */
+export async function declineAutoSendGraduation(source: string): Promise<void> {
+  const business = await getCurrentBusiness();
+  const allValues = Object.values(LeadSource) as string[];
+  if (!allValues.includes(source)) return;
+  if (business.autoSendDeclinedSources.includes(source as LeadSource)) return;
+  await db.business.update({
+    where: { id: business.id },
+    data: { autoSendDeclinedSources: { push: source as LeadSource } },
+  });
+  revalidatePath("/dashboard");
+}
+
+/**
+ * Smart-attachment autonomy - auto-attach the press kit / a quote when the
  * drafter detects the client asked for one. Both default off; a binding quote
  * is opt-in. Its own writer (touches only these two columns).
  */

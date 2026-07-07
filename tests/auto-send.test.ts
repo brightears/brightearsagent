@@ -3,6 +3,7 @@ import {
   canAutoSend,
   autoSendEligibleSources,
   clientEmailGrounded,
+  graduationCandidate,
   AUTO_SEND_INELIGIBLE_SOURCES,
 } from "@/lib/inbound/auto-send";
 import { PLAN_FEATURES, planFeatures } from "@/lib/billing/plan-features";
@@ -98,5 +99,43 @@ describe("clientEmailGrounded (P10.5 contact confidence)", () => {
   });
   it("an address appearing nowhere (possible hallucination) is NOT grounded", () => {
     expect(clientEmailGrounded({ ...base, clientEmail: "jess@exampel.com" })).toBe(false);
+  });
+});
+
+describe("graduationCandidate (P10.3 earned autonomy)", () => {
+  const base = {
+    plan: "PRO" as PlanTier,
+    trusted: [] as LeadSource[],
+    declined: [] as LeadSource[],
+  };
+  it("offers the source with the most untouched approvals past the threshold", () => {
+    const c = graduationCandidate({
+      ...base,
+      untouchedApprovals: { THE_KNOT: 12, BARK: 15, PLAIN_EMAIL: 9 },
+    });
+    expect(c).toEqual({ source: "BARK", count: 15 });
+  });
+  it("below-threshold counts never prompt", () => {
+    expect(graduationCandidate({ ...base, untouchedApprovals: { THE_KNOT: 9 } })).toBeNull();
+  });
+  it("plans without auto-send never prompt (autonomy is a plan capability)", () => {
+    expect(
+      graduationCandidate({ ...base, plan: "STARTER", untouchedApprovals: { THE_KNOT: 40 } }),
+    ).toBeNull();
+  });
+  it("already-trusted and previously-declined sources are never re-asked", () => {
+    expect(
+      graduationCandidate({
+        ...base,
+        trusted: ["THE_KNOT"],
+        declined: ["BARK"],
+        untouchedApprovals: { THE_KNOT: 20, BARK: 20 },
+      }),
+    ).toBeNull();
+  });
+  it("ToS-ineligible sources (GigSalad) never graduate no matter the evidence", () => {
+    expect(
+      graduationCandidate({ ...base, untouchedApprovals: { GIGSALAD: 50 } }),
+    ).toBeNull();
   });
 });

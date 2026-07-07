@@ -5,6 +5,8 @@ import { ActivationChecklist } from "@/components/activation-checklist";
 import { ReceiptsStrip } from "@/components/receipts-strip";
 import { NeedsYou } from "@/components/needs-you";
 import { InstallPrompt } from "@/components/install-prompt";
+import { GraduationPrompt } from "@/components/graduation-prompt";
+import { graduationCandidate } from "@/lib/inbound/auto-send";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
@@ -21,7 +23,7 @@ import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
 import { meterState, monthStart } from "@/lib/billing/metering";
 import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
-import type { LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
+import type { LeadSource, LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +93,7 @@ export default async function Dashboard({
   const tunedSkips = typeof sp.skips === "string" ? parseInt(sp.skips, 10) || 1 : 1;
   const tenant = await getCurrentBusiness();
   const now = new Date();
-  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox, repliedThisMonth] = await Promise.all([
+  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox, repliedThisMonth, approvedDrafts] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -201,6 +203,14 @@ export default async function Dashboard({
       where: { businessId: tenant.id, firstReplyAt: { gte: monthStart(now) } },
       select: { createdAt: true, firstReplyAt: true },
     }),
+    // 10.3: untouched approvals (APPROVED = zero edits; EDITED is excluded by
+    // definition) — the graduation prompt's evidence, counted per source.
+    db.draft.findMany({
+      where: { status: "APPROVED", lead: { businessId: tenant.id } },
+      orderBy: { decidedAt: "desc" },
+      take: 400,
+      select: { lead: { select: { source: true } } },
+    }),
   ]);
   const business = { ...tenant, leads };
   // First-run dashboard shows ONE next action (audit C4): while setup is
@@ -245,6 +255,19 @@ export default async function Dashboard({
   const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
   const subscribed = !!tenant.stripeSubscriptionId;
   const medianReply = medianReplyMinutes(repliedThisMonth);
+
+  // Autonomy graduation (P10.3): offer auto-send for the source with the most
+  // untouched approvals past the threshold — trusted/declined never re-asked.
+  const untouchedApprovals: Partial<Record<LeadSource, number>> = {};
+  for (const d of approvedDrafts) {
+    untouchedApprovals[d.lead.source] = (untouchedApprovals[d.lead.source] ?? 0) + 1;
+  }
+  const graduation = graduationCandidate({
+    plan: tenant.plan,
+    trusted: tenant.autoSendSources,
+    declined: tenant.autoSendDeclinedSources,
+    untouchedApprovals,
+  });
 
   // A2HS eligibility (P9.6): only after the first approval — either half of
   // the product — so the install ask lands right after the loop proved itself.
@@ -292,6 +315,16 @@ export default async function Dashboard({
       {/* The Today queue first (P9.4): what needs a tap, before anything
           else — the 30-seconds-a-day habit surface. Hidden when clear. */}
       <NeedsYou businessId={tenant.id} now={now} />
+
+      {/* Earned autonomy (P10.3): the queue itself offers auto-send once the
+          owner's own untouched approvals prove reviewing adds nothing. */}
+      {graduation && (
+        <GraduationPrompt
+          source={graduation.source}
+          count={graduation.count}
+          trusted={tenant.autoSendSources}
+        />
+      )}
 
       {/* Install ask (P9.6) — phones only, after first approval, once. */}
       <InstallPrompt eligible={approvedOnce} />
