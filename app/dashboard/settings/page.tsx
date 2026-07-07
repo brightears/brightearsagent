@@ -350,12 +350,21 @@ export default async function ControlRoomPage({
         />
 
         {/* Post-checkout confirmation (audit C3): billing.ts redirects here with
-            ?billing=success|cancelled — surfaced at the top so it's seen on land. */}
-        {billing === "success" && (
-          <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
-            You&apos;re subscribed — your agent is live. Manage your plan anytime in Plan &amp; billing below.
-          </div>
-        )}
+            ?billing=success|cancelled — surfaced at the top so it's seen on land.
+            "Live" only when the webhook has actually flipped the plan; until
+            then the honest state is "finalizing" (Stripe's webhook usually
+            lands within seconds, but the URL param alone proves nothing). */}
+        {billing === "success" &&
+          (billingSt.subscribed ? (
+            <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
+              You&apos;re subscribed — your agent is live. Manage your plan anytime in Plan &amp; billing below.
+            </div>
+          ) : (
+            <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
+              Payment received — finalizing your subscription. Your agent switches on the moment
+              it&apos;s confirmed (usually under a minute); refresh to see it live.
+            </div>
+          ))}
         {billing === "cancelled" && (
           <div className="mb-6 rounded-2xl border border-cream/15 bg-ink-raised px-5 py-4 text-sm text-cream/80">
             Checkout cancelled — no charge was made. You can pick a plan whenever you&apos;re ready.
