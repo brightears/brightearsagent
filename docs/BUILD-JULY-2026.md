@@ -9,7 +9,7 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P7 code-side done (7.1, 7.2, 7.3-script, 7.4-endpoint, 7.5, 7.6, 7.7, 7.9) · remaining P7: 7.8 resumable crons, 7.11 Stripe reconciliation, 7.12 heartbeat digest, then the RENDER/EXTERNAL pass (7.3 live cron reconfigure, 7.4 healthCheckPath + UptimeRobot, 7.10 backup drill, + env vars STRIPE_PORTAL_CONFIG / NEXT_PUBLIC_CLERK_SIGN_UP_URL) via Chrome on the founder's Render dashboard — RENDER_API_KEY is rotated away from .env.local as expected
+- Current phase: **P7 code-side COMPLETE** · remaining P7 = the RENDER/EXTERNAL pass (Chrome on the founder's Render dashboard, or FOUNDER GATE): 7.3 reconfigure live cron commands (header auth + res.ok wrapper), 7.4 healthCheckPath → /api/health + UptimeRobot keyword monitor on "cronsHealthy":true, 7.10 backup verify + restore drill, 7.5-env set NEW Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up. Next phase: P8 (the agent acts).
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
 - Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 431/431 tests · build OK
@@ -100,16 +100,16 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [x] 7.1 Postmark + Serper fail closed in prod (explicit opt-outs preserved). *(ffaa7f4)*
 - [x] 7.2 reportError in sequence-step, sequence-redraft, draft-generation, discovery-scan, weekly-report, auto-send (P4) catches. *(ffaa7f4)*
-- [ ] 7.3 Cron wrapper honest: `res.ok` check + exit 1, `Authorization: Bearer` header (secret out of URL), timeout. Update `scripts/render-crons.py` AND reconfigure the live Render cron jobs (Render API if key available, else Chrome into dashboard). Also switch Postmark inbound webhook to header auth if reachable; else founder gate.
-- [ ] 7.4 `/api/health` exposes cron freshness (lastSequenceTickAt, lastDiscoveryScanAt, weekly) + DB ping; Render healthCheckPath → `/api/health`; external uptime monitor on it (UptimeRobot via Chrome; founder gate if account creation blocked).
+- [x] 7.3 Wrapper fixed in scripts/render-crons.py (header auth, res.ok, 120s abort, exit 1). LIVE cron reconfigure + Postmark webhook header → Render/external pass. *(ffaa7f4)*
+- [x] 7.4 OpsStamp heartbeats in all four crons + /api/health cronsHealthy (keyword-monitorable; Render restart check unaffected). healthCheckPath + UptimeRobot → Render/external pass. *(ffaa7f4, abf85b4)*
 - [x] 7.5 17-var prod env contract logged at boot (node runtime only; use-time guards still fail closed). *(ffaa7f4)*
 - [x] 7.6 Five baseline headers; CSP deliberately deferred (Clerk + inline JSON-LD need a curated policy). *(ffaa7f4)*
 - [x] 7.7 Weekly reports per-tenant isolated; route returns {sent, failed}. *(ffaa7f4)*
-- [ ] 7.8 Time-budgeted resumable cron loops (order tenants by lastScanAt asc, ~60s budget, next tick resumes) — the 100-tenant fix.
+- [x] 7.8 Discovery: LRU-first under a 240s wall budget (cut-off tenants lead tomorrow); sequences: 200/tick most-overdue-first. *(abf85b4)*
 - [x] 7.9 .github/workflows/ci.yml — tsc + lint + vitest on push/PR. *(ffaa7f4)*
 - [ ] 7.10 Backup verify + one restore drill into a scratch DB (Render API/Chrome); write the runbook into DEPLOYMENT.md.
-- [ ] 7.11 Nightly Stripe reconciliation sweep (list active subs, diff vs Business.plan/subscriptionId, self-heal + report).
-- [ ] 7.12 Daily ops heartbeat email (leads in, drafts, sends, cron ticks, spend, margins) to OPS_ALERT_EMAIL.
+- [x] 7.11 reconcileStripe() both directions (pause dead/missing subs, re-attach missed-webhook live subs via metadata) on the nightly tick. *(abf85b4)*
+- [x] 7.12 Nightly proof-of-life digest (counts + margins + reconcile + stale-cron warnings), sent every night by design. *(abf85b4)*
 
 ## P8 — The agent acts (Theme A)
 
