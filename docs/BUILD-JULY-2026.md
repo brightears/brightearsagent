@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P12 in progress — 12.1-12.5 DONE; next: 12.6 EPK freshness monitor, then 12.7-12.9
+- Current phase: P12 in progress — 12.1-12.7 DONE; next: 12.8 right-contact improvements, then 12.9 draw-proof
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 508/508 tests · build OK · live draft eval 19/19
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 513/513 tests · build OK · live draft eval 19/19
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -164,8 +164,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 12.3 Non-music spot-evals (magician/comedian/dancer, own rate cards; runner grounds prices per scenario) — live run 19/19 PASS 0 safety; caught+fixed a REAL normalizer bug (conflict branch now refusal-first, both directions unit-tested); runner got the regenerate-once retry. *(c6dd5db)*
 - [x] 12.4 Residency play kit v1: staffNotes on Hunt+In-play cards (private, capped, never in prompts); WARM CTA = profit-framed no-risk trial night (on-file fallback); 180-day re-touch arc in rescore (PITCHED+silent → QUALIFIED+WARM, retouchedAt chip; replied venues never arc). *(fedb933)*
 - [x] 12.5 EPK booker-first: clamped hero bio (~100w), video then 3 photos, sticky CTA pill, mailto replaced by a real inquiry form → tenant's own pipeline (synthetic WEBSITE_FORM notification; honeypot + validation; white-label held). *(b4ff266)*
-- [ ] 12.6 EPK freshness monitor: weekly link-rot check on EPK/media links; nag via notifyBusiness when something 404s or media is missing ("no live video" = bookers' #1 deal-breaker).
-- [ ] 12.7 "Usually responds fast" EPK badge — shown only when the stopwatch has real data (honest).
+- [x] 12.6 EPK freshness sweep (rides weekly cron): artist-owned links only; BROKEN = hard 404/410/dead-DNS only (bot walls never flagged); missing-video nag; per-tenant isolation. *(506a3cb)*
+- [x] 12.7 "Usually replies within the hour" hero badge — only with 5+ first replies in 90d and median ≤60min. *(506a3cb)*
 - [ ] 12.8 Right-contact improvements (bounded): prefer events/booking pages, detect promoter-vs-venue contacts, store role labels; NO scraping beyond current provenance rules.
 - [ ] 12.9 Draw-proof block in pitches where data exists (recent gigs count from calendar, notable venues, review quote) — grounded only, never invented.
 
