@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { videoEmbedUrl } from "@/lib/profile/video";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 import { EpkInquiryForm } from "@/components/epk-inquiry-form";
+import { medianReplyMinutes } from "@/lib/reports/results";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +142,20 @@ export default async function EpkPage({ params }: Props) {
   const quote = business.reviewQuotes[0];
   // 12.5 booker-first: bookers skim — the hero bio is clamped to ~100 words
   // (the PDF one-pager keeps the full text).
+  // "Usually replies fast" badge (P12.7) — shown ONLY when the stopwatch has
+  // real data: 5+ first replies in the last 90 days with a median under an
+  // hour. An honest, earned claim; anything less shows nothing.
+  const now = new Date(); // page render clock (react-compiler: no Date.now() in render)
+  const recentReplied = await db.lead.findMany({
+    where: {
+      businessId: business.id,
+      firstReplyAt: { gte: new Date(now.getTime() - 90 * 24 * 3600 * 1000) },
+    },
+    select: { createdAt: true, firstReplyAt: true },
+  });
+  const median = medianReplyMinutes(recentReplied);
+  const respondsFast = recentReplied.length >= 5 && median !== null && median <= 60;
+
   const bioWords = (business.bio ?? "").trim().split(/\s+/).filter(Boolean);
   const shortBio =
     bioWords.length > 100 ? `${bioWords.slice(0, 100).join(" ")}…` : business.bio;
@@ -177,13 +192,18 @@ export default async function EpkPage({ params }: Props) {
                 ))}
               </div>
             )}
-            <div className="mt-9">
+            <div className="mt-9 flex flex-wrap items-center gap-4">
               <a
                 href="#inquire"
                 className="inline-block rounded-full bg-neon-magenta px-7 py-3 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
                 Check availability
               </a>
+              {respondsFast && (
+                <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-cream/65">
+                  Usually replies within the hour
+                </span>
+              )}
             </div>
           </div>
         </header>
