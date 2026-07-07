@@ -9,9 +9,9 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P1 — done: 1.1, 1.7, 1.8, 1.9 · next: 1.2 (home city), 1.3 (scan on activation), 1.4 (activation checklist), 1.5, 1.6, 1.10 (the wizard-heavy cluster)
+- Current phase: P1 — done: 1.1, 1.2, 1.3, 1.5, 1.7, 1.8, 1.9, 1.10 · next: 1.4 (activation checklist) + 1.6 (license meter in wizard), then P2
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 420/420 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 421/421 tests · build OK
 
 ---
 
@@ -39,15 +39,15 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 ## P1 — Day-one activation (audit §onboarding, launch-blocker #1)
 
 - [x] 1.1 `getSetupStatus` keyed on profile essentials (genres+headline+feeFloor) + voice — drop `packageCount` requirement; update `onboarding-banner.tsx` copy; test. *(e1946b5; voice-complete already honors the 1.5 skip-default: samples OR greeting/signoff)*
-- [ ] 1.2 Required **home city** field in wizard (step 1 or 2) writing `serviceCities[0]`; Control Room stays the multi-city editor. Test.
-- [ ] 1.3 **Scan on activation:** fire first discovery scan from Stripe webhook activation + on first home-base save when subscribed (respect 20h budget stamp + isAgentPaused + license; non-blocking). Reword pricing FAQ "right away" only if scan-on-subscribe can't cover it. Test.
+- [x] 1.2 Required **home city** field in wizard step 1 writing `serviceCities[0]` (extras preserved); Control Room stays the multi-city editor. *(4b5f33d)*
+- [x] 1.3 **Scan on activation** via `lib/discovery/activation.ts` (next/server `after`, force, scan-guards intact): checkout completion, paused→live re-activation, first-city-ever save. Webhook tests cover all three; renewals/plan-switches never re-burn budget. Pricing FAQ "right away" is now TRUE — no reword needed. *(4b5f33d)*
 - [ ] 1.4 **One activation checklist** component replaces the banner pile (profile license items → home city → forwarding → plan), done-states, single primary CTA; kill contradictory callouts. (`app/dashboard/page.tsx:239`)
-- [ ] 1.5 Voice step skippable with professional-default voice (tone chips + greeting/sign-off only); strength meter nags later. (`app/actions/onboarding.ts:218`)
+- [x] 1.5 Voice step skippable with professional-default voice (skip never clobbers saved samples; defaults "Hi [name]," / "Best regards"); strength meter nags later. *(a2e02f9)*
 - [ ] 1.6 Hunting-license meter visible in wizard step 2 + step-5 finale copy gated on `strength.canPitch` (no bait-and-switch at payment). (`lib/profile/strength.ts`)
 - [x] 1.7 State-aware Hunt empty state (unsubscribed / no city / profile incomplete / all-set-scan-queued) with real quiet links to the exact Control Room section. *(73471bf)*
 - [x] 1.8 Post-checkout banner renders from actual plan state ("finalizing…" until webhook lands). *(7a23c76)*
 - [x] 1.9 Placeholder tenant name never prefills stage-name fields (wizard + Control Room; detector in pure `lib/business-name.ts`). *(12013f5)*
-- [ ] 1.10 Resume logic returns to the right step (track step-5 signal; stop replaying calendar). (`app/onboarding/page.tsx:25`)
+- [x] 1.10 Resume honors skip-default voice + jumps to step 5 once a gig or lead proves the user passed the calendar. *(a2e02f9)*
 
 ## P2 — Gmail forwarding unblock (launch-blocker #2)
 
