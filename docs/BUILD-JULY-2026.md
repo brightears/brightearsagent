@@ -9,12 +9,12 @@
 ## STATE (update every session)
 
 - Status: **IN PROGRESS — started 2026-07-07**
-- Current phase: P11 in progress — 11.1 *(0de2047)*, 11.2 *(ee45924)* DONE; next: 11.3 gig-brief PDF, then 11.4 ROI receipt
+- Current phase: **P11 DONE** (all 4) — next: P12 every-artist engine (founder-elevated: ALL performer kinds; start at 12.1)
 - LESSON (applied): gate on vitest's real exit code — a grep pipe swallowed 3 failures once (fixed in the follow-up commit)
 - Parked for the RENDER/EXTERNAL Chrome pass (or FOUNDER GATE): 7.3 live cron commands · 7.4 healthCheckPath + UptimeRobot ("cronsHealthy":true keyword) · 7.10 backup drill · new Render env vars: STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl · NEXT_PUBLIC_CLERK_SIGN_UP_URL=https://relative-bluejay-63.accounts.dev/sign-up
 - Render env var to set when P7 touches Render: `STRIPE_PORTAL_CONFIG=bpc_1TqTj2G4fFsdyHFSLLhpadYl` (test mode; setup script prints the live one at cutover)
 - Founder gates collected so far: (none yet)
-- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 483/483 tests · build OK
+- Last green gate run: 2026-07-07 — tsc 0 · lint 0 errors (4 benign warnings) · 491/491 tests · build OK
 - Note: `lib/notify.ts` (P4.1's dual-channel helper) was built early as part of P2 — P4.1 becomes wiring-only.
 
 ---
@@ -154,8 +154,8 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 
 - [x] 11.1 Fee capture on Mark booked (optional, quote-prefilled, both surfaces) → Gig.value (migration); booked-value tiles on Results + weekly "worth X" line; lib/quote/fee.ts parse/format tested. *(0de2047)*
 - [x] 11.2 Booking-confirmation draft on booked: deterministic (no LLM — contractual), voice greeting/signoff + grounded facts (date/venue/fee/bookingLinkUrl), wantsQuote pre-arms the PDF; isConfirmation carve-out is the ONE send allowed on BOOKED (stays BOOKED, never starts a sequence; both tested). *(ee45924)*
-- [ ] 11.3 Gig-brief PDF artifact on booking (date, venue, set times, requests, load-in, contact — from the thread; grounded, no invention).
-- [ ] 11.4 Monthly ROI receipt email: answered X, pitched Y, won Z gigs worth <currency>N vs subscription cost (honest, only with real data; no projections).
+- [x] 11.3 Gig-brief PDF (/api/gig-brief/[leadId], BOOKED only, Documents strip link): parsed facts + calendar entry render unconditionally; extraction-ONLY thread pass fills requests/logistics, degrades to empty sections. *(66bb11d)*
+- [x] 11.4 Monthly ROI receipt (1st UTC via nightly ops cron): answered/found/pitched/won + captured value in artist currency next to plan USD; paying tenants only, empty months silent, no projections. *(27d79d4)*
 
 ## P12 — Every-artist engine (Theme E — founder-elevated: ALL kinds)
 
