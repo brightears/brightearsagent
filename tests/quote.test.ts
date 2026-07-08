@@ -145,3 +145,47 @@ describe("quoteHeadline", () => {
     expect(quoteHeadline(computeQuote({ ...base, eventType: "gala" })!)).toBe("From ฿15,000, typically around ฿20,000");
   });
 });
+
+describe("rate units (founder preview, July 2026)", () => {
+  it("an hourly residency rate quotes per hour, never ambiguous", () => {
+    const q = computeQuote({
+      currency: "THB",
+      feeFloor: 500000,
+      feeSweetSpot: null,
+      residencyRate: 150000,
+      residencyRateUnit: "hour",
+      packages: [],
+      eventType: "weekly residency slot",
+    });
+    expect(q?.perHour).toBe(true);
+    expect(q?.perNight).toBe(false);
+    expect(q?.label).toBe("Residency (per hour)");
+    expect(quoteHeadline(q!)).toContain("per hour");
+  });
+
+  it("one-off quotes carry the covered hours when set", () => {
+    const q = computeQuote({
+      currency: "THB",
+      feeFloor: 500000,
+      feeSweetSpot: null,
+      residencyRate: null,
+      oneOffHours: 4,
+      packages: [],
+      eventType: "wedding",
+    });
+    expect(q?.coversHours).toBe(4);
+  });
+
+  it("defaults stay per-night with no covered hours", () => {
+    const q = computeQuote({
+      currency: "THB",
+      feeFloor: null,
+      feeSweetSpot: null,
+      residencyRate: 80000,
+      packages: [],
+      eventType: "residency",
+    });
+    expect(q?.perNight).toBe(true);
+    expect(q?.perHour).toBe(false);
+  });
+});

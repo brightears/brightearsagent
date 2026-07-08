@@ -145,7 +145,9 @@ export interface WizardProfile {
   gigTypes: string[]; // "one-off" / "residency"
   acceptsTravel: boolean;
   feeFloor: string; // whole currency units (one-off floor)
-  residencyRate: string; // whole currency units (per-night residency rate)
+  residencyRate: string; // whole currency units (per-night/per-hour residency rate)
+  residencyRateUnit: "night" | "hour";
+  oneOffHours: string; // what the one-off floor covers, e.g. "4"
 }
 
 // Per-performer-kind copy for step 2 — so a magician never sees "open format,
@@ -702,6 +704,8 @@ function StepProfile({
         acceptsTravel: profile.acceptsTravel,
         feeFloor: profile.feeFloor,
         residencyRate: doesResidency ? profile.residencyRate : "",
+        residencyRateUnit: doesResidency ? profile.residencyRateUnit : "night",
+        oneOffHours: profile.oneOffHours,
       });
       if (!res.ok) return setError(res.error ?? "Could not save — try again");
       onDone();
@@ -848,19 +852,46 @@ function StepProfile({
             <p className="mt-1 text-xs text-ink-stage/50">
               The lowest you&apos;ll take a one-off for. The agent never pitches below it.
             </p>
+            <div className="mt-2">
+              <label htmlFor="ob-hours" className={labelStyles}>Covers up to (hours)</label>
+              <input
+                id="ob-hours"
+                inputMode="numeric"
+                value={profile.oneOffHours}
+                onChange={(e) => set("oneOffHours", e.target.value)}
+                placeholder="4"
+                className={inputStyles}
+              />
+              <p className="mt-1 text-xs text-ink-stage/50">
+                What that price includes — quotes say it, so nobody argues later.
+              </p>
+            </div>
           </div>
           {doesResidency && (
             <div>
               <label htmlFor="ob-res" className={labelStyles}>Residency rate ({currency})</label>
-              <input
-                id="ob-res"
-                inputMode="numeric"
-                value={profile.residencyRate}
-                onChange={(e) => set("residencyRate", e.target.value)}
-                placeholder="800"
-                className={inputStyles}
-              />
-              <p className="mt-1 text-xs text-ink-stage/50">Your going per-night rate for a regular slot.</p>
+              <div className="flex gap-2">
+                <input
+                  id="ob-res"
+                  inputMode="numeric"
+                  value={profile.residencyRate}
+                  onChange={(e) => set("residencyRate", e.target.value)}
+                  placeholder="800"
+                  className={`${inputStyles} flex-1`}
+                />
+                <select
+                  aria-label="Residency rate unit"
+                  value={profile.residencyRateUnit}
+                  onChange={(e) => set("residencyRateUnit", e.target.value as "night" | "hour")}
+                  className={inputStyles}
+                >
+                  <option value="night">per night</option>
+                  <option value="hour">per hour</option>
+                </select>
+              </div>
+              <p className="mt-1 text-xs text-ink-stage/50">
+                Your going rate for a regular slot — pick the unit so it can&apos;t be read two ways.
+              </p>
             </div>
           )}
         </div>
@@ -1708,15 +1739,30 @@ function StepConnect({
         </Walkthrough>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+      {/* Confident exit (founder preview): forwarding lives in Gmail — there is
+          nothing to save here, and the page must SAY so. One primary Done for
+          people who just set it up; the quiet skip stays for people who didn't. */}
+      {!leadDetected && (
+        <p className="pt-1 text-sm text-ink-stage/60">
+          Set the forward up already? You’re done — there’s nothing to save here. Your lead address
+          is live, and the moment the first inquiry (or Gmail’s confirmation) arrives, everything
+          switches on by itself.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <BackButton onBack={onBack} />
         {!leadDetected && (
-          <Link
-            href="/dashboard"
-            className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
-          >
-            I’ll set this up later — take me to my dashboard
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
+            >
+              I’ll set this up later
+            </Link>
+            <Link href="/dashboard" className={buttonStyles.primary}>
+              Done — open my dashboard
+            </Link>
+          </div>
         )}
       </div>
     </div>

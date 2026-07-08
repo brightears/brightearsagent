@@ -95,6 +95,8 @@ export default async function OnboardingPage({
         acceptsTravel: business.acceptsTravel,
         feeFloor: wholeUnits(business.feeFloor),
         residencyRate: wholeUnits(business.residencyRate),
+        residencyRateUnit: (business.residencyRateUnit === "hour" ? "hour" : "night") as "night" | "hour",
+        oneOffHours: business.oneOffHours != null ? String(business.oneOffHours) : "",
       }}
       uploadsEnabled={uploadsEnabled}
     />

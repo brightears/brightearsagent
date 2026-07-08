@@ -63,6 +63,8 @@ export type BusinessForQuote = {
   feeFloor: number | null;
   feeSweetSpot: number | null;
   residencyRate: number | null;
+  residencyRateUnit?: string | null;
+  oneOffHours?: number | null;
   replyToEmail: string | null;
   ownerEmail: string;
   websiteUrl: string | null;
@@ -103,6 +105,8 @@ export async function renderQuotationForLead(
     feeFloor: business.feeFloor,
     feeSweetSpot: business.feeSweetSpot,
     residencyRate: business.residencyRate,
+    residencyRateUnit: business.residencyRateUnit,
+    oneOffHours: business.oneOffHours,
     packages: business.packages,
     eventType: lead.eventType,
   });

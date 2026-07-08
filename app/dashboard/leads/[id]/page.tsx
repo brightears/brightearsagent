@@ -86,6 +86,8 @@ export default async function LeadDetailPage({
     feeFloor: business.feeFloor,
     feeSweetSpot: business.feeSweetSpot,
     residencyRate: business.residencyRate,
+    residencyRateUnit: business.residencyRateUnit,
+    oneOffHours: business.oneOffHours,
     packages: activePackages,
     eventType: lead.eventType,
   });

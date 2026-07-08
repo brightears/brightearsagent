@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { isoDay } from "@/lib/agent/availability";
 import { deleteGig } from "@/app/actions/gigs";
 import { GigForm } from "@/components/gig-form";
+import { ResidencyLogger } from "@/components/residency-logger";
 import { Card, EmptyState, Kicker, PageHeader, StatPill, buttonStyles } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -283,16 +284,30 @@ export default async function CalendarPage({
           )}
         </Card>
 
-        <Card className="overflow-hidden">
-          <div className="bg-cream/60 px-6 py-4">
-            <Kicker onLight>New booking</Kicker>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a gig</h2>
-            <p className="text-xs text-ink-stage/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
-          </div>
-          <div className="p-6">
-            <GigForm performers={performers} />
-          </div>
-        </Card>
+        <div className="space-y-6">
+          <Card className="overflow-hidden">
+            <div className="bg-cream/60 px-6 py-4">
+              <Kicker onLight>New booking</Kicker>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a gig</h2>
+              <p className="text-xs text-ink-stage/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
+            </div>
+            <div className="p-6">
+              <GigForm performers={performers} />
+            </div>
+          </Card>
+
+          {/* Residency logger (founder preview catch): landing a new weekly
+              slot AFTER onboarding shouldn't mean typing 12 Wednesdays. */}
+          <Card className="overflow-hidden">
+            <div className="bg-cream/60 px-6 py-4">
+              <Kicker onLight>Got a residency?</Kicker>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Log it once</h2>
+            </div>
+            <div className="p-6">
+              <ResidencyLogger />
+            </div>
+          </Card>
+        </div>
       </div>
       </div>
     </main>

@@ -177,6 +177,8 @@ export async function saveArtistProfile(input: {
   acceptsTravel: boolean;
   feeFloor: string;
   residencyRate: string;
+  residencyRateUnit?: string;
+  oneOffHours?: string;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
@@ -199,6 +201,16 @@ export async function saveArtistProfile(input: {
   if (feeFloor === null) {
     return { ok: false, error: "Set your one-off floor — the agent never pitches below it" };
   }
+  // Rate units (founder preview): two real values; hours 1-24 or unspecified.
+  const residencyRateUnit = input.residencyRateUnit === "hour" ? "hour" : "night";
+  let oneOffHours: number | null = null;
+  if (input.oneOffHours?.trim()) {
+    const n = Number(input.oneOffHours.trim());
+    if (!Number.isInteger(n) || n < 1 || n > 24) {
+      return { ok: false, error: "Covered hours should be a whole number between 1 and 24" };
+    }
+    oneOffHours = n;
+  }
   const residencyRate = feeToCents(input.residencyRate);
   if (residencyRate === "invalid") {
     return { ok: false, error: "Residency rate should be a plain number" };
@@ -220,6 +232,8 @@ export async function saveArtistProfile(input: {
       acceptsTravel: input.acceptsTravel,
       feeFloor,
       residencyRate,
+      residencyRateUnit,
+      oneOffHours,
     },
   });
 

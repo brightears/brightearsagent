@@ -499,6 +499,8 @@ export default async function ControlRoomPage({
                   gigTypes: business.gigTypes,
                   acceptsTravel: business.acceptsTravel,
                   residencyRate: business.residencyRate,
+                  residencyRateUnit: business.residencyRateUnit,
+                  oneOffHours: business.oneOffHours,
                   epkEnabled: business.epkEnabled,
                   currency: business.currency,
                 }}

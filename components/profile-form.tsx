@@ -27,6 +27,8 @@ export type ArtistProfile = {
   gigTypes: string[];
   acceptsTravel: boolean;
   residencyRate: number | null;
+  residencyRateUnit: string;
+  oneOffHours: number | null;
   epkEnabled: boolean;
   currency: string;
 };
@@ -321,6 +323,22 @@ export function ProfileForm({
               className={inputCls}
             />
             <p className={hintCls}>The agent never pitches a one-off below this. Whole {profile.currency}.</p>
+            <div className="mt-2">
+              <label htmlFor="oneOffHours" className={labelCls}>
+                Covers up to (hours)
+              </label>
+              <input
+                id="oneOffHours"
+                name="oneOffHours"
+                inputMode="numeric"
+                placeholder="4"
+                defaultValue={profile.oneOffHours ?? ""}
+                className={inputCls}
+              />
+              <p className={hintCls}>
+                What the one-off price includes, e.g. 4 hours — quotes say it, so nobody argues later.
+              </p>
+            </div>
           </div>
           <div>
             <label htmlFor="feeSweetSpot" className={labelCls}>
@@ -340,16 +358,28 @@ export function ProfileForm({
             <label htmlFor="residencyRate" className={labelCls}>
               Residency rate ({profile.currency})
             </label>
-            <input
-              id="residencyRate"
-              name="residencyRate"
-              inputMode="numeric"
-              placeholder="800"
-              defaultValue={cents(profile.residencyRate)}
-              className={inputCls}
-            />
+            <div className="flex gap-2">
+              <input
+                id="residencyRate"
+                name="residencyRate"
+                inputMode="numeric"
+                placeholder="800"
+                defaultValue={cents(profile.residencyRate)}
+                className={`${inputCls} flex-1`}
+              />
+              <select
+                name="residencyRateUnit"
+                aria-label="Residency rate unit"
+                defaultValue={profile.residencyRateUnit ?? "night"}
+                className={inputCls}
+              >
+                <option value="night">per night</option>
+                <option value="hour">per hour</option>
+              </select>
+            </div>
             <p className={hintCls}>
-              Your going per-night rate for a regular slot — kept separate from the one-off floor.
+              Your going rate for a regular slot — kept separate from the one-off floor. Pick the
+              unit so a quote can never be read two ways.
             </p>
           </div>
           <div className="sm:col-span-2">
