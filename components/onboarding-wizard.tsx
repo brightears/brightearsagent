@@ -877,13 +877,15 @@ function StepProfile({
                   value={profile.residencyRate}
                   onChange={(e) => set("residencyRate", e.target.value)}
                   placeholder="800"
-                  className={`${inputStyles} flex-1`}
+                  className={`${inputStyles} min-w-0 flex-1`}
                 />
                 <select
                   aria-label="Residency rate unit"
                   value={profile.residencyRateUnit}
                   onChange={(e) => set("residencyRateUnit", e.target.value as "night" | "hour")}
-                  className={inputStyles}
+                  // inputStyles carries w-full — on a flex row that crushes the
+                  // rate field to a sliver (founder preview catch). Own class.
+                  className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
                 >
                   <option value="night">per night</option>
                   <option value="hour">per hour</option>

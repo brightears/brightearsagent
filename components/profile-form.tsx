@@ -365,13 +365,13 @@ export function ProfileForm({
                 inputMode="numeric"
                 placeholder="800"
                 defaultValue={cents(profile.residencyRate)}
-                className={`${inputCls} flex-1`}
+                className={`${inputCls} min-w-0 flex-1`}
               />
               <select
                 name="residencyRateUnit"
                 aria-label="Residency rate unit"
                 defaultValue={profile.residencyRateUnit ?? "night"}
-                className={inputCls}
+                className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
               >
                 <option value="night">per night</option>
                 <option value="hour">per hour</option>
