@@ -7,15 +7,14 @@ import { NeedsYou } from "@/components/needs-you";
 import { InstallPrompt } from "@/components/install-prompt";
 import { GraduationPrompt } from "@/components/graduation-prompt";
 import { graduationCandidate } from "@/lib/inbound/auto-send";
-import { getSetupStatus } from "@/lib/onboarding-status";
 import {
   EmptyState,
+  Kicker,
   LEAD_STATUS_META,
   PageHeader,
   StatPill,
-  buttonStyles,
 } from "@/components/ui";
-import { GradientBlob, StickerChip } from "@/components/collage";
+import { StickerChip } from "@/components/collage";
 import { HUNT_CAP, HuntSection, KIND_LABEL } from "@/components/hunt-feed";
 import { AtCapBanner } from "@/components/at-cap-banner";
 import { InPlaySection } from "@/components/in-play";
@@ -218,11 +217,10 @@ export default async function Dashboard({
     }),
   ]);
   const business = { ...tenant, leads };
-  // First-run dashboard shows ONE next action (audit C4): while setup is
-  // incomplete the ActivationChecklist is the single CTA, so the no-leads
-  // welcome drops its competing "Connect your leads" button and points at the
-  // checklist; once setup is done the checklist hides and the welcome owns it.
-  const setup = getSetupStatus(tenant);
+  // First-run dashboard leads with the HUNT (founder 2026-07): the reason an
+  // artist comes is "it finds gigs for me", so the proactive feed is the hero
+  // and the reactive inbox connection is a quiet secondary card below it. The
+  // ActivationChecklist above owns the single loud setup CTA.
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
   // only — the query filtered, so the cast on status is honest). Travel Mode:
@@ -373,22 +371,21 @@ export default async function Dashboard({
         </div>
       )}
 
-      {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
-          pipeline. Brand-new tenants (zero leads AND zero venues) keep the
-          whole-pipeline welcome primary; the Hunt moves below it then. */}
-      {!(business.leads.length === 0 && huntCount === 0) && (
-        <HuntSection
-          venues={huntCards}
-          totalCount={huntCount}
-          expanded={huntExpanded}
-          canPitch={strength.canPitch}
-          profilePercent={strength.percent}
-          businessName={tenant.name}
-          homeCity={homeCity}
-          mailboxConnected={mailboxConnected}
-          subscribed={subscribed}
-        />
-      )}
+      {/* The Hunt (ADR-004: ONE home feed) — the proactive half, and the HERO
+          for a first-time visitor (founder 2026-07): the reason they came is
+          "it finds gigs for me". Always rendered here; its state-aware empty
+          state sells the story — find venues → score → draft → you approve. */}
+      <HuntSection
+        venues={huntCards}
+        totalCount={huntCount}
+        expanded={huntExpanded}
+        canPitch={strength.canPitch}
+        profilePercent={strength.percent}
+        businessName={tenant.name}
+        homeCity={homeCity}
+        mailboxConnected={mailboxConnected}
+        subscribed={subscribed}
+      />
 
       {/* In play (audit C2): venues a pitch was sent to leave the Hunt feed —
           this section gives them a home so the owner can track the reply by
@@ -403,49 +400,33 @@ export default async function Dashboard({
       )}
 
       {business.leads.length === 0 ? (
-        // Whole-pipeline welcome: a cream poster floating on the ink, sticker
-        // chip on the corner (empty-state art may use the show voice).
-        <div className="relative mx-auto max-w-xl">
-          <GradientBlob tone="show" className="-bottom-8 -right-6 h-32 w-52" />
-          <div className="relative">
-            <EmptyState
-              kicker="The inbox is listening"
-              title="No inquiries yet."
-              accent="yet."
-              hint={
-                setup.incomplete
-                  ? "Finish your setup above — then your forwarding test will land here."
-                  : "Connect your leads — your forwarding test will land here."
-              }
-              cta={
-                setup.incomplete ? undefined : (
-                  <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
-                    Connect your leads
-                  </Link>
-                )
-              }
-            />
-            <StickerChip tone="magenta" rotate={6} className="absolute -top-2.5 right-8">
+        // The reactive half is the ALSO, not the first (founder 2026-07): the
+        // Hunt above is the hero; connecting an inbox is a quiet secondary card
+        // framed as "the agent answers those too" — never the opening ask.
+        <section>
+          <div className="mb-4">
+            <Kicker>The other half</Kicker>
+            <h2 className="mt-1.5 text-xl font-black tracking-tight text-cream-bright">
+              Already getting inquiries?
+            </h2>
+          </div>
+          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised px-6 py-6">
+            <StickerChip tone="magenta" rotate={4} className="absolute -top-2.5 right-6">
               You&apos;ll hear the ping
             </StickerChip>
+            <p className="max-w-2xl text-sm leading-relaxed text-cream/70">
+              The Knot, WeddingWire, your website form, word of mouth — point them at your lead
+              address and the agent answers each one in your voice, follows up until booked-or-dead,
+              and lands it in the pipeline here. One forwarding rule, then it runs itself.
+            </p>
+            <Link
+              href="/onboarding"
+              className="mt-4 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
+            >
+              Connect your inbox →
+            </Link>
           </div>
-          {/* Brand-new tenant: the Hunt sits below the welcome (no double-shout). */}
-          {huntCount === 0 && (
-            <div className="mt-10">
-              <HuntSection
-                venues={huntCards}
-                totalCount={huntCount}
-                expanded={huntExpanded}
-                canPitch={strength.canPitch}
-                profilePercent={strength.percent}
-                businessName={tenant.name}
-                homeCity={homeCity}
-                mailboxConnected={mailboxConnected}
-                subscribed={subscribed}
-              />
-            </div>
-          )}
-        </div>
+        </section>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {COLUMN_STATUSES.map((status) => {

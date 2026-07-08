@@ -35,7 +35,17 @@ export async function ActivationChecklist({
   // the same signal the step-5 live verifier uses.
   const leadCount = await db.lead.count({ where: { businessId: business.id } });
 
-  const items = [
+  // Order = the artist's real journey (founder 2026-07): profile → where to
+  // hunt → subscribe (turns the Hunt ON) → then the OPTIONAL reactive inbox.
+  // Connecting an inbox is the "also", never a gate on the agent hunting.
+  const items: {
+    label: string;
+    detail: string;
+    done: boolean;
+    href: string;
+    cta: string;
+    optional?: boolean;
+  }[] = [
     {
       label: "Tell us who you are & how you sound",
       detail: "Your sound, one-liner, rate floor and voice — what every reply and pitch is built from.",
@@ -51,24 +61,28 @@ export async function ActivationChecklist({
       cta: "Set your city",
     },
     {
-      label: "Connect your leads",
-      detail: "One forwarding rule — every inquiry starts answering itself.",
-      done: leadCount > 0,
-      href: "/onboarding",
-      cta: "Connect leads",
-    },
-    {
       label: "Choose your plan",
-      detail: "Subscribe to activate — the agent replies, hunts and pitches from that moment.",
+      detail: "Subscribe to activate — the agent starts hunting venues and drafting pitches in your voice from that moment.",
       done: subscribed,
       href: "/dashboard/settings#billing",
       cta: "Choose your plan",
     },
+    {
+      label: "Connect your inbox (optional)",
+      detail: "Already getting inquiries from The Knot, your site or word of mouth? Forward them here and the agent answers those in your voice too.",
+      done: leadCount > 0,
+      href: "/onboarding",
+      cta: "Connect inbox",
+      optional: true,
+    },
   ];
 
-  const doneCount = items.filter((i) => i.done).length;
-  if (doneCount === items.length) return null;
-  const primary = items.find((i) => !i.done)!;
+  // "Going live" = the three CORE steps. The optional inbox connect never holds
+  // the checklist open, and the loud CTA is always the first incomplete core step.
+  const core = items.filter((i) => !i.optional);
+  const coreDone = core.filter((i) => i.done).length;
+  if (coreDone === core.length) return null;
+  const primary = core.find((i) => !i.done)!;
 
   return (
     <div className="relative mb-6">
@@ -77,7 +91,7 @@ export async function ActivationChecklist({
         <HaloRing width={150} height={54} tilt={-10} className="-right-9 -top-4" />
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <StickerChip tone="ink" rotate={-3} className="shrink-0">
-            Going live — {doneCount} of {items.length}
+            Going live — {coreDone} of {core.length}
           </StickerChip>
           <Link href={primary.href} className={`${buttonStyles.primary} text-sm`}>
             {primary.cta} →
