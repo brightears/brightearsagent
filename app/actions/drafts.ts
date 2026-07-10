@@ -160,6 +160,13 @@ export async function markBooked(leadId: string, feeMinor?: number) {
       where: { leadId, stoppedAt: null },
       data: { stoppedAt: new Date(), stopReason: "booked" },
     }),
+    // Retire the pre-booking draft (staging audit 2026-07-10): it can never
+    // send on a closed lead, it squats in "Needs you", and — worse — the
+    // confirmation drafter dedupes on PENDING and would silently skip.
+    db.draft.updateMany({
+      where: { leadId, status: "PENDING" },
+      data: { status: "EXPIRED", decidedAt: new Date(), scheduledSendAt: null },
+    }),
     ...(needsGig
       ? [
           db.gig.create({
@@ -197,10 +204,18 @@ export async function markDead(leadId: string) {
     data: { status: "DEAD", deadAt: new Date() },
   });
   if (updated.count === 0) return { ok: false, error: "lead not found" };
-  await db.sequenceRun.updateMany({
-    where: { leadId, stoppedAt: null },
-    data: { stoppedAt: new Date(), stopReason: "marked_dead" },
-  });
+  await db.$transaction([
+    db.sequenceRun.updateMany({
+      where: { leadId, stoppedAt: null },
+      data: { stoppedAt: new Date(), stopReason: "marked_dead" },
+    }),
+    // A dead lead's pending draft can never send (compliance hard-stop) —
+    // expire it so it stops squatting in "Needs you" (staging audit 2026-07-10).
+    db.draft.updateMany({
+      where: { leadId, status: "PENDING" },
+      data: { status: "EXPIRED", decidedAt: new Date(), scheduledSendAt: null },
+    }),
+  ]);
   revalidatePath("/dashboard");
   return { ok: true };
 }
