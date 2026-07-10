@@ -187,8 +187,12 @@ const homeRadiusSchema = z
   .union([z.literal(""), z.coerce.number().int().positive().max(20000)])
   .transform((v) => (v === "" ? null : v));
 
-/** Comma-separated text → trimmed, de-duped city list (mirrors profile.ts splitList). */
-function splitCities(value: FormDataEntryValue | null, max = 20): string[] {
+/** Comma-separated text → trimmed, de-duped city list (mirrors profile.ts splitList).
+ *  max is a SANITY bound only — it must sit above the largest plan homeCityCap
+ *  (Studio 25), or the plan-cap slice below can never see (and honestly report
+ *  trimming) everything the owner typed. Audit 2026-07: it was 20, silently
+ *  eating Studio's 21st-25th cities. */
+function splitCities(value: FormDataEntryValue | null, max = 100): string[] {
   if (typeof value !== "string") return [];
   return [...new Set(value.split(",").map((s) => s.trim()).filter(Boolean))].slice(0, max);
 }

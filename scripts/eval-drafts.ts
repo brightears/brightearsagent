@@ -5,21 +5,21 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-import { SCENARIOS, PACKAGES, type Scenario } from "../evals/scenarios";
+import { SCENARIOS, type Scenario } from "../evals/scenarios";
 import { generateDraft } from "../lib/agent/drafter";
-import type { DraftResult } from "../lib/agent/types";
+import type { DraftResult, PackageInfo } from "../lib/agent/types";
 
 const WHITE_LABEL = /\b(AI|artificial intelligence|automated|chatbot|language model|assistant)\b/i;
 const PLACEHOLDER = /\[[a-z ]+\]/i;
 
-// Every dollar amount a draft may legally contain (from the eval rate card).
-const allowedDollars = new Set<number>();
-for (const p of PACKAGES) {
-  allowedDollars.add(p.priceMin / 100);
-  if (p.priceMax) allowedDollars.add(p.priceMax / 100);
-}
-
-function priceViolations(body: string): string[] {
+// Every dollar amount a draft may legally contain — grounded PER SCENARIO in
+// that scenario's own rate card (P12.3: non-music kinds carry their own).
+function priceViolations(body: string, packages: PackageInfo[]): string[] {
+  const allowedDollars = new Set<number>();
+  for (const p of packages) {
+    allowedDollars.add(p.priceMin / 100);
+    if (p.priceMax) allowedDollars.add(p.priceMax / 100);
+  }
   const found = [...body.matchAll(/\$\s?([\d,]+)/g)].map((m) => Number(m[1].replace(/,/g, "")));
   // Quoting the client's own budget back ("your $2,000 budget") is fine when it
   // appears in their message — handled per-scenario via the lead message check.
@@ -43,8 +43,14 @@ async function runScenario(s: Scenario): Promise<Failure | null> {
   let draft: DraftResult;
   try {
     draft = await generateDraft(s.request);
-  } catch (err) {
-    return { scenario: s.name, problems: [], safetyProblems: [`threw: ${(err as Error).message}`], latencyMs: performance.now() - started };
+  } catch {
+    // Regenerate-once-then-fail-loudly (repo grounding rule): a transient
+    // "could not parse" from the cheap tier is variance, not a verdict.
+    try {
+      draft = await generateDraft(s.request);
+    } catch (err) {
+      return { scenario: s.name, problems: [], safetyProblems: [`threw twice: ${(err as Error).message}`], latencyMs: performance.now() - started };
+    }
   }
   const latencyMs = performance.now() - started;
   // SAFETY problems = zero tolerance (lying to clients / breaking white-label).
@@ -69,7 +75,7 @@ async function runScenario(s: Scenario): Promise<Failure | null> {
   const clientBudgetDollars = [...(s.request.lead.message.matchAll(/\$\s?([\d,]+)/g))].map((m) =>
     Number(m[1].replace(/,/g, "")),
   );
-  const violations = priceViolations(body).filter(
+  const violations = priceViolations(body, s.request.packages).filter(
     (v) => !clientBudgetDollars.includes(Number(v.slice(1))),
   );
   if (violations.length) safetyProblems.push(`invented price(s): ${violations.join(", ")}`);

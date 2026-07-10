@@ -33,7 +33,15 @@ export function rateLimit(
   return { ok: true, retryAfterSec: 0 };
 }
 
-/** Best-effort client IP from the proxy header (Render sets x-forwarded-for). */
+/**
+ * Client IP from the RIGHT-MOST x-forwarded-for hop (14.3). The left-most
+ * entry is client-supplied and trivially spoofable ("X-Forwarded-For: fake"
+ * → our proxy appends the real IP after it); with exactly one trusted proxy
+ * in front (Render), the right-most hop is the address the proxy itself saw.
+ */
 export function clientIp(req: { headers: { get(name: string): string | null } }): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const xff = req.headers.get("x-forwarded-for");
+  if (!xff) return "unknown";
+  const hops = xff.split(",").map((h) => h.trim()).filter(Boolean);
+  return hops[hops.length - 1] ?? "unknown";
 }

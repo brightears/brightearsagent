@@ -1,0 +1,25 @@
+# Minimal CI tripwire (P7.9, audit 2026-07): Render auto-deploys `main` to the
+# URL customers use — 400+ green local tests are worthless as a safety net if
+# nothing runs them before a push lands. This doesn't gate the deploy (Render
+# doesn't wait for it); it's the loud red X that catches a bad push within
+# minutes. Deploy gating can come later via Render's "wait for CI" setting.
+name: CI
+
+on:
+  push:
+    branches: [main, "build/**"]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npx vitest run

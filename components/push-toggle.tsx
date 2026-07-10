@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { savePushSubscription, removePushSubscription } from "@/app/actions/settings";
+import { removePushSubscription } from "@/app/actions/settings";
+import { enablePush, getPushSnapshot } from "@/lib/push-client";
 import { buttonStyles } from "@/components/ui";
 
 /** Friendly card row for every push state — colored dot + plain-words microcopy (docs/DESIGN.md).
@@ -31,16 +32,6 @@ function StatusRow({
   );
 }
 
-/** Web-push wants the VAPID public key as raw bytes, not base64url. */
-function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
-  return output;
-}
-
 type PushState =
   | "loading" // checking what this browser already has
   | "unsupported" // no service worker / Push API here
@@ -56,23 +47,9 @@ export function PushToggle() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        if (!cancelled) setState("unsupported");
-        return;
-      }
-      if (Notification.permission === "denied") {
-        if (!cancelled) setState("denied");
-        return;
-      }
-      try {
-        const reg = await navigator.serviceWorker.getRegistration("/sw.js");
-        const sub = await reg?.pushManager.getSubscription();
-        if (!cancelled) setState(sub ? "subscribed" : "idle");
-      } catch {
-        if (!cancelled) setState("idle");
-      }
-    })();
+    getPushSnapshot().then((snap) => {
+      if (!cancelled) setState(snap);
+    });
     return () => {
       cancelled = true;
     };
@@ -82,37 +59,7 @@ export function PushToggle() {
     setState("busy");
     setErrorMsg(null);
     try {
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidKey) {
-        setErrorMsg("Push isn't configured on this server yet (missing VAPID key).");
-        setState("error");
-        return;
-      }
-
-      await navigator.serviceWorker.register("/sw.js");
-      const reg = await navigator.serviceWorker.ready;
-
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setState("denied");
-        return;
-      }
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-
-      const json = sub.toJSON();
-      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-        throw new Error("Browser returned an incomplete subscription");
-      }
-      const result = await savePushSubscription({
-        endpoint: json.endpoint,
-        keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
-      });
-      if (!result.ok) throw new Error(result.error);
-      setState("subscribed");
+      setState(await enablePush());
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong enabling push.");
       setState("error");

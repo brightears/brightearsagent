@@ -12,6 +12,7 @@
 // reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
 // guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
 import type { Metadata } from "next";
+import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -26,11 +27,10 @@ import { DemoWidget } from "@/components/demo-widget";
 import { KineticHeadline, Marquee, RevealOnScroll } from "@/components/motion";
 import { Kicker } from "@/components/ui";
 
-export const metadata: Metadata = {
-  title: "Bright Ears — never miss a gig you never knew existed",
-  description:
-    "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
-};
+export const metadata: Metadata = pageMeta(
+  "Bright Ears — never miss a gig you never knew existed",
+  "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
+);
 
 const TRUST_LINE = "Month-to-month · cancel anytime · setup in minutes";
 
@@ -76,7 +76,7 @@ const TRAVEL_MODE = [
 const PRICING_TEASER = [
   { name: "Starter", price: "$25", l: "Answers up to 15 of your inquiries a month · hunts your 1 home city · you approve every send" },
   { name: "Pro", price: "$79", l: "Up to 60 inquiries a month · hunts up to 3 cities · auto-sends from the sources you trust" },
-  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · multi-performer routing" },
+  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · auto-send at full stretch" },
 ];
 
 const STEPS = [
@@ -158,6 +158,17 @@ function GradWord({ children }: { children: React.ReactNode }) {
 export default function HomePage() {
   return (
     <div className="overflow-x-clip">
+      {/* Structured data (P6.12): the HOME page had zero JSON-LD while
+          secondary pages had plenty. SoftwareApplication with offers is
+          eligible for price rich results. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd()) }}
+      />
       {/* ---------- Hero — ink stage, rings, kinetic headline, collage poster ---------- */}
       <section className="relative isolate overflow-hidden">
         <RingsBackdrop />
@@ -206,7 +217,9 @@ export default function HomePage() {
               </div>
               <p className="mt-6 text-sm text-cream/65">{TRUST_LINE}</p>
             </div>
-            <HeroCollage />
+            <div className="hidden sm:block">
+              <HeroCollage />
+            </div>
           </div>
         </div>
       </section>

@@ -26,10 +26,10 @@ enum PerformerKind {
 }
 
 enum PlanTier {
-  TRIAL   // 14 days, full capability, no card
-  STARTER // $25/mo — complete assistant: 15 leads/mo, 1 performer, approve every send
-  PRO     // $79/mo — 60 leads/mo + per-source auto-send autopilot
-  STUDIO  // $149/mo — 150 leads/mo, multi-performer routing, team seats
+  TRIAL   // free / not subscribed — agent paused until a paid plan (no auto trial; fails closed)
+  STARTER // $25/mo — complete agent: 15 inquiries/mo, approve every send
+  PRO     // $79/mo — 60 inquiries/mo + per-source auto-send + 3 cities
+  STUDIO  // $149/mo — 150 inquiries/mo, auto-send, all cities (roster lands with P13)
 }
 
 enum LeadSource {
@@ -40,6 +40,7 @@ enum LeadSource {
   BARK
   GIGSALAD
   THUMBTACK
+  VENUE_OUTREACH // a venue replying to a Hunt pitch (P8.3 reply capture)
   OTHER
 }
 
@@ -61,6 +62,7 @@ enum MessageDirection {
 
 enum DraftStatus {
   PENDING
+  SENDING // 10.10: claimed for send (atomic PENDING->SENDING) - closes the double-send window
   APPROVED
   EDITED    // approved with owner edits (edits feed voice tuning)
   REJECTED
@@ -91,6 +93,16 @@ model Business {
   voiceUsesEmoji       Boolean? // null = unspecified, true = occasional, false = never
   voicePhrases         String? // words/expressions they lean on
   autoSendSources      LeadSource[]  @default([]) // sources the owner trusts for auto-send
+  // 10.3: sources the owner said "keep reviewing" to when the graduation
+  // prompt offered auto-send - remembered so the ask never nags twice.
+  autoSendDeclinedSources LeadSource[] @default([])
+  // Gmail forwarding-confirmation capture (P2, July 2026): the provider's
+  // verification email is intercepted BEFORE parse/triage (the LLM fallback
+  // reads it as an automated notice and ignores it — the artist could never
+  // approve forwarding self-serve) and surfaced in onboarding step 5.
+  forwardingConfirmUrl  String?
+  forwardingConfirmCode String?
+  forwardingConfirmAt   DateTime?
   // Smart-attachment autonomy: auto-attach the press kit / a quote when the
   // drafter detects the client wants one. Default off (a binding quote is opt-in).
   autoAttachProfile    Boolean       @default(false)
@@ -129,7 +141,12 @@ model Business {
   // that replaced the event-typed package builder. All fees in Business.currency.
   gigTypes       String[] @default([]) // "one-off" and/or "residency" (both = both present)
   acceptsTravel  Boolean  @default(false) // open to gigs beyond service cities
-  residencyRate  Int? // cents — per-night going rate for a regular slot (≠ one-off feeFloor)
+  residencyRate  Int? // cents — going rate for a regular slot (≠ one-off feeFloor)
+  // Founder preview (July 2026): rate UNITS, so a quote can never be read two
+  // ways. "night" (default) or "hour" for the residency rate; oneOffHours =
+  // how many hours the one-off floor covers (null = unspecified).
+  residencyRateUnit String @default("night")
+  oneOffHours    Int?
   // Pitching fields (the ammunition):
   headline     String? // <=80 chars, the one-liner venues read first
   bio          String? // 40-120 words, artist voice
@@ -221,6 +238,10 @@ model Gig {
   endTime     String?
   title       String
   venue       String?
+  // 11.1 money-loop-lite: what the gig is worth, minor units in the artist's
+  // own currency (Business.currency). Captured optionally at "Mark booked" -
+  // powers booked-value receipts (Results, weekly report, ROI email).
+  value       Int?
   leadId      String?    @unique
   lead        Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
@@ -235,6 +256,11 @@ model Lead {
   updatedAt    DateTime   @updatedAt
   source       LeadSource
   status       LeadStatus @default(NEW)
+  // Reply capture (P8.3): when a venue replies to a Hunt pitch, the
+  // conversation enters THIS pipeline as a Lead (ADR-004: replies merge into
+  // the existing close flow) — venueId links it back to the Hunt card.
+  venueId      String?
+  sourceVenue  Venue?     @relation(fields: [venueId], references: [id], onDelete: SetNull)
   // Parsed couple/client details (all nullable — parser fills what it finds)
   clientName   String?
   clientEmail  String?
@@ -292,12 +318,28 @@ model Draft {
   editedBody   String? // owner's edited version (feeds voice tuning)
   decidedAt    DateTime?
   expiresAt    DateTime? // stale drafts expire (event passed, lead dead)
+  // 10.4 "sending soon" buffer: autonomous sends (auto-send replies, autopilot
+  // follow-ups) schedule here instead of firing instantly - the owner gets a
+  // window to Hold; the sequence tick fires whatever elapsed. Null = manual.
+  scheduledSendAt DateTime?
   isFollowUp   Boolean     @default(false)
+  // 11.2: a booking-confirmation draft - the ONE draft allowed to send on a
+  // BOOKED lead (deterministic template, carries bookingLinkUrl + quote PDF).
+  isConfirmation Boolean   @default(false)
   sequenceStep Int?
   // Drafter intent flags (June 2026) — did the inquiry ask for a profile / a
   // price? Drives the attach prompts + auto-attach autonomy.
   wantsProfile Boolean     @default(false)
   wantsQuote   Boolean     @default(false)
+  // P15 review: set when the AGENT sent this itself (auto-send / autopilot /
+  // scheduled buffer). Keeps the graduation prompt honest — "you approved N
+  // without changing a word" must count only OWNER approvals, never the
+  // agent's own autonomous sends.
+  autoSent     Boolean     @default(false)
+  // Draft-aging re-ping (P4.3, July 2026): stamped when the one-and-only
+  // "still waiting" nudge went out, ~4h after the draft was created. One push
+  // per draft was fragile for people who work nights; more than two is spam.
+  agingPingAt  DateTime?
   message      Message?
 
   @@index([leadId, status])
@@ -400,6 +442,7 @@ model Venue {
   id                 String      @id @default(cuid())
   businessId         String
   business           Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  leads              Lead[] // reply-capture conversations (P8.3)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   name               String
@@ -429,6 +472,15 @@ model Venue {
   caution            String? // <=1 plain-language caution
   lastSignalAt       DateTime?
   pitchedAt          DateTime?
+  // Reply capture (P8.3): stamped when the venue's FIRST reply lands in the
+  // pipeline — replies/sent is the 10.9 beta-gate number.
+  repliedAt          DateTime?
+  // 12.4 residency play kit: the owner's private field notes on this venue -
+  // names met, visits, vibe. Never leaves the dashboard, never enters a pitch.
+  staffNotes         String?
+  // 12.4: stamped when the 180-day re-touch arc returns a silent PITCHED
+  // venue to the feed as "warm again" (fair to knock twice).
+  retouchedAt        DateTime?
   suppressedReason   String?
   // Travel Mode: the TravelWindow this venue was discovered for (null = a
   // home-base hunt). Lets the feed label travel finds ("Travel · Lisbon") and
@@ -484,6 +536,12 @@ model VenuePitch {
   body       String // clean editable copy — the jurisdiction footer is NEVER stored here
   language   String           @default("en")
   status     VenuePitchStatus @default(PENDING)
+  // HOT follow-up (P8.4): the one polite bump ~6 days after a HOT pitch went
+  // out unanswered. Self-relation: a child pitch points at the pitch it bumps;
+  // "no follow-up yet" = no child exists. WARM/SEED never get one (10.2c law).
+  followUpOfId String?
+  followUpOf   VenuePitch?  @relation("PitchFollowUp", fields: [followUpOfId], references: [id], onDelete: SetNull)
+  followUps    VenuePitch[] @relation("PitchFollowUp")
   // 10.2c: temperature SNAPSHOT at draft time — drives the daily caps count
   // (lib/outreach/caps.ts) and the sequencing guard: WARM/SEED pitches must
   // NEVER enter any follow-up sequence (one polite intro is the whole play).
@@ -616,4 +674,13 @@ model ProcessedStripeEvent {
   id          String   @id // Stripe event.id (evt_...)
   type        String // event.type, for debugging/audit
   processedAt DateTime @default(now())
+}
+
+// Ops heartbeat stamps (P7.4): each cron upserts its key at tick start so
+// /api/health can flag a silently-dead cron — the sequences tick IS the
+// product ("follow-up until booked-or-dead"), and before this a stopped cron
+// looked green everywhere (the Render wrapper even exited 0 on HTTP failure).
+model OpsStamp {
+  key String   @id // "cron:sequences" | "cron:discovery" | "cron:weekly-report" | "cron:margin-guardrail"
+  at  DateTime
 }

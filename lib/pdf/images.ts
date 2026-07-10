@@ -27,7 +27,9 @@ function isPrivateIPv4(host: string): boolean {
 }
 
 export function isBlockedHost(hostname: string): boolean {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ""); // strip IPv6 brackets
+  let h = hostname.toLowerCase().replace(/^\[|\]$/g, ""); // strip IPv6 brackets
+  // IPv4-mapped IPv6 (::ffff:10.0.0.1) hides a v4 address — unwrap it (14.4).
+  h = h.replace(/^::ffff:/, "");
   if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) {
     return true;
   }
@@ -35,6 +37,33 @@ export function isBlockedHost(hostname: string): boolean {
   if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
   if (isPrivateIPv4(h)) return true;
   return false;
+}
+
+/**
+ * DNS re-check (14.4): a harmless-looking NAME can resolve straight to a
+ * private/metadata address — resolve every A/AAAA record and re-run the
+ * same blocklist against the actual IPs. Unresolvable = don't fetch.
+ * Injectable resolver for tests.
+ */
+export async function resolvesToBlockedIp(
+  hostname: string,
+  lookupFn?: (host: string) => Promise<{ address: string }[]>,
+): Promise<boolean> {
+  // Literal IPs were already judged by isBlockedHost — only names resolve.
+  if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return false;
+  try {
+    const lookup =
+      lookupFn ??
+      (async (host: string) => {
+        const dns = await import("node:dns/promises");
+        return dns.lookup(host, { all: true, verbatim: true });
+      });
+    const addrs = await lookup(hostname);
+    if (addrs.length === 0) return true;
+    return addrs.some((a) => isBlockedHost(a.address));
+  } catch {
+    return true; // can't resolve = can't verify = don't fetch
+  }
 }
 
 export async function fetchImageDataUri(url: string): Promise<string | null> {
@@ -46,6 +75,16 @@ export async function fetchImageDataUri(url: string): Promise<string | null> {
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
   if (isBlockedHost(parsed.hostname)) return null;
+  // 14.4: the hostname LOOKS public — verify what it actually resolves to.
+  // KNOWN LIMITATION (P15 review, accepted): this is a check-then-fetch, and
+  // fetch() re-resolves the name, so a DNS-rebinding attacker who flips the
+  // record between our lookup and fetch's could still reach an internal IP.
+  // Fully closing it needs connection-level IP pinning (a custom undici
+  // dispatcher/lookup), which Next's global fetch doesn't expose cleanly. The
+  // exposure is bounded: the fetch is GET-only, no-redirect, 6s-capped, and
+  // only image/* under 6MB is ever read — no response body is surfaced to the
+  // attacker, so this is a low-value blind SSRF, not data exfiltration.
+  if (await resolvesToBlockedIp(parsed.hostname)) return null;
 
   try {
     const res = await fetch(parsed, { signal: AbortSignal.timeout(6000), redirect: "manual" });

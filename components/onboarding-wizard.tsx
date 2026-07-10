@@ -17,6 +17,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import Link from "next/link";
 import {
@@ -26,7 +27,8 @@ import {
   saveBusinessBasics,
   saveVoiceSamples,
 } from "@/app/actions/onboarding";
-import { buttonStyles, BrightEarsLogo, Card } from "@/components/ui";
+import { startCheckout } from "@/app/actions/billing";
+import { buttonStyles, BrightEarsLogo, Card, CheckMark as UiCheckMark } from "@/components/ui";
 import { RingsBackdrop, StickerChip } from "@/components/collage";
 import { CopyButton } from "@/components/settings-form";
 import { PhotoUploader } from "@/components/photo-uploader";
@@ -36,9 +38,14 @@ import type { PerformerKind } from "@/app/generated/prisma/enums";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
+// Stable no-op subscription for useSyncExternalStore reads of browser-only,
+// never-changing values (e.g. the device timezone). Module-scope so the store
+// never resubscribes across renders.
+const subscribeToNothing = () => () => {};
+
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputStyles =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 // ---------------------------------------------------------------------------
@@ -102,6 +109,9 @@ export interface WizardBusiness {
   ownerName: string;
   performerKind: PerformerKind;
   country: string;
+  /** Home base = serviceCities[0]; the wizard collects the first one so the
+   *  Hunt is never structurally idle. More cities live in the Control Room. */
+  homeCity: string;
   timezone: string;
   websiteUrl: string | null;
   voiceSamples: string | null;
@@ -135,7 +145,9 @@ export interface WizardProfile {
   gigTypes: string[]; // "one-off" / "residency"
   acceptsTravel: boolean;
   feeFloor: string; // whole currency units (one-off floor)
-  residencyRate: string; // whole currency units (per-night residency rate)
+  residencyRate: string; // whole currency units (per-night/per-hour residency rate)
+  residencyRateUnit: "night" | "hour";
+  oneOffHours: string; // what the one-off floor covers, e.g. "4"
 }
 
 // Per-performer-kind copy for step 2 — so a magician never sees "open format,
@@ -310,23 +322,77 @@ const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
 // glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
 // EMOJI IN UI). Inherits color via currentColor; size with className per spot.
-function CheckMark({ className = "" }: { className?: string }) {
+/** Live license flags computed by the wizard shell from what's typed so far —
+ *  mirrors the license-critical checks in lib/profile/strength.ts (the server
+ *  truth that actually gates pitching). Shown, never enforced, here. */
+export type LicenseFlags = {
+  video: boolean;
+  photos: boolean;
+  photoCount: number;
+  bio: boolean;
+  headline: boolean;
+  genres: boolean;
+  city: boolean;
+  floor: boolean;
+  gig: boolean;
+};
+
+/**
+ * The hunting license, made visible (audit 2026-07): bio/photos/video are
+ * labelled "optional" by the form — true for finishing the wizard, false for
+ * venue pitching. This meter says exactly what unlocks the Hunt so nobody
+ * subscribes expecting pitches a locked license can't send.
+ */
+function LicenseMeter({ license }: { license: LicenseFlags }) {
+  const items: { label: string; done: boolean }[] = [
+    { label: "A performance video", done: license.video },
+    {
+      label: license.photos ? "3 photos" : `3 photos (${license.photoCount}/3)`,
+      done: license.photos,
+    },
+    { label: "A short bio", done: license.bio },
+    { label: "Your one-liner", done: license.headline },
+    { label: "Your sound / style", done: license.genres },
+    { label: "Home city", done: license.city },
+    { label: "Your fee floor", done: license.floor },
+    { label: "A gig on your calendar (step 4)", done: license.gig },
+  ];
+  const doneCount = items.filter((i) => i.done).length;
   return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-      className={className}
-    >
-      <path
-        d="M5 10.5l3.5 3.5L15 6.5"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="rounded-2xl border border-cream bg-cream/20 p-4">
+      <SectionLabel>
+        Your hunting license — {doneCount}/{items.length}
+      </SectionLabel>
+      <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
+        Everything else works without these — but the agent pitches venues in your name only once
+        they&apos;re in place. A pitch without a face or a clip gets deleted, so it won&apos;t send a
+        thin one for you.
+      </p>
+      <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center gap-2 text-sm">
+            {item.done ? (
+              <CheckMark className="size-3.5 flex-none text-brand-cyan" />
+            ) : (
+              <span
+                aria-hidden
+                className="size-3 flex-none rounded-full border-[1.5px] border-ink-stage/30"
+              />
+            )}
+            <span className={item.done ? "text-ink-stage/80" : "text-ink-stage/55"}>
+              {item.label}
+            </span>
+            <span className="sr-only">{item.done ? "— done" : "— still to add"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
+}
+
+function CheckMark({ className = "" }: { className?: string }) {
+  // Re-exported convenience: the shared glyph lives in components/ui.tsx.
+  return <UiCheckMark className={className} />;
 }
 
 function StepHeading({ step, title, blurb }: { step: number; title: string; blurb: string }) {
@@ -359,24 +425,26 @@ function StepBusiness({
   onDone,
 }: {
   initial: WizardBusiness;
-  onDone: (country: string, performerKind: PerformerKind) => void;
+  onDone: (country: string, performerKind: PerformerKind, homeCity: string) => void;
 }) {
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, fd) => {
       const country = String(fd.get("country") ?? "");
+      const homeCity = String(fd.get("homeCity") ?? "");
       const res = await saveBusinessBasics({
         name: String(fd.get("name") ?? ""),
         ownerName: String(fd.get("ownerName") ?? ""),
         performerKind: kind,
         country,
+        homeCity,
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
       });
-      // Hand the chosen country AND craft up so step 2 can label fees in the
-      // right currency (THB for Thailand) and adapt its copy to the performer
-      // kind (a magician sees magic prompts), without a page reload.
-      if (res.ok) onDone(country || initial.country, kind);
+      // Hand the chosen country, craft AND home city up so step 2 can label
+      // fees in the right currency, adapt its copy to the performer kind, and
+      // keep the license meter honest — all without a page reload.
+      if (res.ok) onDone(country || initial.country, kind, homeCity.trim() || initial.homeCity);
       return res;
     },
     null,
@@ -405,13 +473,17 @@ function StepBusiness({
 
   // Pre-select the visitor's ACTUAL timezone — the browser knows it — so a new
   // signup almost never has to open the list (a Bangkok user lands on
-  // Asia/Bangkok, not America/New_York). Set after mount so the SSR'd default
-  // doesn't cause a hydration mismatch.
-  const [tz, setTz] = useState(initial.timezone);
-  useEffect(() => {
-    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (detected && timezones.includes(detected)) setTz(detected);
-  }, [timezones]);
+  // Asia/Bangkok, not America/New_York). useSyncExternalStore's server snapshot
+  // is the saved value, so SSR markup never mismatches; the browser value only
+  // takes over after hydration, and an explicit user choice always wins.
+  const detectedTz = useSyncExternalStore(
+    subscribeToNothing,
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => initial.timezone,
+  );
+  const [tzChoice, setTzChoice] = useState<string | null>(null);
+  const tz =
+    tzChoice ?? (detectedTz && timezones.includes(detectedTz) ? detectedTz : initial.timezone);
 
   // Keep an already-saved country selectable even if it's not in the list
   // (e.g. a legacy/excluded code on an existing business) so editing never
@@ -491,7 +563,7 @@ function StepBusiness({
             id="ob-tz"
             name="timezone"
             value={tz}
-            onChange={(e) => setTz(e.target.value)}
+            onChange={(e) => setTzChoice(e.target.value)}
             className={inputStyles}
           >
             {tzGroups.map(([region, zones]) => (
@@ -509,6 +581,22 @@ function StepBusiness({
             your June 14th.
           </p>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="ob-city" className={labelStyles}>Where are you based?</label>
+        <input
+          id="ob-city"
+          name="homeCity"
+          required
+          defaultValue={initial.homeCity}
+          placeholder="Bangkok · Manchester · Austin"
+          className={inputStyles}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          Your home city — the first place the agent hunts for venues and gigs. You can add more
+          cities (and travel plans) later in the Control room.
+        </p>
       </div>
 
       <div>
@@ -559,6 +647,7 @@ function StepProfile({
   performerKind,
   currency,
   uploadsEnabled,
+  license,
   onChange,
   onDone,
   onBack,
@@ -567,6 +656,7 @@ function StepProfile({
   performerKind: PerformerKind;
   currency: string;
   uploadsEnabled: boolean;
+  license: LicenseFlags;
   onChange: Dispatch<SetStateAction<WizardProfile>>;
   onDone: () => void;
   onBack: () => void;
@@ -614,6 +704,8 @@ function StepProfile({
         acceptsTravel: profile.acceptsTravel,
         feeFloor: profile.feeFloor,
         residencyRate: doesResidency ? profile.residencyRate : "",
+        residencyRateUnit: doesResidency ? profile.residencyRateUnit : "night",
+        oneOffHours: profile.oneOffHours,
       });
       if (!res.ok) return setError(res.error ?? "Could not save — try again");
       onDone();
@@ -760,19 +852,48 @@ function StepProfile({
             <p className="mt-1 text-xs text-ink-stage/50">
               The lowest you&apos;ll take a one-off for. The agent never pitches below it.
             </p>
+            <div className="mt-2">
+              <label htmlFor="ob-hours" className={labelStyles}>Covers up to (hours)</label>
+              <input
+                id="ob-hours"
+                inputMode="numeric"
+                value={profile.oneOffHours}
+                onChange={(e) => set("oneOffHours", e.target.value)}
+                placeholder="4"
+                className={inputStyles}
+              />
+              <p className="mt-1 text-xs text-ink-stage/50">
+                What that price includes — quotes say it, so nobody argues later.
+              </p>
+            </div>
           </div>
           {doesResidency && (
             <div>
               <label htmlFor="ob-res" className={labelStyles}>Residency rate ({currency})</label>
-              <input
-                id="ob-res"
-                inputMode="numeric"
-                value={profile.residencyRate}
-                onChange={(e) => set("residencyRate", e.target.value)}
-                placeholder="800"
-                className={inputStyles}
-              />
-              <p className="mt-1 text-xs text-ink-stage/50">Your going per-night rate for a regular slot.</p>
+              <div className="flex gap-2">
+                <input
+                  id="ob-res"
+                  inputMode="numeric"
+                  value={profile.residencyRate}
+                  onChange={(e) => set("residencyRate", e.target.value)}
+                  placeholder="800"
+                  className={`${inputStyles} min-w-0 flex-1`}
+                />
+                <select
+                  aria-label="Residency rate unit"
+                  value={profile.residencyRateUnit}
+                  onChange={(e) => set("residencyRateUnit", e.target.value as "night" | "hour")}
+                  // inputStyles carries w-full — on a flex row that crushes the
+                  // rate field to a sliver (founder preview catch). Own class.
+                  className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
+                >
+                  <option value="night">per night</option>
+                  <option value="hour">per hour</option>
+                </select>
+              </div>
+              <p className="mt-1 text-xs text-ink-stage/50">
+                Your going rate for a regular slot — pick the unit so it can&apos;t be read two ways.
+              </p>
             </div>
           )}
         </div>
@@ -805,6 +926,8 @@ function StepProfile({
           </p>
         </div>
       </div>
+
+      <LicenseMeter license={license} />
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
@@ -871,6 +994,30 @@ function StepVoice({
     try {
       const res = await saveVoiceSamples({
         samples: joined,
+        tones: voice.tones,
+        greeting: voice.greeting,
+        signoff: voice.signoff,
+        emoji: voice.emoji,
+        phrases: voice.phrases,
+      });
+      if (!res.ok) return setError(res.error ?? "Could not save — try again");
+      onDone();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // "Skip for now": performers without old replies at hand were bouncing off
+  // the 20-character sample wall — the top of the whole funnel. The default
+  // voice keeps drafts neutral-professional; the strength meter nags for real
+  // samples later. Tone chips and the quick-check answers still count.
+  async function handleSkip() {
+    setError(null);
+    setPending(true);
+    try {
+      const res = await saveVoiceSamples({
+        samples: "",
+        skipped: true,
         tones: voice.tones,
         greeting: voice.greeting,
         signoff: voice.signoff,
@@ -1011,10 +1158,24 @@ function StepVoice({
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <BackButton onBack={onBack} />
-        <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Next: your calendar →"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={pending}
+            className="text-sm font-semibold text-ink-stage/45 underline-offset-2 hover:text-ink-stage/70 hover:underline"
+          >
+            Skip for now
+          </button>
+          <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
+            {pending ? "Saving…" : "Next: your calendar →"}
+          </button>
+        </div>
       </div>
+      <p className="text-right text-xs text-ink-stage/40">
+        No old replies at hand? Skip — drafts start in a clean professional tone, and you can paste
+        real ones any time in the Control room.
+      </p>
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
     </div>
   );
@@ -1128,12 +1289,12 @@ function StepCalendar({
 
       <div className="space-y-2">
         {rows.map((row, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <input
               type="date"
               value={row.date}
               onChange={(e) => updateRow(i, { date: e.target.value })}
-              className={`${inputStyles} w-40 flex-none`}
+              className={`${inputStyles} sm:w-40 sm:flex-none`}
               aria-label={`Booked date ${i + 1}`}
             />
             <input
@@ -1336,15 +1497,25 @@ function StepConnect({
   leadAddress,
   leadDetected,
   tookTooLong,
+  licenseReady,
+  forwardingConfirm,
+  chosenPlan,
   onBack,
 }: {
   leadAddress: string;
   leadDetected: boolean;
   /** ~90s elapsed on this step with no lead detected (audit C2 fallback). */
   tookTooLong: boolean;
+  /** Hunting license complete (client-side view) — gates the finale's promise. */
+  licenseReady: boolean;
+  /** Gmail's forwarding-approval link/code, once its verification email landed. */
+  forwardingConfirm: { url: string | null; code: string | null } | null;
+  /** Plan picked on the pricing page — the finale opens checkout for it. */
+  chosenPlan: "STARTER" | "PRO" | "STUDIO" | null;
   onBack: () => void;
 }) {
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
+  const [checkoutPending, setCheckoutPending] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -1379,13 +1550,55 @@ function StepConnect({
         </p>
       </div>
 
+      {/* Gmail's forwarding approval — the one click self-serve activation used
+          to dead-end on (the pipeline now catches the verification email the
+          moment it arrives; the poll surfaces it here live). */}
+      {forwardingConfirm && (
+        <div className="rounded-2xl border-2 border-brand-cyan bg-white p-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <StickerChip tone="ink" rotate={-2}>
+              Gmail confirmation caught
+            </StickerChip>
+          </div>
+          <p className="mt-3 font-bold text-ink-stage">One click left — approve the forwarding</p>
+          <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
+            Gmail sent its verification to your assistant and we caught it. Approve it and every
+            inquiry flows in on its own. Already clicked it? You&apos;re done — send yourself a test
+            below.
+          </p>
+          {forwardingConfirm.url ? (
+            <a
+              href={forwardingConfirm.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-3 inline-block ${buttonStyles.primary} text-sm`}
+            >
+              Approve forwarding in Gmail →
+            </a>
+          ) : (
+            <p className="mt-3 text-sm text-ink-stage/70">
+              Open the &quot;Gmail Forwarding Confirmation&quot; email Gmail also sent to your own
+              inbox and click its link.
+            </p>
+          )}
+          {forwardingConfirm.code && (
+            <p className="mt-3 text-sm text-ink-stage/70">
+              Or paste this code into Gmail&apos;s forwarding settings:{" "}
+              <span className="rounded-md bg-cream/60 px-2 py-0.5 font-mono text-xs font-bold text-ink-stage">
+                {forwardingConfirm.code}
+              </span>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Primary action + live proof (or the celebration once a lead lands).
           The address lives HERE, at the moment it's needed. */}
       {leadDetected ? (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             <StickerChip tone="cream" rotate={-4}>
-              First inquiry caught ✓
+              First inquiry caught
             </StickerChip>
             <StickerChip tone="ink" rotate={3}>
               Now playing — your reply
@@ -1395,16 +1608,44 @@ function StepConnect({
             Your first inquiry just landed — it works.
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            We caught it and read it. Your assistant is set up and ready to reply in your voice and hunt
-            venues for you — choose a plan to switch it on, and it goes to work on this one and every
-            one after.
+            {licenseReady ? (
+              <>
+                We caught it and read it. Your assistant is set up and ready to reply in your voice
+                and hunt venues for you — choose a plan to switch it on, and it goes to work on this
+                one and every one after.
+              </>
+            ) : (
+              <>
+                We caught it and read it. Choose a plan and your assistant answers this inquiry — and
+                every one after — in your voice. Venue pitching unlocks once your hunting license is
+                complete (the checklist on the “Who you are” step: video, photos, a calendar gig).
+              </>
+            )}
           </p>
-          <Link
-            href="/dashboard/settings#billing"
-            className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
-          >
-            Choose your plan →
-          </Link>
+          {chosenPlan ? (
+            // They already chose on the pricing page — open checkout for that
+            // plan directly; no re-deciding at the activation moment (P5.5).
+            <button
+              type="button"
+              disabled={checkoutPending}
+              onClick={() => {
+                setCheckoutPending(true);
+                void startCheckout(chosenPlan).catch(() => setCheckoutPending(false));
+              }}
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {checkoutPending
+                ? "Opening checkout…"
+                : `Activate ${chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()} →`}
+            </button>
+          ) : (
+            <Link
+              href="/dashboard/settings#billing"
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
+            >
+              Choose your plan →
+            </Link>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
@@ -1457,13 +1698,13 @@ function StepConnect({
           {provider === "gmail" ? (
             <ol className="list-decimal space-y-1.5 pl-5">
               <li>
-                Gmail → gear ⚙ → <strong>See all settings</strong> →{" "}
+                Gmail → the gear (Settings) → <strong>See all settings</strong> →{" "}
                 <strong>Forwarding and POP/IMAP</strong>.
               </li>
               <li>
                 <strong>Add a forwarding address</strong> → paste the address above. Gmail sends a
-                confirmation — it arrives in your Bright Ears Pipeline within a minute; open it there
-                and click the link.
+                confirmation — we catch it, and an <strong>approval card appears right here</strong>{" "}
+                within a minute. Click its link.
               </li>
               <li>
                 Choose <strong>“Forward a copy of incoming mail to”</strong> your address → keep
@@ -1474,7 +1715,7 @@ function StepConnect({
           ) : (
             <ol className="list-decimal space-y-1.5 pl-5">
               <li>
-                Outlook on the web → gear ⚙ → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
+                Outlook on the web → the gear (Settings) → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
                 <strong>Add new rule</strong>.
               </li>
               <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
@@ -1500,15 +1741,30 @@ function StepConnect({
         </Walkthrough>
       </div>
 
-      <div className="flex items-center justify-between gap-3 pt-2">
+      {/* Confident exit (founder preview): forwarding lives in Gmail — there is
+          nothing to save here, and the page must SAY so. One primary Done for
+          people who just set it up; the quiet skip stays for people who didn't. */}
+      {!leadDetected && (
+        <p className="pt-1 text-sm text-ink-stage/60">
+          Set the forward up already? You’re done — there’s nothing to save here. Your lead address
+          is live, and the moment the first inquiry (or Gmail’s confirmation) arrives, everything
+          switches on by itself.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <BackButton onBack={onBack} />
         {!leadDetected && (
-          <Link
-            href="/dashboard"
-            className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
-          >
-            I’ll set this up later — take me to my dashboard
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
+            >
+              I’ll set this up later
+            </Link>
+            <Link href="/dashboard" className={buttonStyles.primary}>
+              Done — open my dashboard
+            </Link>
+          </div>
         )}
       </div>
     </div>
@@ -1524,11 +1780,14 @@ export function OnboardingWizard({
   business,
   initialProfile,
   uploadsEnabled,
+  chosenPlan = null,
 }: {
   initialStep: number;
   business: WizardBusiness;
   initialProfile: WizardProfile;
   uploadsEnabled: boolean;
+  /** Plan picked on the pricing page — the finale opens checkout for it (P5.5). */
+  chosenPlan?: "STARTER" | "PRO" | "STUDIO" | null;
 }) {
   const [step, setStep] = useState(() =>
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
@@ -1556,13 +1815,38 @@ export function OnboardingWizard({
     { date: "", title: "" },
   ]);
   const [gigsSaved, setGigsSaved] = useState(0);
+  const [homeCity, setHomeCity] = useState(business.homeCity);
   const [leadDetected, setLeadDetected] = useState(false);
+  // Gmail's forwarding-approval link, once its verification email hits the
+  // pipeline (intercepted + stored server-side; surfaced by the verify poll).
+  const [forwardingConfirm, setForwardingConfirm] = useState<{
+    url: string | null;
+    code: string | null;
+  } | null>(null);
   // After ~90s of polling on step 5 with no lead detected, surface a calm
   // fallback (audit C2) so the spinner doesn't appear to hang forever. The live
   // verifier keeps running underneath and still flips to success if a lead lands.
   const [tookTooLong, setTookTooLong] = useState(false);
 
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
+
+  // The hunting license, computed live from what's typed so far — the display
+  // twin of lib/profile/strength.ts (server truth). Drives the step-2 meter
+  // and the honest step-5 finale.
+  const license: LicenseFlags = {
+    video: profile.videoLinks.trim().length > 0,
+    photos: profile.photoUrls.length >= 3,
+    photoCount: profile.photoUrls.length,
+    bio: profile.bio.trim().length > 0,
+    headline: profile.headline.trim().length > 0,
+    genres: profile.genres.trim().length > 0,
+    city: homeCity.trim().length > 0,
+    floor: profile.feeFloor.trim().length > 0,
+    gig: gigsSaved > 0,
+  };
+  const licenseReady = Object.entries(license).every(
+    ([key, value]) => key === "photoCount" || value === true,
+  );
 
   function goTo(next: number) {
     setStep(Math.min(Math.max(next, 0), STEPS.length - 1));
@@ -1579,8 +1863,13 @@ export function OnboardingWizard({
       try {
         const res = await fetch("/api/onboarding/verify", { cache: "no-store" });
         if (!res.ok) return;
-        const data = (await res.json()) as { verified: boolean };
-        if (!cancelled && data.verified) setLeadDetected(true);
+        const data = (await res.json()) as {
+          verified: boolean;
+          forwardingConfirmation?: { url: string | null; code: string | null } | null;
+        };
+        if (cancelled) return;
+        if (data.forwardingConfirmation) setForwardingConfirm(data.forwardingConfirmation);
+        if (data.verified) setLeadDetected(true);
       } catch {
         // Network blip — the next poll will catch it.
       }
@@ -1669,9 +1958,10 @@ export function OnboardingWizard({
           {step === 0 && (
             <StepBusiness
               initial={business}
-              onDone={(c, k) => {
+              onDone={(c, k, city) => {
                 setCountry(c);
                 setPerformerKind(k);
+                setHomeCity(city);
                 goTo(1);
               }}
             />
@@ -1682,6 +1972,7 @@ export function OnboardingWizard({
               performerKind={performerKind}
               currency={currency}
               uploadsEnabled={uploadsEnabled}
+              license={license}
               onChange={setProfile}
               onDone={() => goTo(2)}
               onBack={() => goTo(0)}
@@ -1713,6 +2004,9 @@ export function OnboardingWizard({
               leadAddress={leadAddress}
               leadDetected={leadDetected}
               tookTooLong={tookTooLong}
+              licenseReady={licenseReady}
+              forwardingConfirm={forwardingConfirm}
+              chosenPlan={chosenPlan}
               onBack={() => goTo(3)}
             />
           )}

@@ -18,6 +18,9 @@ import {
   pickVenueSiteUrl,
   runContactPass,
   type ContactDeps,
+  CONTACT_PATHS,
+  roleLabelFor,
+  isExternalDomain,
 } from "@/lib/discovery/contacts";
 
 describe("extractEmails", () => {
@@ -82,7 +85,10 @@ describe("discoverVenueContact", () => {
     const hit = await discoverVenueContact(venue, deps);
     expect(deps.serperSearch).toHaveBeenCalledTimes(1);
     expect(deps.serperSearch).toHaveBeenCalledWith(contactQueryFor("The Vault", "Manchester"));
-    expect(hit).toEqual({ email: "events@thevault.example", source: "venue site /contact" });
+    expect(hit).toEqual({
+      email: "events@thevault.example",
+      source: "venue site /contact — events/bookings contact",
+    });
     expect(fetched[fetched.length - 1]).toMatch(/\/contact$/); // stopped at /contact
   });
 
@@ -96,7 +102,10 @@ describe("discoverVenueContact", () => {
       },
     };
     const hit = await discoverVenueContact(venue, deps);
-    expect(hit).toEqual({ email: "bookings@thevault.example", source: "venue site /private-hire" });
+    expect(hit).toEqual({
+      email: "bookings@thevault.example",
+      source: "venue site /private-hire — events/bookings contact",
+    });
   });
 
   it("returns null when no email is on the site — NEVER guesses", async () => {
@@ -171,5 +180,28 @@ describe("runContactPass", () => {
     const where = mockDb.venue.findMany.mock.calls[0][0];
     expect(where.where).toMatchObject({ bookingEmail: null, status: "DISCOVERED", fitScore: { gte: 60 } });
     expect(where.take).toBe(5);
+  });
+});
+
+describe("right-contact improvements (P12.8)", () => {
+  it("events/booking pages come before generic contact pages", () => {
+    expect(CONTACT_PATHS.indexOf("/events")).toBeLessThan(CONTACT_PATHS.indexOf("/contact"));
+    expect(CONTACT_PATHS.indexOf("/private-hire")).toBeLessThan(CONTACT_PATHS.indexOf("/contact-us"));
+  });
+
+  it("labels roles by address class and flags external promoter domains", () => {
+    expect(roleLabelFor("events@thevault.example", "www.thevault.example")).toBe(
+      "events/bookings contact",
+    );
+    expect(roleLabelFor("info@thevault.example", "thevault.example")).toBe("general contact");
+    expect(roleLabelFor("bookings@nightpromo.example", "thevault.example")).toBe(
+      "events/bookings contact — external promoter/agency (nightpromo.example)",
+    );
+  });
+
+  it("free-mail inboxes are personal, never 'external agency'", () => {
+    expect(isExternalDomain("thevaultbar@gmail.com", "thevault.example")).toBe(false);
+    expect(isExternalDomain("bookings@nightpromo.example", "thevault.example")).toBe(true);
+    expect(isExternalDomain("events@events.thevault.example", "thevault.example")).toBe(false);
   });
 });

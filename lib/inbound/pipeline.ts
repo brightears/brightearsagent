@@ -2,18 +2,23 @@ import { db } from "@/lib/db";
 import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
 import { sourceParsers } from "@/lib/inbound/registry";
 import { parseFallback } from "@/lib/inbound/parsers/fallback";
+import { detectForwardingConfirmation } from "@/lib/inbound/forwarding-confirmation";
+import { htmlToText } from "@/lib/inbound/html-to-text";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
-import { sendDraftReply } from "@/lib/agent/send-reply";
+import { scheduleAutonomousSend } from "@/lib/agent/schedule-send";
 import { meterState } from "@/lib/billing/metering";
-import { canAutoSend } from "@/lib/inbound/auto-send";
-import { pushToBusiness } from "@/lib/push";
+import { canAutoSend, clientEmailGrounded } from "@/lib/inbound/auto-send";
+import { notifyBusiness } from "@/lib/notify";
+import { reportError } from "@/lib/report-error";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
   | { outcome: "no_tenant" }
   | { outcome: "reply_attached"; leadId: string }
   | { outcome: "ignored"; reason: string }
+  | { outcome: "forwarding_confirmation"; provider: "gmail" }
+  | { outcome: "venue_reply"; leadId: string; venueId: string }
   | { outcome: "lead_created"; leadId: string; status: "NEW" | "SPAM" };
 
 const SLUG_RE = /leads@([a-z0-9-]+)\.in\./i;
@@ -25,6 +30,13 @@ export function extractSlug(toAddress: string): string | null {
 
 /** The whole inbound path: tenant → idempotency → reply-match → parse → triage → Lead. */
 export async function processInbound(email: InboundEmail): Promise<PipelineResult> {
+  // HTML-only senders give Postmark no TextBody (10.9): strip the markup to
+  // text ONCE at the door, so parsers, triage, the thread view, and the
+  // drafter all see the words instead of an empty string.
+  if (!email.textBody.trim() && email.htmlBody) {
+    email = { ...email, textBody: htmlToText(email.htmlBody) };
+  }
+
   const slug = extractSlug(email.to);
   if (!slug) return { outcome: "no_tenant" };
 
@@ -38,6 +50,34 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       select: { id: true },
     });
     if (dupe) return { outcome: "duplicate" };
+  }
+
+  // Provider forwarding confirmations (Gmail's verification email) are the
+  // step the whole inlet hangs on — intercept BEFORE parse/triage, which
+  // would read them as automated notices and drop them. Store the approval
+  // link + code for onboarding step 5 and ping the owner on both channels.
+  const confirmation = detectForwardingConfirmation(email);
+  if (confirmation) {
+    const isNew = business.forwardingConfirmUrl !== confirmation.url;
+    await db.business.update({
+      where: { id: business.id },
+      data: {
+        forwardingConfirmUrl: confirmation.url,
+        forwardingConfirmCode: confirmation.code,
+        forwardingConfirmAt: new Date(),
+      },
+    });
+    // Redeliveries of the same confirmation don't re-ping.
+    if (isNew) {
+      await notifyBusiness(business, {
+        title: "One click left — approve Gmail forwarding",
+        body: "Gmail sent its confirmation. Approve it and every inquiry starts flowing to your assistant.",
+        url: "/onboarding",
+        emailBody:
+          "Gmail just sent the forwarding confirmation for your lead address.\n\nOpen your setup and click the approval link (it's waiting on the 'Connect your leads' step) — that's the last step before every inquiry starts answering itself.",
+      });
+    }
+    return { outcome: "forwarding_confirmation", provider: confirmation.provider };
   }
 
   // Reply-match: a known client writing back attaches to their lead and wakes it up.
@@ -68,12 +108,143 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           where: { leadId: existing.id, stoppedAt: null },
           data: { stoppedAt: new Date(), stopReason: "client_replied" },
         }),
+        // Supersede any PENDING draft (P15 review): the client just changed
+        // the conversation, so a draft that answered the OLD message must not
+        // auto-fire on its buffer AND must not block the fresh mid-thread
+        // draft (generateDraftForLead dedupes on PENDING). Expiring it clears
+        // both — the new answer is written against the full thread below.
+        db.draft.updateMany({
+          where: { leadId: existing.id, status: "PENDING" },
+          data: { status: "EXPIRED", decidedAt: new Date(), scheduledSendAt: null },
+        }),
       ]);
     } catch (err) {
       if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
       throw err;
     }
+    // Mid-thread draft (P10.8): the continue-conversation task mode answers
+    // them in the artist's voice — no re-introduction — and waits as a
+    // PENDING draft. Fire-and-forget like the NEW-lead path; the cap gate
+    // keeps drafting paused for unsubscribed/over-cap tenants (the copy
+    // promise: pause, never a surprise bill). suppressPush: the "they wrote
+    // back" ping below is THE ping — two pushes seconds apart is noise.
+    const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
+    const drafting = !meter.overCap;
+    if (drafting) {
+      const leadId = existing.id;
+      void generateDraftForLead(leadId, 0, { suppressPush: true }).catch((err) =>
+        reportError(err, { kind: "mid-thread-draft", businessId: business.id, leadId }),
+      );
+    }
+    // A prospect writing back is the closest thing to money in the pipeline —
+    // that moment used to be silent (audit 2026-07). Dual-channel, always.
+    void notifyBusiness(business, {
+      title: `They wrote back: ${existing.clientName ?? "a lead"}`,
+      body: email.subject || "Open the thread to reply while it's hot.",
+      url: `/dashboard/leads/${existing.id}`,
+      emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered).${drafting ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and reply while it's hot.`,
+    }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
+  }
+
+  // Venue reply capture (P8.3): a venue answering a Hunt pitch — pitches set
+  // Reply-To to this parse address — becomes a Lead in the EXISTING close
+  // pipeline (ADR-004: replies merge into the close flow). Only the FIRST
+  // reply lands here: the Lead it creates carries the venue's email as
+  // clientEmail, so every later message matches the reply-match branch above
+  // like any other conversation. repliedAt is the 10.9 reply-rate stamp.
+  const venue = await db.venue.findFirst({
+    where: {
+      businessId: business.id,
+      bookingEmail: { equals: email.from, mode: "insensitive" },
+      status: { in: ["PITCHED", "REPLIED", "IN_CONVERSATION"] },
+    },
+    orderBy: { pitchedAt: "desc" },
+  });
+  if (venue) {
+    // Seed the thread with the pitch we actually sent (10.8): it went out via
+    // the artist's own Gmail, so it only exists on VenuePitch — without it the
+    // lead thread starts mid-air, the owner can't see what the venue is
+    // answering, and the continue-conversation drafter would re-introduce.
+    const sentPitch = await db.venuePitch.findFirst({
+      where: { venueId: venue.id, businessId: business.id, status: "SENT" },
+      orderBy: { sentAt: "desc" },
+      select: { subject: true, editedSubject: true, body: true, editedBody: true, sentAt: true },
+    });
+    let venueLead;
+    try {
+      venueLead = await db.lead.create({
+        data: {
+          businessId: business.id,
+          source: "VENUE_OUTREACH",
+          status: "ENGAGED", // they replied to OUR outreach — already a conversation
+          venueId: venue.id,
+          clientName: venue.bookingContactName ?? venue.name,
+          clientEmail: email.from,
+          eventType: "venue booking",
+          venue: venue.name,
+          rawSubject: email.subject,
+          rawBody: email.textBody,
+          messages: {
+            create: [
+              ...(sentPitch
+                ? [
+                    {
+                      direction: "OUTBOUND" as const,
+                      subject: sentPitch.editedSubject ?? sentPitch.subject,
+                      body: sentPitch.editedBody ?? sentPitch.body,
+                      // Backdate to the real send moment so the thread reads
+                      // in order (pitch → their reply).
+                      ...(sentPitch.sentAt ? { createdAt: sentPitch.sentAt } : {}),
+                    },
+                  ]
+                : []),
+              {
+                direction: "INBOUND" as const,
+                subject: email.subject,
+                body: email.textBody,
+                fromEmail: email.from,
+                toEmail: email.to,
+                providerMessageId: email.providerMessageId,
+              },
+            ],
+          },
+        },
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
+      throw err;
+    }
+    await db.venue.update({
+      where: { id: venue.id },
+      data: {
+        status: venue.status === "PITCHED" ? "REPLIED" : "IN_CONVERSATION",
+        ...(venue.repliedAt ? {} : { repliedAt: new Date() }),
+      },
+    });
+    // Mid-thread draft (P10.8) — same continue-conversation mode as client
+    // replies; the seeded pitch above gives the drafter the real thread.
+    const venueMeter = await meterState(
+      business.id,
+      business.plan,
+      new Date(),
+      business.trialEndsAt,
+    );
+    const draftingVenueReply = !venueMeter.overCap;
+    if (draftingVenueReply) {
+      const leadId = venueLead.id;
+      void generateDraftForLead(leadId, 0, { suppressPush: true }).catch((err) =>
+        reportError(err, { kind: "mid-thread-draft", businessId: business.id, leadId }),
+      );
+    }
+    // The money moment of the whole Hunt — a venue is talking. Dual-channel.
+    void notifyBusiness(business, {
+      title: `A venue wrote back: ${venue.name}`,
+      body: email.subject || "Open the thread and keep it warm.",
+      url: `/dashboard/leads/${venueLead.id}`,
+      emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for.${draftingVenueReply ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and answer while it's hot.`,
+    }).catch(() => null);
+    return { outcome: "venue_reply", leadId: venueLead.id, venueId: venue.id };
   }
 
   // Parse: deterministic source parsers first, LLM fallback for the rest.
@@ -161,41 +332,72 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   if (!isSpam) {
     const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
     if (meter.overCap) {
-      void pushToBusiness(business.id, {
-        title: "Lead cap reached",
-        body: `${meter.used}/${meter.cap} leads this month — new inquiries are waiting. Upgrade to keep replies flowing.`,
-        url: "/dashboard/settings#billing",
-      }).catch(() => null);
-    } else if (canAutoSend(business.plan, business.autoSendSources, parsed.source)) {
-      // Auto-send autonomy (Pro+ tier capability): draft AND send without waiting
-      // for approval, but ONLY from a source the owner trusts (and never a
-      // ToS-ineligible one — guaranteed by canAutoSend). Degrades gracefully: if
-      // the send fails or is blocked (no client email, opted-out, etc.) the draft
-      // stays PENDING and the owner gets the normal "approve" ping to send it.
+      // Transition-triggered only (audit 2026-07: this fired on EVERY lead) —
+      // and the copy tells the truth per state. For a subscribed tenant the
+      // cap-crossing lead is the strongest possible upgrade evidence; for an
+      // unsubscribed one, the first inquiry of the month is the activation
+      // nudge. Both dual-channel; repeats stay silent (the dashboard banner
+      // and checklist carry the standing state).
+      const subscribed = !!business.stripeSubscriptionId;
+      const justCrossed = subscribed ? meter.used === meter.cap + 1 : meter.used === 1;
+      if (justCrossed) {
+        void notifyBusiness(business, {
+          title: subscribed ? "Your agent hit this month's cap" : "A new inquiry is waiting",
+          body: subscribed
+            ? `It answered ${meter.cap} inquiries this month — new ones are waiting. Upgrade to keep replies flowing.`
+            : "Subscribe and your agent answers it in your voice — usually within minutes.",
+          url: "/dashboard/settings#billing",
+          emailBody: subscribed
+            ? `Your agent answered ${meter.cap} inquiries this month — and more are arriving. Drafting is paused (never a surprise bill); one tap and the next tier keeps replies flowing.`
+            : "An inquiry just arrived at your lead address. Your agent is set up and paused — subscribe and it answers this one, and every one after, in your voice.",
+        }).catch(() => null);
+      }
+    } else if (
+      canAutoSend(business.plan, business.autoSendSources, parsed.source) &&
+      // P10.5: autonomy only toward a grounded reply address — an ungrounded
+      // (possibly hallucinated) clientEmail drops to the normal approve flow.
+      clientEmailGrounded({
+        clientEmail: parsed.clientEmail,
+        from: email.from,
+        textBody: email.textBody,
+        fromSourceParser,
+      })
+    ) {
+      // Auto-send autonomy (Pro+ tier capability): draft, then SCHEDULE the
+      // send behind the 15-minute "sending soon" buffer (P10.4) — never fire
+      // instantly. The owner gets a holding-state ping with a Hold path;
+      // approving early sends immediately; the sequence tick fires whatever
+      // elapsed (lib/agent/schedule-send.ts owns blocked/failure degrades).
       const clientName = lead.clientName;
       const leadId = lead.id;
       void (async () => {
         try {
           const draftId = await generateDraftForLead(leadId, 0, { suppressPush: true });
           if (!draftId) return; // deduped / closed — nothing to send
-          // autoAttach: honor the artist's auto-attach toggles + detected intent.
-          const res = await sendDraftReply({ draftId, businessId: business.id, autoAttach: true });
-          await pushToBusiness(business.id, {
-            title: res.ok
-              ? `Auto-replied: ${clientName ?? "new lead"}`
-              : `Reply ready: ${clientName ?? "new lead"}`,
-            body: res.ok
-              ? "Sent in your voice — tap to view the thread."
-              : "Tap to review and send.",
+          const at = await scheduleAutonomousSend(draftId);
+          if (!at) return; // draft already moved — its own flow notified
+          await notifyBusiness(business, {
+            title: `Sending soon: ${clientName ?? "new lead"}`,
+            body: "The reply goes out in 15 minutes — open it to read, hold, or send now.",
             url: `/dashboard/leads/${leadId}`,
+            pushOnly: true,
           }).catch(() => null);
         } catch (err) {
-          console.error(`auto-send failed for lead ${leadId}`, err);
+          // Background failure used to vanish into console.error (audit
+          // 2026-07): now the founder hears about it (rate-limited ops alert)
+          // AND the owner gets the normal action ping — the draft, if it was
+          // created, is sitting in PENDING either way.
+          void reportError(err, { kind: "auto-send", businessId: business.id, leadId });
+          await notifyBusiness(business, {
+            title: `New inquiry needs you: ${clientName ?? "new lead"}`,
+            body: "The automatic reply didn't go out — tap to review.",
+            url: `/dashboard/leads/${leadId}`,
+          }).catch(() => null);
         }
       })();
     } else {
       void generateDraftForLead(lead.id).catch((err) =>
-        console.error(`draft generation failed for lead ${lead.id}`, err),
+        reportError(err, { kind: "draft-generation", businessId: business.id, leadId: lead.id }),
       );
     }
   }

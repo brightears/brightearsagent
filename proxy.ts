@@ -40,7 +40,19 @@ if (!clerkEnabled && process.env.NODE_ENV === "production") {
 // block protected surfaces rather than expose tenant data.
 export default clerkEnabled
   ? clerkMiddleware(async (auth, req) => {
-      if (isProtected(req)) await auth.protect();
+      if (!isProtected(req)) return;
+      // "Get started" must land NEW visitors on sign-UP, not sign-in (audit
+      // 2026-07: every marketing CTA 307'd to a sign-in screen — the wrong
+      // label at peak intent). Only /onboarding gets this treatment; deep
+      // links into /dashboard remain returning-customer sign-in.
+      const { userId } = await auth();
+      const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL;
+      if (!userId && signUpUrl && req.nextUrl.pathname.startsWith("/onboarding")) {
+        const url = new URL(signUpUrl);
+        url.searchParams.set("redirect_url", req.url);
+        return NextResponse.redirect(url);
+      }
+      await auth.protect();
     })
   : function proxy(req: NextRequest) {
       if (process.env.NODE_ENV === "production" && isProtected(req)) {

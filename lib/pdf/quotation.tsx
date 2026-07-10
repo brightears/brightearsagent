@@ -118,6 +118,10 @@ export function QuotationDocument({ data }: { data: QuotationData }) {
           <View style={{ flex: 1 }}>
             <Text style={s.tdDesc}>{q.label}</Text>
             {q.perNight ? <Text style={s.tdSub}>Per-night rate for a regular slot</Text> : null}
+            {q.perHour ? <Text style={s.tdSub}>Per-hour rate for a regular slot</Text> : null}
+            {q.coversHours ? (
+              <Text style={s.tdSub}>Covers up to {q.coversHours} hours — longer runs quoted on request</Text>
+            ) : null}
             {q.isEstimate ? <Text style={s.tdSub}>Estimate — final fee confirmed once details are locked in</Text> : null}
           </View>
           <Text style={s.tdAmt}>{amountText}</Text>

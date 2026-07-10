@@ -51,6 +51,11 @@ export type DiscoveryOpts = {
    * slower wheel — every 3rd scan per tenant (Business.discoveryScanCount).
    */
   warm?: boolean;
+  /**
+   * P12.1: the tenant's PerformerKind — the warm battery and extraction
+   * prompt speak this kind's buyer language (query packs). Absent = OTHER.
+   */
+  performerKind?: string | null;
 };
 
 export interface DiscoveryProvider {
@@ -156,6 +161,14 @@ export function getDiscoveryProvider(): DiscoveryProvider {
   if (process.env.DISCOVERY_PROVIDER === "stub") return new StubDiscoveryProvider();
   if (process.env.SERPER_API_KEY || process.env.DISCOVERY_PROVIDER === "serper") {
     return new SerperDiscoveryProvider();
+  }
+  // Fail CLOSED in production (audit 2026-07): a missing key used to silently
+  // serve FIXTURE venues — fake rooms with fake booking emails — to paying
+  // artists. Serving fixtures must be an explicit choice.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SERPER_API_KEY is missing in production — the Hunt would serve fixture venues with fake contacts. Set the key, or set DISCOVERY_PROVIDER=stub to explicitly opt into fixtures.",
+    );
   }
   return new StubDiscoveryProvider();
 }

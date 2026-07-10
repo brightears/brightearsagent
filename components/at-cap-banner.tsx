@@ -42,7 +42,7 @@ export function AtCapBanner({ used, cap, overCap, subscribed }: AtCapBannerProps
             {notSubscribed ? (
               <>
                 Your agent is paused — your setup is saved, but the Hunt isn&apos;t finding venues
-                or drafting outreach, and inbound replies are on hold. New leads still arrive and
+                or drafting outreach, and inbound replies are on hold. New inquiries still arrive and
                 nothing is lost. Choose a plan to switch your agent on.
               </>
             ) : (
@@ -51,8 +51,8 @@ export function AtCapBanner({ used, cap, overCap, subscribed }: AtCapBannerProps
                 <span className="font-bold">
                   {used} of {cap}
                 </span>{" "}
-                leads this month — drafting is paused until next month. Upgrade for
-                more. New leads still arrive; nothing is lost, and no surprise bill,
+                inquiries this month — drafting is paused until next month. Upgrade for
+                more. New inquiries still arrive; nothing is lost, and no surprise bill,
                 ever.
               </>
             )}

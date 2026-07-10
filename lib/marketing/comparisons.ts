@@ -13,7 +13,7 @@ export const LAST_VERIFIED = "June 11, 2026";
  * ADR-003 tier recut: EVERY tier is the complete assistant (replies, sequences,
  * weekly report, spam filtering, approve-from-phone, Travel Mode, and the same
  * deep research on every plan); tiers gate only capacity and autonomy — inbound
- * inquiry ceiling, cities hunted, auto-send autonomy, multi-performer routing.
+ * inquiry ceiling, cities hunted, auto-send autonomy.
  * Never capability-gate copy.
  */
 export const BRIGHT_EARS_PRICING = {
@@ -38,7 +38,7 @@ export const BRIGHT_EARS_PRICING = {
       name: "Studio",
       price: "$149/mo",
       includes:
-        "answers up to 150 inquiries a month, hunts all your cities, multi-performer routing",
+        "answers up to 150 inquiries a month, hunts all your cities, auto-send autopilot",
     },
   ],
   // The proactive Hunt allowance is shared across every plan (it's gated by
@@ -243,7 +243,7 @@ export const HUB_FAQS: Faq[] = [
   {
     question: "What does Bright Ears cost?",
     answer:
-      "Starter at $25/mo (answers up to 15 of your inbound inquiries a month, hunts your 1 home city, you approve every send), Pro at $79/mo (up to 60 inquiries/mo, hunts up to 3 cities, auto-sends from the sources you trust), or Studio at $149/mo (up to 150 inquiries/mo, hunts all your cities, multi-performer routing). Every tier is the complete engine — the same deep research on every plan: the proactive Hunt agent that finds venues for you and drafts the outreach for you to approve, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, weekly report, Travel Mode and spam filtering — the tiers only change how many inquiries it answers, how many cities it hunts and how much it auto-sends. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. You subscribe to activate — month-to-month, cancel anytime.",
+      "Starter at $25/mo (answers up to 15 of your inbound inquiries a month, hunts your 1 home city, you approve every send), Pro at $79/mo (up to 60 inquiries/mo, hunts up to 3 cities, auto-sends from the sources you trust), or Studio at $149/mo (up to 150 inquiries/mo, hunts all your cities, auto-send autopilot). Every tier is the complete engine — the same deep research on every plan: the proactive Hunt agent that finds venues for you and drafts the outreach for you to approve, plus replies to every inbound inquiry in your voice, follow-up sequences until booked-or-dead, weekly report, Travel Mode and spam filtering — the tiers only change how many inquiries it answers, how many cities it hunts and how much it auto-sends. At your cap, drafting pauses for the month and we prompt an upgrade — never a surprise bill. You subscribe to activate — month-to-month, cancel anytime.",
   },
   {
     question: "Does Bright Ears do quotes, contracts or deposits?",
@@ -258,6 +258,14 @@ export const HUB_FAQS: Faq[] = [
 
 /** DJ Event Planner vs Bright Ears — used on both the pairwise and the alternatives page. */
 const DJEP_ROWS: ComparisonRow[] = [
+  {
+    feature: "Finds gigs for you (the Hunt)",
+    them: { mark: "no", note: "CRM for leads that arrive; it doesn't go find them." },
+    us: {
+      mark: "yes",
+      note: "Scans your cities for venues that book entertainment, scores the fit, drafts the pitch in your voice — you approve.",
+    },
+  },
   {
     feature: "Answers new inquiries for you",
     them: { mark: "no", note: "Inquiries land in your inbox; the reply is on you." },
@@ -334,7 +342,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
   competitorPrice: "$20–50/mo",
   title: "Bright Ears vs DJ Event Planner (2026): Keep the CRM, Add the AI Inbox",
   metaDescription:
-    "DJ Event Planner runs your contracts, invoices and events. Bright Ears answers your leads in under 5 minutes. Honest 2026 comparison with verified pricing — and why most DJs should run both.",
+    "DJ Event Planner runs your paperwork. Bright Ears finds gigs and answers your inquiries in your voice — you approve. Honest table, verified pricing.",
   cardTitle: "vs DJ Event Planner",
   cardBlurb: "Keep the 20-year workhorse CRM — add the AI inbox it never had.",
   heroEyebrow: "Bright Ears vs DJ Event Planner",
@@ -368,7 +376,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
   rows: DJEP_ROWS,
   fitHeading: "Where Bright Ears fits",
   fitParagraphs: [
-    "Bright Ears is not a DJ Event Planner replacement, and we don't want to be one. We don't do contracts, invoices or event workflow. We do exactly one job: when an inquiry arrives — from your website form, plain email, or a The Knot / WeddingWire / Bark / GigSalad notification — we filter the spam, draft a reply in your voice from your rate card and real availability, and you approve it from your phone. Designed to reply in under 5 minutes. Then follow-ups run until the lead is booked or dead, with one-tap opt-out compliance.",
+    "Bright Ears is not a DJ Event Planner replacement, and we don't want to be one. We don't do contracts, invoices or event workflow. We do the two jobs DJEP doesn't: the Hunt proactively finds venues that book entertainment in your cities and drafts the outreach in your voice for you to approve — and when an inquiry arrives (website form, plain email, or a The Knot / WeddingWire / Bark / GigSalad notification), we filter the spam and draft the reply from your rate card and real availability, designed to go out within minutes of your tap. Follow-ups run until the lead is booked or gone quiet, with one-tap opt-out compliance.",
     "Setup is a single forwarding rule — no password sharing, no OAuth, and nothing about your DJEP setup changes. When the gig books, you run it in DJ Event Planner exactly the way you do today.",
   ],
   fitPullQuote: {
@@ -395,7 +403,7 @@ const DJ_EVENT_PLANNER: ComparisonPage = {
     {
       question: "What does running both cost?",
       answer:
-        "DJ Event Planner runs $20–50/mo depending on tier (verified June 2026). Bright Ears starts at $25/mo for up to 15 inquiries answered — the complete assistant, follow-up sequences and weekly report included — with Pro at $79/mo (up to 60 inquiries, auto-send autopilot) and Studio at $149/mo (up to 150 inquiries, multi-performer routing). Against a $1,500–3,000 booked wedding, one save covers both for a long time.",
+        "DJ Event Planner runs $20–50/mo depending on tier (verified June 2026). Bright Ears starts at $25/mo for up to 15 inquiries answered — the complete assistant, follow-up sequences and weekly report included — with Pro at $79/mo (up to 60 inquiries, auto-send autopilot) and Studio at $149/mo (up to 150 inquiries, hunts all your cities). Against a $1,500–3,000 booked wedding, one save covers both for a long time.",
     },
     {
       question: "Can I add Bright Ears without touching my DJEP setup?",
@@ -413,7 +421,7 @@ const GIGBUILDER: ComparisonPage = {
   competitorPrice: "$25–50/mo",
   title: "Bright Ears vs GigBuilder (2026): AI That Writes for You vs AI That Answers for You",
   metaDescription:
-    "GigBuilder bundles booking tools and an AI writing helper for $25–50/mo. Bright Ears answers your leads in under 5 minutes while you're on a gig. Honest comparison with verified pricing.",
+    "GigBuilder is booking-site tooling. Bright Ears hunts venues for you and drafts every reply in your voice — you approve. Honest comparison, verified pricing.",
   cardTitle: "vs GigBuilder",
   cardBlurb: "AI that helps you write vs AI that answers while you're mid-set.",
   heroEyebrow: "Bright Ears vs GigBuilder",
@@ -442,6 +450,14 @@ const GIGBUILDER: ComparisonPage = {
   ],
   tableHeading: "Side by side",
   rows: [
+    {
+      feature: "Finds gigs for you (the Hunt)",
+      them: { mark: "no", note: "Booking-site tooling — it waits for inquiries to arrive." },
+      us: {
+        mark: "yes",
+        note: "Scans your cities for venues that book entertainment, scores the fit, drafts the pitch in your voice — you approve.",
+      },
+    },
     {
       feature: "Answers new inquiries for you",
       them: { mark: "partial", note: "An AI helper assists when you sit down to write." },
@@ -537,7 +553,7 @@ const VIBO: ComparisonPage = {
   competitorPrice: "$149–179/mo",
   title: "Bright Ears vs Vibo (2026): Before the Booking vs After It",
   metaDescription:
-    "Vibo is the best client music-planning experience in the business — after the contract is signed. Bright Ears gets you to that signature by answering every lead in under 5 minutes. Honest comparison.",
+    "Vibo shines after the contract is signed. Bright Ears works before it: finds venues, drafts pitches and replies in your voice. Honest side-by-side.",
   cardTitle: "vs Vibo",
   cardBlurb: "Vibo owns everything after the booking. We exist to get you the booking.",
   heroEyebrow: "Bright Ears vs Vibo",
@@ -566,6 +582,14 @@ const VIBO: ComparisonPage = {
   ],
   tableHeading: "Side by side",
   rows: [
+    {
+      feature: "Finds gigs for you (the Hunt)",
+      them: { mark: "no", note: "Event-experience app for booked gigs; no lead generation." },
+      us: {
+        mark: "yes",
+        note: "Scans your cities for venues that book entertainment, scores the fit, drafts the pitch in your voice — you approve.",
+      },
+    },
     {
       feature: "Answers new inquiries for you",
       them: { mark: "no", note: "Vibo starts after the contract is signed." },
@@ -640,7 +664,7 @@ const VIBO: ComparisonPage = {
     {
       question: "Why is Vibo so much more expensive than most DJ software?",
       answer:
-        "It's priced as a client-experience product ($149–179/mo, verified June 11, 2026 — the old $99 tier is gone), and for businesses with steady bookings it earns it. Bright Ears prices on inquiries answered instead: $25/mo for up to 15, $79/mo for up to 60 with auto-send autopilot, $149/mo for up to 150 across a multi-performer roster — and every tier includes the full follow-up engine and weekly report.",
+        "It's priced as a client-experience product ($149–179/mo, verified June 11, 2026 — the old $99 tier is gone), and for businesses with steady bookings it earns it. Bright Ears prices on inquiries answered instead: $25/mo for up to 15, $79/mo for up to 60 with auto-send autopilot, $149/mo for up to 150 with the hunt on all your cities — and every tier includes the full follow-up engine and weekly report.",
     },
     {
       question: "If I can only afford one, which should I buy?",
@@ -658,7 +682,7 @@ const CHECK_CHERRY: ComparisonPage = {
   competitorPrice: "$29–139/mo",
   title: "Bright Ears vs Check Cherry (2026): Capturing Leads vs Answering Them",
   metaDescription:
-    "Check Cherry makes the cleanest booking forms and packages in the category. Bright Ears answers the inquiries that come through them — in under 5 minutes, in your voice. Honest comparison.",
+    "Check Cherry makes clean booking forms. Bright Ears finds gigs and answers inquiries in your voice before the form matters. Honest table, real pricing.",
   cardTitle: "vs Check Cherry",
   cardBlurb: "Beautiful forms capture leads. They still can't reply on your behalf.",
   heroEyebrow: "Bright Ears vs Check Cherry",
@@ -686,6 +710,14 @@ const CHECK_CHERRY: ComparisonPage = {
   ],
   tableHeading: "Side by side",
   rows: [
+    {
+      feature: "Finds gigs for you (the Hunt)",
+      them: { mark: "no", note: "Booking workflow for clients who already found you." },
+      us: {
+        mark: "yes",
+        note: "Scans your cities for venues that book entertainment, scores the fit, drafts the pitch in your voice — you approve.",
+      },
+    },
     {
       feature: "Answers new inquiries for you",
       them: { mark: "no", note: "Forms capture the inquiry beautifully; the personal reply is still you." },
@@ -763,7 +795,7 @@ const CHECK_CHERRY: ComparisonPage = {
     {
       question: "Which is cheaper?",
       answer:
-        "They're comparable. Check Cherry runs $29–139/mo across its tiers (verified June 11, 2026). Bright Ears is $25–149/mo by how many inquiries it answers — Starter $25 (up to 15), Pro $79 (up to 60, auto-send autopilot), Studio $149 (up to 150, multi-performer routing) — with the full follow-up engine and weekly report in every tier. At your cap, drafting pauses — never a surprise bill.",
+        "They're comparable. Check Cherry runs $29–139/mo across its tiers (verified June 11, 2026). Bright Ears is $25–149/mo by how many inquiries it answers — Starter $25 (up to 15), Pro $79 (up to 60, auto-send autopilot), Studio $149 (up to 150, hunts all your cities) — with the full follow-up engine and weekly report in every tier. At your cap, drafting pauses — never a surprise bill.",
     },
     {
       question: "Do I still need nice booking forms if replies are instant?",
@@ -781,7 +813,7 @@ const HONEYBOOK: ComparisonPage = {
   competitorPrice: "$36–129/mo",
   title: "Bright Ears vs HoneyBook (2026): Bolt-On AI Inbox vs Full-CRM Migration",
   metaDescription:
-    "HoneyBook is a polished all-in-one CRM with AI drafts inside its own inbox — once you move your whole business in. Bright Ears answers leads from the setup you already have. Honest comparison.",
+    "HoneyBook is a CRM you migrate into. Bright Ears bolts on: it finds venues and answers your inquiries in your voice. Honest comparison, verified pricing.",
   cardTitle: "vs HoneyBook",
   cardBlurb: "Full-CRM migration with AI inside — or one forwarding rule in front of what you have.",
   heroEyebrow: "Bright Ears vs HoneyBook",
@@ -809,6 +841,14 @@ const HONEYBOOK: ComparisonPage = {
   ],
   tableHeading: "Side by side",
   rows: [
+    {
+      feature: "Finds gigs for you (the Hunt)",
+      them: { mark: "no", note: "CRM for leads that arrive; it doesn't go find them." },
+      us: {
+        mark: "yes",
+        note: "Scans your cities for venues that book entertainment, scores the fit, drafts the pitch in your voice — you approve.",
+      },
+    },
     {
       feature: "Answers new inquiries for you",
       them: {
@@ -892,7 +932,7 @@ const HONEYBOOK: ComparisonPage = {
     {
       question: "How do the prices compare?",
       answer:
-        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (up to 15 inquiries, 1 home city), $79/mo Pro (up to 60 inquiries, up to 3 cities, auto-send autopilot), $149/mo Studio (up to 150 inquiries, all your cities, multi-performer routing) — every tier includes the complete assistant, follow-up sequences, weekly report and the proactive Hunt agent. You subscribe to activate — month-to-month, cancel anytime.",
+        "HoneyBook runs $36–129/mo across its published tiers (verified June 2026). Bright Ears is $25/mo Starter (up to 15 inquiries, 1 home city), $79/mo Pro (up to 60 inquiries, up to 3 cities, auto-send autopilot), $149/mo Studio (up to 150 inquiries, hunts all your cities, auto-send autopilot) — every tier includes the complete assistant, follow-up sequences, weekly report and the proactive Hunt agent. You subscribe to activate — month-to-month, cancel anytime.",
     },
     {
       question: "What if I'm already mid-migration to HoneyBook?",
@@ -910,7 +950,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
   competitorPrice: "$20–50/mo",
   title: "DJ Event Planner Alternatives (2026): Switch — or Add What's Missing?",
   metaDescription:
-    "Looking for a DJ Event Planner alternative? Honest 2026 guide with verified pricing: GigBuilder, Check Cherry, HoneyBook, Vibo — and the bolt-on option that fixes the real complaint without a migration.",
+    "Honest 2026 guide for performers: DJ Event Planner, GigBuilder, Check Cherry, Vibo, HoneyBook — verified pricing, and the one job none of them do.",
   cardTitle: "DJ Event Planner alternatives",
   cardBlurb: "The honest switching guide — including the option nobody mentions: don't switch, add.",
   heroEyebrow: "DJ Event Planner alternatives, honestly",
@@ -1004,7 +1044,7 @@ const DJEP_ALTERNATIVES: ComparisonPage = {
     {
       question: "What does the bolt-on option cost?",
       answer:
-        "Bright Ears starts at $25/mo (answers up to 15 inquiries, hunts 1 home city — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (up to 60 inquiries, up to 3 cities, auto-send autopilot) and Studio at $149/mo (up to 150 inquiries, all your cities, multi-performer routing). You subscribe to activate, month-to-month, cancel anytime. Need more? Upgrade in one click — at your cap, drafting pauses for the month rather than surprise-billing you.",
+        "Bright Ears starts at $25/mo (answers up to 15 inquiries, hunts 1 home city — the complete assistant, follow-up sequences and weekly report included), with Pro at $79/mo (up to 60 inquiries, up to 3 cities, auto-send autopilot) and Studio at $149/mo (up to 150 inquiries, hunts all your cities, auto-send autopilot). You subscribe to activate, month-to-month, cancel anytime. Need more? Upgrade in one click — at your cap, drafting pauses for the month rather than surprise-billing you.",
     },
   ],
   ctaHeading: "Fix the complaint without the migration",

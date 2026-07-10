@@ -15,6 +15,7 @@ import type {
   Metro,
   RawSignal,
 } from "@/lib/discovery/provider";
+import { kindPack } from "@/lib/discovery/query-packs";
 
 export type SerperEndpoint = "search" | "news" | "places";
 export type BatteryQuery = { endpoint: SerperEndpoint; q: string };
@@ -57,26 +58,31 @@ export function buildQueryBattery(metro: Metro, now: Date): BatteryQuery[] {
 export const MAX_WARM_QUERIES_PER_METRO = 8;
 
 /**
- * The WARM battery (10.2c): EXISTING venues that already buy entertainment —
- * hotel bars with DJ nights, venues with live-music pages or event calendars,
- * wedding venues with entertainment programs. These aren't "deciding now";
- * the pitch is an introduction for their roster. Runs on the slow wheel
- * (every 3rd scan — see scan.ts), so its cost amortizes to ~2.7 queries per
- * scan per metro on top of the hot battery.
+ * The WARM battery (10.2c, kind-aware since P12.1): EXISTING venues that
+ * already buy THIS ARTIST'S kind of act — a magician's buyers are corporate
+ * planners and family-entertainment rooms, not DJ nights. The pack recuts
+ * the SAME 8-query budget per kind (lib/discovery/query-packs.ts); two slots
+ * stay kind-agnostic on purpose (wedding venues + hotel event teams buy
+ * every kind). Runs on the slow wheel (every 3rd scan — see scan.ts).
  */
-export function buildWarmQueryBattery(metro: Metro): BatteryQuery[] {
+export function buildWarmQueryBattery(metro: Metro, performerKind?: string | null): BatteryQuery[] {
   const city = metro.city.trim();
+  const pack = kindPack(performerKind);
   const battery: BatteryQuery[] = [
-    // Venues advertising a standing entertainment program.
-    { endpoint: "search", q: `"${city}" hotel bar "live music" OR "DJ nights"` },
-    { endpoint: "search", q: `"${city}" rooftop bar DJ events` },
-    { endpoint: "search", q: `"${city}" wedding venue "entertainment" OR "live band"` },
-    { endpoint: "search", q: `"${city}" venue "what's on" live music` },
-    { endpoint: "search", q: `"${city}" bar "every friday" OR "every saturday" DJ` },
+    // Venues advertising a standing program for this kind of act.
+    { endpoint: "search", q: `"${city}" hotel bar ${pack.programTerms}` },
+    // The kind's OWN buyer rooms (12.1 venue-type expansion: theaters,
+    // corporate planners, dinner shows, resorts — per pack).
+    { endpoint: "search", q: `"${city}" ${pack.buyerQuery}` },
+    { endpoint: "search", q: `"${city}" wedding venue "entertainment" OR ${pack.programTerms.split(" OR ")[0]}` },
+    { endpoint: "search", q: `"${city}" venue "what's on" ${pack.recurringTerm}` },
+    { endpoint: "search", q: `"${city}" bar "every friday" OR "every saturday" ${pack.recurringTerm}` },
+    // Corporate/private-event expansion — every kind gets booked here.
+    { endpoint: "search", q: `"${city}" "private events" OR "corporate events" venue entertainment` },
     // Relationship seeds: people who book eventually.
     { endpoint: "search", q: `"${city}" hotel "events manager" OR "wedding coordinator" entertainment` },
     // Instagram surface (1 max — logged-out public data only, ADR-004).
-    { endpoint: "search", q: `site:instagram.com "${city}" bar DJ` },
+    { endpoint: "search", q: `site:instagram.com "${city}" ${pack.instagramTerm}` },
   ];
   return battery.slice(0, MAX_WARM_QUERIES_PER_METRO);
 }
@@ -310,22 +316,23 @@ function toRawSignal(c: ExtractedCandidate, _scanNow: Date): RawSignal {
   };
 }
 
-export function buildExtractionSystem(metro: Metro, now: Date): string {
+export function buildExtractionSystem(metro: Metro, now: Date, performerKind?: string | null): string {
+  const pack = kindPack(performerKind);
   return [
-    `You extract venue prospects for a performing artist's booking agent from web search results about ${metro.city} (${metro.country}).`,
+    `You extract venue prospects for the booking agent of ${pack.actLabel} from web search results about ${metro.city} (${metro.country}).`,
     `Today is ${now.toISOString().slice(0, 10)}.`,
-    `Return ONLY real, individual venues (a specific bar, rooftop, hotel, restaurant, event space or club) that are newly opened, opening soon, hiring, newly on social, covered in the press, OR existing venues that demonstrably book entertainment (DJ nights, live-music programs, event calendars, wedding entertainment).`,
+    `Return ONLY real, individual venues (a specific bar, rooftop, hotel, restaurant, theater, event space or club) that are newly opened, opening soon, hiring, newly on social, covered in the press, OR existing venues that demonstrably book this kind of entertainment (${pack.programExamples}; also event calendars and wedding entertainment).`,
     `Rules:`,
     `- NEVER return a listicle or roundup page itself ("10 best bars in ...") as a venue. If a roundup snippet NAMES specific venues, extract those venues (each with the roundup URL as sourceUrl). If no venue is clearly named, skip it.`,
     `- ONLY hospitality and event venues (places that could book a DJ or live act). Retail shops, fast-food chains, gyms, offices and showrooms are NOT venues — skip them.`,
     `- Skip venues you cannot NAME. Never invent placeholders like "Unnamed bar in ...".`,
     `- venueName is the venue's proper name only — no taglines, no city suffix.`,
-    `- kind: classify confidently from the name and snippet (a cocktail/wine/sports bar = BAR, a rooftop bar/terrace = ROOFTOP, nightclub = CLUB, restaurant/cafe/bistro = RESTAURANT, hotel = HOTEL, function/event/wedding space or food hall = EVENT_SPACE). Use OTHER only when genuinely unclassifiable.`,
+    `- kind: classify confidently from the name and snippet (a cocktail/wine/sports bar = BAR, a rooftop bar/terrace = ROOFTOP, nightclub = CLUB, restaurant/cafe/bistro = RESTAURANT, hotel/resort = HOTEL, function/event/wedding space, theater, dinner-show room, corporate/private-event space or food hall = EVENT_SPACE). Use OTHER only when genuinely unclassifiable.`,
     `- summary: max 140 characters, factual, and include WHEN it opened/opens if the snippet says so.`,
     `- observedAtISO: the publish/opening date as YYYY-MM-DD when stated or clearly derivable from the result's date; otherwise null.`,
     `- isInMetro: true only if the venue is in or immediately around ${metro.city}. Results about other cities: isInMetro false.`,
     `- confidence: 0-1 that this is a real single venue with the stated signal. Be conservative — vague or ambiguous snippets get < 0.6.`,
-    `- signalType: NEW_OPENING (just opened), OPENING_SOON (announced/under construction/launching), HIRING (staffing up), NEW_SOCIAL (brand-new social account), PRESS (other coverage), HOSTS_ENTERTAINMENT (existing venue that books DJs/live acts — DJ nights, live music program), EVENT_PROGRAM (a live events page / "what's on" calendar), TEAM_CONTACT (a snippet NAMES an events manager/coordinator). Use NONE only when no signal clearly applies.`,
+    `- signalType: NEW_OPENING (just opened), OPENING_SOON (announced/under construction/launching), HIRING (staffing up), NEW_SOCIAL (brand-new social account), PRESS (other coverage), HOSTS_ENTERTAINMENT (existing venue that books acts like this one — ${pack.programExamples}), EVENT_PROGRAM (a live events page / "what's on" calendar), TEAM_CONTACT (a snippet NAMES an events manager/coordinator). Use NONE only when no signal clearly applies.`,
     `- temperature: HOT = the venue is opening or just opened (deciding entertainment NOW). WARM = an existing venue that already buys entertainment but isn't posting a need. SEED = a relationship-planting target (hotel event teams, wedding coordinators — books eventually). Openings are always HOT; evidence of an existing program is WARM, never HOT.`,
     `- entertainmentEvidence: up to 3 SHORT facts proving the venue buys entertainment (e.g. "Runs Friday DJ nights per its events page"). Every fact must be traceable to a snippet given below — never inferred, never invented. Empty array when there is no such evidence.`,
     `- contactName/contactRole: ONLY when a snippet literally names an events manager / booking contact / wedding coordinator; otherwise null. NEVER take a name from a linkedin.com result.`,
@@ -369,7 +376,9 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
     // says it's the warm wheel's turn (every 3rd scan — cost discipline).
     const battery = [
       ...buildQueryBattery(metro, opts.now).slice(0, MAX_QUERIES_PER_METRO),
-      ...(opts.warm ? buildWarmQueryBattery(metro).slice(0, MAX_WARM_QUERIES_PER_METRO) : []),
+      ...(opts.warm
+        ? buildWarmQueryBattery(metro, opts.performerKind).slice(0, MAX_WARM_QUERIES_PER_METRO)
+        : []),
     ];
     const gl = metro.country.trim().toLowerCase();
 
@@ -406,7 +415,7 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
           const { candidates } = await llmObject({
             purpose: "parse",
             businessId: opts.businessId ?? null,
-            system: buildExtractionSystem(metro, opts.now),
+            system: buildExtractionSystem(metro, opts.now, opts.performerKind),
             prompt: buildExtractionPrompt(chunk),
             schema: extractionSchema,
           });

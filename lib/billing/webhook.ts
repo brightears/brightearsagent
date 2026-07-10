@@ -19,6 +19,7 @@
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { stripe, planForLookupKey } from "@/lib/billing/stripe";
+import { scheduleActivationScan } from "@/lib/discovery/activation";
 
 /** applied → safe to record as processed; retry → return 5xx, do NOT record. */
 export type ApplyResult = { applied: boolean; retry: boolean };
@@ -84,6 +85,10 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
           trialEndsAt: null,
         },
       });
+      // Subscribe-to-activate means day one IS the trial: hunt the moment the
+      // plan flips instead of waiting for the daily cron. Post-response; the
+      // scan itself refuses tenants with no cities yet.
+      scheduleActivationScan(businessId, { force: true });
       return APPLIED;
     }
 
@@ -92,10 +97,29 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
       const business = await resolveBusiness(sub);
       if (!business) return sub.metadata?.businessId ? RETRY : SKIP;
 
-      if (LIVE_STATUSES.has(sub.status)) {
-        const plan = planForLookupKey(sub.items.data[0]?.price?.lookup_key);
+      // Out-of-order guard (audit 2026-07 — the `deleted` handler had this,
+      // `updated` didn't): an event about an OLD/orphaned subscription must
+      // never touch a tenant whose CURRENT subscription is a different one.
+      // The concrete failure: abandoned first checkout leaves an incomplete
+      // sub carrying businessId metadata; the user retries and subscribes;
+      // ~23h later the orphan fires updated(incomplete_expired) — and used to
+      // silently pause the paying tenant.
+      if (business.stripeSubscriptionId && business.stripeSubscriptionId !== sub.id) {
+        // A LIVE update for a different sub is a re-subscribe (new sub id) —
+        // let it through to re-attach. A NON-live update for a different sub
+        // is the orphan case — ignore it.
+        if (!LIVE_STATUSES.has(sub.status)) return SKIP;
+      }
+
+      // Trust Stripe NOW, not the event payload: a stale queued update(active)
+      // arriving after cancellation would otherwise resurrect a dead plan.
+      // (Same live-retrieve posture as the checkout handler.)
+      const fresh = await stripe().subscriptions.retrieve(sub.id);
+
+      if (LIVE_STATUSES.has(fresh.status)) {
+        const plan = planForLookupKey(fresh.items.data[0]?.price?.lookup_key);
         if (!plan) {
-          console.error(`stripe webhook ${event.id}: unmapped lookup_key on sub ${sub.id}`);
+          console.error(`stripe webhook ${event.id}: unmapped lookup_key on sub ${fresh.id}`);
           return SKIP;
         }
         // Sync plan AND the (possibly re-subscribed) subscription id, so a new
@@ -104,13 +128,22 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
           where: { id: business.id },
           data: {
             plan,
-            stripeSubscriptionId: sub.id,
-            stripeCustomerId: customerIdOf(sub) ?? undefined,
+            stripeSubscriptionId: fresh.id,
+            stripeCustomerId: customerIdOf(fresh) ?? undefined,
             trialEndsAt: null,
           },
         });
+        // Paused → live transition only (business.plan is the pre-write value):
+        // a re-activation deserves an immediate hunt; routine renewals and plan
+        // switches don't re-burn the scan budget.
+        if (business.plan === "TRIAL") scheduleActivationScan(business.id, { force: true });
       } else {
-        // canceled / unpaid / incomplete_expired / paused → pause the agent.
+        // canceled / unpaid / incomplete_expired / paused → pause the agent —
+        // but only when it's THE current subscription going dark (the guard
+        // above already SKIPped non-live updates about orphans).
+        if (business.stripeSubscriptionId && business.stripeSubscriptionId !== fresh.id) {
+          return SKIP;
+        }
         await db.business.update({
           where: { id: business.id },
           data: { plan: "TRIAL", stripeSubscriptionId: null, trialEndsAt: null },

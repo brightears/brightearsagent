@@ -29,6 +29,8 @@ export interface PitchBusinessProfile {
   feeSweetSpot?: number | null;
   reviewQuotes: string[];
   notableVenues: string[];
+  /** 12.9 draw-proof: real gigs on the calendar in the last 90 days (0 = omit). */
+  recentGigs90d?: number;
 }
 
 export interface PitchVenueInfo {
@@ -166,6 +168,10 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     b.riderNotes && `Setup & needs: ${b.riderNotes}`,
     b.serviceCities.length > 0 && `Based around: ${b.serviceCities.join(", ")}`,
     b.notableVenues.length > 0 && `Rooms played: ${b.notableVenues.join(", ")}`,
+    // 12.9 draw-proof: a working act is its own best evidence — grounded in
+    // the artist's real calendar, never invented (rule 2b binds this too).
+    (b.recentGigs90d ?? 0) >= 3 &&
+      `Working schedule: ${b.recentGigs90d} booked gigs in the last 90 days`,
     b.reviewQuotes.length > 0 &&
       `What clients say:\n${b.reviewQuotes.map((q) => `- "${q}"`).join("\n")}`,
   ]
@@ -188,14 +194,14 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     travel
       ? `2c. TRAVEL: you do NOT live in ${travel.city} — you are visiting only on these dates: ${travel.dateRange}. Say so naturally and early (e.g. "I'm in ${travel.city} ${travel.dateRange}"). NEVER claim open-ended or ongoing availability there, never imply you're local, and only offer to play within those dates. The whole point is a date-specific guest spot while you're in town.`
       : null,
-    `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room.`,
+    `3. Exactly ONE concrete value line: what their specific crowd gets when this act plays their room. Where the artist facts include rooms played, a working schedule, or a client quote, you may weave ONE of them in as draw-proof — never more than one, never invented.`,
     `4. Include this link EXACTLY ONCE as the proof, presented as a one-page look at the act: ${req.epkUrl}`,
     // 10.2c: the CTA shape follows the temperature (the TASK section in the
     // user prompt carries the detail; this rule keeps the count at ONE).
     temperature === "HOT"
       ? `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`
       : temperature === "WARM"
-        ? `5. End with ONE low-friction call to action — keeping the one-pager on file or a slot in their rotation. Never ask to hold a date (nothing says they're booking right now), and never two asks.`
+        ? `5. End with ONE low-friction call to action — a no-risk trial night (see TASK) or keeping the one-pager on file. Never ask to hold a specific date, and never two asks.`
         : `5. End with NO call to action beyond "file me away for when you need entertainment" — no call, no meeting, no date, and NEVER a promise to follow up.`,
     `6. NEVER mention prices, fees or rates in this first email — pricing comes when they reply.`,
     `7. Never mention AI, software, automation, agents or assistants, or any company or brand other than the artist's own business. You are simply ${b.ownerName} writing.`,
@@ -226,7 +232,7 @@ export function buildPitchTask(temperature: VenueTemperature): string {
         `TASK: write an INTRODUCTION email to this venue's booking contact. They already book entertainment (see the evidence above) but have NOT posted any need — do not pretend they did.`,
         `- Open by referencing their EXISTING entertainment program, using ONLY the evidence facts above (e.g. "saw you run Friday DJ sets").`,
         `- Be plainly honest that this is an introduction for their roster/future slots, not a response to anything.`,
-        `- The single call to action: ask them to keep the one-pager on file / consider the act for a slot in their rotation when one opens.`,
+        `- The single call to action (12.4 trial-night converter, profit-framed): offer ONE no-risk trial night on their quietest evening — frame it around THEIR take, e.g. "give me one quiet night; if the room doesn't do better numbers, that's the end of it — easy life for you, and a profit if it works". One sentence, zero pressure, no specific date. If a trial night genuinely doesn't fit this venue's evidence (e.g. a wedding venue), fall back to asking them to keep the one-pager on file.`,
       ].join("\n");
     case "SEED":
       return [

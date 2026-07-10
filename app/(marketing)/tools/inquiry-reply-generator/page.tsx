@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { ToolReplyGenerator } from "@/components/tool-reply-generator";
 import { GradientBlob, RingsBackdrop, VinylDisc } from "@/components/collage";
 
-export const metadata: Metadata = {
-  title: "Free DJ Inquiry Reply Generator — Bright Ears",
-  description:
-    "Paste a wedding or event inquiry and watch a personalized, availability-aware reply draft itself in seconds. Free, 5 drafts a day, no signup.",
-};
+export const metadata: Metadata = pageMeta(
+  "Free DJ Inquiry Reply Generator — Bright Ears",
+  "Paste a wedding or event inquiry and watch a personalized, availability-aware reply draft itself in seconds. Free, 5 drafts a day, no signup.",
+);
 
 /* One gradient-painted word in the headline — the design/b signature. */
 const gradText: CSSProperties = {

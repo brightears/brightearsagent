@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
+import { scheduleActivationScan } from "@/lib/discovery/activation";
 import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
 import { residencyDates, WEEKDAY_NAMES } from "@/lib/calendar/residency";
 import { PerformerKind } from "@/app/generated/prisma/enums";
@@ -31,6 +32,11 @@ const basicsSchema = z.object({
   name: z.string().trim().min(1, "Your business needs a name"),
   ownerName: z.string().trim().min(1, "Tell us your name"),
   performerKind: z.enum(PerformerKind, "Pick what you perform"),
+  homeCity: z
+    .string()
+    .trim()
+    .min(1, "Tell us your home city — it's where the agent hunts first")
+    .max(80, "That looks like more than a city name"),
   country: z
     .string()
     .trim()
@@ -72,6 +78,7 @@ export async function saveBusinessBasics(input: {
   ownerName: string;
   performerKind: string;
   country: string;
+  homeCity: string;
   timezone: string;
   websiteUrl: string;
 }): Promise<ActionResult> {
@@ -80,12 +87,30 @@ export async function saveBusinessBasics(input: {
   const parsed = basicsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
+  // Home base = serviceCities[0]. Replace only the first slot and dedupe —
+  // extra cities and their order (Control Room "Where you hunt") stay intact
+  // when someone revisits step 1.
+  const { homeCity, ...basics } = parsed.data;
+  const extraCities = business.serviceCities
+    .slice(1)
+    .filter((c) => c.toLowerCase() !== homeCity.toLowerCase());
+  const hadNoCities = business.serviceCities.length === 0;
+
   // Derive the artist's fee currency from their country (THB for Thailand) so
   // the drafter quotes clients in local money — separate from USD billing.
   await db.business.update({
     where: { id: business.id },
-    data: { ...parsed.data, currency: currencyForCountry(parsed.data.country) },
+    data: {
+      ...basics,
+      currency: currencyForCountry(basics.country),
+      serviceCities: [homeCity, ...extraCities],
+    },
   });
+
+  // First city ever: hunt NOW, not at tomorrow's 05:00 UTC cron — day one is
+  // the trial. Bounded: only fires when serviceCities was empty, and the
+  // scan's own guards refuse unsubscribed tenants (no spend on free users).
+  if (hadNoCities) scheduleActivationScan(business.id, { force: true });
 
   revalidatePath("/onboarding");
   revalidatePath("/dashboard");
@@ -152,6 +177,8 @@ export async function saveArtistProfile(input: {
   acceptsTravel: boolean;
   feeFloor: string;
   residencyRate: string;
+  residencyRateUnit?: string;
+  oneOffHours?: string;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
@@ -174,6 +201,16 @@ export async function saveArtistProfile(input: {
   if (feeFloor === null) {
     return { ok: false, error: "Set your one-off floor — the agent never pitches below it" };
   }
+  // Rate units (founder preview): two real values; hours 1-24 or unspecified.
+  const residencyRateUnit = input.residencyRateUnit === "hour" ? "hour" : "night";
+  let oneOffHours: number | null = null;
+  if (input.oneOffHours?.trim()) {
+    const n = Number(input.oneOffHours.trim());
+    if (!Number.isInteger(n) || n < 1 || n > 24) {
+      return { ok: false, error: "Covered hours should be a whole number between 1 and 24" };
+    }
+    oneOffHours = n;
+  }
   const residencyRate = feeToCents(input.residencyRate);
   if (residencyRate === "invalid") {
     return { ok: false, error: "Residency rate should be a plain number" };
@@ -195,6 +232,8 @@ export async function saveArtistProfile(input: {
       acceptsTravel: input.acceptsTravel,
       feeFloor,
       residencyRate,
+      residencyRateUnit,
+      oneOffHours,
     },
   });
 
@@ -223,11 +262,24 @@ const voiceSchema = z.object({
   phrases: z.string().trim().max(300, "A few phrases is plenty").transform((s) => s || null),
 });
 
+// "Skip for now" variant: no samples required. Everything else validates the
+// same, so a skipper's tone chips and quick-check answers still count.
+const voiceSkipSchema = voiceSchema.extend({
+  samples: z.string().trim().max(20_000, "That's plenty! Trim it to your 2-3 favourite replies"),
+});
+
 /**
  * Saves pasted past replies to Business.voiceSamples (selected tone chips are
  * appended as a bracketed tone note the drafter reads), plus the structured
  * voice signals (greeting/sign-off/emoji/phrases) the drafter uses as explicit
  * rules. Touches only the voice fields.
+ *
+ * `skipped` (the wizard's "Skip for now"): performers without old replies at
+ * hand shouldn't bounce off a 20-character wall at the top of the funnel.
+ * A skip writes NO samples (never clobbers existing ones) and guarantees a
+ * professional default greeting/sign-off so the drafter — and setup-complete
+ * (lib/onboarding-status.ts) — have a voice to work with. The profile-strength
+ * meter keeps nagging for real samples; that's intended.
  */
 export async function saveVoiceSamples(input: {
   samples: string;
@@ -236,10 +288,11 @@ export async function saveVoiceSamples(input: {
   signoff: string;
   emoji: boolean | null;
   phrases: string;
+  skipped?: boolean;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
-  const parsed = voiceSchema.safeParse(input);
+  const parsed = (input.skipped ? voiceSkipSchema : voiceSchema).safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
 
   const { samples, tones } = parsed.data;
@@ -248,9 +301,11 @@ export async function saveVoiceSamples(input: {
   await db.business.update({
     where: { id: business.id },
     data: {
-      voiceSamples: `${samples}${toneNote}`,
-      voiceGreeting: parsed.data.greeting,
-      voiceSignoff: parsed.data.signoff,
+      // Skip never clobbers samples someone saved on an earlier visit; with
+      // samples present this behaves exactly as before.
+      voiceSamples: input.skipped && !samples ? undefined : `${samples}${toneNote}`,
+      voiceGreeting: parsed.data.greeting ?? (input.skipped ? "Hi [name]," : null),
+      voiceSignoff: parsed.data.signoff ?? (input.skipped ? "Best regards" : null),
       voiceUsesEmoji: input.emoji,
       voicePhrases: parsed.data.phrases,
     },

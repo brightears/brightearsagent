@@ -16,10 +16,37 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bright Ears — your gigs, answered and booked",
+  // Hunt-led (the retired reactive tagline leaked from here onto every 404 —
+  // audit 2026-07). Per-page metadata overrides this; it's the fallback voice.
+  title: "Bright Ears — the AI that finds gigs for performers",
   description:
-    "The AI office for DJ and entertainment businesses: every inquiry answered in minutes, in your voice, with your real availability — you just tap Approve.",
+    "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
   manifest: "/manifest.json",
+  // iOS reads apple-touch-icon from metadata, not the manifest (P9.6) — the
+  // whole approve-from-phone pitch rides on A2HS looking like a real app.
+  icons: { apple: "/brand/apple-touch-icon.png" },
+  // OG/Twitter defaults (P6.12): metadataBase absolutizes og:url + the
+  // opengraph-image file convention's og:image; key marketing pages set their
+  // own og titles via lib/marketing/site.ts pageMeta (Next inherits the ROOT
+  // og:title otherwise). Canonical "./" = self-referential per route.
+  metadataBase: new URL(
+    (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, ""),
+  ),
+  alternates: { canonical: "./" },
+  openGraph: {
+    siteName: "Bright Ears",
+    type: "website",
+    title: "Bright Ears — the AI that finds gigs for performers",
+    description:
+      "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
+  },
+  twitter: { card: "summary_large_image" },
+  // Staging must never outrank (or become) the real site — noindex everything
+  // while APP_URL is the onrender.com host; flips itself at cutover. Pairs
+  // with the same gate in app/robots.ts.
+  ...(process.env.APP_URL?.includes("onrender.com")
+    ? { robots: { index: false, follow: false } }
+    : {}),
 };
 
 export const viewport: Viewport = {

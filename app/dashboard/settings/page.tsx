@@ -23,8 +23,9 @@ import { MailboxCard, type MailboxState } from "@/components/mailbox-card";
 import { AutoSendCard } from "@/components/auto-send-card";
 import { AttachmentAutonomyCard } from "@/components/attachment-autonomy-card";
 import { ControlRoomNav, type ControlRoomSection } from "@/components/control-room-nav";
+import { RosterCard } from "@/components/roster-card";
 import { isConfigured as isMailboxConfigured } from "@/lib/oauth/google";
-import { startCheckout, openBillingPortal, billingState } from "@/app/actions/billing";
+import { startCheckout, openBillingPortal, openPlanChange, billingState } from "@/app/actions/billing";
 import { PLAN_LEAD_CAPS, meterState, type MeterState } from "@/lib/billing/metering";
 import { planFeatures } from "@/lib/billing/plan-features";
 import { profileStrength } from "@/lib/profile/strength";
@@ -39,17 +40,24 @@ const SECTIONS: ControlRoomSection[] = [
   { id: "identity", label: "Identity" },
   { id: "profile", label: "Voice & profile" },
   { id: "hunt", label: "Where you hunt" },
+  { id: "roster", label: "Roster" },
+  { id: "cadence", label: "Cadence" },
   { id: "connections", label: "Connections" },
   { id: "billing", label: "Plan & billing" },
 ];
 
 // ADR-003 tier recut: every plan is the complete assistant — blurbs gate
-// capacity/autonomy (leads, performers, autopilot, team), never capability.
+// capacity/autonomy (inquiries, autonomy, cities), never capability. Every
+// claim here is enforced via lib/billing/plan-features.ts; multi-performer/
+// team claims return only when the roster ships (P13).
 const PLAN_CARDS = [
-  { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues for you + answers leads · ${PLAN_LEAD_CAPS.STARTER} leads/mo · 1 performer` },
-  { plan: "PRO" as const, price: "$79", blurb: `Same engine, more headroom · ${PLAN_LEAD_CAPS.PRO} leads/mo · auto-send autopilot` },
-  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine for the roster · ${PLAN_LEAD_CAPS.STUDIO} leads/mo · multi-performer · team` },
+  { plan: "STARTER" as const, price: "$25", blurb: `Hunts venues + answers inquiries · ${PLAN_LEAD_CAPS.STARTER} inquiries/mo · you approve every send` },
+  { plan: "PRO" as const, price: "$79", blurb: `Same engine, working harder · ${PLAN_LEAD_CAPS.PRO} inquiries/mo · auto-send autopilot · hunts 3 cities` },
+  { plan: "STUDIO" as const, price: "$149", blurb: `Same engine at full stretch · ${PLAN_LEAD_CAPS.STUDIO} inquiries/mo · auto-send · hunts all your cities · roster of performers` },
 ];
+
+/** Ladder position for upgrade-vs-switch button labels. */
+const PLAN_RANK = { STARTER: 0, PRO: 1, STUDIO: 2 } as const;
 
 /** A Control Room section: ink-canvas heading + intro, then its card(s). */
 function Section({
@@ -175,7 +183,7 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
           off still sees that drafting paused and how to fix it. */}
       <div className="mb-5">
         <div className="flex items-center justify-between text-xs text-ink-stage/60">
-          <span>Leads this month</span>
+          <span>Inquiries this month</span>
           <span className="font-mono font-semibold text-ink-stage/75">
             {meter.used} / {meter.cap}
           </span>
@@ -196,12 +204,57 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
       {!state.enabled ? (
         <p className="text-sm text-ink-stage/60">Billing isn&apos;t configured in this environment yet.</p>
       ) : state.subscribed ? (
-        <form action={openBillingPortal}>
-          <p className="text-sm text-ink-stage/60 mb-3">
-            Manage your payment method, change plans, or cancel — no emails, no hoops.
+        // The ladder stays visible after subscribing (audit 2026-07): upgrades
+        // are the only revenue-expansion path, and "how hard the AI works" is
+        // the axis — turning the machine up should always be one tap away.
+        <div>
+          <p className="text-sm text-ink-stage/60 mb-5">
+            Turn the machine up or down anytime — plan switches prorate automatically and apply on
+            one confirm. Payment method, invoices and cancelling live under Manage billing.
           </p>
-          <button className={buttonStyles.secondaryOnLight}>Manage billing</button>
-        </form>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {PLAN_CARDS.map((p) => {
+              const current = p.plan === state.plan;
+              const upgrade =
+                state.plan in PLAN_RANK &&
+                PLAN_RANK[p.plan] > PLAN_RANK[state.plan as keyof typeof PLAN_RANK];
+              return (
+                <form
+                  key={p.plan}
+                  action={current ? openBillingPortal : openPlanChange.bind(null, p.plan)}
+                  className={`relative flex flex-col gap-2 rounded-2xl bg-cream p-5 ${
+                    current ? "ring-2 ring-brand-cyan" : ""
+                  }`}
+                >
+                  {current && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                      <Badge tone="cyan">Your plan</Badge>
+                    </div>
+                  )}
+                  <div className="font-bold text-ink-stage">
+                    {p.plan.charAt(0) + p.plan.slice(1).toLowerCase()}
+                  </div>
+                  <div className="text-3xl font-extrabold tracking-tight text-ink-stage">
+                    {p.price}
+                    <span className="text-sm font-normal text-ink-stage/50">/mo</span>
+                  </div>
+                  <div className="text-xs text-ink-stage/60 flex-1">{p.blurb}</div>
+                  <button
+                    className={
+                      current
+                        ? buttonStyles.secondaryOnLight
+                        : upgrade
+                          ? buttonStyles.primary
+                          : buttonStyles.secondaryOnLight
+                    }
+                  >
+                    {current ? "Manage billing" : upgrade ? "Upgrade" : "Switch"}
+                  </button>
+                </form>
+              );
+            })}
+          </div>
+        </div>
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
@@ -273,7 +326,7 @@ export default async function ControlRoomPage({
 
   // One pass of the reads the cockpit needs: usage meter, billing state, the
   // profile-strength inputs, the live travel windows, and the mailbox state.
-  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn] = await Promise.all([
+  const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate, performers] = await Promise.all([
     meterState(business.id, business.plan, new Date(), business.trialEndsAt),
     billingState(),
     db.package.count({ where: { businessId: business.id, active: true } }),
@@ -298,6 +351,16 @@ export default async function ControlRoomPage({
           select: { email: true, status: true, lastError: true },
         })
       : Promise.resolve(null),
+    // Cadence card (P6.15): the tenant's real follow-up day-offsets.
+    db.sequenceTemplate.findFirst({
+      where: { businessId: business.id, active: true },
+      select: { stepsDays: true },
+    }),
+    // P13 roster: every performer, active first (history is kept, not deleted).
+    db.performer.findMany({
+      where: { businessId: business.id },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+    }),
   ]);
 
   const strength = profileStrength(business, { activePackages, gigs });
@@ -350,12 +413,21 @@ export default async function ControlRoomPage({
         />
 
         {/* Post-checkout confirmation (audit C3): billing.ts redirects here with
-            ?billing=success|cancelled — surfaced at the top so it's seen on land. */}
-        {billing === "success" && (
-          <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
-            You&apos;re subscribed — your agent is live. Manage your plan anytime in Plan &amp; billing below.
-          </div>
-        )}
+            ?billing=success|cancelled — surfaced at the top so it's seen on land.
+            "Live" only when the webhook has actually flipped the plan; until
+            then the honest state is "finalizing" (Stripe's webhook usually
+            lands within seconds, but the URL param alone proves nothing). */}
+        {billing === "success" &&
+          (billingSt.subscribed ? (
+            <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
+              You&apos;re subscribed — your agent is live. Manage your plan anytime in Plan &amp; billing below.
+            </div>
+          ) : (
+            <div className="mb-6 rounded-2xl bg-brand-cyan-soft px-5 py-4 text-sm font-medium text-ink-stage">
+              Payment received — finalizing your subscription. Your agent switches on the moment
+              it&apos;s confirmed (usually under a minute); refresh to see it live.
+            </div>
+          ))}
         {billing === "cancelled" && (
           <div className="mb-6 rounded-2xl border border-cream/15 bg-ink-raised px-5 py-4 text-sm text-cream/80">
             Checkout cancelled — no charge was made. You can pick a plan whenever you&apos;re ready.
@@ -427,6 +499,8 @@ export default async function ControlRoomPage({
                   gigTypes: business.gigTypes,
                   acceptsTravel: business.acceptsTravel,
                   residencyRate: business.residencyRate,
+                  residencyRateUnit: business.residencyRateUnit,
+                  oneOffHours: business.oneOffHours,
                   epkEnabled: business.epkEnabled,
                   currency: business.currency,
                 }}
@@ -445,6 +519,109 @@ export default async function ControlRoomPage({
                 homeCityCap={planFeatures(business.plan).homeCityCap}
                 windows={travelWindowRows}
               />
+            </Section>
+
+            <Section
+              id="roster"
+              title="Roster"
+              intro="Who performs under this act — gigs tag a performer, and the agent checks availability per performer before it promises a date."
+            >
+              <RosterCard
+                performers={performers}
+                rosterCap={planFeatures(business.plan).rosterCap}
+              />
+            </Section>
+
+            <Section
+              id="cadence"
+              title="Cadence"
+              intro="How hard the AI works for you — the rhythm it runs on, and the dials each plan turns up."
+            >
+              <Card className="p-6">
+                <h3 className="mb-1 font-bold text-ink-stage">Follow-up rhythm</h3>
+                <p className="mb-4 text-sm text-ink-stage/60">
+                  After your first reply goes out, the agent nudges quiet prospects on this clock —
+                  and stops the moment they answer, book, or opt out. Tuning it yourself is on the
+                  roadmap; the defaults are the pattern that books gigs without pestering anyone.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(sequenceTemplate?.stepsDays ?? [2, 5, 9]).map((day, i) => (
+                    <span
+                      key={`${day}-${i}`}
+                      className="rounded-full border border-cream bg-cream/40 px-3.5 py-1.5 font-mono text-xs font-bold text-ink-stage/75"
+                    >
+                      Day {day}
+                    </span>
+                  ))}
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
+                    then it closes the loop
+                  </span>
+                </div>
+                <p className="mt-4 text-xs text-ink-stage/50">
+                  Hard stops, always: a reply, a booking, or an opt-out ends the sequence instantly.
+                </p>
+              </Card>
+              <Card className="p-6">
+                <h3 className="mb-1 font-bold text-ink-stage">The dials, per plan</h3>
+                <p className="mb-4 text-sm text-ink-stage/60">
+                  Every plan is the complete engine — these are the only things a plan changes.
+                  Yours is marked.
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-sm">
+                    <thead>
+                      <tr className="text-left font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/50">
+                        <th className="pb-2 pr-4 font-bold">Dial</th>
+                        {(["STARTER", "PRO", "STUDIO"] as const).map((p) => (
+                          <th
+                            key={p}
+                            className={`pb-2 pr-4 font-bold ${
+                              business.plan === p ? "text-brand-cyan" : ""
+                            }`}
+                          >
+                            {p.charAt(0) + p.slice(1).toLowerCase()}
+                            {business.plan === p ? " · yours" : ""}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="text-ink-stage/75">
+                      {[
+                        {
+                          dial: "Inquiries answered / month",
+                          values: ["15", "60", "150"] as const,
+                        },
+                        { dial: "Cities hunted", values: ["1", "3", "All"] as const },
+                        {
+                          dial: "Auto-send on trusted sources",
+                          values: ["—", "Yes", "Yes"] as const,
+                        },
+                      ].map((row) => (
+                        <tr key={row.dial} className="border-t border-cream">
+                          <td className="py-2.5 pr-4">{row.dial}</td>
+                          {row.values.map((v, i) => {
+                            const plan = (["STARTER", "PRO", "STUDIO"] as const)[i];
+                            return (
+                              <td
+                                key={plan}
+                                className={`py-2.5 pr-4 font-mono text-xs font-bold ${
+                                  business.plan === plan ? "text-brand-cyan" : ""
+                                }`}
+                              >
+                                {v}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-4 text-xs text-ink-stage/50">
+                  The daily scan and the venue-pitch allowance are the same on every plan — and
+                  research quality is never a dial.
+                </p>
+              </Card>
             </Section>
 
             <Section

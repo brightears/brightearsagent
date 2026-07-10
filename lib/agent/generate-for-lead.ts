@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { pushToBusiness } from "@/lib/push";
+import { notifyBusiness } from "@/lib/notify";
 import { generateDraft } from "@/lib/agent/drafter";
 import { checkAvailability, isoDay } from "@/lib/agent/availability";
 import type { DraftRequest } from "@/lib/agent/types";
@@ -117,8 +117,11 @@ export async function generateDraftForLead(
       : []),
   ]);
 
-  // One-tap approve from the phone — the core loop. Suppressed when the caller
-  // is about to auto-send (it pushes its own "auto-replied" note instead).
+  // One-tap approve from the phone — the core loop. Dual-channel (audit
+  // 2026-07): push is opt-in and impossible on iOS without the PWA, and a
+  // missed "Reply ready" is a lost gig — the email fallback keeps the
+  // speed-to-lead promise alive for every artist. Suppressed when the caller
+  // is about to auto-send (it sends its own "auto-replied" note instead).
   if (!opts.suppressPush) {
     // Flag intent so the owner knows to attach before approving.
     const asked = result.wantsQuote
@@ -126,10 +129,11 @@ export async function generateDraftForLead(
       : result.wantsProfile
         ? " · they asked for your profile"
         : "";
-    void pushToBusiness(lead.businessId, {
+    void notifyBusiness(lead.business, {
       title: `Reply ready: ${lead.clientName ?? "new lead"}`,
       body: `${result.subject}${asked}`,
       url: `/dashboard/leads/${lead.id}`,
+      emailBody: `A reply is drafted and waiting for your approval.\n\nFrom: ${lead.clientName ?? "new lead"}\nSubject: ${result.subject}${asked}\n\nOne tap and it goes out in your voice.`,
     }).catch(() => null);
   }
   return draft.id;

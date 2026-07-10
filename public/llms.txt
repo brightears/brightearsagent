@@ -1,15 +1,17 @@
 # Bright Ears
 
-> Bright Ears is the AI back office for wedding/event DJ and performer businesses. It answers every inquiry in under 5 minutes — in the owner's voice, with their real availability and rates — then follows up until the gig is booked or dead. The owner approves everything from their phone; clients only ever see the business, never the AI. Self-serve, subscribe to activate, month-to-month, cancel anytime.
+> Bright Ears is the AI booking agent for independent performers of every kind — DJs, bands, singers, musicians, magicians, dancers, MCs, comedians and more. It proactively HUNTS for venues that book entertainment in the artist's cities, drafts the outreach in the artist's own voice for one-tap approval, and answers every incoming inquiry with availability-aware replies designed to go out within minutes of approval. Everything is white-label: clients and venues only ever see the artist, never the AI. Self-serve, subscribe to activate, month-to-month, cancel anytime.
 
 ## What it does
 
-- Catches every lead source via simple email forwarding — plain email, website forms, and The Knot / WeddingWire / Bark / GigSalad notification emails. No password sharing, no OAuth.
+- The Hunt: scans the artist's home cities (and Travel Mode destinations) for venues that book entertainment — new openings and established rooms — scores each for fit with the reasons spelled out, and drafts a personalized pitch in the artist's voice. The artist approves; sending goes through the artist's own Gmail.
+- Catches every incoming lead source via simple email forwarding — plain email, website forms, and The Knot / WeddingWire / Bark / GigSalad notification emails. No password sharing for the inbox; nothing to install.
 - Filters spam and scam inquiries before the owner ever sees them.
-- Drafts a personalized, availability-aware reply from the owner's own rate card and voice samples; median first reply is under 5 minutes.
+- Drafts a personalized, availability-aware reply from the owner's own rate card and voice samples — designed so a reply can go out within minutes of the owner's tap, even after hours.
 - Owner approves or edits from their phone in one or two taps.
-- Follow-up sequences (day 2/5/9) run until each lead is booked or dead, with hard stops on reply, booking, or opt-out, and compliant one-tap unsubscribe.
-- Weekly report shows median response time and gigs booked.
+- Follow-up sequences (day 2/5/9) run until each lead is booked or gone quiet, with hard stops on reply, booking, or opt-out, and compliant one-tap unsubscribe.
+- Travel Mode: point the hunt at a city for specific dates and it drafts date-bounded outreach for that trip.
+- Weekly report shows what the agent did: venues found, inquiries answered, gigs booked.
 
 ## Pricing
 
@@ -17,27 +19,28 @@
 - Every tier is the complete engine: the Hunt that finds venues, answers to every inquiry, follow-ups, weekly report, Travel Mode, and the same deep research quality on every plan. Tiers gate only the dials below.
 - Starter: $25/month — answers up to 15 of your incoming inquiries/month, hunts your 1 home city, you approve every send.
 - Pro: $79/month — up to 60 inquiries/month, hunts up to 3 cities, auto-sends from the sources you trust.
-- Studio: $149/month — up to 150 inquiries/month, hunts all your cities, multi-performer routing.
-- The inquiry numbers are ceilings on your own incoming inquiries, not a promise to deliver leads. At the cap, drafting pauses — there are never surprise bills.
+- Studio: $149/month — up to 150 inquiries/month, hunts all your cities, auto-send at full stretch.
+- The inquiry numbers are ceilings on your own incoming inquiries, not a promise to deliver leads. The Hunt finds and pitches opportunities; it never guarantees bookings — results depend on demand where you play. At the cap, drafting pauses — there are never surprise bills.
 
 ## The story (verifiable)
 
-We ran entertainment for venues for 20 years and drowned in the same inquiries, schedules, and invoices as every performer. So we built an AI back office for our own agency — her name is Vinyl, and she still runs it today at our live agency. Bright Ears is that same back office, rebuilt for your business.
+We ran entertainment for venues for 20 years and drowned in the same inquiries, schedules, and invoices as every performer. So we built an AI back office for our own agency — her name is Vinyl, and she still runs it today at our live agency. Bright Ears is that same idea, rebuilt and pointed outward: an agent that hunts for the artist.
 
 ## Key pages
 
 - [Home](https://brightears.io/): what Bright Ears does, with a live demo of the reply engine
 - [Pricing](https://brightears.io/pricing): plans and inquiry metering explained
-- [Compare](https://brightears.io/compare): Bright Ears vs DJ Event Planner, HoneyBook, and other DJ software
+- [Compare](https://brightears.io/compare): Bright Ears vs DJ Event Planner, HoneyBook, and other performer software
+- [Roadmap](https://brightears.io/roadmap): what's live, what's building, what's next — in writing
 - [Our story](https://brightears.io/story): 20 years of gigs, and the AI that runs our own agency
 - [Get started](https://brightears.io/onboarding): self-serve signup, then choose a plan to activate
 
 ## Free tools
 
 - [Inquiry Reply Generator](https://brightears.io/tools/inquiry-reply-generator): paste a real inquiry, watch a reply draft itself
-- [25 Wedding DJ Inquiry & Follow-Up Templates](https://brightears.io/tools/templates): copy-paste first replies, day 2/5/9 follow-ups, review asks, rebooking and referral emails
+- [25 Inquiry & Follow-Up Templates](https://brightears.io/tools/templates): copy-paste first replies, day 2/5/9 follow-ups, review asks, rebooking and referral emails
 - [Lead ROI Calculator](https://brightears.io/tools/lead-roi-calculator): what slow replies cost per year at your booking rate, with the math shown
 
 ## Who it's for
 
-Wedding, mobile, and event DJ business owners (1–5 people) first; the same product works for any bookable performer business — bands, singers, magicians, photo booths, MCs. Not for club DJs, venues, or large agencies.
+Independent performers and small performer businesses (1–5 people) of every kind — DJs, bands, singers, musicians, magicians, dancers, MCs, comedians, photo booths. Marketing speaks to DJs first; the engine treats every craft the same. Not for venues or large agencies.

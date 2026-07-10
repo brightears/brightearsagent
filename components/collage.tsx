@@ -17,7 +17,7 @@ import type { CSSProperties, ReactNode } from "react";
 /* ------------------------------------------------------------------ */
 
 const VINYL_SPIN_CSS =
-  "@keyframes be-vinyl-spin{to{transform:rotate(360deg)}}.be-vinyl-spin{animation:be-vinyl-spin 36s linear infinite}";
+  "@keyframes be-vinyl-spin{to{transform:rotate(360deg)}}.be-vinyl-spin{animation:be-vinyl-spin 36s linear infinite}@media (prefers-reduced-motion: reduce){.be-vinyl-spin{animation:none}}";
 
 export function VinylDisc({
   size,

@@ -13,6 +13,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markBooked, markDead, draftReplyForLead } from "@/app/actions/drafts";
 import { buttonStyles } from "@/components/ui";
+import { parseFeeToMinor } from "@/lib/quote/fee";
 
 const bookedButtonStyle =
   "rounded-full border-[1.5px] border-cream/30 text-cream/85 font-semibold px-4 py-2 transition-all hover:border-transparent hover:bg-gradient-to-r hover:from-neon-magenta hover:to-neon-orange hover:text-ink-stage disabled:opacity-40";
@@ -20,14 +21,27 @@ const bookedButtonStyle =
 const deadButtonStyle =
   "rounded-full border border-red-400/40 text-red-300 font-semibold px-4 py-2 transition-colors hover:bg-red-500/10 disabled:opacity-40";
 
-type ActionResult = { ok: boolean; error?: string };
+type ActionResult = { ok: boolean; error?: string; confirmationDrafted?: boolean };
 type Note = { kind: "success" | "error"; text: string };
 
-export function LeadOutcomeControls({ leadId }: { leadId: string }) {
+export function LeadOutcomeControls({
+  leadId,
+  feeCurrency = "USD",
+  suggestedFeeMinor = null,
+}: {
+  leadId: string;
+  /** 11.1 fee capture: the artist's currency + a grounded prefill (quote). */
+  feeCurrency?: string;
+  suggestedFeeMinor?: number | null;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState<Note | null>(null);
   const [done, setDone] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [fee, setFee] = useState(
+    suggestedFeeMinor != null ? String(suggestedFeeMinor / 100) : "",
+  );
   const busy = isPending || done;
 
   const run = (action: () => Promise<ActionResult>, text: string) =>
@@ -75,29 +89,70 @@ export function LeadOutcomeControls({ leadId }: { leadId: string }) {
       <p className="mb-3 border-t border-cream/10 pt-4 text-xs text-cream/60">
         Settled this one outside the thread? Set the outcome — follow-ups stop instantly.
       </p>
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() =>
-            run(
-              () => markBooked(leadId),
-              "Marked booked — follow-ups stopped and the gig is on your calendar.",
-            )
-          }
-          disabled={busy}
-          className={bookedButtonStyle}
-        >
-          Mark booked
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => markDead(leadId), "Marked dead — all follow-ups stopped.")}
-          disabled={busy}
-          className={deadButtonStyle}
-        >
-          Mark dead
-        </button>
-      </div>
+      {bookingOpen ? (
+        <div className="space-y-2">
+          <label
+            htmlFor="outcome-fee"
+            className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-cream/55"
+          >
+            Fee — optional, stays private ({feeCurrency})
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              id="outcome-fee"
+              inputMode="decimal"
+              value={fee}
+              onChange={(e) => setFee(e.target.value)}
+              disabled={busy}
+              placeholder="e.g. 15000"
+              className="w-36 rounded-xl border border-cream/20 bg-ink-stage px-3 py-2 text-base sm:text-sm text-cream-bright focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={() =>
+                run(
+                  () => markBooked(leadId, parseFeeToMinor(fee) ?? undefined),
+                  "Marked booked — follow-ups stopped; if a confirmation email was drafted it appears below for your approval.",
+                )
+              }
+              disabled={busy}
+              className={bookedButtonStyle}
+            >
+              Confirm booked
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingOpen(false)}
+              disabled={busy}
+              className="text-sm font-semibold text-cream/45 transition-colors hover:text-cream/70"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="text-[11px] text-cream/45">
+            Powers your booked-value receipts — the client never sees it.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setBookingOpen(true)}
+            disabled={busy}
+            className={bookedButtonStyle}
+          >
+            Mark booked
+          </button>
+          <button
+            type="button"
+            onClick={() => run(() => markDead(leadId), "Marked dead — all follow-ups stopped.")}
+            disabled={busy}
+            className={deadButtonStyle}
+          >
+            Mark dead
+          </button>
+        </div>
+      )}
     </div>
   );
 }

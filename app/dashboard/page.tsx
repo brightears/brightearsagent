@@ -1,23 +1,28 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
-import { OnboardingBanner } from "@/components/onboarding-banner";
-import { getSetupStatus } from "@/lib/onboarding-status";
+import { ActivationChecklist } from "@/components/activation-checklist";
+import { ReceiptsStrip } from "@/components/receipts-strip";
+import { NeedsYou } from "@/components/needs-you";
+import { InstallPrompt } from "@/components/install-prompt";
+import { GraduationPrompt } from "@/components/graduation-prompt";
+import { graduationCandidate } from "@/lib/inbound/auto-send";
 import {
   EmptyState,
+  Kicker,
   LEAD_STATUS_META,
   PageHeader,
   StatPill,
-  buttonStyles,
 } from "@/components/ui";
-import { GradientBlob, StickerChip } from "@/components/collage";
-import { HUNT_CAP, HuntSection } from "@/components/hunt-feed";
+import { StickerChip } from "@/components/collage";
+import { HUNT_CAP, HuntSection, KIND_LABEL } from "@/components/hunt-feed";
 import { AtCapBanner } from "@/components/at-cap-banner";
 import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
-import { meterState } from "@/lib/billing/metering";
-import type { LeadStatus, VenueStatus } from "@/app/generated/prisma/enums";
+import { meterState, monthStart } from "@/lib/billing/metering";
+import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
+import type { LeadSource, LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +66,11 @@ function fmtDate(d: Date | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Whole hours between a timestamp and the page's render clock. */
+function hoursSince(d: Date, now: Date) {
+  return Math.floor((now.getTime() - d.getTime()) / 3600_000);
+}
+
 // Hunt-feed statuses: the proactive cards still awaiting action. Everything
 // from PITCHED onward lives in the reply/pipeline flow, not the rail.
 const HUNT_STATUSES = [
@@ -72,11 +82,17 @@ const HUNT_STATUSES = [
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ hunt?: string | string[] }>;
+  searchParams: Promise<{ hunt?: string | string[]; tuned?: string | string[]; skips?: string | string[] }>;
 }) {
-  const huntExpanded = (await searchParams).hunt === "all";
+  const sp = await searchParams;
+  const huntExpanded = sp.hunt === "all";
+  // Tuning ack (P10.2): skipVenueForm redirects here after a WRONG_VIBE skip.
+  const tunedKind =
+    typeof sp.tuned === "string" && Object.hasOwn(KIND_LABEL, sp.tuned) ? (sp.tuned as VenueKind) : null;
+  const tunedSkips = typeof sp.skips === "string" ? parseInt(sp.skips, 10) || 1 : 1;
   const tenant = await getCurrentBusiness();
-  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox] = await Promise.all([
+  const now = new Date();
+  const [leads, spamCount, huntVenues, huntCount, inPlayVenues, activePackages, gigs, mailbox, repliedThisMonth, approvedDrafts] = await Promise.all([
     db.lead.findMany({
       where: { businessId: tenant.id, status: { not: "SPAM" } },
       orderBy: { createdAt: "desc" },
@@ -88,6 +104,7 @@ export default async function Dashboard({
         venue: true,
         status: true,
         bookedAt: true,
+        updatedAt: true, // aging chip: DRAFTED-at time proxy (P4.3)
       },
     }),
     db.lead.count({ where: { businessId: tenant.id, status: "SPAM" } }),
@@ -120,9 +137,19 @@ export default async function Dashboard({
         lastSignalAt: true,
         bookingEmail: true,
         contactSource: true,
+        bookingContactName: true,
+        staffNotes: true,
+        retouchedAt: true,
         // Travel Mode: the window's city, when this venue is a travel find —
         // drives the "Travel · {city}" tag on the card.
         travelWindow: { select: { city: true } },
+        // Evidence chips (P10.1): the freshest signals carry the receipts —
+        // each card links WHERE the agent read it (provenance builds trust).
+        signals: {
+          orderBy: { observedAt: "desc" },
+          take: 3,
+          select: { id: true, summary: true, sourceUrl: true },
+        },
         // The live pitch for the review surface (10.3) — at most one PENDING
         // or parked APPROVED per venue (action-level dedupe guarantee).
         pitches: {
@@ -159,6 +186,7 @@ export default async function Dashboard({
         kind: true,
         status: true,
         pitchedAt: true,
+        staffNotes: true,
         // Travel Mode: window city for the "Travel · {city}" tag (in play too).
         travelWindow: { select: { city: true } },
       },
@@ -171,13 +199,28 @@ export default async function Dashboard({
       where: { businessId: tenant.id },
       select: { status: true },
     }),
+    // 10.7: the speed stopwatch — leads first-replied this month, for the
+    // median pill in the header. Shown only when the data exists.
+    db.lead.findMany({
+      where: { businessId: tenant.id, firstReplyAt: { gte: monthStart(now) } },
+      select: { createdAt: true, firstReplyAt: true },
+    }),
+    // 10.3: untouched approvals (APPROVED = zero edits; EDITED excluded by
+    // definition) — the graduation prompt's evidence, counted per source.
+    // autoSent: false (P15 review) so the agent's OWN autonomous sends never
+    // masquerade as "you approved without changing a word".
+    db.draft.findMany({
+      where: { status: "APPROVED", autoSent: false, lead: { businessId: tenant.id } },
+      orderBy: { decidedAt: "desc" },
+      take: 400,
+      select: { lead: { select: { source: true } } },
+    }),
   ]);
   const business = { ...tenant, leads };
-  // First-run dashboard shows ONE next action (audit C4): while setup is
-  // incomplete the OnboardingBanner is the single CTA, so the no-leads welcome
-  // drops its competing "Connect your leads" button and points at finishing
-  // setup; once setup is done the banner hides and the welcome owns the CTA.
-  const setup = await getSetupStatus(tenant);
+  // First-run dashboard leads with the HUNT (founder 2026-07): the reason an
+  // artist comes is "it finds gigs for me", so the proactive feed is the hero
+  // and the reactive inbox connection is a quiet secondary card below it. The
+  // ActivationChecklist above owns the single loud setup CTA.
 
   // Venue rows → feed-card shape: the live pitch rides along (PENDING/APPROVED
   // only — the query filtered, so the cast on status is honest). Travel Mode:
@@ -212,9 +255,36 @@ export default async function Dashboard({
   // Agent-paused surface (audit C3): show it in-app, not just via push.
   // meterState reads an UNSUBSCRIBED tenant as overCap (isAgentPaused); a paid
   // plan is overCap only when used > cap. Subscribed & under-cap → no banner.
-  const now = new Date();
   const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
   const subscribed = !!tenant.stripeSubscriptionId;
+  const medianReply = medianReplyMinutes(repliedThisMonth);
+
+  // Autonomy graduation (P10.3): offer auto-send for the source with the most
+  // untouched approvals past the threshold — trusted/declined never re-asked.
+  const untouchedApprovals: Partial<Record<LeadSource, number>> = {};
+  for (const d of approvedDrafts) {
+    untouchedApprovals[d.lead.source] = (untouchedApprovals[d.lead.source] ?? 0) + 1;
+  }
+  const graduation = graduationCandidate({
+    plan: tenant.plan,
+    trusted: tenant.autoSendSources,
+    declined: tenant.autoSendDeclinedSources,
+    untouchedApprovals,
+  });
+
+  // A2HS eligibility (P9.6): only after the first approval — either half of
+  // the product — so the install ask lands right after the loop proved itself.
+  const [approvedDraft, approvedPitch] = await Promise.all([
+    db.draft.findFirst({
+      where: { lead: { businessId: tenant.id }, status: { in: ["APPROVED", "EDITED"] } },
+      select: { id: true },
+    }),
+    db.venuePitch.findFirst({
+      where: { businessId: tenant.id, status: { in: ["APPROVED", "SENDING", "SENT"] } },
+      select: { id: true },
+    }),
+  ]);
+  const approvedOnce = !!(approvedDraft || approvedPitch);
 
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
@@ -226,7 +296,16 @@ export default async function Dashboard({
         stats={
           <>
             <StatPill tone="teal">{business.leads.length} active</StatPill>
-            <StatPill>{spamCount} spam filtered for you</StatPill>
+            {/* The stopwatch (P10.7): speed-to-lead is the product's core
+                promise — show the receipt, but only when data exists. */}
+            {medianReply !== null && (
+              <StatPill>median first reply {formatReplyTime(medianReply)}</StatPill>
+            )}
+            {/* The pill is a door (P10.6): the filter earns trust by being
+                inspectable — tap through to see what it caught and why. */}
+            <Link href="/dashboard/spam" className="transition-opacity hover:opacity-80">
+              <StatPill>{spamCount} spam filtered for you →</StatPill>
+            </Link>
             {bookedThisMonth > 0 && (
               <StickerChip tone="magenta" rotate={-2}>
                 {bookedThisMonth} booked this month
@@ -236,32 +315,77 @@ export default async function Dashboard({
         }
       />
 
-      <OnboardingBanner />
+      {/* The Today queue first (P9.4): what needs a tap, before anything
+          else — the 30-seconds-a-day habit surface. Hidden when clear. */}
+      <NeedsYou businessId={tenant.id} now={now} />
 
-      {/* Agent paused (audit C3): unsubscribed or paid-plan-over-cap. Renders
-          nothing for a subscribed, under-cap plan. */}
-      <AtCapBanner
-        used={meter.used}
-        cap={meter.cap}
-        overCap={meter.overCap}
-        subscribed={subscribed}
-      />
-
-      {/* The Hunt (ADR-004: ONE home feed) — the proactive half, above the
-          pipeline. Brand-new tenants (zero leads AND zero venues) keep the
-          whole-pipeline welcome primary; the Hunt moves below it then. */}
-      {!(business.leads.length === 0 && huntCount === 0) && (
-        <HuntSection
-          venues={huntCards}
-          totalCount={huntCount}
-          expanded={huntExpanded}
-          canPitch={strength.canPitch}
-          profilePercent={strength.percent}
-          businessName={tenant.name}
-          homeCity={homeCity}
-          mailboxConnected={mailboxConnected}
+      {/* Earned autonomy (P10.3): the queue itself offers auto-send once the
+          owner's own untouched approvals prove reviewing adds nothing. */}
+      {graduation && (
+        <GraduationPrompt
+          source={graduation.source}
+          count={graduation.count}
+          trusted={tenant.autoSendSources}
         />
       )}
+
+      {/* Install ask (P9.6) — phones only, after first approval, once. */}
+      <InstallPrompt eligible={approvedOnce} />
+
+      {/* Receipts (P8.7): what the agent did in the last 24h, in plain
+          words — proof of work before any stats. Hidden on quiet days. */}
+      <ReceiptsStrip businessId={tenant.id} now={now} />
+
+      {/* ONE activation surface (audit C4, recut 2026-07): profile+voice, home
+          city, leads, plan — in order, one primary CTA. Hidden once live. */}
+      <ActivationChecklist business={tenant} subscribed={subscribed} />
+
+      {/* Agent paused (audit C3) — for SUBSCRIBED tenants over their cap. The
+          unsubscribed case is the checklist's "Choose your plan" item; showing
+          both would rebuild the banner pile the checklist replaced. */}
+      {subscribed && (
+        <AtCapBanner
+          used={meter.used}
+          cap={meter.cap}
+          overCap={meter.overCap}
+          subscribed={subscribed}
+        />
+      )}
+
+      {/* Tuning ack (P10.2): the WRONG_VIBE skip just taught the hunt — a
+          silent lesson reads as no lesson, so the strip says what changed. */}
+      {tunedKind && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-4 py-3">
+          <p className="text-sm text-cream/85">
+            <span className="font-bold text-cream-bright">Got it — not your kind of room.</span>{" "}
+            {tunedSkips >= 2
+              ? `${KIND_LABEL[tunedKind]}s now rank lower in your hunt.`
+              : `Skip one more ${KIND_LABEL[tunedKind].toLowerCase()} and the hunt ranks them lower.`}
+          </p>
+          <Link
+            href="/dashboard"
+            className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/45 transition-colors hover:text-cream/70"
+          >
+            Dismiss
+          </Link>
+        </div>
+      )}
+
+      {/* The Hunt (ADR-004: ONE home feed) — the proactive half, and the HERO
+          for a first-time visitor (founder 2026-07): the reason they came is
+          "it finds gigs for me". Always rendered here; its state-aware empty
+          state sells the story — find venues → score → draft → you approve. */}
+      <HuntSection
+        venues={huntCards}
+        totalCount={huntCount}
+        expanded={huntExpanded}
+        canPitch={strength.canPitch}
+        profilePercent={strength.percent}
+        businessName={tenant.name}
+        homeCity={homeCity}
+        mailboxConnected={mailboxConnected}
+        subscribed={subscribed}
+      />
 
       {/* In play (audit C2): venues a pitch was sent to leave the Hunt feed —
           this section gives them a home so the owner can track the reply by
@@ -276,48 +400,33 @@ export default async function Dashboard({
       )}
 
       {business.leads.length === 0 ? (
-        // Whole-pipeline welcome: a cream poster floating on the ink, sticker
-        // chip on the corner (empty-state art may use the show voice).
-        <div className="relative mx-auto max-w-xl">
-          <GradientBlob tone="show" className="-bottom-8 -right-6 h-32 w-52" />
-          <div className="relative">
-            <EmptyState
-              kicker="The inbox is listening"
-              title="No leads yet."
-              accent="yet."
-              hint={
-                setup.incomplete
-                  ? "Finish your setup above — then your forwarding test will land here."
-                  : "Connect your leads — your forwarding test will land here."
-              }
-              cta={
-                setup.incomplete ? undefined : (
-                  <Link href="/onboarding" className={`inline-block ${buttonStyles.primary}`}>
-                    Connect your leads
-                  </Link>
-                )
-              }
-            />
-            <StickerChip tone="magenta" rotate={6} className="absolute -top-2.5 right-8">
+        // The reactive half is the ALSO, not the first (founder 2026-07): the
+        // Hunt above is the hero; connecting an inbox is a quiet secondary card
+        // framed as "the agent answers those too" — never the opening ask.
+        <section>
+          <div className="mb-4">
+            <Kicker>The other half</Kicker>
+            <h2 className="mt-1.5 text-xl font-black tracking-tight text-cream-bright">
+              Already getting inquiries?
+            </h2>
+          </div>
+          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised px-6 py-6">
+            <StickerChip tone="magenta" rotate={4} className="absolute -top-2.5 right-6">
               You&apos;ll hear the ping
             </StickerChip>
+            <p className="max-w-2xl text-sm leading-relaxed text-cream/70">
+              The Knot, WeddingWire, your website form, word of mouth — point them at your lead
+              address and the agent answers each one in your voice, follows up until booked-or-dead,
+              and lands it in the pipeline here. One forwarding rule, then it runs itself.
+            </p>
+            <Link
+              href="/onboarding"
+              className="mt-4 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
+            >
+              Connect your inbox →
+            </Link>
           </div>
-          {/* Brand-new tenant: the Hunt sits below the welcome (no double-shout). */}
-          {huntCount === 0 && (
-            <div className="mt-10">
-              <HuntSection
-                venues={huntCards}
-                totalCount={huntCount}
-                expanded={huntExpanded}
-                canPitch={strength.canPitch}
-                profilePercent={strength.percent}
-                businessName={tenant.name}
-                homeCity={homeCity}
-                mailboxConnected={mailboxConnected}
-              />
-            </div>
-          )}
-        </div>
+        </section>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {COLUMN_STATUSES.map((status) => {
@@ -352,6 +461,14 @@ export default async function Dashboard({
                         </p>
                         {lead.venue && (
                           <p className="mt-0.5 text-xs text-ink-stage/45">{lead.venue}</p>
+                        )}
+                        {/* Aging nudge (P4.3): a reply that's sat ≥4h is a gig
+                            leaking away — the median-response stat the weekly
+                            report sells depends on these getting tapped. */}
+                        {status === "DRAFTED" && hoursSince(lead.updatedAt, now) >= 4 && (
+                          <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-neon-orange">
+                            waiting {hoursSince(lead.updatedAt, now)}h
+                          </p>
                         )}
                       </Link>
                     </li>

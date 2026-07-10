@@ -9,6 +9,8 @@ import { Card, EmptyState, Kicker, StatPill, buttonStyles } from "@/components/u
 import { skipVenueForm } from "@/app/actions/venues";
 import { DraftPitchButton, VenuePitchReview, type HuntPitch } from "@/components/venue-pitch-review";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
+import { contactConfidence } from "@/lib/venues/contact-confidence";
+import { VenueNotes } from "@/components/venue-notes";
 import {
   SKIP_REASONS,
   TEMPERATURE_CHIP,
@@ -39,6 +41,14 @@ export type HuntVenue = {
   lastSignalAt: Date | null;
   bookingEmail: string | null;
   contactSource: string | null;
+  /** Evidence receipts (P10.1): freshest signals with WHERE we read them. */
+  signals: { id: string; summary: string; sourceUrl: string }[];
+  /** Named person published with the address (P10.5 confidence signal). */
+  bookingContactName: string | null;
+  /** P12.4: private field notes (names met, visits) — dashboard-only. */
+  staffNotes: string | null;
+  /** P12.4: set when the 180-day re-touch arc brought this venue back. */
+  retouchedAt: Date | null;
   /** Travel Mode: the travel-window city, when this is a travel find (else null). */
   travelCity: string | null;
   /** The live pitch (PENDING or parked APPROVED), when one exists (10.3). */
@@ -53,7 +63,7 @@ const FIT_CHIP: Record<ReturnType<typeof fitScoreTone>, string> = {
   cool: "bg-cream/40 text-ink-stage/70",
 };
 
-const KIND_LABEL: Record<VenueKind, string> = {
+export const KIND_LABEL: Record<VenueKind, string> = {
   BAR: "Bar",
   ROOFTOP: "Rooftop",
   HOTEL: "Hotel",
@@ -62,6 +72,26 @@ const KIND_LABEL: Record<VenueKind, string> = {
   CLUB: "Club",
   OTHER: "Venue",
 };
+
+/** Hostname label for a source chip — "www." stripped; raw string on bad URLs. */
+function hostLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url.slice(0, 30);
+  }
+}
+
+/** One chip per publication — three signals from one blog is one receipt. */
+function dedupeByHost(signals: { id: string; summary: string; sourceUrl: string }[]) {
+  const seen = new Set<string>();
+  return signals.filter((s) => {
+    const host = hostLabel(s.sourceUrl);
+    if (seen.has(host)) return false;
+    seen.add(host);
+    return true;
+  });
+}
 
 function VenueCard({
   venue,
@@ -87,8 +117,9 @@ function VenueCard({
   // the note + footer for fresh renders.
   const jurisdiction = jurisdictionFor(venue.country);
   return (
-    // White data card on the ink stage — never tilted (app rule).
-    <Card className="flex flex-col p-5">
+    // White data card on the ink stage — never tilted (app rule). The id is
+    // the NeedsYou queue's anchor target (P9.4) — scroll-mt clears the nav.
+    <Card id={`venue-${venue.id}`} className="flex scroll-mt-20 flex-col p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-bold leading-tight text-ink-stage">{venue.name}</p>
@@ -99,6 +130,13 @@ function VenueCard({
           >
             {TEMPERATURE_CHIP[venue.temperature].label}
           </span>
+          {/* Warm again (P12.4): the re-touch arc brought this one back after
+              180 silent days — fair to knock twice, and the card says so. */}
+          {venue.retouchedAt && (
+            <span className="ml-1.5 mt-1.5 inline-block rounded-full bg-cream px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
+              Warm again — pitched 6+ months ago
+            </span>
+          )}
           {/* Travel Mode tag (no emoji, mono, cyan interface accent): marks a
               find from a travel window so travel finds are distinguishable. */}
           {venue.travelCity && (
@@ -148,6 +186,28 @@ function VenueCard({
         </p>
       )}
 
+      {/* Evidence receipts (P10.1): every claim above traces to a source the
+          owner can open — provenance chips by hostname, deduped. */}
+      {venue.signals.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/40">
+            Sources
+          </span>
+          {dedupeByHost(venue.signals).map((s) => (
+            <a
+              key={s.id}
+              href={s.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={s.summary}
+              className="rounded-full bg-cream/70 px-2 py-0.5 font-mono text-[10px] font-bold text-ink-stage/60 transition-colors hover:text-brand-cyan"
+            >
+              {hostLabel(s.sourceUrl)} ↗
+            </a>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3 space-y-0.5">
         {(venue.lastSignalAt || venue.timingScore != null) && (
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
@@ -157,9 +217,19 @@ function VenueCard({
           </p>
         )}
         {venue.bookingEmail && (
-          // Provenance builds trust — where the agent found the contact.
+          // Provenance builds trust — where the agent found the contact. A
+          // generic address (info@/hello@) is flagged (P10.5): the agent
+          // won't auto-draft to it, and the owner should check it reaches
+          // the booker before sending.
           <p className="text-[11px] text-ink-stage/45">
             Contact: {venue.contactSource ?? "published booking contact"}
+            {contactConfidence(venue.bookingEmail, venue.bookingContactName) === "low" && (
+              <>
+                {" · "}
+                <span aria-hidden className="mb-px mr-1 inline-block size-1 bg-neon-orange align-middle" />
+                <span className="font-semibold text-ink-stage/70">verify before sending</span>
+              </>
+            )}
           </p>
         )}
         {venue.linkedinUrl && (
@@ -238,6 +308,9 @@ function VenueCard({
         </div>
       )}
 
+      {/* Private field notes (P12.4) — the residency game's memory. */}
+      <VenueNotes venueId={venue.id} notes={venue.staffNotes} />
+
       {!canPitch && venue.status !== "PITCH_DRAFTED" && (
         <p className="mt-2 text-[11px] text-ink-stage/55">
           <Link href="/dashboard/settings#profile" className="font-semibold text-brand-cyan hover:opacity-80">
@@ -262,6 +335,7 @@ export function HuntSection({
   businessName,
   homeCity,
   mailboxConnected = false,
+  subscribed = true,
 }: {
   /** Already capped (or full when expanded), fitScore desc. */
   venues: HuntVenue[];
@@ -275,6 +349,8 @@ export function HuntSection({
   homeCity: string;
   /** 10.5: a sending mailbox is connected — gates "Send now" on STANDARD cards. */
   mailboxConnected?: boolean;
+  /** Subscribe-to-activate: unsubscribed tenants' scans never run. */
+  subscribed?: boolean;
 }) {
   const now = new Date();
   return (
@@ -291,17 +367,71 @@ export function HuntSection({
 
       {totalCount === 0 ? (
         // Typography-first empty state (v2.1 LAW rule 7) — no icons, ever.
-        <EmptyState
-          kicker="The hunt"
-          title="The hunt begins here."
-          accent="here."
-          hint="Finish your profile and the agent starts finding venues that fit you — new openings and rooms for your act land here, scored, with the reasons spelled out and the outreach drafted for you to approve."
-          cta={
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
-              Finish your profile to start the hunt
-            </span>
-          }
-        />
+        // State-aware: names the ACTUAL blocker (plan → city → profile) or,
+        // when nothing blocks, says what happens next. Quiet mono links only —
+        // the activation surfaces above own the loud CTA (audit C4).
+        (() => {
+          const linkCls =
+            "font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80";
+          const state = !subscribed
+            ? {
+                hint: "Your agent is paused. Pick a plan and the hunt switches on — new openings and rooms for your act land here, scored, with the outreach drafted in your voice for you to approve.",
+                cta: (
+                  <Link href="/dashboard/settings#billing" className={linkCls}>
+                    Choose your plan →
+                  </Link>
+                ),
+              }
+            : !homeCity
+              ? {
+                  hint: "The agent is on — it just doesn't know where to hunt yet. Set your home city and every scan combs it for new openings and rooms that fit your act.",
+                  cta: (
+                    <Link href="/dashboard/settings#hunt" className={linkCls}>
+                      Set your home city →
+                    </Link>
+                  ),
+                }
+              : !canPitch
+                ? {
+                    hint: "Venues from your city land here after each scan. To unlock pitching, finish the profile the pitches are built from — video, photos, bio, a gig on your calendar — so the agent never sends a thin one in your name.",
+                    cta: (
+                      <Link href="/dashboard/settings#profile" className={linkCls}>
+                        Finish your profile ({profilePercent}%) →
+                      </Link>
+                    ),
+                  }
+                : {
+                    hint: "You're set. The agent combs your city on every scan — new openings and rooms that fit your act land here scored, with the reasons spelled out and the outreach drafted for you to approve, usually by morning.",
+                    cta: (
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
+                        First scan queued — check back tomorrow
+                      </span>
+                    ),
+                  };
+          return (
+            <EmptyState
+              kicker="The hunt"
+              title="The hunt begins here."
+              accent="here."
+              hint={state.hint}
+              cta={state.cta}
+            />
+          );
+        })()
+      ) : venues.length === 0 ? (
+        // Counted but all collapsed (P15 review): every found venue is a SEED
+        // (or past the cap), so the default HOT/WARM feed is empty. Say so and
+        // hand over the expansion instead of rendering a blank grid under "N found".
+        <p className="text-sm text-cream/70">
+          {totalCount} {totalCount === 1 ? "venue is" : "venues are"} on file as longer-term
+          introductions — nothing hot right now.{" "}
+          <Link
+            href="/dashboard?hunt=all"
+            className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
+          >
+            View all →
+          </Link>
+        </p>
       ) : (
         <>
           <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -51,7 +51,11 @@ function parseGigTypes(values: FormDataEntryValue[]): string[] {
   return GIG_TYPES.filter((t) => set.has(t));
 }
 
-const urlSchema = z.url("That doesn't look like a link — paste the full https:// URL");
+// 14.1: http(s) ONLY — javascript:/data:/file: pseudo-links from a hostile
+// profile must never land in EPK hrefs or server-side fetches.
+const urlSchema = z
+  .url("That doesn't look like a link — paste the full https:// URL")
+  .refine((u) => /^https?:\/\//i.test(u), "Links must start with http:// or https://");
 
 const profileSchema = z.object({
   headline: z
@@ -102,6 +106,19 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
   if (feeFloor !== null && feeSweetSpot !== null && feeSweetSpot < feeFloor) {
     return { ok: false, error: "Your sweet spot can't sit below your floor" };
   }
+  // Rate units (founder preview): validated to the two real values; hours
+  // capped to a sane day. Blank = keep unspecified.
+  const rawUnit = formData.get("residencyRateUnit");
+  const residencyRateUnit = rawUnit === "hour" ? "hour" : "night";
+  const rawHours = formData.get("oneOffHours");
+  let oneOffHours: number | null = null;
+  if (typeof rawHours === "string" && rawHours.trim()) {
+    const n = Number(rawHours.trim());
+    if (!Number.isInteger(n) || n < 1 || n > 24) {
+      return { ok: false, error: "Covered hours should be a whole number between 1 and 24" };
+    }
+    oneOffHours = n;
+  }
   const residencyRate = toCents(formData.get("residencyRate"));
   if (residencyRate === "invalid") {
     return { ok: false, error: "Residency rate should be a plain number" };
@@ -127,6 +144,8 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
       gigTypes: parseGigTypes(formData.getAll("gigTypes")),
       acceptsTravel: formData.get("acceptsTravel") === "on",
       residencyRate,
+      residencyRateUnit,
+      oneOffHours,
       insured: formData.get("insured") === "on",
       epkEnabled: formData.get("epkEnabled") === "on",
     },

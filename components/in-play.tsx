@@ -15,6 +15,7 @@
 // Design LAW (docs/DESIGN.md v2.1): reuse VENUE_STATUS_META, mono Kickers, no
 // emoji ever. White data cards on the ink stage — never tilted.
 
+import { VenueNotes } from "@/components/venue-notes";
 import { Badge, EmptyState, Kicker, StatPill, VENUE_STATUS_META } from "@/components/ui";
 import { setVenueStatusForm } from "@/app/actions/venues";
 import { IN_PLAY_TARGET_STATUSES } from "@/lib/venues/feed";
@@ -29,6 +30,8 @@ export type InPlayVenue = {
   kind: VenueKind;
   status: VenueStatus;
   pitchedAt: Date | null;
+  /** P12.4: private field notes (names met, visits) — dashboard-only. */
+  staffNotes: string | null;
   /** Travel Mode: the travel-window city, when this is a travel find (else null). */
   travelCity: string | null;
 };
@@ -106,6 +109,11 @@ function InPlayRow({ venue, now }: { venue: InPlayVenue; now: Date }) {
         <Badge tone={meta.badgeTone}>{meta.label}</Badge>
       </span>
       <StatusPicker venueId={venue.id} current={venue.status} />
+      {/* Private field notes (P12.4): the residency game is played in person
+          over months — names met and visits live on the card. */}
+      <div className="w-full">
+        <VenueNotes venueId={venue.id} notes={venue.staffNotes} />
+      </div>
     </li>
   );
 }

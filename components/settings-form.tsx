@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { updateBusiness } from "@/app/actions/settings";
+import { isProvisionedBusinessName } from "@/lib/business-name";
 import { buttonStyles } from "@/components/ui";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
@@ -35,7 +36,7 @@ export type BusinessProfile = {
 
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputCls =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 export function SettingsForm({ business }: { business: BusinessProfile }) {
@@ -71,7 +72,11 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             id="name"
             name="name"
             required
-            defaultValue={business.name}
+            // The provisioning default ("Norbert's Business") is not a stage
+            // name — show it as an empty required field so the artist types
+            // their real one before it fronts a client-facing email.
+            defaultValue={isProvisionedBusinessName(business) ? "" : business.name}
+            placeholder="DJ Midnight (or Midnight Groove)"
             className={inputCls}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
@@ -184,7 +189,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
         </button>
         {state?.ok && (
           <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-            Saved ✓
+            Saved
           </span>
         )}
         {state && !state.ok && (

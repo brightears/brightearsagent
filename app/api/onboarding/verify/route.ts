@@ -35,6 +35,17 @@ export async function GET(req: Request) {
     select: { id: true, clientName: true, rawSubject: true, createdAt: true },
   });
 
+  // Gmail's forwarding-approval link, if its verification email arrived (the
+  // pipeline intercepts + stores it — lib/inbound/forwarding-confirmation.ts).
+  // Surfaced here so the step-5 poll shows the approval card live.
+  const forwardingConfirmation =
+    business.forwardingConfirmUrl || business.forwardingConfirmCode
+      ? {
+          url: business.forwardingConfirmUrl,
+          code: business.forwardingConfirmCode,
+        }
+      : null;
+
   return Response.json({
     verified: lead !== null,
     lead: lead && {
@@ -43,5 +54,6 @@ export async function GET(req: Request) {
       subject: lead.rawSubject,
       receivedAt: lead.createdAt,
     },
+    forwardingConfirmation,
   });
 }

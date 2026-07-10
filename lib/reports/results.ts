@@ -31,11 +31,14 @@ export interface ResultsSummary {
   pitchesSent: number;
   /** Gigs booked this month. */
   gigsBookedThisMonth: number;
+  /** 11.1: sum of captured gig fees (minor units, tenant currency); 0 = none captured. */
+  bookedValueThisMonth: number;
 
   // --- All time (the cumulative trophy case) ---
   gigsBookedAllTime: number;
   venuesFoundAllTime: number;
   pitchesSentAllTime: number;
+  bookedValueAllTime: number;
 }
 
 export async function computeResults(businessId: string, now = new Date()): Promise<ResultsSummary> {
@@ -53,6 +56,8 @@ export async function computeResults(businessId: string, now = new Date()): Prom
     gigsBookedAllTime,
     venuesFoundAllTime,
     pitchesSentAllTime,
+    bookedValueThisMonth,
+    bookedValueAllTime,
   ] = await Promise.all([
     db.lead.count({ where: { businessId, createdAt: { gte: since }, status: { not: "SPAM" } } }),
     db.lead.count({ where: { businessId, createdAt: { gte: since }, status: "SPAM" } }),
@@ -70,15 +75,19 @@ export async function computeResults(businessId: string, now = new Date()): Prom
     db.lead.count({ where: { businessId, bookedAt: { not: null } } }),
     db.venue.count({ where: { businessId } }),
     db.venuePitch.count({ where: { businessId, sentAt: { not: null } } }),
+    db.gig
+      .aggregate({
+        _sum: { value: true },
+        where: { businessId, value: { not: null }, lead: { bookedAt: { gte: since } } },
+      })
+      .then((a) => a._sum.value ?? 0),
+    db.gig
+      .aggregate({ _sum: { value: true }, where: { businessId, value: { not: null } } })
+      .then((a) => a._sum.value ?? 0),
   ]);
 
   // Median first-reply time (minutes) over leads first-replied this month.
-  const replyMinutes = repliedLeads
-    .map((l) => (l.firstReplyAt!.getTime() - l.createdAt.getTime()) / 60000)
-    .sort((a, b) => a - b);
-  const medianFirstReplyMinutes = replyMinutes.length
-    ? Math.round(replyMinutes[Math.floor(replyMinutes.length / 2)])
-    : null;
+  const medianFirstReplyMinutes = medianReplyMinutes(repliedLeads);
 
   return {
     monthStart: since,
@@ -90,10 +99,23 @@ export async function computeResults(businessId: string, now = new Date()): Prom
     venuesFound,
     pitchesSent,
     gigsBookedThisMonth,
+    bookedValueThisMonth,
     gigsBookedAllTime,
     venuesFoundAllTime,
     pitchesSentAllTime,
+    bookedValueAllTime,
   };
+}
+
+/** Median inquiry→first-reply gap in whole minutes; null when no data (honesty). */
+export function medianReplyMinutes(
+  rows: { createdAt: Date; firstReplyAt: Date | null }[],
+): number | null {
+  const minutes = rows
+    .filter((r) => r.firstReplyAt)
+    .map((r) => (r.firstReplyAt!.getTime() - r.createdAt.getTime()) / 60000)
+    .sort((a, b) => a - b);
+  return minutes.length ? Math.round(minutes[Math.floor(minutes.length / 2)]) : null;
 }
 
 /** Has the agent done anything yet? Drives the empty-state vs the metric grid. */

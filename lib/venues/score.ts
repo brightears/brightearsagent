@@ -35,6 +35,9 @@ export type ScorableVenue = {
   country: string;
   kind: VenueKind;
   bookingEmail?: string | null;
+  /** Set when the venue was discovered FOR a travel window — in-area by
+   *  definition (the artist chose that city and dates), never geo-penalized. */
+  travelWindowId?: string | null;
 };
 
 /** The slice of the Business profile that matching reads (10.1 fields). */
@@ -49,6 +52,13 @@ export type MatchProfile = {
    * existing callers/tests default it to false (home-base-only).
    */
   acceptsTravel?: boolean;
+  /**
+   * Skip-taught kinds (P8.9): venue kinds this tenant has skipped 2+ times
+   * with WRONG_VIBE. Kind credit is halved and the card says so — rejections
+   * finally tune the matching instead of vanishing (computed in
+   * lib/venues/rescore.ts::downweightedKinds).
+   */
+  downweightKinds?: VenueKind[];
 };
 
 export type VenueScore = {
@@ -66,39 +76,43 @@ export type VenueScore = {
 // matched by case-insensitive substring either way ("club" matches "club
 // nights"). Tuned by Skip-reasons later (10.4), not by an LLM.
 // ---------------------------------------------------------------------------
+// P12.2 (founder-elevated, every artist): each venue kind's lists carry the
+// NON-MUSIC acts it really books too — magicians, comedians, dancers, photo
+// booths, hosts — so those artists earn FULL kind credit at their real
+// buyers instead of limping in on half event-type credit.
 const KIND_AFFINITY: Record<
   VenueKind,
   { genres: string[]; eventTypes: string[]; blurb: string }
 > = {
   BAR: {
-    genres: ["open format", "top 40", "house", "disco", "funk", "soul", "indie", "rock", "acoustic", "dj"],
-    eventTypes: ["bar", "club night", "residency", "live music", "happy hour"],
-    blurb: "Bars book weekly DJs and live acts",
+    genres: ["open format", "top 40", "house", "disco", "funk", "soul", "indie", "rock", "acoustic", "dj", "comedy", "magic", "karaoke", "variety"],
+    eventTypes: ["bar", "club night", "residency", "live music", "happy hour", "comedy night", "quiz night", "open mic"],
+    blurb: "Bars book weekly acts — DJs, live music, comedy, quiz and magic nights",
   },
   ROOFTOP: {
-    genres: ["house", "deep house", "lounge", "disco", "open format", "chill", "nu disco", "acoustic", "dj"],
+    genres: ["house", "deep house", "lounge", "disco", "open format", "chill", "nu disco", "acoustic", "dj", "saxophone", "percussion", "entertainment"],
     eventTypes: ["sunset session", "residency", "club night", "corporate", "private event"],
-    blurb: "Rooftops run sunset DJ sessions and lounge sets",
+    blurb: "Rooftops run sunset sessions and booked entertainment",
   },
   HOTEL: {
-    genres: ["lounge", "jazz", "acoustic", "house", "soul", "chill", "piano", "dj"],
-    eventTypes: ["wedding", "corporate", "brunch", "residency", "private event", "lobby"],
-    blurb: "Hotels book residencies, weddings and corporate events",
+    genres: ["lounge", "jazz", "acoustic", "house", "soul", "chill", "piano", "dj", "magic", "cabaret", "dance", "comedy", "variety", "entertainment"],
+    eventTypes: ["wedding", "corporate", "brunch", "residency", "private event", "lobby", "family entertainment", "gala"],
+    blurb: "Hotels book residencies, weddings, corporate and family entertainment",
   },
   RESTAURANT: {
-    genres: ["jazz", "acoustic", "soul", "lounge", "latin", "funk", "chill"],
-    eventTypes: ["brunch", "dinner", "live music", "residency", "private event"],
-    blurb: "Restaurants book dinner and brunch entertainment",
+    genres: ["jazz", "acoustic", "soul", "lounge", "latin", "funk", "chill", "magic", "cabaret", "flamenco", "variety"],
+    eventTypes: ["brunch", "dinner", "live music", "residency", "private event", "dinner show"],
+    blurb: "Restaurants book dinner and brunch entertainment — music, close-up magic, shows",
   },
   EVENT_SPACE: {
-    genres: ["open format", "top 40", "wedding", "dj", "band", "acoustic"],
-    eventTypes: ["wedding", "corporate", "private event", "party", "birthday", "gala"],
-    blurb: "Event spaces refer entertainment for every booking",
+    genres: ["open format", "top 40", "wedding", "dj", "band", "acoustic", "magic", "comedy", "dance", "cabaret", "photo booth", "emcee", "host", "circus", "variety", "entertainment"],
+    eventTypes: ["wedding", "corporate", "private event", "party", "birthday", "gala", "awards", "conference", "theater", "show"],
+    blurb: "Event spaces refer entertainment of every kind for every booking",
   },
   CLUB: {
-    genres: ["house", "techno", "edm", "hip hop", "open format", "drum and bass", "top 40", "dj"],
-    eventTypes: ["club night", "residency", "guest set", "party"],
-    blurb: "Clubs book DJs by genre fit",
+    genres: ["house", "techno", "edm", "hip hop", "open format", "drum and bass", "top 40", "dj", "dance", "cabaret", "burlesque", "comedy"],
+    eventTypes: ["club night", "residency", "guest set", "party", "comedy night", "show"],
+    blurb: "Clubs book by fit — DJs, dance shows, comedy nights",
   },
   OTHER: {
     genres: [],
@@ -160,11 +174,17 @@ export function scoreVenue(
   let caution: string | undefined;
   let score = 0;
 
-  // --- Geo (30): the agent hunts where the artist plays — but an artist who's
-  // open to travel can take a room out of area, so that earns half geo + a soft
-  // note rather than the hard "outside your area" caution.
+  // --- Geo (30): the agent hunts where the artist plays. A venue found FOR a
+  // travel window is in-area by definition — the artist picked that city and
+  // dates — so it earns full geo (half-crediting your own trip made travel
+  // finds rank low and starved them out of the contact pass, audit 2026-07).
+  // Otherwise: home cities full credit; open-to-travel out-of-area earns half
+  // + a soft note rather than the hard caution.
   const inServiceArea = profile.serviceCities.map(norm).includes(norm(venue.city));
-  if (inServiceArea) {
+  if (venue.travelWindowId) {
+    score += W_GEO;
+    reasons.push(`In ${venue.city} — found for your trip`);
+  } else if (inServiceArea) {
     score += W_GEO;
     reasons.push(`In ${venue.city} — one of your service cities`);
   } else if (profile.acceptsTravel) {
@@ -179,12 +199,20 @@ export function scoreVenue(
   const affinity = KIND_AFFINITY[venue.kind];
   const genreFit = tagsOverlap(profile.genres, affinity.genres);
   const eventFit = tagsOverlap(profile.eventTypes, affinity.eventTypes);
+  // Skip-taught downweight (P8.9): halve whatever kind credit this venue
+  // earns when the tenant keeps skipping this kind as "wrong vibe" — and say
+  // so, visibly, so rejections read as training instead of nagging.
+  const downweighted = profile.downweightKinds?.includes(venue.kind) ?? false;
+  const kindCredit = downweighted ? 0.5 : 1;
+  if (downweighted) {
+    reasons.push(`You've skipped ${KIND_LABEL[venue.kind].toLowerCase()}s before — showing fewer`);
+  }
   if (genreFit) {
-    score += W_KIND;
-    reasons.push(`${KIND_LABEL[venue.kind]} — your sound fits the room`);
+    score += W_KIND * kindCredit;
+    reasons.push(`${KIND_LABEL[venue.kind]} — your act fits the room`);
   } else if (eventFit) {
-    score += W_KIND / 2;
-    reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you play`);
+    score += (W_KIND / 2) * kindCredit;
+    reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you perform at`);
   } else if (venue.kind === "OTHER") {
     caution ??= "Venue type unclear — may not host live acts";
   } else {

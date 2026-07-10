@@ -31,7 +31,11 @@ export type QuoteInput = {
   currency: string;
   feeFloor: number | null; // cents — the one-off floor
   feeSweetSpot: number | null; // cents
-  residencyRate: number | null; // cents — per night
+  residencyRate: number | null; // cents — per night OR per hour (see unit)
+  /** "night" (default) or "hour" — how the residency rate is quoted. */
+  residencyRateUnit?: string | null;
+  /** How many hours the one-off floor covers (null = unspecified). */
+  oneOffHours?: number | null;
   packages: QuotePackage[];
   eventType: string | null; // from the inquiry
 };
@@ -44,7 +48,10 @@ export type Quote = {
   maxAmount: number | null; // cents — upper end of a range (firm), else null
   typicalAmount: number | null; // cents — sweet spot (estimate only)
   isEstimate: boolean;
-  perNight: boolean; // residency rates are per night
+  perNight: boolean; // residency rate quoted per night
+  perHour: boolean; // residency rate quoted per hour (unit "hour")
+  /** One-off quotes: how many hours the price covers (null = unstated). */
+  coversHours: number | null;
   validityDays: number;
 };
 
@@ -125,6 +132,8 @@ export function computeQuote(input: QuoteInput): Quote | null {
         typicalAmount: null,
         isEstimate: false,
         perNight: false,
+      perHour: false,
+      coversHours: input.oneOffHours ?? null,
         validityDays: VALIDITY_DAYS,
       };
     }
@@ -134,15 +143,18 @@ export function computeQuote(input: QuoteInput): Quote | null {
   //    own floor; a residency deliberately trades per-night rate for recurrence,
   //    so it is NOT clamped to the one-off floor).
   if (pos(input.residencyRate) && looksLikeResidency(input.eventType)) {
+    const perHour = input.residencyRateUnit === "hour";
     return {
       currency: input.currency,
       basis: "residency",
-      label: "Residency (per night)",
+      label: perHour ? "Residency (per hour)" : "Residency (per night)",
       minAmount: input.residencyRate,
       maxAmount: null,
       typicalAmount: null,
       isEstimate: false,
-      perNight: true,
+      perNight: !perHour,
+      perHour,
+      coversHours: null,
       validityDays: VALIDITY_DAYS,
     };
   }
@@ -158,6 +170,8 @@ export function computeQuote(input: QuoteInput): Quote | null {
       typicalAmount: pos(input.feeSweetSpot) && input.feeSweetSpot > floor ? input.feeSweetSpot : null,
       isEstimate: true,
       perNight: false,
+      perHour: false,
+      coversHours: input.oneOffHours ?? null,
       validityDays: VALIDITY_DAYS,
     };
   }
@@ -169,6 +183,7 @@ export function computeQuote(input: QuoteInput): Quote | null {
 /** Human-readable headline for the quote, in the artist's currency. */
 export function quoteHeadline(q: Quote): string {
   const min = formatMoney(q.minAmount, q.currency);
+  if (q.perHour) return `${min} per hour`;
   if (q.perNight) return `${min} per night`;
   if (q.maxAmount) return `${min}–${formatMoney(q.maxAmount, q.currency)}`;
   if (q.isEstimate) {

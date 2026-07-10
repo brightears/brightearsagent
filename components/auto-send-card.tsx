@@ -16,15 +16,16 @@ import { Card, Kicker, buttonStyles } from "@/components/ui";
 import type { LeadSource } from "@/app/generated/prisma/enums";
 
 // Eligible auto-send sources + labels (GigSalad intentionally absent — never
-// auto-sendable). Mirrors lib/inbound/auto-send.ts's eligibility.
+// auto-sendable). Mirrors lib/inbound/auto-send.ts's eligibility. Only
+// sources the pipeline actually PRODUCES are offered (10.11): Thumbtack has
+// no parser yet and nothing emits OTHER — a checkbox that can never match a
+// lead is a broken promise, not a control.
 const SOURCE_LABELS: { value: LeadSource; label: string }[] = [
   { value: "WEBSITE_FORM", label: "Your website form" },
   { value: "PLAIN_EMAIL", label: "Plain email" },
   { value: "THE_KNOT", label: "The Knot" },
   { value: "WEDDINGWIRE", label: "WeddingWire" },
   { value: "BARK", label: "Bark" },
-  { value: "THUMBTACK", label: "Thumbtack" },
-  { value: "OTHER", label: "Other sources" },
 ];
 
 export function AutoSendCard({

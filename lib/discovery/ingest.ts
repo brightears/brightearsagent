@@ -93,6 +93,8 @@ export type ExistingVenue = {
   temperature: VenueTemperature;
   entertainmentEvidence: string[];
   linkedinUrl: string | null;
+  /** Travel Mode tag — travel finds keep full geo credit on re-score. */
+  travelWindowId: string | null;
   signals: { type: SignalType; sourceUrl: string; observedAt: Date }[];
 };
 
@@ -219,6 +221,7 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
           country: existing.country,
           kind: existing.kind,
           bookingEmail: enrich.bookingEmail ?? existing.bookingEmail,
+          travelWindowId: existing.travelWindowId ?? ctx.travelWindowId ?? null,
         },
         allSignals,
         ctx.profile,
@@ -258,7 +261,14 @@ export function planIngest(ctx: IngestContext, metro: Metro, raw: RawSignal[]): 
     const signals = group.signals.map(toPlanned);
     const kind = group.first.kindGuess;
     const score = scoreVenue(
-      { name: group.first.venueName, city: metro.city, country: metro.country, kind, bookingEmail: email },
+      {
+        name: group.first.venueName,
+        city: metro.city,
+        country: metro.country,
+        kind,
+        bookingEmail: email,
+        travelWindowId: ctx.travelWindowId ?? null,
+      },
       signals,
       ctx.profile,
       ctx.now,
@@ -331,6 +341,7 @@ export async function ingestSignals(
         temperature: true,
         entertainmentEvidence: true,
         linkedinUrl: true,
+        travelWindowId: true,
         signals: { select: { type: true, sourceUrl: true, observedAt: true } },
       },
     }),

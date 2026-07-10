@@ -6,6 +6,7 @@
 // (the booked count), mono kickers, NO emoji.
 import { getCurrentBusiness } from "@/lib/tenant";
 import { computeResults, hasResults, formatReplyTime } from "@/lib/reports/results";
+import { formatMinor } from "@/lib/quote/fee";
 import { PageHeader, Kicker } from "@/components/ui";
 import type { ReactNode } from "react";
 
@@ -84,6 +85,13 @@ export default async function ResultsPage() {
               <Stat value={results.pitchesSent} label="pitches sent in your voice" />
               <Stat value={results.conversationsActive} label="conversations in progress" />
               <Stat value={results.gigsBookedThisMonth} label="gigs booked this month" show />
+              {results.bookedValueThisMonth > 0 && (
+                <Stat
+                  value={formatMinor(results.bookedValueThisMonth, business.currency)}
+                  label="booked value this month"
+                  show
+                />
+              )}
             </Section>
 
             <Section title={`Your inbox · since ${monthLabel}`}>
@@ -98,6 +106,13 @@ export default async function ResultsPage() {
 
             <Section title="All time">
               <Stat value={results.gigsBookedAllTime} label="gigs booked" show />
+              {results.bookedValueAllTime > 0 && (
+                <Stat
+                  value={formatMinor(results.bookedValueAllTime, business.currency)}
+                  label="booked value recorded"
+                  show
+                />
+              )}
               <Stat value={results.venuesFoundAllTime} label="venues found for you" />
               <Stat value={results.pitchesSentAllTime} label="pitches sent" />
             </Section>

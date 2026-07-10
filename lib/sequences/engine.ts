@@ -1,14 +1,22 @@
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
-import { meterState } from "@/lib/billing/metering";
+import { runScheduledSends, scheduleAutonomousSend } from "@/lib/agent/schedule-send";
+import { canAutoSend } from "@/lib/inbound/auto-send";
+import { meterState, isAgentPaused } from "@/lib/billing/metering";
+import { notifyBusiness } from "@/lib/notify";
+import { reportError } from "@/lib/report-error";
 
 export interface TickResult {
   expiredDrafts: number;
   backfilledRuns: number;
   redraftedLeads: number;
+  agingPings: number;
   stepsFired: number;
   exhausted: number;
   skipped: number;
+  /** P10.4 buffer: scheduled autonomous sends fired / degraded this tick. */
+  scheduledSent: number;
+  scheduledBlocked: number;
 }
 
 const DAY = 24 * 3600 * 1000;
@@ -24,7 +32,13 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
-  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, stepsFired: 0, exhausted: 0, skipped: 0 };
+  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, agingPings: 0, stepsFired: 0, exhausted: 0, skipped: 0, scheduledSent: 0, scheduledBlocked: 0 };
+
+  // 0. Fire "sending soon" buffers that elapsed (P10.4) — FIRST, so a
+  // scheduled send never waits an extra tick behind step processing.
+  const scheduled = await runScheduledSends(now);
+  result.scheduledSent = scheduled.sent;
+  result.scheduledBlocked = scheduled.blocked;
 
   // 1. Expire stale drafts.
   const expired = await db.draft.updateMany({
@@ -32,6 +46,30 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     data: { status: "EXPIRED", decidedAt: now },
   });
   result.expiredDrafts = expired.count;
+
+  // 1a. Draft-aging re-ping (P4.3): ONE "still waiting" nudge per draft, ever,
+  // once it's sat unapproved ~4h — one ping at creation was fragile for people
+  // who work nights, and more than two would be spam. The stamp is written
+  // FIRST so an overlapping tick can't double-ping. Paused tenants are
+  // stamped-but-silent (their standing state lives on the dashboard).
+  const AGING_MS = 4 * 3600 * 1000;
+  const aging = await db.draft.findMany({
+    where: { status: "PENDING", agingPingAt: null, createdAt: { lt: new Date(now.getTime() - AGING_MS) } },
+    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true } } } } },
+    take: 50,
+  });
+  for (const draft of aging) {
+    await db.draft.update({ where: { id: draft.id }, data: { agingPingAt: now } });
+    if (isAgentPaused(draft.lead.business.plan)) continue;
+    const hours = Math.round((now.getTime() - draft.createdAt.getTime()) / 3600_000);
+    void notifyBusiness(draft.lead.business, {
+      title: `Still waiting: ${draft.lead.clientName ?? "a lead"}`,
+      body: `A reply has been ready for ${hours}h — one tap sends it.`,
+      url: `/dashboard/leads/${draft.leadId}`,
+      emailBody: `A drafted reply for ${draft.lead.clientName ?? "a lead"} has been waiting ${hours} hours for your approval.\n\nSpeed wins these — one tap and it goes out in your voice.`,
+    }).catch(() => null);
+    result.agingPings++;
+  }
 
   // 1b. Redraft sweep: leads that should have a reply draft waiting but don't —
   // capped-then-upgraded leads, leads whose webhook-time draft threw, or leads
@@ -58,7 +96,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       await generateDraftForLead(lead.id);
       result.redraftedLeads++;
     } catch (err) {
-      console.error(`redraft sweep failed for lead ${lead.id}`, err);
+      void reportError(err, { kind: "sequence-redraft", leadId: lead.id });
     }
   }
 
@@ -81,10 +119,26 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     result.backfilledRuns++;
   }
 
-  // 3 + 4. Fire due runs.
+  // 3 + 4. Fire due runs — MOST OVERDUE FIRST under a per-tick cap (P7.8):
+  // the query was unbounded; a backlog spike (cron outage, bulk import) would
+  // try to fire everything in one request. 200/tick at the */30 cadence is
+  // ~9,600 steps/day of throughput; anything cut off is at the front of the
+  // next tick's queue by construction.
   const due = await db.sequenceRun.findMany({
     where: { stoppedAt: null, nextRunAt: { lte: now } },
-    include: { template: true, lead: { include: { drafts: { where: { status: "PENDING" } } } } },
+    orderBy: { nextRunAt: "asc" },
+    take: 200,
+    include: {
+      template: true,
+      lead: {
+        include: {
+          drafts: { where: { status: "PENDING" } },
+          // Autopilot (P8.5): plan + trusted sources decide whether this
+          // step SENDS or waits for approval.
+          business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true } },
+        },
+      },
+    },
   });
 
   for (const run of due) {
@@ -121,11 +175,32 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // A transient draft failure must not abort the whole tick (starving every
     // other tenant's runs) — isolate it; the run's nextRunAt is left in the past
     // so the next tick retries this lead.
+    //
+    // AUTOPILOT (P8.5): on Pro/Studio, follow-ups to sources the owner
+    // explicitly trusts SEND on their own — behind the 15-minute "sending
+    // soon" buffer (P10.4): the draft schedules, the owner gets a holding
+    // ping with a Hold path, and runScheduledSends (top of this tick) fires
+    // whatever elapsed through the same compliance-hardened sendDraftReply
+    // the approve button uses (footer at send, opt-out and terminal
+    // hard-stops enforced at the boundary; GigSalad never eligible via
+    // canAutoSend, rule 4). A blocked/failed send degrades to the normal
+    // PENDING draft + action ping — nothing is ever lost.
+    const autopilot = canAutoSend(lead.business.plan, lead.business.autoSendSources, lead.source);
     try {
-      // Draft follow-up #nextStep (lands as PENDING + push to the owner's phone).
-      await generateDraftForLead(lead.id, nextStep);
+      const draftId = await generateDraftForLead(lead.id, nextStep, { suppressPush: autopilot });
+      if (autopilot && draftId) {
+        const at = await scheduleAutonomousSend(draftId, now);
+        if (at) {
+          void notifyBusiness(lead.business, {
+            title: `Follow-up sending soon: ${lead.clientName ?? "a lead"}`,
+            body: `Step ${nextStep} goes out in 15 minutes — open it to read, hold, or send now.`,
+            url: `/dashboard/leads/${lead.id}`,
+            pushOnly: true, // holding-state ping; the send gets its own receipt
+          }).catch(() => null);
+        }
+      }
     } catch (err) {
-      console.error(`sequence draft failed for lead ${lead.id} step ${nextStep}`, err);
+      void reportError(err, { kind: "sequence-step", leadId: lead.id, step: nextStep });
       result.skipped++;
       continue;
     }

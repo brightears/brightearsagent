@@ -23,7 +23,7 @@ import { COUNTRIES } from "@/lib/geo/countries";
 import { TRAVEL_ROLE_TAGS, type TravelRoleTag } from "@/lib/travel/roles";
 
 const inputCls =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 // Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already

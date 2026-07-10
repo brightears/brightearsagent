@@ -27,13 +27,15 @@ export type ArtistProfile = {
   gigTypes: string[];
   acceptsTravel: boolean;
   residencyRate: number | null;
+  residencyRateUnit: string;
+  oneOffHours: number | null;
   epkEnabled: boolean;
   currency: string;
 };
 
 // Form styling per docs/DESIGN.md v2 — cream-tinted inputs on white cards, cyan focus ring.
 const inputCls =
-  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
+  "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 const hintCls = "mt-1 text-xs text-ink-stage/45";
 
@@ -321,6 +323,22 @@ export function ProfileForm({
               className={inputCls}
             />
             <p className={hintCls}>The agent never pitches a one-off below this. Whole {profile.currency}.</p>
+            <div className="mt-2">
+              <label htmlFor="oneOffHours" className={labelCls}>
+                Covers up to (hours)
+              </label>
+              <input
+                id="oneOffHours"
+                name="oneOffHours"
+                inputMode="numeric"
+                placeholder="4"
+                defaultValue={profile.oneOffHours ?? ""}
+                className={inputCls}
+              />
+              <p className={hintCls}>
+                What the one-off price includes, e.g. 4 hours — quotes say it, so nobody argues later.
+              </p>
+            </div>
           </div>
           <div>
             <label htmlFor="feeSweetSpot" className={labelCls}>
@@ -340,16 +358,28 @@ export function ProfileForm({
             <label htmlFor="residencyRate" className={labelCls}>
               Residency rate ({profile.currency})
             </label>
-            <input
-              id="residencyRate"
-              name="residencyRate"
-              inputMode="numeric"
-              placeholder="800"
-              defaultValue={cents(profile.residencyRate)}
-              className={inputCls}
-            />
+            <div className="flex gap-2">
+              <input
+                id="residencyRate"
+                name="residencyRate"
+                inputMode="numeric"
+                placeholder="800"
+                defaultValue={cents(profile.residencyRate)}
+                className={`${inputCls} min-w-0 flex-1`}
+              />
+              <select
+                name="residencyRateUnit"
+                aria-label="Residency rate unit"
+                defaultValue={profile.residencyRateUnit ?? "night"}
+                className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
+              >
+                <option value="night">per night</option>
+                <option value="hour">per hour</option>
+              </select>
+            </div>
             <p className={hintCls}>
-              Your going per-night rate for a regular slot — kept separate from the one-off floor.
+              Your going rate for a regular slot — kept separate from the one-off floor. Pick the
+              unit so a quote can never be read two ways.
             </p>
           </div>
           <div className="sm:col-span-2">

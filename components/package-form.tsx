@@ -94,7 +94,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
           />
         </div>
         <div>
-          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>To ($, blank = fixed)</label>
+          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>To ($)</label>
           <input
             id={`pkg-max-${uid}`}
             name="priceMax"
@@ -107,6 +107,9 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
           />
         </div>
       </div>
+      {/* One hint line under the row (founder preview: the long label wrapped
+          and knocked the inputs out of line). */}
+      <p className="-mt-2 text-xs text-ink-stage/50">Leave “To” blank for a fixed price.</p>
 
       <div>
         <label htmlFor={`pkg-types-${uid}`} className={labelStyles}>Event types (comma-separated)</label>

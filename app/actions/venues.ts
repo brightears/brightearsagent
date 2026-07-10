@@ -6,11 +6,11 @@
 // pitch is generated.
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAgentPaused } from "@/lib/billing/metering";
-import { profileStrength } from "@/lib/profile/strength";
 import {
   isSkipReason,
   SKIP_REASONS,
@@ -18,17 +18,10 @@ import {
   isInPlayTargetStatus,
 } from "@/lib/venues/feed";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
-import {
-  capError,
-  capFor,
-  sentCapFor,
-  sendCapError,
-  startOfTenantDay,
-  SEND_CAP_STATUSES,
-} from "@/lib/outreach/caps";
+import { sentCapFor, sendCapError, startOfTenantDay, SEND_CAP_STATUSES } from "@/lib/outreach/caps";
+import { draftPitchForVenue } from "@/lib/venues/draft-pitch";
 import {
   epkUrlFor,
-  formatTravelDateRange,
   generateVenuePitch,
   pitchLanguageFor,
   type VenuePitchRequest,
@@ -72,158 +65,11 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
 
   const business = await getCurrentBusiness();
 
-  // Active trial OR paid plan: the agent drafts. Only an expired trial with no
-  // subscription is paused — same gate as the reactive lead path.
-  if (isAgentPaused(business.plan)) {
-    return { ok: false, error: TRIAL_ENDED };
-  }
-
-  // The hunting license, enforced server-side (never trust the UI): a weak
-  // pitch burns the venue contact forever, so no license = no pitch.
-  const [activePackages, gigs] = await Promise.all([
-    db.package.count({ where: { businessId: business.id, active: true } }),
-    db.gig.count({ where: { businessId: business.id } }),
-  ]);
-  const strength = profileStrength(business, { activePackages, gigs });
-  if (!strength.canPitch) {
-    return { ok: false, error: "Finish your profile before the agent may pitch" };
-  }
-
-  const venue = await db.venue.findFirst({
-    where: { id: parsed.data, businessId: business.id },
-    include: {
-      signals: { orderBy: { observedAt: "desc" }, take: 5 },
-      // Travel Mode: if this venue was found for a travel window, the pitch must
-      // be date-bounded to that window's city + dates (never open-ended).
-      travelWindow: { select: { city: true, startDate: true, endDate: true } },
-    },
-  });
-  if (!venue) return { ok: false, error: "Venue not found" };
-  if (venue.status !== "DISCOVERED" && venue.status !== "QUALIFIED" && venue.status !== "PITCH_DRAFTED") {
-    return { ok: false, error: "This venue is past the pitch stage" };
-  }
-
-  // Master do-not-contact list (ADR-004 hard cap) — checked before generating,
-  // not just before sending: never even draft toward a suppressed contact.
-  if (venue.bookingEmail) {
-    const suppressed = await db.outreachSuppression.findUnique({
-      where: {
-        businessId_email: { businessId: business.id, email: venue.bookingEmail.toLowerCase() },
-      },
-      select: { id: true },
-    });
-    if (suppressed) {
-      return { ok: false, error: "This contact is on your do-not-contact list" };
-    }
-  }
-
-  // Dedupe guard: one live (PENDING or parked APPROVED) pitch per venue —
-  // double-submit, retries and stale UI all land here as a quiet no-op.
-  const existingLive = await db.venuePitch.findFirst({
-    where: { venueId: venue.id, status: { in: ["PENDING", "APPROVED"] } },
-    select: { id: true },
-  });
-  if (existingLive) return { ok: true };
-
-  // Daily pitch-creation cap by temperature (10.2c, ADR-004 spam discipline):
-  // count = VenuePitch rows created today in the TENANT's timezone (CLAUDE.md
-  // rule 9). Checked before the LLM spends tokens.
-  const createdToday = await db.venuePitch.count({
-    where: {
-      businessId: business.id,
-      temperature: venue.temperature,
-      createdAt: { gte: startOfTenantDay(new Date(), business.timezone) },
-    },
-  });
-  if (createdToday >= capFor(venue.temperature)) {
-    return { ok: false, error: capError(venue.temperature) };
-  }
-
-  const jurisdiction = jurisdictionFor(venue.country);
-  const req: VenuePitchRequest = {
-    business: {
-      id: business.id,
-      name: business.name,
-      ownerName: business.ownerName,
-      performerKind: business.performerKind,
-      voiceSamples: business.voiceSamples,
-      headline: business.headline,
-      bio: business.bio,
-      genres: business.genres,
-      eventTypes: business.eventTypes,
-      serviceCities: business.serviceCities,
-      gigTypes: business.gigTypes,
-      riderNotes: business.riderNotes,
-      feeFloor: business.feeFloor,
-      feeSweetSpot: business.feeSweetSpot,
-      reviewQuotes: business.reviewQuotes,
-      notableVenues: business.notableVenues,
-    },
-    venue: {
-      name: venue.name,
-      city: venue.city,
-      country: venue.country,
-      kind: venue.kind,
-      // 10.2c: temperature picks the template (HOT date-ask / WARM rotation
-      // intro / SEED file-me-away); evidence is the only program grounding.
-      temperature: venue.temperature,
-      signals: venue.signals.map((s) => s.summary),
-      entertainmentEvidence: venue.entertainmentEvidence,
-      fitReasons: venue.fitReasons,
-      // Travel Mode: a date-bounded pitch when this venue came from a travel
-      // window — the artist is in town only for these dates.
-      travelWindow: venue.travelWindow
-        ? {
-            city: venue.travelWindow.city,
-            dateRange: formatTravelDateRange(
-              venue.travelWindow.startDate,
-              venue.travelWindow.endDate,
-            ),
-          }
-        : undefined,
-    },
-    epkUrl: epkUrlFor(business.slug),
-    language: pitchLanguageFor(venue.country, business.pitchLanguages),
-  };
-
-  let pitch: Awaited<ReturnType<typeof generateVenuePitch>>;
-  try {
-    pitch = await generateVenuePitch(req);
-  } catch {
-    return { ok: false, error: "The pitch didn't come together — give it another try in a moment" };
-  }
-
-  // SEQUENCING GUARD (10.2c): WARM and SEED pitches NEVER enter any follow-up
-  // sequence. The existing reactive sequences (SequenceRun) are lead-bound, so
-  // a venue pitch can't ride them today — but the rule is product law, not an
-  // accident of schema: one polite intro, then silence (one re-touch allowed
-  // after 180 days; that engine is deferred — we only store the temperature
-  // snapshot here so it can enforce the rule later). Any future venue-side
-  // sequence engine MUST refuse temperature !== HOT.
-  await db.$transaction([
-    db.venuePitch.create({
-      data: {
-        venueId: venue.id,
-        businessId: business.id,
-        subject: pitch.subject,
-        body: pitch.body,
-        language: req.language,
-        jurisdictionMode: jurisdiction.mode,
-        temperature: venue.temperature, // snapshot at draft time (caps + guard)
-        model: pitch.model,
-      },
-    }),
-    // Status filter repeated in the WHERE so a double-submit can't regress a
-    // venue that moved on between read and write.
-    db.venue.updateMany({
-      where: {
-        id: venue.id,
-        businessId: business.id,
-        status: { in: ["DISCOVERED", "QUALIFIED", "PITCH_DRAFTED"] },
-      },
-      data: { status: "PITCH_DRAFTED" },
-    }),
-  ]);
+  // Core extracted to lib/venues/draft-pitch.ts (P8.1) so the nightly
+  // auto-draft runs the IDENTICAL guard ladder without a Clerk session —
+  // pause, license, suppression, dedupe, caps, jurisdiction all live there.
+  const result = await draftPitchForVenue(business, parsed.data);
+  if (!result.ok) return { ok: false, error: result.error };
 
   revalidatePath("/dashboard");
   return { ok: true };
@@ -394,7 +240,12 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
       toName: venue.bookingContactName ?? undefined,
       subject,
       body,
-      replyToEmail: business.replyToEmail ?? business.ownerEmail,
+      // Reply capture (P8.3, founder-approved 2026-07-07): venue replies route
+      // to the tenant's parse address so they flow into the pipeline — status
+      // flips, a drafted answer, a real reply-rate for the 10.9 gate. From
+      // stays the artist's own Gmail; a venue that just hits Reply lands in
+      // the machine instead of vanishing into an unwatched inbox.
+      replyToEmail: `leads@${business.slug}.in.brightears.io`,
     });
     messageId = result.messageId;
   } catch (err) {
@@ -537,9 +388,47 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
   return { ok: true };
 }
 
+/**
+ * Private venue field notes (P12.4): tenant-scoped, capped, plain text. The
+ * notes never enter pitches or LLM prompts - dashboard memory only.
+ */
+export async function saveVenueNotesForm(venueId: string, formData: FormData): Promise<void> {
+  const parsed = venueIdSchema.safeParse(venueId);
+  if (!parsed.success) return;
+  const business = await getCurrentBusiness();
+  const raw = formData.get("staffNotes");
+  const notes = typeof raw === "string" ? raw.trim().slice(0, 2000) : "";
+  await db.venue.updateMany({
+    where: { id: parsed.data, businessId: business.id },
+    data: { staffNotes: notes || null },
+  });
+  revalidatePath("/dashboard");
+}
+
 /** Form-friendly wrapper (form `action` must return void). */
 export async function skipVenueForm(venueId: string, reason: string): Promise<void> {
-  await skipVenue(venueId, reason);
+  const result = await skipVenue(venueId, reason);
+  // Visible tuning ack (P10.2): a WRONG_VIBE skip actually teaches the hunt
+  // (2+ same-kind skips downweight that kind - lib/venues/rescore.ts), so the
+  // dashboard SAYS so. Silent learning reads as no learning.
+  if (result.ok && reason === "WRONG_VIBE") {
+    const business = await getCurrentBusiness();
+    const venue = await db.venue.findFirst({
+      where: { id: venueId, businessId: business.id },
+      select: { kind: true },
+    });
+    if (venue) {
+      const skips = await db.venue.count({
+        where: {
+          businessId: business.id,
+          status: "SUPPRESSED",
+          suppressedReason: "WRONG_VIBE",
+          kind: venue.kind,
+        },
+      });
+      redirect(`/dashboard?tuned=${venue.kind}&skips=${skips}`);
+    }
+  }
 }
 
 /**

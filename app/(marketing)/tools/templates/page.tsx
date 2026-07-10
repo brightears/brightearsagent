@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 import { CopyButton } from "@/components/copy-button";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 
-export const metadata: Metadata = {
-  title: "29 DJ Email Templates: Venue Outreach, Inquiry Replies & Follow-Ups (Free) — Bright Ears",
-  description:
-    "Copy-paste email templates for event DJs: venue outreach to find new gigs (cold intro, follow-up, residency, festival), plus first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
-};
+export const metadata: Metadata = pageMeta(
+  "29 DJ Email Templates: Venue Outreach, Inquiry Replies & Follow-Ups (Free) — Bright Ears",
+  "Copy-paste email templates for event DJs: venue outreach to find new gigs (cold intro, follow-up, residency, festival), plus first replies for every inquiry type, day 2/5/9 follow-ups, contract and deposit nudges, review asks, rebooking and referrals. Free, no PDF, no paywall.",
+);
 
 /* One gradient-painted word in the headline — the design/b signature. */
 const gradText: CSSProperties = {
@@ -458,7 +458,7 @@ const FAQS = [
   },
   {
     q: "How fast should a DJ reply to a wedding inquiry?",
-    a: "Within five minutes if you possibly can, and within the hour at worst. Couples typically message several vendors at once and shortlist whoever responds first — about a third of vendors never reply at all, so speed alone puts you ahead of the pack. A short, specific reply sent fast beats a perfect reply sent that evening.",
+    a: "Within five minutes if you possibly can, and within the hour at worst. Couples typically message several vendors at once and shortlist whoever responds first — by their own accounts, about a third of vendors never reply at all, so speed alone puts you ahead of the pack. A short, specific reply sent fast beats a perfect reply sent that evening.",
   },
   {
     q: "How many times should I follow up on a DJ inquiry?",
@@ -623,8 +623,8 @@ export default function TemplatesPage() {
                 </span>
                 <span>
                   <strong className="text-ink-stage">Reply in the first 5 minutes.</strong> Couples
-                  book whoever replies first, and roughly a third of vendors never reply at all. A
-                  short answer now beats a perfect one tonight.
+                  book whoever replies first — and by their own accounts, roughly a third of
+                  vendors never reply at all. A short answer now beats a perfect one tonight.
                 </span>
               </li>
               <li className="flex gap-3">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -9,11 +10,10 @@ import {
 } from "@/components/collage";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
 
-export const metadata: Metadata = {
-  title: "Pricing — Bright Ears",
-  description:
-    "Every plan is the complete engine — the Hunt that finds venues for you AND answers every inquiry in your voice, with follow-ups, a weekly report and Travel Mode, and the same deep research on every plan. You only choose how many inquiries, how many cities and how much autopilot: Starter $25, Pro $79, Studio $149. Subscribe to activate, cancel anytime.",
-};
+export const metadata: Metadata = pageMeta(
+  "Pricing — Bright Ears",
+  "Finds gigs, drafts the pitch and every reply in your voice — you approve. Starter $25, Pro $79, Studio $149. Every plan is the complete engine.",
+);
 
 type Plan = {
   name: string;
@@ -67,12 +67,13 @@ const PLANS: Plan[] = [
     name: "Studio",
     price: "$149",
     blurb:
-      "The same engine for the whole roster — hunting every city and answering across one inbox, routed to every performer.",
+      "The same engine at full stretch — the biggest inquiry ceiling, and the hunt running on every city you play.",
     features: [
       "Everything in Pro — the same deep research, the same complete engine",
       "Answers up to 150 of your incoming inquiries a month",
       "Hunts all your cities",
-      "Multi-performer routing — inquiries matched across your whole roster",
+      "Auto-send on the sources you trust — the most headroom for a busy season",
+      "A roster: multiple performers, gigs tagged per performer, availability checked per performer",
     ],
   },
 ];
@@ -80,7 +81,7 @@ const PLANS: Plan[] = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between Starter, Pro and Studio?",
-    a: "Capacity and autonomy — never features, and never research quality. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, replies to every incoming inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, Travel Mode, approve-from-phone — and the same deep research on every plan. Starter ($25) answers up to 15 of your incoming inquiries a month, hunts your 1 home city, for 1 performer, and you approve every send. Pro ($79) answers up to 60 inquiries, hunts up to 3 cities, and adds auto-send — full autopilot on the sources you trust. Studio ($149) answers up to 150 inquiries, hunts all your cities, with multi-performer routing across your roster. The Hunt's venue-pitch allowance is the same on every plan.",
+    a: "Capacity and autonomy — never features, and never research quality. Every plan includes the complete engine: the proactive Hunt that finds venues and drafts outreach for you, replies to every incoming inquiry in your voice, follow-up sequences until booked-or-dead, the weekly report, spam filtering, Travel Mode, approve-from-phone — and the same deep research on every plan. Starter ($25) answers up to 15 of your incoming inquiries a month, hunts your 1 home city, for 1 performer, and you approve every send. Pro ($79) answers up to 60 inquiries, hunts up to 3 cities, and adds auto-send — full autopilot on the sources you trust. Studio ($149) answers up to 150 inquiries, hunts all your cities, with auto-send on the sources you trust — and runs a roster of performers, with gigs and availability tracked per performer. The Hunt's venue-pitch allowance is the same on every plan.",
   },
   {
     q: "Is this only for wedding performers?",
@@ -92,7 +93,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if it isn't working for me?",
-    a: "It's month-to-month — cancel anytime in two clicks, and at your monthly cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and an inquiry handled here runs about $1.67, versus $28–47 for one raw Bark lead you still have to answer yourself.",
+    a: "It's month-to-month — cancel anytime in two clicks, and at your monthly cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and an inquiry handled here runs about $1.67, versus $28–47 for one raw Bark lead (their credit pricing, verified June 2026) you still have to answer yourself.",
   },
   {
     q: "I travel for gigs — does it work when I'm on the road?",
@@ -263,7 +264,10 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/onboarding"
+                  // The chosen plan rides the whole funnel (P5.5): sign-up →
+                  // wizard → the step-5 finale opens checkout for THIS plan,
+                  // so nobody re-decides at the activation moment.
+                  href={`/onboarding?plan=${plan.name.toLowerCase()}`}
                   className={`mt-8 block rounded-full text-center font-bold px-4 py-3 transition-opacity ${
                     plan.highlighted
                       ? "bg-neon-magenta text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90"

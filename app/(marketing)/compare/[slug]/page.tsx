@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/marketing/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, buttonStyles } from "@/components/ui";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const page = getComparison(slug);
   if (!page) return {};
-  return { title: page.title, description: page.metaDescription };
+  return pageMeta(page.title, page.metaDescription);
 }
 
 /** The v2 signature: one gradient-painted word in a warm-white/ink headline. */
