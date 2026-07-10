@@ -69,6 +69,7 @@ export default async function PackagesPage() {
               )}
               <div className="mt-5 flex items-center gap-2 border-t border-cream pt-4">
                 <PackageForm
+                  currency={business.currency}
                   initial={{
                     id: pkg.id,
                     name: pkg.name,
@@ -111,10 +112,10 @@ export default async function PackagesPage() {
           <div className="bg-cream/60 px-6 py-4">
             <Kicker onLight>New package</Kicker>
             <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a package</h2>
-            <p className="text-xs text-ink-stage/60 mt-0.5">Prices in dollars — we&apos;ll handle the cents.</p>
+            <p className="text-xs text-ink-stage/60 mt-0.5">Whole {business.currency} — we&apos;ll handle the rest.</p>
           </div>
           <div className="p-6">
-            <PackageForm />
+            <PackageForm currency={business.currency} />
           </div>
         </Card>
       </div>

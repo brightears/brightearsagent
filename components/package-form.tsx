@@ -27,7 +27,15 @@ const labelStyles = "block text-xs font-semibold text-ink-stage/60 uppercase tra
  * Edit mode (`initial` set): collapsed behind an "Edit" button; saves via
  * updatePackage and folds shut on success.
  */
-export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
+export function PackageForm({
+  initial,
+  currency = "USD",
+}: {
+  initial?: PackageFormInitial;
+  // The artist's fee currency (Business.currency) — a Thai DJ prices in THB,
+  // so the labels must never hardcode "$".
+  currency?: string;
+}) {
   const [open, setOpen] = useState(!initial);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, formData) => {
@@ -80,7 +88,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor={`pkg-min-${uid}`} className={labelStyles}>Price from ($)</label>
+          <label htmlFor={`pkg-min-${uid}`} className={labelStyles}>Price from ({currency})</label>
           <input
             id={`pkg-min-${uid}`}
             name="priceMin"
@@ -94,7 +102,7 @@ export function PackageForm({ initial }: { initial?: PackageFormInitial }) {
           />
         </div>
         <div>
-          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>To ($)</label>
+          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>To ({currency})</label>
           <input
             id={`pkg-max-${uid}`}
             name="priceMax"

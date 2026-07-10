@@ -410,7 +410,8 @@ export default async function Dashboard({
               Already getting inquiries?
             </h2>
           </div>
-          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised px-6 py-6">
+          {/* No overflow-hidden here — the sticker hangs above the card edge by design. */}
+          <div className="relative rounded-3xl border border-cream/10 bg-ink-raised px-6 py-6">
             <StickerChip tone="magenta" rotate={4} className="absolute -top-2.5 right-6">
               You&apos;ll hear the ping
             </StickerChip>

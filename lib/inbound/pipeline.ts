@@ -282,7 +282,15 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   let eventDate: Date | undefined;
   if (parsed.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(parsed.eventDate)) {
     const d = new Date(`${parsed.eventDate}T12:00:00Z`);
-    if (!Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === parsed.eventDate) {
+    if (
+      !Number.isNaN(d.getTime()) &&
+      d.toISOString().slice(0, 10) === parsed.eventDate &&
+      // A date already in the past is a mis-resolved year ("next year" → last
+      // year, staging catch 2026-07-10) — drop it so the draft asks for the
+      // date instead of confidently affirming a wrong one. 48h grace keeps
+      // timezone-straddling "yesterday/today" inquiries intact.
+      d.getTime() > Date.now() - 48 * 60 * 60 * 1000
+    ) {
       eventDate = d;
     }
     // else: drop the unparseable date; the draft just asks them to confirm it.

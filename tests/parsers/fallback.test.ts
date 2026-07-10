@@ -69,4 +69,44 @@ describe("parseFallback source classification", () => {
     mockLlmObject.mockResolvedValue({ ...extraction, isInquiry: false });
     expect(await parseFallback(base, "biz1")).toBeNull();
   });
+
+  it("labeled body fields win when the model returns null (staging 2026-07-10: 'Unknown' lead)", async () => {
+    mockLlmObject.mockResolvedValue({ ...extraction, clientName: null, clientEmail: null, eventDate: null });
+    const lead = await parseFallback(
+      {
+        ...base,
+        from: "notification@forms.brightears.io",
+        fromName: "Availability form",
+        textBody:
+          "New availability inquiry via your page:\n\nName: Jessica Park\nEmail: jess@example.com\nEvent type: wedding\nEvent date: 2027-09-12\nMessage: riverside venue, 120 guests",
+      },
+      "biz1",
+    );
+    expect(lead?.source).toBe("WEBSITE_FORM");
+    expect(lead?.clientName).toBe("Jessica Park");
+    expect(lead?.clientEmail).toBe("jess@example.com");
+    expect(lead?.eventType).toBe("wedding");
+    expect(lead?.eventDate).toBe("2027-09-12");
+  });
+
+  it("drops reasoning-leak garbage in string fields (newlines/backticks/900-char monologues)", async () => {
+    mockLlmObject.mockResolvedValue({
+      ...extraction,
+      venue: `riverside venue in Bangkok (explicitly from message, NOT guessed... ${"x".repeat(400)} \`\`\`json { "venue": null }\`\`\``,
+      clientEmail: "not-an-email",
+      eventDate: "sometime next year",
+      notes: "line one\nline two",
+    });
+    const lead = await parseFallback(base, "biz1");
+    expect(lead?.venue).toBeUndefined();
+    expect(lead?.clientEmail).toBe("jess@example.com"); // falls back to the human sender
+    expect(lead?.eventDate).toBeUndefined();
+    expect(lead?.notes).toBeUndefined();
+  });
+
+  it("grounds the parse prompt with today's date", async () => {
+    await parseFallback(base, "biz1");
+    const call = mockLlmObject.mock.calls[0][0];
+    expect(call.system).toContain(new Date().toISOString().slice(0, 10));
+  });
 });

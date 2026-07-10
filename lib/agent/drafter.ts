@@ -140,11 +140,16 @@ export async function generateDraft(req: DraftRequest): Promise<DraftResult> {
       ? `TASK: continue this conversation — answer the client's LATEST message. You already introduced yourself earlier in the thread: do NOT re-introduce yourself or the act, do NOT restate packages or prices already given, do not repeat earlier wording. Answer exactly what they just asked, keep whatever is in motion moving (date, price talk, logistics), and end with the one next step that brings the booking closer. Match the thread's tone. Usually under 120 words.`
       : `TASK: write the FIRST reply to this inquiry. Answer what they actually asked. If a matching package exists, mention it with its exact price range. End with one clear, easy next step.`;
 
+  // Date grounding (staging catch 2026-07-10): without today's date the model
+  // resolved "next year" to a year in the past and confidently promised to
+  // "check availability for September 12, 2025" — in July 2026.
+  const today = `TODAY: ${new Date().toISOString().slice(0, 10)} — never state a past date for an upcoming event.`;
+
   const result = await llmObject<DraftResult>({
     purpose: isFollowUp ? "followup" : "draft",
     businessId: req.business.id,
     system: buildVoicePrompt(req.business, req.packages),
-    prompt: [describeLead(req), describeAvailability(req), describeThread(req), task]
+    prompt: [today, describeLead(req), describeAvailability(req), describeThread(req), task]
       .filter(Boolean)
       .join("\n\n"),
     schema: DraftSchema,

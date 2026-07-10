@@ -106,8 +106,11 @@ export function ResidencyLogger() {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
+          {/* Short label — "Time (optional)" wrapped to two lines in the narrow
+              sidebar column and knocked the two time inputs out of line; the
+              hint below already says the window is optional. */}
           <label htmlFor="res-start" className={labelCls}>
-            Time (optional)
+            Time
           </label>
           <input id="res-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputCls} />
         </div>
@@ -119,8 +122,8 @@ export function ResidencyLogger() {
         </div>
       </div>
       <p className="text-[11px] text-ink-stage/50">
-        With a time (e.g. 7:00pm–9:00pm) only that window is blocked — a late gig elsewhere that
-        night still counts you as free. Blank blocks the whole day.
+        Time is optional: with one (e.g. 7:00pm–9:00pm) only that window is blocked — a late gig
+        elsewhere that night still counts you as free. Blank blocks the whole day.
       </p>
       {note && (
         <p
