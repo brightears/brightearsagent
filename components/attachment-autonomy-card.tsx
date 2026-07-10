@@ -51,8 +51,11 @@ export function AttachmentAutonomyCard({
             className="mt-0.5 size-4 accent-brand-cyan"
           />
           <span>
-            <span className="font-semibold">Auto-attach a quote</span> when a client asks about price. Built from your
-            own rates, never below your floor — only when there&apos;s enough to quote.
+            {/* Explicit {" "}: Turbopack's prod JSX transform eats a leading
+                space when the text node wraps lines (founder saw "quotewhen"). */}
+            <span className="font-semibold">Auto-attach a quote</span>{" "}
+            when a client asks about price. Built from your own rates, never below your floor —
+            only when there&apos;s enough to quote.
           </span>
         </label>
 
