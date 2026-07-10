@@ -146,7 +146,6 @@ export async function updateArtistProfile(formData: FormData): Promise<ActionRes
       residencyRate,
       residencyRateUnit,
       oneOffHours,
-      insured: formData.get("insured") === "on",
       epkEnabled: formData.get("epkEnabled") === "on",
     },
   });

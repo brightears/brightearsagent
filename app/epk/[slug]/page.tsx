@@ -325,7 +325,7 @@ export default async function EpkPage({ params }: Props) {
         )}
 
         {/* SERVICE AREA + travel policy + practicals. */}
-        {(business.serviceCities.length > 0 || business.travelPolicy || business.insured) && (
+        {(business.serviceCities.length > 0 || business.travelPolicy) && (
           <section className="mt-14">
             <EpkKicker>Where we play</EpkKicker>
             <div className="mt-3 max-w-2xl space-y-2 text-base text-cream/70">
@@ -339,7 +339,6 @@ export default async function EpkPage({ params }: Props) {
                 </p>
               )}
               {business.travelPolicy && <p>{business.travelPolicy}</p>}
-              {business.insured && <p>Fully insured.</p>}
             </div>
           </section>
         )}

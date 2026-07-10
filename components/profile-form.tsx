@@ -20,7 +20,6 @@ export type ArtistProfile = {
   riderNotes: string | null;
   reviewQuotes: string[];
   notableVenues: string[];
-  insured: boolean;
   travelPolicy: string | null;
   feeFloor: number | null;
   feeSweetSpot: number | null;
@@ -232,15 +231,6 @@ export function ProfileForm({
                 className={inputCls}
               />
               <p className={hintCls}>Bookers recognize rooms, not bios.</p>
-              <label className="mt-4 flex items-center gap-2.5 text-sm text-ink-stage/80">
-                <input
-                  type="checkbox"
-                  name="insured"
-                  defaultChecked={profile.insured}
-                  className="size-4 accent-brand-cyan"
-                />
-                We carry liability insurance
-              </label>
             </div>
           </div>
         </div>

@@ -13,7 +13,6 @@ const empty: ProfileFields = {
   travelPolicy: null,
   feeFloor: null,
   feeSweetSpot: null,
-  insured: false,
   headline: null,
   bio: null,
   videoLinks: [],
@@ -29,7 +28,6 @@ const full: ProfileFields = {
   travelPolicy: "Within 100 miles included",
   feeFloor: 120000,
   feeSweetSpot: 180000,
-  insured: true,
   headline: "Open-format DJ for rooms that want a full dance floor",
   bio: "Twelve years behind the decks across Texas. We read the room, not a playlist — from cocktail-hour soul to a peak-time floor.",
   videoLinks: ["https://www.youtube.com/watch?v=abc123"],
@@ -46,7 +44,7 @@ describe("profileStrength", () => {
     const r = profileStrength(empty, noCounts);
     expect(r.percent).toBe(0);
     expect(r.canPitch).toBe(false);
-    expect(r.missing.length).toBe(15);
+    expect(r.missing.length).toBe(14);
     // Highest-priority ammunition first.
     expect(r.missing[0]).toMatch(/video/i);
   });

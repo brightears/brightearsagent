@@ -36,6 +36,10 @@ export const dynamic = "force-dynamic";
 
 type BillingState = Awaited<ReturnType<typeof billingState>>;
 
+// Roster is Studio machinery — a solo artist on Starter/Pro never needs to
+// think about "who performs under this act" (founder call 2026-07-10). The
+// section (and its rail entry) appears only on Studio, or when performers
+// already exist (a downgraded tenant must still see their roster).
 const SECTIONS: ControlRoomSection[] = [
   { id: "identity", label: "Identity" },
   { id: "profile", label: "Voice & profile" },
@@ -365,6 +369,9 @@ export default async function ControlRoomPage({
 
   const strength = profileStrength(business, { activePackages, gigs });
 
+  const showRoster = business.plan === "STUDIO" || performers.length > 0;
+  const visibleSections = SECTIONS.filter((s) => s.id !== "roster" || showRoster);
+
   // Travel windows are date-only (UTC midnight) — serialize to YYYY-MM-DD.
   const isoDate = (d: Date) => d.toISOString().slice(0, 10);
   const travelWindowRows: TravelWindowRow[] = travelWindows.map((w) => ({
@@ -435,7 +442,7 @@ export default async function ControlRoomPage({
         )}
 
         <div className="lg:grid lg:grid-cols-[176px_1fr] lg:gap-12">
-          <ControlRoomNav sections={SECTIONS} />
+          <ControlRoomNav sections={visibleSections} />
 
           <div className="min-w-0 space-y-14">
             <Section
@@ -492,7 +499,6 @@ export default async function ControlRoomPage({
                   riderNotes: business.riderNotes,
                   reviewQuotes: business.reviewQuotes,
                   notableVenues: business.notableVenues,
-                  insured: business.insured,
                   travelPolicy: business.travelPolicy,
                   feeFloor: business.feeFloor,
                   feeSweetSpot: business.feeSweetSpot,
@@ -521,16 +527,18 @@ export default async function ControlRoomPage({
               />
             </Section>
 
-            <Section
-              id="roster"
-              title="Roster"
-              intro="Who performs under this act — gigs tag a performer, and the agent checks availability per performer before it promises a date."
-            >
-              <RosterCard
-                performers={performers}
-                rosterCap={planFeatures(business.plan).rosterCap}
-              />
-            </Section>
+            {showRoster && (
+              <Section
+                id="roster"
+                title="Roster"
+                intro="Who performs under this act — gigs tag a performer, and the agent checks availability per performer before it promises a date."
+              >
+                <RosterCard
+                  performers={performers}
+                  rosterCap={planFeatures(business.plan).rosterCap}
+                />
+              </Section>
+            )}
 
             <Section
               id="cadence"

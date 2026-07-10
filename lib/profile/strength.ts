@@ -16,7 +16,6 @@ export type ProfileFields = {
   travelPolicy: string | null;
   feeFloor: number | null;
   feeSweetSpot: number | null;
-  insured: boolean;
   headline: string | null;
   bio: string | null;
   videoLinks: string[];
@@ -47,7 +46,8 @@ export const MIN_PITCH_PHOTOS = 3;
 const present = (s: string | null | undefined) => !!s && s.trim().length > 0;
 
 // Weighted checks, in priority order — missing[] preserves this order, so the
-// license-critical ammunition surfaces first. Weights sum to 100.
+// license-critical ammunition surfaces first. Percent normalizes by the live
+// weight total, so the weights don't need to sum to a round number.
 const CHECKS: {
   weight: number;
   license: boolean;
@@ -143,12 +143,9 @@ const CHECKS: {
     hint: "Spell out your travel policy — saves a back-and-forth on every pitch",
     earned: (p) => (present(p.travelPolicy) ? 1 : 0),
   },
-  {
-    weight: 1,
-    license: false,
-    hint: "Insured? Tick it — some venues require it before they'll reply",
-    earned: (p) => (p.insured ? 1 : 0),
-  },
+  // The "insured" check was cut 2026-07-10 (founder: the checkbox confused
+  // more artists than it helped) — percent divides by the live total, so the
+  // meter stays 0-100 without reweighting.
 ];
 
 export function profileStrength(profile: ProfileFields, counts: ProfileCounts): ProfileStrength {
