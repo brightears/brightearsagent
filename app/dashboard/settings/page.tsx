@@ -9,6 +9,7 @@
 // at-cap banners and push notifications all deep-link here); /dashboard/profile
 // now redirects to #profile. Design LAW (docs/DESIGN.md v2.1): ink canvas,
 // white/cream cards, cyan = interface, mono kickers, NO emoji ever.
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { uploadsEnabled } from "@/lib/uploads/r2";
@@ -639,7 +640,7 @@ export default async function ControlRoomPage({
             >
               <Card className="p-6">
                 <h3 className="mb-4">
-                  <Kicker onLight>Your lead address</Kicker>
+                  <Kicker onLight>Your assistant&apos;s address</Kicker>
                 </h3>
                 <div className="mb-3 flex flex-wrap items-center gap-3">
                   <span className="inline-flex max-w-full items-center rounded-full bg-brand-cyan-soft px-4 py-2">
@@ -649,9 +650,17 @@ export default async function ControlRoomPage({
                   </span>
                   <CopyButton text={leadAddress} />
                 </div>
-                <p className="text-sm text-ink-stage/60">
-                  Forward your inquiry email (and The Knot, WeddingWire, Bark notifications) to this
-                  address — every lead lands in your pipeline with a reply drafted and waiting.
+                <p className="text-sm leading-relaxed text-ink-stage/60">
+                  This is your assistant&apos;s inbox. Forward any inquiry email here and it reads
+                  it, drafts the reply in your voice, and lands it in your pipeline. Set a one-time
+                  forwarding rule in Gmail or Outlook and every inquiry arrives on its own — the{" "}
+                  <Link
+                    href="/onboarding"
+                    className="font-semibold text-ink-stage underline decoration-dotted underline-offset-2 hover:text-brand-cyan transition-colors"
+                  >
+                    guided setup
+                  </Link>{" "}
+                  shows you how. Only your inbox uses this address — clients never see it.
                 </p>
               </Card>
 

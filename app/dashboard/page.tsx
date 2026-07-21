@@ -416,15 +416,16 @@ export default async function Dashboard({
               You&apos;ll hear the ping
             </StickerChip>
             <p className="max-w-2xl text-sm leading-relaxed text-cream/70">
-              The Knot, WeddingWire, your website form, word of mouth — point them at your lead
-              address and the agent answers each one in your voice, follows up until booked-or-dead,
-              and lands it in the pipeline here. One forwarding rule, then it runs itself.
+              Clients emailing you, your website form, booking platforms — forward those inquiries
+              to your assistant and it answers each one in your voice, follows up until
+              booked-or-dead, and lands it in the pipeline here. One forwarding rule, then it runs
+              itself.
             </p>
             <Link
               href="/onboarding"
               className="mt-4 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
             >
-              Connect your inbox →
+              Set up forwarding →
             </Link>
           </div>
         </section>

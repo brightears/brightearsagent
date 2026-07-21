@@ -68,11 +68,11 @@ export async function ActivationChecklist({
       cta: "Choose your plan",
     },
     {
-      label: "Connect your inbox (optional)",
-      detail: "Already getting inquiries from The Knot, your site or word of mouth? Forward them here and the agent answers those in your voice too.",
+      label: "Forward your inquiries (optional)",
+      detail: "Already getting inquiries by email? Forward them to your assistant and it answers those in your voice too.",
       done: leadCount > 0,
       href: "/onboarding",
-      cta: "Connect inbox",
+      cta: "Set up forwarding",
       optional: true,
     },
   ];
