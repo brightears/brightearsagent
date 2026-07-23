@@ -30,10 +30,13 @@ export async function generateDraftForLead(
   if (!lead || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") return null;
   if (lead.optedOut) return null;
 
-  // Dedupe: never stack a second PENDING draft on the same lead. Guards against
-  // webhook redelivery, overlapping cron ticks, and retries all racing here.
+  // Dedupe: never stack a second draft on a lead that already has a live one.
+  // Guards against webhook redelivery, overlapping cron ticks, and retries all
+  // racing here. SENDING counts as live: a draft stuck mid-send (crash after
+  // sendEmail, before the terminal write) may already be in the client's inbox
+  // — drafting again would set up a double email.
   const existingPending = await db.draft.findFirst({
-    where: { leadId, status: "PENDING" },
+    where: { leadId, status: { in: ["PENDING", "SENDING"] } },
     select: { id: true },
   });
   if (existingPending) return null;

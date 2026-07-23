@@ -36,7 +36,8 @@ export function Card({
  * All fills are opaque so a badge reads on ink AND on white/cream panels.
  * Checked text pairings:
  *   cyan     → cyan-soft #b6eaff fill, ink text (~12:1) — interface voice
- *   teal     → solid magenta #ff2dae, white bold text — the show/celebration chip
+ *   teal     → solid magenta #ff2dae, ink bold text — the show/celebration chip
+ *              (white-on-magenta fails AA at badge size ~3.4:1; ink passes ~4.8:1)
  *   lavender → magenta-soft #ffd6ec fill, deep magenta #9c0f63 text (~7:1)
  *   peach    → orange-soft #ffdfba fill, deep amber #7a4100 text (~7:1)
  *   gray     → cream fill, ink/70 text — the muted "gone quiet" chip
@@ -50,7 +51,7 @@ export function Badge({
 }) {
   const tones: Record<string, string> = {
     cyan: "bg-brand-cyan-soft text-ink-stage",
-    teal: "bg-neon-magenta text-white",
+    teal: "bg-neon-magenta text-ink-stage",
     lavender: "bg-[#ffd6ec] text-[#9c0f63]",
     peach: "bg-[#ffdfba] text-[#7a4100]",
     gray: "bg-cream text-ink-stage/70",
@@ -75,15 +76,15 @@ export function Badge({
  */
 export const buttonStyles = {
   primary:
-    "rounded-full bg-brand-cyan text-ink-stage font-bold px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40",
+    "rounded-full bg-brand-cyan text-ink-stage font-bold px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   show:
-    "rounded-full bg-neon-magenta text-white font-bold px-5 py-2.5 shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90 transition-opacity disabled:opacity-40",
+    "rounded-full bg-neon-magenta text-white font-bold px-5 py-2.5 shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   secondary:
-    "rounded-full border-[1.5px] border-cream/40 text-cream font-semibold px-4 py-2 hover:border-cream/75 hover:text-cream-bright transition-colors disabled:opacity-40",
+    "rounded-full border-[1.5px] border-cream/40 text-cream font-semibold px-4 py-2 hover:border-cream/75 hover:text-cream-bright transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   secondaryOnLight:
-    "rounded-full border-[1.5px] border-ink-stage/30 text-ink-stage/80 font-semibold px-4 py-2 hover:border-ink-stage/60 hover:text-ink-stage transition-colors disabled:opacity-40",
+    "rounded-full border-[1.5px] border-ink-stage/30 text-ink-stage/80 font-semibold px-4 py-2 hover:border-ink-stage/60 hover:text-ink-stage transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   danger:
-    "rounded-full border border-red-300 text-red-600 font-semibold px-4 py-2 hover:bg-red-50 transition-colors disabled:opacity-40",
+    "rounded-full border border-red-300 text-red-600 font-semibold px-4 py-2 hover:bg-red-50 transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
 };
 
 /**

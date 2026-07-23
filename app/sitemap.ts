@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { COMPARISON_SLUGS } from "@/lib/marketing/comparisons";
+import { appUrlLenient } from "@/lib/app-url";
 
 /** Canonical origin: APP_URL on the temporary Render deploy, brightears.io after cutover. */
-const BASE = process.env.APP_URL ?? "https://brightears.io";
+const BASE = appUrlLenient();
 
 // What belongs here (audit 2026-07 — the old list was inverted): the six
 // /compare/[slug] head-to-heads are the highest-intent SEO pages and were

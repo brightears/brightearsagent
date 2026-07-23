@@ -255,7 +255,7 @@ export default async function Dashboard({
   // Agent-paused surface (audit C3): show it in-app, not just via push.
   // meterState reads an UNSUBSCRIBED tenant as overCap (isAgentPaused); a paid
   // plan is overCap only when used > cap. Subscribed & under-cap → no banner.
-  const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt);
+  const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt, tenant.timezone);
   const subscribed = !!tenant.stripeSubscriptionId;
   const medianReply = medianReplyMinutes(repliedThisMonth);
 
@@ -468,7 +468,7 @@ export default async function Dashboard({
                             leaking away — the median-response stat the weekly
                             report sells depends on these getting tapped. */}
                         {status === "DRAFTED" && hoursSince(lead.updatedAt, now) >= 4 && (
-                          <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-neon-orange">
+                          <p className="mt-1 inline-block rounded-full bg-[#ffdfba] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a4100]">
                             waiting {hoursSince(lead.updatedAt, now)}h
                           </p>
                         )}

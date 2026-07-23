@@ -3,6 +3,9 @@ import { sendEmail } from "@/lib/outbound/send";
 import { reportError } from "@/lib/report-error";
 import { PLAN_PRICES_USD } from "@/lib/billing/margin";
 import { formatMinor } from "@/lib/quote/fee";
+// Strict tier on purpose: this link lands in customer emails — better to
+// throw than mail out a localhost/staging results link.
+import { appUrl } from "@/lib/app-url";
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 /**
@@ -90,7 +93,7 @@ export function renderRoiEmail(r: MonthlyRoi): { subject: string; body: string }
       ``,
       `Every number above is something that actually happened — nothing projected, nothing padded. Fee amounts only appear when you record them on "Mark booked".`,
       ``,
-      `${process.env.APP_URL ?? "http://localhost:3000"}/dashboard/results`,
+      `${appUrl()}/dashboard/results`,
       ``,
       `— Bright Ears`,
     ].join("\n"),

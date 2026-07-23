@@ -52,7 +52,7 @@ export function AutoSendCard({
       {!enabled ? (
         <>
           <p className="text-sm text-ink-stage/60">
-            On your plan you approve every reply before it sends. Upgrade to let the agent send
+            On your plan you approve every reply before it sends. Upgrade to let your assistant send
             replies on its own — from the sources you trust, in your voice, with your real
             availability — so you never miss the speed-to-reply race.
           </p>
@@ -64,7 +64,8 @@ export function AutoSendCard({
         <>
           <p className="mb-4 text-sm text-ink-stage/60">
             Pick the sources you trust enough to reply <span className="font-semibold text-ink-stage/80">without</span>{" "}
-            your approval. The agent still drafts in your voice from your rate card — it just sends
+            your approval. Your assistant still drafts in your voice from your rate card — it just
+            sends
             straight away for these. Everything else keeps waiting for your tap.
           </p>
           <form action={formAction} className="space-y-4">

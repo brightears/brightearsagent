@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { appUrlLenient } from "@/lib/app-url";
 
 /**
  * Marketing-site metadata plumbing (P6.12, audit 2026-07: zero OG/Twitter
@@ -11,7 +12,7 @@ import type { Metadata } from "next";
  * flips. (Staging is noindexed anyway; see app/robots.ts.)
  */
 export function siteOrigin(): string {
-  return (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, "");
+  return appUrlLenient();
 }
 
 /**

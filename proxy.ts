@@ -18,6 +18,35 @@ const isProtected = createRouteMatcher([
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+/**
+ * Post-cutover duplicate-content trap (audit 2026-07): after the apex domain
+ * takes over, the Render service keeps serving the full app on its
+ * .onrender.com host — a second, indexable copy of the site. 301 every
+ * onrender.com request to the canonical origin, preserving path + query.
+ * A no-op until cutover: today APP_URL IS the onrender host, so the origins
+ * match and nothing redirects. Runs before any auth logic; on the canonical
+ * host it never fires, so Clerk is untouched.
+ */
+function stagingHostRedirect(req: NextRequest): NextResponse | null {
+  if (process.env.NODE_ENV !== "production") return null;
+  if (!process.env.APP_URL) return null;
+  // Render terminates TLS in front of the app — trust the forwarded host over
+  // whatever the internal hop carries.
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
+    .split(":")[0]
+    .toLowerCase();
+  if (!host.endsWith(".onrender.com")) return null;
+  let canonical: URL;
+  try {
+    canonical = new URL(process.env.APP_URL);
+  } catch {
+    return null; // malformed APP_URL — don't turn every request into a crash
+  }
+  if (canonical.hostname.toLowerCase() === host) return null; // pre-cutover: same origin
+  const target = new URL(req.nextUrl.pathname + req.nextUrl.search, canonical.origin);
+  return NextResponse.redirect(target, 301);
+}
+
 // Guard against the silent-disable trap (audit B3-NF): if the publishable key is
 // missing in PRODUCTION the guard can't authenticate, so we must NOT fall back
 // to passing everything through — that would serve /dashboard, /onboarding and
@@ -40,6 +69,10 @@ if (!clerkEnabled && process.env.NODE_ENV === "production") {
 // block protected surfaces rather than expose tenant data.
 export default clerkEnabled
   ? clerkMiddleware(async (auth, req) => {
+      // Host canonicalization first — a stale onrender.com URL must 301 before
+      // any auth decision (the canonical host is where the session lives).
+      const hostRedirect = stagingHostRedirect(req);
+      if (hostRedirect) return hostRedirect;
       if (!isProtected(req)) return;
       // "Get started" must land NEW visitors on sign-UP, not sign-in (audit
       // 2026-07: every marketing CTA 307'd to a sign-in screen — the wrong
@@ -55,6 +88,8 @@ export default clerkEnabled
       await auth.protect();
     })
   : function proxy(req: NextRequest) {
+      const hostRedirect = stagingHostRedirect(req);
+      if (hostRedirect) return hostRedirect;
       if (process.env.NODE_ENV === "production" && isProtected(req)) {
         return new NextResponse("Authentication is not configured.", { status: 503 });
       }

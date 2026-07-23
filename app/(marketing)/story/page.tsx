@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { pageMeta } from "@/lib/marketing/site";
+import { appUrlLenient } from "@/lib/app-url";
 import Link from "next/link";
 import {
   GradientBlob,
@@ -21,8 +22,8 @@ const orgJsonLd = {
   // Env-driven origin (audit 2026-07: this pointed search engines at
   // brightears.io — currently the AGENCY's site — with a 404 logo). Corrects
   // itself at cutover when APP_URL flips to the real domain.
-  url: (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, ""),
-  logo: `${(process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, "")}/brand/logo.png`,
+  url: appUrlLenient(),
+  logo: `${appUrlLenient()}/brand/logo.png`,
   description:
     "Bright Ears is the AI back office for event performer businesses: it hunts the web for venues that fit you and drafts the outreach in your voice, AND answers every inquiry that comes in — approved from your phone, followed up until booked. Built by a team that has run entertainment for five-star hotel venues in Bangkok for 20 years.",
   slogan: "Never miss a gig you never knew existed.",

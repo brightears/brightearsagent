@@ -13,6 +13,7 @@
 import { db } from "@/lib/db";
 import { sendEmail, type OutboundAttachment } from "@/lib/outbound/send";
 import { resolveAttachments } from "@/lib/agent/attach-policy";
+import { isAgentPaused } from "@/lib/billing/metering";
 import { complianceFooter } from "@/lib/optout";
 import { reportError } from "@/lib/report-error";
 
@@ -25,6 +26,7 @@ export const SEND_ERR = {
   notPending: "draft not pending",
   noEmail: "lead has no reachable email (reply on the platform instead)",
   compliance: "this lead has opted out or is closed — nothing was sent",
+  paused: "the agent is paused — subscribe to activate it",
 } as const;
 
 export async function sendDraftReply(opts: {
@@ -55,6 +57,14 @@ export async function sendDraftReply(opts: {
   const { lead } = draft;
   if (!lead.clientEmail) {
     return { ok: false, error: SEND_ERR.noEmail };
+  }
+  // Subscription gate at the SEND boundary (defense in depth): every caller —
+  // approveDraft, auto-send, the scheduled buffer, sequence autopilot — funnels
+  // through here, so a paused (unsubscribed) tenant can never email regardless
+  // of which path missed its own check. Draft stays PENDING: subscribing
+  // lets it send.
+  if (isAgentPaused(lead.business.plan)) {
+    return { ok: false, error: SEND_ERR.paused };
   }
   // Compliance hard-stop at the SEND boundary (not just in the cron engine):
   // a draft can sit PENDING while the client opts out or the lead is closed.

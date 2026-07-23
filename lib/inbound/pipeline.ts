@@ -21,7 +21,17 @@ export type PipelineResult =
   | { outcome: "venue_reply"; leadId: string; venueId: string }
   | { outcome: "lead_created"; leadId: string; status: "NEW" | "SPAM" };
 
-const SLUG_RE = /leads@([a-z0-9-]+)\.in\./i;
+// Anchored local part: only exactly "leads@" (at the start or after a
+// delimiter like "<", whitespace, or a list comma) claims the tenant inlet —
+// an unanchored match would let "djleads@slug.in..." impersonate a tenant.
+const SLUG_RE = /(?:^|[\s<,;:"'])leads@([a-z0-9-]+)\.in\./i;
+
+/**
+ * The EPK availability form's synthetic system sender (app/actions/epk.ts).
+ * Leads from this sender carry an ATTACKER-SUPPLIED reply address (public,
+ * unauthenticated form) and are excluded from auto-send below.
+ */
+export const EPK_FORM_SENDER = "notification@forms.brightears.io";
 
 export function extractSlug(toAddress: string): string | null {
   const m = toAddress.match(SLUG_RE);
@@ -90,6 +100,16 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     orderBy: { createdAt: "desc" },
   });
   if (existing) {
+    // ENGAGED means "they answered US" — it only applies once the thread has
+    // at least one OUTBOUND message. A client double-emailing before our first
+    // reply must NOT flip to ENGAGED: sendDraftReply skips sequence creation
+    // for ENGAGED leads, so a premature flip would kill every follow-up for
+    // that lead. Without an outbound, keep the current status (NEW/DRAFTED) —
+    // the fresh draft below answers both messages.
+    const hasOutbound =
+      (await db.message.count({
+        where: { leadId: existing.id, direction: "OUTBOUND" },
+      })) > 0;
     try {
       await db.$transaction([
         db.message.create({
@@ -103,7 +123,9 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
             providerMessageId: email.providerMessageId,
           },
         }),
-        db.lead.update({ where: { id: existing.id }, data: { status: "ENGAGED" } }),
+        ...(hasOutbound
+          ? [db.lead.update({ where: { id: existing.id }, data: { status: "ENGAGED" } })]
+          : []),
         db.sequenceRun.updateMany({
           where: { leadId: existing.id, stoppedAt: null },
           data: { stoppedAt: new Date(), stopReason: "client_replied" },
@@ -128,7 +150,13 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     // keeps drafting paused for unsubscribed/over-cap tenants (the copy
     // promise: pause, never a surprise bill). suppressPush: the "they wrote
     // back" ping below is THE ping — two pushes seconds apart is noise.
-    const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
+    const meter = await meterState(
+      business.id,
+      business.plan,
+      new Date(),
+      business.trialEndsAt,
+      business.timezone,
+    );
     const drafting = !meter.overCap;
     if (drafting) {
       const leadId = existing.id;
@@ -229,6 +257,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       business.plan,
       new Date(),
       business.trialEndsAt,
+      business.timezone,
     );
     const draftingVenueReply = !venueMeter.overCap;
     if (draftingVenueReply) {
@@ -338,7 +367,13 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   // Lead-cap metering: at cap we still INGEST (never lose a lead) but pause
   // drafting and nudge the owner — never a surprise bill (CLAUDE.md pricing).
   if (!isSpam) {
-    const meter = await meterState(business.id, business.plan, new Date(), business.trialEndsAt);
+    const meter = await meterState(
+      business.id,
+      business.plan,
+      new Date(),
+      business.trialEndsAt,
+      business.timezone,
+    );
     if (meter.overCap) {
       // Transition-triggered only (audit 2026-07: this fired on EVERY lead) —
       // and the copy tells the truth per state. For a subscribed tenant the
@@ -361,6 +396,14 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         }).catch(() => null);
       }
     } else if (
+      // EPK-origin inquiries NEVER auto-send their first outbound: the EPK
+      // form is public and unauthenticated, so the "client" email is whatever
+      // an attacker typed — and it appears verbatim in the synthetic body, so
+      // clientEmailGrounded alone would pass it. Auto-sending would turn the
+      // form into a spam relay to any unverified address (even with the
+      // tenant's WEBSITE_FORM autonomy on). Drafting stays intact — only the
+      // autonomous send is gated to the manual-approve path.
+      email.from.toLowerCase() !== EPK_FORM_SENDER &&
       canAutoSend(business.plan, business.autoSendSources, parsed.source) &&
       // P10.5: autonomy only toward a grounded reply address — an ungrounded
       // (possibly hallucinated) clientEmail drops to the normal approve flow.

@@ -47,7 +47,7 @@ const PLANS: Plan[] = [
       "Weekly report: rooms found, inquiries answered, gigs booked",
       "Spam & scams filtered before you ever see them",
       "You approve every send — one tap from your phone, even backstage",
-      "Also catches The Knot, WeddingWire, Bark, GigSalad, your website forms & plain email",
+      "Also catches plain email, your website forms, The Knot, WeddingWire, Bark & GigSalad",
     ],
   },
   {
@@ -93,7 +93,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if it isn't working for me?",
-    a: "It's month-to-month — cancel anytime in two clicks, and at your monthly cap we pause rather than bill you by surprise. The math we're betting on — one saved example $1,800 booking (illustrative) covers 6 years of Starter, and an inquiry handled here runs about $1.67, versus $28–47 for one raw Bark lead (their credit pricing, verified June 2026) you still have to answer yourself.",
+    a: "It's month-to-month — cancel anytime in two clicks, and at your monthly cap we pause instead of billing you more. For scale: a single $1,800 booking (an example, not a promise) would cover six years of Starter.",
   },
   {
     q: "I travel for gigs — does it work when I'm on the road?",
@@ -125,7 +125,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Which platforms does it work with?",
-    a: "The Knot, WeddingWire, Bark and GigSalad lead notification emails, plus your own website contact forms and plain email — all through the same simple forwarding setup. If an inquiry lands in your inbox, we can catch it.",
+    a: "Plain email and your own website contact forms, plus The Knot, WeddingWire, Bark and GigSalad lead notification emails — all through the same simple forwarding setup. It works with any platform that emails you, anywhere in the world: if an inquiry lands in your inbox, we can catch it.",
   },
   {
     q: "How do you handle opt-outs and spam laws?",

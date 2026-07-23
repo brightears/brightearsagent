@@ -32,7 +32,7 @@ export default async function PackagesPage() {
       <div className="mx-auto w-full max-w-7xl px-6 py-8">
       <PageHeader
         title="Packages"
-        subtitle="Your rate card — these are the only prices the AI is allowed to quote."
+        subtitle="Your rate card — these are the only prices your assistant is allowed to quote."
         stats={
           packages.length > 0 ? (
             <>
@@ -102,7 +102,7 @@ export default async function PackagesPage() {
                 kicker="Your rate card"
                 title="Add your first package."
                 accent="package."
-                hint="It's what the AI is allowed to quote — start with the form on the right."
+                hint="It's what your assistant is allowed to quote — start with the form on the right."
               />
             </Card>
           )}

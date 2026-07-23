@@ -7,9 +7,13 @@
 //   * cap CONTACT_VENUES_PER_SCAN venues per scan, 1 Serper query each
 //   * plain fetch, 5s timeout, text/html only, 200KB cap
 //   * 403/404 = skip, never retry, never proxy
+//   * SSRF-guarded: private/loopback/metadata hosts (and names resolving to
+//     them) are refused, redirects are never followed (a public host could
+//     302 to an internal target)
 //   * suppression re-checked at write time (defense in depth vs. ingest)
 
 import { db } from "@/lib/db";
+import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
 import { scoreVenue, type ScorableSignal, type VenueKind } from "@/lib/venues/score";
 
 export const CONTACT_VENUES_PER_SCAN = 5;
@@ -231,18 +235,28 @@ export function makeLiveDeps(opts: { apiKey?: string; fetchFn?: typeof fetch; gl
     },
     async fetchPage(url) {
       try {
+        // SSRF guard: the URL comes from Serper results (attacker-influencable
+        // web content), and this fetch runs inside the trust boundary — same
+        // discipline as lib/pdf/images.ts: http(s) only, no private/loopback/
+        // metadata hosts, re-check what the NAME actually resolves to, and
+        // never follow a redirect (a public host could 302 internal).
+        const parsed = new URL(url);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+        if (isBlockedHost(parsed.hostname)) return null;
+        if (await resolvesToBlockedIp(parsed.hostname)) return null;
         const res = await fetchFn(url, {
           headers: { Accept: "text/html" },
           signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
-          redirect: "follow",
+          redirect: "manual",
         });
+        if (res.status >= 300 && res.status < 400) return null; // redirect — skip, never follow
         if (!res.ok) return null; // 403/404/5xx — skip, never retry
         const type = res.headers.get("content-type") ?? "";
         if (!type.includes("text/html")) return null;
         const text = await res.text();
         return text.slice(0, PAGE_BYTE_CAP);
       } catch {
-        return null; // timeout/DNS/abort — skip
+        return null; // timeout/DNS/abort/bad URL — skip
       }
     },
   };

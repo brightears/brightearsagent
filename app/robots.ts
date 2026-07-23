@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
+import { appUrlLenient } from "@/lib/app-url";
 
 /** Canonical origin: APP_URL on the temporary Render deploy, brightears.io after cutover. */
-const BASE = process.env.APP_URL ?? "https://brightears.io";
+const BASE = appUrlLenient();
 
 /** App-private surfaces; everything marketing-facing stays crawlable. */
 const PRIVATE = ["/dashboard/", "/api/"];
@@ -10,9 +11,11 @@ const PRIVATE = ["/dashboard/", "/api/"];
  * Staging must never become the canonical "Bright Ears" in the index (audit
  * 2026-07: the onrender.com host was fully crawlable with no canonical
  * strategy — Google could keep it as THE site after cutover). Env-gated so
- * this flips itself at cutover, when APP_URL becomes the real domain.
+ * this flips itself at cutover, when APP_URL becomes the real domain. A
+ * MISSING APP_URL reads as staging too — the safe failure mode is disallow,
+ * never an indexed staging host.
  */
-const IS_STAGING = BASE.includes("onrender.com");
+const IS_STAGING = !process.env.APP_URL || BASE.includes("onrender.com");
 
 export default function robots(): MetadataRoute.Robots {
   if (IS_STAGING) {

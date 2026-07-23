@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // labeled fields (the exact shape the fallback classifies WEBSITE_FORM).
 
 const mockProcess = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/inbound/pipeline", () => ({ processInbound: mockProcess }));
+vi.mock("@/lib/inbound/pipeline", () => ({
+  processInbound: mockProcess,
+  // Real constant (the action imports it for the synthetic sender; the
+  // pipeline's auto-send exclusion keys on this exact address).
+  EPK_FORM_SENDER: "notification@forms.brightears.io",
+}));
 vi.mock("@/lib/report-error", () => ({ reportError: vi.fn(async () => {}) }));
 // Server-action headers() (14.2 rate limit reads the client IP). Unique IP
 // per test run keeps the in-process limiter from cross-test interference.

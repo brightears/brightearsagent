@@ -33,7 +33,15 @@ describe("tenant slug extraction", () => {
   it("extracts the slug from a parse address", () => {
     expect(extractSlug("leads@demo-dj-co.in.brightears.io")).toBe("demo-dj-co");
   });
+  it("extracts from display-name and list forms", () => {
+    expect(extractSlug("Demo DJ Co <leads@demo-dj-co.in.brightears.io>")).toBe("demo-dj-co");
+    expect(extractSlug("a@b.test, leads@demo-dj-co.in.brightears.io")).toBe("demo-dj-co");
+  });
   it("returns null for unrelated addresses", () => {
     expect(extractSlug("owner@demodjco.test")).toBeNull();
+  });
+  it("rejects local parts that merely END in 'leads' (anchoring)", () => {
+    expect(extractSlug("djleads@demo-dj-co.in.brightears.io")).toBeNull();
+    expect(extractSlug("myleads@demo-dj-co.in.brightears.io")).toBeNull();
   });
 });

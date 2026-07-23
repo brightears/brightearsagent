@@ -6,8 +6,9 @@
 import { useActionState } from "react";
 import { submitEpkInquiry, type EpkInquiryState } from "@/app/actions/epk";
 
+// Focus ring is cyan per docs/DESIGN.md — interaction voice, even on show surfaces.
 const inputCls =
-  "w-full rounded-xl border border-cream/20 bg-ink-stage px-3.5 py-2.5 text-base text-cream-bright placeholder:text-cream/35 focus:border-neon-magenta focus:outline-none focus:ring-2 focus:ring-neon-magenta/40";
+  "w-full rounded-xl border border-cream/20 bg-ink-stage px-3.5 py-2.5 text-base text-cream-bright placeholder:text-cream/35 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30";
 
 export function EpkInquiryForm({ slug, artistName }: { slug: string; artistName: string }) {
   const [state, formAction, pending] = useActionState<EpkInquiryState, FormData>(
@@ -38,17 +39,36 @@ export function EpkInquiryForm({ slug, artistName }: { slug: string; artistName:
         className="absolute -left-[9999px] h-0 w-0 opacity-0"
       />
       <div className="grid gap-3 sm:grid-cols-2">
-        <input name="name" required placeholder="Your name" className={inputCls} />
-        <input name="email" type="email" required placeholder="Your email" className={inputCls} />
+        <input
+          name="name"
+          required
+          placeholder="Your name"
+          aria-label="Your name"
+          className={inputCls}
+        />
+        <input
+          name="email"
+          type="email"
+          required
+          placeholder="Your email"
+          aria-label="Your email"
+          className={inputCls}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <input name="eventType" placeholder="Event type (wedding, party…)" className={inputCls} />
+        <input
+          name="eventType"
+          placeholder="Event type (wedding, party…)"
+          aria-label="Event type"
+          className={inputCls}
+        />
         <input name="eventDate" type="date" aria-label="Event date" className={inputCls} />
       </div>
       <textarea
         name="message"
         rows={4}
         placeholder="A few words about your event — venue, vibe, timings…"
+        aria-label="About your event"
         className={inputCls}
       />
       {state && !state.ok && state.error && (

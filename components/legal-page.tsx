@@ -45,7 +45,7 @@ export function DraftBanner() {
  */
 export function ToBeCompleted({ label }: { label?: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-neon-orange/40 bg-neon-orange/10 px-1.5 py-0.5 align-baseline font-mono text-[0.78em] font-semibold text-neon-orange">
+    <span className="inline-flex items-center gap-1 rounded-md bg-[#ffdfba] px-1.5 py-0.5 align-baseline font-mono text-[0.78em] font-semibold text-[#7a4100]">
       [{label ?? "to be completed"}]
     </span>
   );

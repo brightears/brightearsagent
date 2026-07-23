@@ -14,6 +14,7 @@ import {
   discoverVenueContact,
   emailRank,
   extractEmails,
+  makeLiveDeps,
   pickBestEmail,
   pickVenueSiteUrl,
   runContactPass,
@@ -180,6 +181,52 @@ describe("runContactPass", () => {
     const where = mockDb.venue.findMany.mock.calls[0][0];
     expect(where.where).toMatchObject({ bookingEmail: null, status: "DISCOVERED", fitScore: { gte: 60 } });
     expect(where.take).toBe(5);
+  });
+});
+
+describe("makeLiveDeps fetchPage SSRF guard", () => {
+  // Response-shaped stub; only the fields fetchPage reads.
+  const resLike = (status: number, contentType: string, body: string) =>
+    ({
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (k: string) => (k.toLowerCase() === "content-type" ? contentType : null) },
+      text: async () => body,
+    }) as unknown as Response;
+
+  // IP-literal hosts throughout: resolvesToBlockedIp only does DNS for NAMES,
+  // so literals keep the tests network-free.
+  it("refuses private/loopback/metadata hosts without ever fetching", async () => {
+    const fetchFn = vi.fn();
+    const deps = makeLiveDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+    expect(await deps.fetchPage("http://169.254.169.254/latest/meta-data")).toBeNull();
+    expect(await deps.fetchPage("http://127.0.0.1/contact")).toBeNull();
+    expect(await deps.fetchPage("http://10.1.2.3/contact")).toBeNull();
+    expect(await deps.fetchPage("http://localhost/contact")).toBeNull();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("refuses non-http(s) schemes and unparseable URLs", async () => {
+    const fetchFn = vi.fn();
+    const deps = makeLiveDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+    expect(await deps.fetchPage("file:///etc/passwd")).toBeNull();
+    expect(await deps.fetchPage("not a url")).toBeNull();
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("treats redirects as a skip — never follows them", async () => {
+    const fetchFn = vi.fn(async () => resLike(302, "text/html", ""));
+    const deps = makeLiveDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+    expect(await deps.fetchPage("http://203.0.113.10/contact")).toBeNull();
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const init = (fetchFn.mock.calls[0] as unknown[])[1] as RequestInit;
+    expect(init.redirect).toBe("manual");
+  });
+
+  it("still returns HTML from an allowed host", async () => {
+    const fetchFn = vi.fn(async () => resLike(200, "text/html; charset=utf-8", "<p>events@x.example</p>"));
+    const deps = makeLiveDeps({ fetchFn: fetchFn as unknown as typeof fetch });
+    expect(await deps.fetchPage("http://203.0.113.10/contact")).toBe("<p>events@x.example</p>");
   });
 });
 

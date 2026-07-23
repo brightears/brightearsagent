@@ -76,21 +76,30 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
   // whose initial draft expired while the owner was away. Without this they'd
   // sit forever undrafted (the exact >5-min-response failure we sell against).
   // Only for non-terminal leads currently under their plan's lead cap.
+  // SENDING counts as "has a draft": a draft stuck mid-send (crash after the
+  // email left, before the terminal write) must never be redrafted — that's
+  // the double-email window. Stuck SENDING is surfaced below (1c) instead.
   const undrafted = await db.lead.findMany({
     where: {
       status: { in: ["NEW", "DRAFTED"] },
       optedOut: false,
-      drafts: { none: { status: "PENDING" } },
+      drafts: { none: { status: { in: ["PENDING", "SENDING"] } } },
       updatedAt: { lt: new Date(now.getTime() - 5 * 60 * 1000) }, // settle 5 min (let webhook-time drafting finish)
       // Skip past-event leads: their draft would expire immediately (expiresAt =
       // eventDate), causing a redraft-then-expire loop that burns LLM cost.
       OR: [{ eventDate: null }, { eventDate: { gte: now } }],
     },
-    include: { business: { select: { id: true, plan: true, trialEndsAt: true } } },
+    include: { business: { select: { id: true, plan: true, trialEndsAt: true, timezone: true } } },
     take: 50,
   });
   for (const lead of undrafted) {
-    const meter = await meterState(lead.business.id, lead.business.plan, now, lead.business.trialEndsAt);
+    const meter = await meterState(
+      lead.business.id,
+      lead.business.plan,
+      now,
+      lead.business.trialEndsAt,
+      lead.business.timezone,
+    );
     if (meter.overCap) continue; // still capped — leave NEW, owner already nudged
     try {
       await generateDraftForLead(lead.id);
@@ -98,6 +107,28 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     } catch (err) {
       void reportError(err, { kind: "sequence-redraft", leadId: lead.id });
     }
+  }
+
+  // 1c. Stuck-SENDING visibility: a crash between sendEmail and the terminal
+  // DB write strands a draft in SENDING — the email may already be delivered,
+  // so it must NEVER be auto-redrafted or re-sent (double-email). Surface it
+  // to ops instead. Draft has no updatedAt, so createdAt is the proxy: a real
+  // in-flight send lasts seconds, so any SENDING draft the cron observes on a
+  // >10-minute-old draft is effectively stuck. One report per tick; the
+  // stable message lets reportError's signature dedupe cap the emails.
+  const STUCK_SENDING_MS = 10 * 60 * 1000;
+  const stuckSending = await db.draft.findMany({
+    where: { status: "SENDING", createdAt: { lt: new Date(now.getTime() - STUCK_SENDING_MS) } },
+    select: { id: true, leadId: true },
+    take: 20,
+  });
+  if (stuckSending.length > 0) {
+    void reportError(new Error("draft stuck in SENDING — email may be delivered but unrecorded; needs manual review"), {
+      kind: "stuck-sending-draft",
+      count: stuckSending.length,
+      draftIds: stuckSending.map((d) => d.id),
+      leadIds: stuckSending.map((d) => d.leadId),
+    });
   }
 
   // 2. Backfill runs for REPLIED leads without one.
@@ -132,7 +163,9 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       template: true,
       lead: {
         include: {
-          drafts: { where: { status: "PENDING" } },
+          // SENDING blocks stacking too: a draft mid-send (or stuck there)
+          // must hold the run, not let another step draft on top of it.
+          drafts: { where: { status: { in: ["PENDING", "SENDING"] } } },
           // Autopilot (P8.5): plan + trusted sources decide whether this
           // step SENDS or waits for approval.
           business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true } },
@@ -154,8 +187,19 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       continue;
     }
 
-    // Never stack drafts: any non-terminal draft (PENDING) means the owner
-    // hasn't decided yet — wait, don't draft another step on top.
+    // Subscription gate: an unsubscribed (plan=TRIAL) tenant's agent does
+    // nothing — the aging ping (1a) and redraft sweep (1b) already pause here,
+    // and the due-run loop must too, or follow-up steps would keep drafting
+    // (and autopilot would keep sending) for a paused tenant. The run stays
+    // open with nextRunAt in the past, so subscribing resumes it next tick.
+    if (isAgentPaused(lead.business.plan)) {
+      result.skipped++;
+      continue;
+    }
+
+    // Never stack drafts: any non-terminal draft (PENDING/SENDING) means the
+    // owner hasn't decided yet or a send is in flight — wait, don't draft
+    // another step on top.
     if (lead.drafts.length > 0) {
       result.skipped++;
       continue;

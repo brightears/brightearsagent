@@ -4,8 +4,10 @@
 // (gmail.readonly/modify) is a deferred later phase. openid + email ride along
 // so the callback learns which address the artist connected.
 //
-// Redirect URI is derived from APP_URL with the deployed fallback (the exact
-// epkUrlFor pattern) — the two URIs registered with Google are:
+// Redirect URI is derived from APP_URL via the shared strict appUrl() helper
+// (lib/app-url.ts — throws in production when APP_URL is unset, because a
+// guessed redirect URI silently breaks the whole flow). The two URIs
+// registered with Google are:
 //   http://localhost:3057/api/oauth/google/callback
 //   https://brightears-app.onrender.com/api/oauth/google/callback
 //
@@ -13,6 +15,8 @@
 // so locally isConfigured() is false and the start/callback routes show the
 // "not configured" path. exchangeCode/refreshAccessToken only run once the
 // secret is present (the deployed app).
+
+import { appUrl } from "@/lib/app-url";
 
 const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -23,14 +27,13 @@ export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
 const SCOPES = [GMAIL_SEND_SCOPE, "openid", "email"];
 
 /**
- * The app's PUBLIC base URL — APP_URL with the deployed fallback (mirrors
- * epkUrlFor). Use this for every absolute redirect: behind Render's proxy
- * `req.url` is the internal `http://localhost:10000`, so building redirects
- * from the request host sends the browser to an unreachable address.
+ * The app's PUBLIC base URL — re-exported from the shared strict helper so
+ * existing callers (notify, the OAuth routes) keep importing it from here.
+ * Use this for every absolute redirect: behind Render's proxy `req.url` is
+ * the internal `http://localhost:10000`, so building redirects from the
+ * request host sends the browser to an unreachable address.
  */
-export function appUrl(): string {
-  return (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, "");
-}
+export { appUrl };
 
 /** The exact redirect URI registered with Google (must match byte-for-byte). */
 export function redirectUri(): string {

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/dashboard", label: "Today" },
+  { href: "/dashboard", label: "Pipeline" },
   { href: "/dashboard/calendar", label: "Calendar" },
   { href: "/dashboard/results", label: "Results" },
   { href: "/dashboard/packages", label: "Packages" },
@@ -36,7 +36,7 @@ export function BottomTabs({ pendingCount = 0 }: { pendingCount?: number }) {
               key={tab.href}
               href={tab.href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 px-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors ${
+              className={`relative flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 px-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan ${
                 active ? "text-brand-cyan" : "text-cream/55 hover:text-cream/80"
               }`}
             >
@@ -48,7 +48,7 @@ export function BottomTabs({ pendingCount = 0 }: { pendingCount?: number }) {
               <span className="relative">
                 {tab.label}
                 {badge && (
-                  <span className="absolute -right-4 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon-magenta px-1 font-mono text-[9px] font-bold text-white">
+                  <span className="absolute -right-4 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon-magenta px-1 font-mono text-[9px] font-bold text-ink-stage">
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

@@ -41,7 +41,7 @@ export function GraduationPrompt({
         <span className="font-bold text-cream-bright">
           You approved {count} {phrase} replies without changing a word.
         </span>{" "}
-        Want the agent to send these on its own? Same drafts, same voice, real availability — it
+        Want your assistant to send these on its own? Same drafts, same voice, real availability — it
         just stops waiting for your tap. Every send still shows up here, and you can switch it off
         any time in the Control room.
       </p>

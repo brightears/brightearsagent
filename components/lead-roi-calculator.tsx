@@ -24,8 +24,10 @@ type SpeedId = (typeof REPLY_SPEEDS)[number]["id"];
 
 const RATE_CAP = 60; // % — past this, the model would be selling fantasy
 
-const usd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+// Currency-neutral (the visitor plugs in THEIR currency's numbers — a "$"
+// prefix here would contradict the "Average booking value (your currency)"
+// label). Plan prices elsewhere stay in real USD.
+const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
 /** Controlled number inputs hate NaN (cleared field) — render those as empty. */
 const numValue = (n: number): number | "" => (Number.isNaN(n) ? "" : n);
@@ -114,7 +116,7 @@ export function LeadRoiCalculator() {
             </div>
             <div>
               <label htmlFor="roi-value" className={labelClass}>
-                Average booking value ($)
+                Average booking value (your currency)
               </label>
               <input
                 id="roi-value"
@@ -186,7 +188,7 @@ export function LeadRoiCalculator() {
               </p>
               <p className="text-ink-stage/65 max-w-xl mx-auto">
                 Replying in under 5 minutes is exactly where you want to be — your slow-reply leak
-                is roughly <strong className="text-ink-stage">$0</strong>. The only question is
+                is roughly <strong className="text-ink-stage">0</strong>. The only question is
                 what it costs you to keep it up: the 2am drafting, the mid-set phone checks, the
                 laptop you fall asleep on. That part we can take off your hands.
               </p>
@@ -197,7 +199,7 @@ export function LeadRoiCalculator() {
                 Estimated cost of slow replies
               </p>
               <p className="text-4xl sm:text-5xl font-black tracking-tight">
-                <span style={gradText}>{usd(result.revenueLost)}</span>
+                <span style={gradText}>{fmt(result.revenueLost)}</span>
                 <span className="text-lg font-semibold text-ink-stage/45"> / year</span>
               </p>
               <p className="text-ink-stage/65">
@@ -250,7 +252,7 @@ export function LeadRoiCalculator() {
                 <strong className="text-ink-stage">4. The gap:</strong>{" "}
                 {result.bookingsFast.toFixed(1)} − {result.bookingsNow.toFixed(1)} ={" "}
                 <strong>{result.bookingsLost.toFixed(1)} bookings/year</strong> ×{" "}
-                {usd(result.value)} = <strong>{usd(result.revenueLost)}</strong>.
+                {fmt(result.value)} = <strong>{fmt(result.revenueLost)}</strong>.
               </li>
             </ol>
             <p className="text-xs text-ink-stage/50 mt-5 leading-relaxed">
@@ -271,7 +273,7 @@ export function LeadRoiCalculator() {
           <div className="relative overflow-hidden rounded-3xl bg-cream p-5 sm:p-7 text-center space-y-3 shadow-[0_24px_60px_rgba(0,0,0,0.45)] rotate-[-0.4deg]">
             <p className="text-ink-stage font-extrabold tracking-tight text-lg">
               Plugging the leak costs {leadsPerMonth <= 15 ? "$25" : leadsPerMonth <= 60 ? "$79" : "$149"}
-              /month at your volume. The leak costs {usd(result.revenueLost)}/year.
+              /month at your volume. The leak costs {fmt(result.revenueLost)}/year.
             </p>
             <p className="text-sm text-ink-stage/65 max-w-xl mx-auto">
               And that&apos;s only the leak you can measure. Bright Ears goes out and finds new

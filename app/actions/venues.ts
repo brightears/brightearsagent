@@ -222,6 +222,27 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
     return { ok: true };
   }
 
+  // (5b) Post-claim recount: the pre-claim count (5) is check-then-claim — two
+  // concurrent sends at cap-1 both pass it, both claim, and the cap is blown.
+  // Recount with OUR claim included; if the claims oversubscribed the cap,
+  // release ours back to APPROVED and refuse with the same at-cap error. At
+  // most `cap` claims can see a compliant recount, so the cap holds.
+  const sentIncludingClaim = await db.venuePitch.count({
+    where: {
+      businessId: business.id,
+      temperature: pitch.temperature,
+      status: { in: [...SEND_CAP_STATUSES] },
+      OR: [{ sentAt: { gte: dayStart } }, { sentAt: null, updatedAt: { gte: dayStart } }],
+    },
+  });
+  if (sentIncludingClaim > sentCapFor(pitch.temperature)) {
+    await db.venuePitch.updateMany({
+      where: { id: pitch.id, businessId: business.id, status: "SENDING" },
+      data: { status: "APPROVED" },
+    });
+    return { ok: false, error: sendCapError(pitch.temperature) };
+  }
+
   // (7) Build + send. The owner's edits win; the jurisdiction footer is
   // appended HERE (at send), never stored in the editable body.
   const subject = pitch.editedSubject ?? pitch.subject;

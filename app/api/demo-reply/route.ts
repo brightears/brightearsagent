@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateDraft } from "@/lib/agent/drafter";
+import { clientIp } from "@/lib/rate-limit";
 
 /**
  * Public demo: paste an inquiry → watch a reply draft itself. This is a free
@@ -18,7 +19,9 @@ const DEMO_PACKAGES = [
 ];
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // Right-most x-forwarded-for hop (lib/rate-limit clientIp) — the left-most
+  // hop is client-supplied, so the per-IP cap was trivially spoofable.
+  const ip = clientIp(req);
   const day = today();
 
   if (globalCount.day !== day) {

@@ -50,16 +50,16 @@ const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-in
 
 // ---------------------------------------------------------------------------
 // Step definitions — progress chips walk the v2 spectrum: cyan → magenta →
-// orange (then around again). Text pairings per docs/DESIGN.md: ink on
-// cyan/orange, white on magenta.
+// orange (then around again). Text pairing: ink on all three — white on
+// magenta fails AA at this size (~3.4:1), ink passes (~4.8:1).
 // ---------------------------------------------------------------------------
 
 const STEPS = [
   { label: "Your business", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "Who you are", chip: "bg-neon-magenta text-white" },
+  { label: "Who you are", chip: "bg-neon-magenta text-ink-stage" },
   { label: "Your voice", chip: "bg-neon-orange text-ink-stage" },
   { label: "Your calendar", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "Connect leads", chip: "bg-neon-magenta text-white" },
+  { label: "Connect leads", chip: "bg-neon-magenta text-ink-stage" },
 ] as const;
 
 const KINDS: { kind: PerformerKind; label: string }[] = [
@@ -364,9 +364,8 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
         Your hunting license — {doneCount}/{items.length}
       </SectionLabel>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
-        Everything else works without these — but the agent pitches venues in your name only once
-        they&apos;re in place. A pitch without a face or a clip gets deleted, so it won&apos;t send a
-        thin one for you.
+        Everything else works without these — but venues delete pitches that arrive without a photo
+        or a video, so your assistant won&apos;t pitch in your name until yours are in place.
       </p>
       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
         {items.map((item) => (
@@ -594,7 +593,7 @@ function StepBusiness({
           className={inputStyles}
         />
         <p className="mt-1 text-xs text-ink-stage/50">
-          Your home city — the first place the agent hunts for venues and gigs. You can add more
+          Your home city — the first place your assistant hunts for venues and gigs. You can add more
           cities (and travel plans) later in the Control room.
         </p>
       </div>
@@ -719,7 +718,7 @@ function StepProfile({
       <StepHeading
         step={1}
         title="Who you are"
-        blurb="This is what the agent pitches and replies with — the more it knows you, the better (and more often) it can win you the right rooms. The essentials take a minute; add the rest now or anytime."
+        blurb="This is what your assistant pitches and replies with — the more it knows you, the better (and more often) it can win you the right rooms. The essentials take a minute; add the rest now or anytime."
       />
 
       {/* A — IDENTITY (the matching + press-kit basics) */}
@@ -840,7 +839,7 @@ function StepProfile({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="ob-floor" className={labelStyles}>One-off floor ({currency})</label>
+            <label htmlFor="ob-floor" className={labelStyles}>Lowest fee you&apos;ll accept ({currency})</label>
             <input
               id="ob-floor"
               inputMode="numeric"
@@ -850,7 +849,7 @@ function StepProfile({
               className={inputStyles}
             />
             <p className="mt-1 text-xs text-ink-stage/50">
-              The lowest you&apos;ll take a one-off for. The agent never pitches below it.
+              For a one-off gig. Your assistant never quotes below it.
             </p>
             <div className="mt-2">
               <label htmlFor="ob-hours" className={labelStyles}>Covers up to (hours)</label>
@@ -922,7 +921,8 @@ function StepProfile({
             className={`${inputStyles} resize-y`}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
-            The agent uses this to answer setup questions in your replies — and never makes one up.
+            Your assistant uses this to answer setup questions in your replies — and never makes one
+            up.
           </p>
         </div>
       </div>
@@ -943,7 +943,8 @@ function StepProfile({
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
       {!canAdvance && !error && (
         <p className="text-right text-xs text-ink-stage/50">
-          Add your {copy.styleLabel.toLowerCase().replace(/[?]/g, "")}, a one-line description, and your one-off floor to continue.
+          Fill in the three required fields to continue — your style, your one-line description, and
+          your minimum fee.
         </p>
       )}
     </div>
@@ -1277,7 +1278,7 @@ function StepCalendar({
       <StepHeading
         step={3}
         title="Your calendar"
-        blurb="Drop in the dates you're already booked so we never tell a couple you're free when you're not. Rough titles are fine."
+        blurb="Drop in the dates you're already booked so we never tell a client you're free when you're not. Rough titles are fine."
       />
 
       {savedCount > 0 && (
@@ -1516,6 +1517,7 @@ function StepConnect({
 }) {
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
   const [checkoutPending, setCheckoutPending] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -1545,8 +1547,8 @@ function StepConnect({
         </ol>
         <p className="mt-2.5 text-xs leading-relaxed text-ink-stage/55">
           Clients and venues never see your assistant&apos;s address — it&apos;s internal, only your
-          inbox uses it. Venue outreach is separate: those emails go out from your own Gmail once you
-          connect it in your Control Room.
+          inbox uses it. Venue outreach is separate: those emails go out from your own mailbox once
+          you connect it in your Control room (Gmail today, Outlook coming).
         </p>
       </div>
 
@@ -1625,19 +1627,31 @@ function StepConnect({
           {chosenPlan ? (
             // They already chose on the pricing page — open checkout for that
             // plan directly; no re-deciding at the activation moment (P5.5).
-            <button
-              type="button"
-              disabled={checkoutPending}
-              onClick={() => {
-                setCheckoutPending(true);
-                void startCheckout(chosenPlan).catch(() => setCheckoutPending(false));
-              }}
-              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity disabled:opacity-60"
-            >
-              {checkoutPending
-                ? "Opening checkout…"
-                : `Activate ${chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()} →`}
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={checkoutPending}
+                onClick={() => {
+                  setCheckoutPending(true);
+                  setCheckoutError(false);
+                  void startCheckout(chosenPlan).catch(() => {
+                    setCheckoutPending(false);
+                    setCheckoutError(true);
+                  });
+                }}
+                className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {checkoutPending
+                  ? "Opening checkout…"
+                  : `Activate ${chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()} →`}
+              </button>
+              {checkoutError && (
+                <p className="mx-auto mt-3 max-w-md text-sm font-medium text-ink-stage">
+                  Couldn&apos;t open checkout — please try again, or choose your plan later from
+                  your dashboard.
+                </p>
+              )}
+            </>
           ) : (
             <Link
               href="/dashboard/settings#billing"
@@ -1746,9 +1760,9 @@ function StepConnect({
           people who just set it up; the quiet skip stays for people who didn't. */}
       {!leadDetected && (
         <p className="pt-1 text-sm text-ink-stage/60">
-          Set the forward up already? You’re done — there’s nothing to save here. Your lead address
-          is live, and the moment the first inquiry (or Gmail’s confirmation) arrives, everything
-          switches on by itself.
+          Set the forward up already? You’re done — there’s nothing to save here. Your
+          assistant’s address is live, and the moment the first inquiry (or Gmail’s confirmation)
+          arrives, everything switches on by itself.
         </p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

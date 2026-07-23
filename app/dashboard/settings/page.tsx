@@ -149,7 +149,7 @@ function StrengthMeter({
             );
           })}
           {missing.length > 5 && (
-            <li className="text-xs text-cream/35">…and {missing.length - 5} more once those land.</li>
+            <li className="text-xs text-cream/35">…and {missing.length - 5} more after you finish these.</li>
           )}
         </ul>
       ) : (
@@ -195,14 +195,14 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
         </div>
         <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-ink-stage/10">
           <div
-            className={`h-full rounded-full ${meter.overCap ? "bg-[#c2410c]" : "bg-brand-cyan"}`}
+            className={`h-full rounded-full ${meter.overCap ? "bg-neon-orange" : "bg-brand-cyan"}`}
             style={{ width: `${pct}%` }}
           />
         </div>
         {meter.overCap && state.subscribed && (
           <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
-            <span className="font-semibold text-[#7a4100]">Lead cap reached</span> — new leads still
-            arrive, but drafting is paused until you upgrade. No surprise bill, ever.
+            <span className="font-semibold text-[#7a4100]">Inquiry cap reached</span> — new inquiries
+            still arrive, but drafting is paused until you upgrade. No surprise bill, ever.
           </p>
         )}
       </div>
@@ -214,7 +214,7 @@ function BillingCard({ meter, state }: { meter: MeterState; state: BillingState 
         // the axis — turning the machine up should always be one tap away.
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
-            Turn the machine up or down anytime — plan switches prorate automatically and apply on
+            Turn your assistant up or down anytime — plan switches prorate automatically and apply on
             one confirm. Payment method, invoices and cancelling live under Manage billing.
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
@@ -332,7 +332,7 @@ export default async function ControlRoomPage({
   // One pass of the reads the cockpit needs: usage meter, billing state, the
   // profile-strength inputs, the live travel windows, and the mailbox state.
   const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate, performers] = await Promise.all([
-    meterState(business.id, business.plan, new Date(), business.trialEndsAt),
+    meterState(business.id, business.plan, new Date(), business.trialEndsAt, business.timezone),
     billingState(),
     db.package.count({ where: { businessId: business.id, active: true } }),
     db.gig.count({ where: { businessId: business.id } }),
@@ -404,7 +404,7 @@ export default async function ControlRoomPage({
         <PageHeader
           title="Control room"
           accent="room"
-          subtitle="Everything the AI office needs to sound like you and hunt for you — in one place."
+          subtitle="Everything your assistant needs to sound like you and hunt for you — in one place."
           stats={
             <>
               <StatPill tone={strength.canPitch ? "teal" : "white"}>
@@ -470,7 +470,7 @@ export default async function ControlRoomPage({
             <Section
               id="profile"
               title="Voice & profile"
-              intro="How you sound and what the agent pitches with. Fill the meter to unlock the hunting license."
+              intro="How you sound and what your assistant pitches with. Fill the meter to unlock the hunting license."
             >
               <StrengthMeter
                 percent={strength.percent}
@@ -518,7 +518,7 @@ export default async function ControlRoomPage({
             <Section
               id="hunt"
               title="Where you hunt"
-              intro="Your home base and any trips. When you travel, the agent hunts guest spots in those cities for those dates."
+              intro="Your home base and any trips. When you travel, your assistant hunts guest spots in those cities for those dates."
             >
               <TravelWindowsCard
                 serviceCities={business.serviceCities}
@@ -532,7 +532,7 @@ export default async function ControlRoomPage({
               <Section
                 id="roster"
                 title="Roster"
-                intro="Who performs under this act — gigs tag a performer, and the agent checks availability per performer before it promises a date."
+                intro="Who performs under this act — gigs tag a performer, and your assistant checks availability per performer before it promises a date."
               >
                 <RosterCard
                   performers={performers}
@@ -544,12 +544,12 @@ export default async function ControlRoomPage({
             <Section
               id="cadence"
               title="Cadence"
-              intro="How hard the AI works for you — the rhythm it runs on, and the dials each plan turns up."
+              intro="How hard your assistant works for you — the rhythm it runs on, and the dials each plan turns up."
             >
               <Card className="p-6">
                 <h3 className="mb-1 font-bold text-ink-stage">Follow-up rhythm</h3>
                 <p className="mb-4 text-sm text-ink-stage/60">
-                  After your first reply goes out, the agent nudges quiet prospects on this clock —
+                  After your first reply goes out, your assistant nudges quiet prospects on this clock —
                   and stops the moment they answer, book, or opt out. Tuning it yourself is on the
                   roadmap; the defaults are the pattern that books gigs without pestering anyone.
                 </p>

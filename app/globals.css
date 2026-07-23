@@ -89,3 +89,11 @@ body {
     transition: none;
   }
 }
+
+/* Tailwind's built-in animate-pulse (listening dots, skeletons) must respect
+   the same reduced-motion preference as the be-* motion kit above. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
+}

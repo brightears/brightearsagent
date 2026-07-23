@@ -3,16 +3,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
+// Strict tier (audit B7-NF): a localhost fallback would send Stripe
+// success/cancel redirects to a dead URL if APP_URL were unset — appUrl()
+// fails closed in production instead.
+import { appUrl } from "@/lib/app-url";
 import type { PlanTier } from "@/app/generated/prisma/enums";
-
-function appUrl(): string {
-  // Fail-closed in production (audit B7-NF): a localhost fallback would send
-  // Stripe success/cancel redirects to a dead URL if APP_URL were unset.
-  const url = process.env.APP_URL;
-  if (url) return url;
-  if (process.env.NODE_ENV === "production") throw new Error("APP_URL must be set in production");
-  return "http://localhost:3057";
-}
 
 /** Resolve the catalog price for a plan by its stable lookup key. */
 async function priceForPlan(plan: Exclude<PlanTier, "TRIAL">) {

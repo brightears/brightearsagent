@@ -359,7 +359,7 @@ export function HuntSection({
         <div>
           <Kicker>The hunt</Kicker>
           <h2 className="mt-1.5 text-xl font-black tracking-tight text-cream-bright">
-            Venues your agent found
+            Venues your assistant found
           </h2>
         </div>
         {totalCount > 0 && <StatPill tone="teal">{totalCount} found</StatPill>}
@@ -375,7 +375,7 @@ export function HuntSection({
             "font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80";
           const state = !subscribed
             ? {
-                hint: "Your agent is paused. Pick a plan and the hunt switches on — new openings and rooms for your act land here, scored, with the outreach drafted in your voice for you to approve.",
+                hint: "Your assistant is paused. Pick a plan and the hunt switches on — new openings and rooms for your act land here, scored, with the outreach drafted in your voice for you to approve.",
                 cta: (
                   <Link href="/dashboard/settings#billing" className={linkCls}>
                     Choose your plan →
@@ -384,7 +384,7 @@ export function HuntSection({
               }
             : !homeCity
               ? {
-                  hint: "The agent is on — it just doesn't know where to hunt yet. Set your home city and every scan combs it for new openings and rooms that fit your act.",
+                  hint: "Your assistant is on — it just doesn't know where to hunt yet. Set your home city and every scan combs it for new openings and rooms that fit your act.",
                   cta: (
                     <Link href="/dashboard/settings#hunt" className={linkCls}>
                       Set your home city →
@@ -393,7 +393,7 @@ export function HuntSection({
                 }
               : !canPitch
                 ? {
-                    hint: "Venues from your city land here after each scan. To unlock pitching, finish the profile the pitches are built from — video, photos, bio, a gig on your calendar — so the agent never sends a thin one in your name.",
+                    hint: "Venues from your city land here after each scan. To unlock pitching, finish the profile the pitches are built from — video, photos, bio, a gig on your calendar — so your assistant never sends a thin one in your name.",
                     cta: (
                       <Link href="/dashboard/settings#profile" className={linkCls}>
                         Finish your profile ({profilePercent}%) →
@@ -401,7 +401,7 @@ export function HuntSection({
                     ),
                   }
                 : {
-                    hint: "You're set. The agent combs your city on every scan — new openings and rooms that fit your act land here scored, with the reasons spelled out and the outreach drafted for you to approve, usually by morning.",
+                    hint: "You're set. Your assistant combs your city on every scan — new openings and rooms that fit your act land here scored, with the reasons spelled out and the outreach drafted for you to approve, usually by morning.",
                     cta: (
                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
                         First scan queued — check back tomorrow

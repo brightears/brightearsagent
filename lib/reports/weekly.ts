@@ -2,6 +2,9 @@ import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/outbound/send";
 import { reportError } from "@/lib/report-error";
 import { formatMinor } from "@/lib/quote/fee";
+// Strict tier on purpose: these links land in customer emails — better to
+// throw than mail out a localhost/staging dashboard link.
+import { appUrl } from "@/lib/app-url";
 
 export interface WeeklyNumbers {
   businessId: string;
@@ -109,8 +112,8 @@ export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: st
       `BOOKED      ${n.booked}${n.bookedValue > 0 ? ` — worth ${formatMinor(n.bookedValue, n.currency)}` : ""}`,
       ``,
       n.draftsWaiting > 0
-        ? `${n.draftsWaiting} draft${n.draftsWaiting === 1 ? " is" : "s are"} waiting for your tap: ${process.env.APP_URL ?? "http://localhost:3000"}/dashboard`
-        : `Nothing is waiting on you — the machine is current. ${process.env.APP_URL ?? "http://localhost:3000"}/dashboard`,
+        ? `${n.draftsWaiting} draft${n.draftsWaiting === 1 ? " is" : "s are"} waiting for your tap: ${appUrl()}/dashboard`
+        : `Nothing is waiting on you — the machine is current. ${appUrl()}/dashboard`,
       ``,
       `— Bright Ears`,
     ].join("\n"),

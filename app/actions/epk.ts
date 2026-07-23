@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { processInbound } from "@/lib/inbound/pipeline";
+import { EPK_FORM_SENDER, processInbound } from "@/lib/inbound/pipeline";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { reportError } from "@/lib/report-error";
 
@@ -69,7 +69,10 @@ export async function submitEpkInquiry(
 
   try {
     const result = await processInbound({
-      from: "notification@forms.brightears.io", // system sender → WEBSITE_FORM
+      // System sender → WEBSITE_FORM. The pipeline recognizes this sender and
+      // refuses to auto-send the first reply (attacker-supplied address —
+      // manual approve only, see lib/inbound/pipeline.ts).
+      from: EPK_FORM_SENDER,
       fromName: "Availability form",
       to: `leads@${slug}.in.brightears.io`,
       subject: `Availability inquiry${eventType ? ` — ${eventType}` : ""}${name ? ` from ${name}` : ""}`,

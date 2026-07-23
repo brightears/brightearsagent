@@ -45,8 +45,9 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
         <Kicker onLight>Your writing voice</Kicker>
       </h3>
       <p className="mb-4 text-sm text-ink-stage/60">
-        Paste 2-3 replies you&apos;ve actually sent, then answer a couple of quick questions. The agent
-        matches your tone in every reply and pitch — clients and venues never know it wasn&apos;t you.
+        Paste 2-3 replies you&apos;ve actually sent, then answer a couple of quick questions. Your
+        assistant matches your tone in every reply and pitch — clients and venues never know it
+        wasn&apos;t you.
       </p>
       <form action={formAction} className="space-y-5">
         <div>

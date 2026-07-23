@@ -55,14 +55,14 @@ export async function ActivationChecklist({
     },
     {
       label: "Set your home city",
-      detail: "Where the agent hunts for venues first.",
+      detail: "Where your assistant hunts for venues first.",
       done: business.serviceCities.length > 0,
       href: setup.incomplete ? "/onboarding" : "/dashboard/settings#hunt",
       cta: "Set your city",
     },
     {
       label: "Choose your plan",
-      detail: "Subscribe to activate — the agent starts hunting venues and drafting pitches in your voice from that moment.",
+      detail: "Subscribe to activate — your assistant starts hunting venues and drafting pitches in your voice from that moment.",
       done: subscribed,
       href: "/dashboard/settings#billing",
       cta: "Choose your plan",

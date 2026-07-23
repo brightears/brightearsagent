@@ -10,6 +10,7 @@
 
 import { z } from "zod";
 import { llmObject, modelFor } from "@/lib/llm";
+import { appUrl } from "@/lib/app-url";
 import type { VenueTemperature } from "@/lib/venues/timing";
 
 export interface PitchBusinessProfile {
@@ -120,10 +121,10 @@ export function formatTravelDateRange(start: Date, end: Date): string {
   return `${startStr}-${endStr}`;
 }
 
-/** The hosted EPK link for a tenant — APP_URL env with the deployed fallback. */
+/** The hosted EPK link for a tenant — strict appUrl(): this link goes into
+ *  outbound pitch emails, so throwing beats mailing a wrong origin. */
 export function epkUrlFor(slug: string): string {
-  const base = process.env.APP_URL ?? "https://brightears-app.onrender.com";
-  return `${base.replace(/\/$/, "")}/epk/${slug}`;
+  return `${appUrl()}/epk/${slug}`;
 }
 
 // Country → primary pitch language. The action picks this ONLY when the

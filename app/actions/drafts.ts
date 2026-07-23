@@ -6,6 +6,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { draftBookingConfirmation } from "@/lib/agent/confirmation";
 import { sendDraftReply } from "@/lib/agent/send-reply";
+import { isAgentPaused } from "@/lib/billing/metering";
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
@@ -22,6 +23,13 @@ export async function approveDraft(
   attach?: { pressKit?: boolean; quote?: boolean },
 ) {
   const business = await getCurrentBusiness();
+  // Subscription gate (founder decision 2026-06-16): the agent — including
+  // sending its drafted replies — only runs on an active subscription. Same
+  // gate as the sequence engine and venue pitches; the draft stays PENDING so
+  // subscribing lets it send.
+  if (isAgentPaused(business.plan)) {
+    return { ok: false, error: "Your agent is paused — subscribe to activate it and send this reply" };
+  }
   const result = await sendDraftReply({
     draftId,
     businessId: business.id,
@@ -154,6 +162,16 @@ export async function markBooked(leadId: string, feeMinor?: number) {
   // booking date so the value has a home and the owner can fix the date on
   // the calendar; a fee-less, date-less booking still needs no gig row.
   const needsGig = !!lead.eventDate || value != null;
+  // Date-less gigs anchor to the tenant-local calendar day of the booking,
+  // stored as NOON UTC — the codebase-wide gig date convention (see
+  // app/actions/gigs.ts / lib/agent/availability.ts); a raw timestamp would
+  // land the gig on the wrong ISO day for half the world's timezones.
+  const bookedDay = new Intl.DateTimeFormat("en-CA", {
+    timeZone: business.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(bookedAt);
   await db.$transaction([
     db.lead.update({ where: { id: leadId }, data: { status: "BOOKED", bookedAt } }),
     db.sequenceRun.updateMany({
@@ -172,7 +190,7 @@ export async function markBooked(leadId: string, feeMinor?: number) {
           db.gig.create({
             data: {
               businessId: lead.businessId,
-              date: lead.eventDate ?? bookedAt,
+              date: lead.eventDate ?? new Date(`${bookedDay}T12:00:00Z`),
               title: `${lead.clientName ?? "Client"} — ${lead.eventType ?? "event"}${
                 lead.eventDate ? "" : " (date TBD)"
               }`,

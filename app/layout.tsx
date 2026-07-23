@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { appUrlLenient } from "@/lib/app-url";
 import "./globals.css";
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -29,9 +30,7 @@ export const metadata: Metadata = {
   // opengraph-image file convention's og:image; key marketing pages set their
   // own og titles via lib/marketing/site.ts pageMeta (Next inherits the ROOT
   // og:title otherwise). Canonical "./" = self-referential per route.
-  metadataBase: new URL(
-    (process.env.APP_URL ?? "https://brightears-app.onrender.com").replace(/\/$/, ""),
-  ),
+  metadataBase: new URL(appUrlLenient()),
   alternates: { canonical: "./" },
   openGraph: {
     siteName: "Bright Ears",
@@ -43,8 +42,10 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
   // Staging must never outrank (or become) the real site — noindex everything
   // while APP_URL is the onrender.com host; flips itself at cutover. Pairs
-  // with the same gate in app/robots.ts.
-  ...(process.env.APP_URL?.includes("onrender.com")
+  // with the same gate in app/robots.ts. A MISSING APP_URL reads as staging
+  // (noindex on): the safe failure mode is an unindexed site, never an
+  // indexed staging host.
+  ...(!process.env.APP_URL || process.env.APP_URL.includes("onrender.com")
     ? { robots: { index: false, follow: false } }
     : {}),
 };

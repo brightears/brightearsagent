@@ -144,7 +144,7 @@ const FEATURES: {
   },
 ];
 
-const SOURCES = ["The Knot", "WeddingWire", "Bark", "GigSalad", "Your website form", "Plain email"];
+const SOURCES = ["Plain email", "Your website form", "The Knot", "WeddingWire", "Bark", "GigSalad"];
 
 /** ONE gradient-painted word/phrase in a warm-white headline — the v2 signature. */
 function GradWord({ children }: { children: React.ReactNode }) {
@@ -563,7 +563,8 @@ export default function HomePage() {
             ))}
           </div>
           <p className="mt-3 text-center text-xs text-cream/65">
-            Simple email forwarding — no password sharing, no OAuth.
+            Works with any platform that emails you, anywhere in the world. Simple email forwarding
+            — no password sharing, no OAuth.
           </p>
         </RevealOnScroll>
       </section>

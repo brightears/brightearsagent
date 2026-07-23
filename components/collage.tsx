@@ -173,14 +173,15 @@ export function GradientBlob({
 /* ------------------------------------------------------------------ */
 /* StickerChip — small rotated mono-font pill ("ANSWERED IN MINUTES").  */
 /* Tones + their checked text pairings:                                */
-/*   magenta — bg #ff2dae / white text (the design/b show sticker)     */
+/*   magenta — bg #ff2dae / ink text (the show sticker; white text     */
+/*             fails AA at chip size ~3.4:1, ink passes ~4.8:1)        */
 /*   cream   — bg cream-bright / ink text (for ink surfaces)           */
 /*   ink     — bg ink-stage / cream text (for cream panels)            */
 /*   outline — ink/25 border, ink/70 text (quiet chip on cream/white)  */
 /* ------------------------------------------------------------------ */
 
 const CHIP_TONES: Record<"magenta" | "cream" | "ink" | "outline", string> = {
-  magenta: "bg-neon-magenta text-white shadow-[0_8px_20px_rgba(255,45,174,0.35)]",
+  magenta: "bg-neon-magenta text-ink-stage shadow-[0_8px_20px_rgba(255,45,174,0.35)]",
   cream: "bg-cream-bright text-ink-stage shadow-[0_8px_20px_rgba(23,22,31,0.25)]",
   ink: "bg-ink-stage text-cream",
   outline: "border-[1.5px] border-ink-stage/25 text-ink-stage/70",
