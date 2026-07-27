@@ -90,20 +90,18 @@ export default clerkEnabled
       // 2026-07: every marketing CTA 307'd to a sign-in screen — the wrong
       // label at peak intent). Only /onboarding gets this treatment; deep
       // links into /dashboard remain returning-customer sign-in.
-      const { userId } = await auth();
-      const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL;
-      if (!userId && signUpUrl && req.nextUrl.pathname.startsWith("/onboarding")) {
-        const url = new URL(signUpUrl);
-        // redirect_url must be the PUBLIC address, never req.url: in middleware
-        // that is the internal origin Render dials (http://localhost:10000), so
-        // Clerk was bouncing every new signup to a dead host — on the highest-
-        // intent path in the funnel (cutover audit 2026-07-27).
-        const origin = process.env.APP_URL ?? req.nextUrl.origin;
-        url.searchParams.set(
-          "redirect_url",
-          new URL(req.nextUrl.pathname + req.nextUrl.search, origin).toString(),
-        );
-        return NextResponse.redirect(url);
+      // Clerk's own helper, NOT a hand-built URL off NEXT_PUBLIC_CLERK_SIGN_UP_URL
+      // (cutover audit 2026-07-27). Hand-building was wrong twice over: it set
+      // redirect_url from req.url, which in middleware is the internal origin
+      // Render dials (http://localhost:10000), bouncing every completed signup
+      // to a dead host; and it pinned the funnel to whatever instance that env
+      // var named — the DEV one — so after the pk_live swap new artists would
+      // still have created accounts on the development instance. redirectToSignUp
+      // derives both the host (from x-forwarded-host) and the instance (from the
+      // active keys), so the production swap needs no env change at all.
+      const { userId, redirectToSignUp } = await auth();
+      if (!userId && req.nextUrl.pathname.startsWith("/onboarding")) {
+        return redirectToSignUp();
       }
       await auth.protect();
     })
