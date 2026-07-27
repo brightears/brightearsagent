@@ -69,6 +69,15 @@ export async function llmObject<T>(opts: {
     system: opts.system,
     prompt: opts.prompt,
     schema: opts.schema,
+    // Extraction and classification are lookups, not writing: the answer is
+    // already in the text and there is nothing to be creative about. Left at
+    // the provider default (~1.0) the same message parsed three different ways
+    // on three consecutive runs — once returning nothing but isInquiry — and
+    // because every field is .nullish() an empty result is a VALID result, so
+    // nothing threw, nothing retried, and the lead was created with no date and
+    // no event type. A lead with no date silently disables the availability
+    // check, which is the one sentence the product exists to send.
+    temperature: 0,
   });
   await logUsage(opts.businessId, opts.purpose, model, result.usage);
   return result.object;
