@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
+import { canonicalRedirectTarget } from "@/lib/canonical-host";
 
 // Signed-in-only surfaces. Marketing pages, the demo API, the inbound webhook,
 // crons and opt-out stay public (the latter are shared-secret-gated instead).
@@ -40,23 +41,16 @@ const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
  */
 function stagingHostRedirect(req: NextRequest): NextResponse | null {
   if (process.env.NODE_ENV !== "production") return null;
-  if (!process.env.APP_URL) return null;
-  if (req.nextUrl.pathname.startsWith("/api/")) return null;
   // Render terminates TLS in front of the app — trust the forwarded host over
   // whatever the internal hop carries.
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
-    .split(":")[0]
-    .toLowerCase();
-  if (!host.endsWith(".onrender.com")) return null;
-  let canonical: URL;
-  try {
-    canonical = new URL(process.env.APP_URL);
-  } catch {
-    return null; // malformed APP_URL — don't turn every request into a crash
-  }
-  if (canonical.hostname.toLowerCase() === host) return null; // pre-cutover: same origin
-  const target = new URL(req.nextUrl.pathname + req.nextUrl.search, canonical.origin);
-  return NextResponse.redirect(target, 301);
+  const target = canonicalRedirectTarget({
+    method: req.method,
+    pathname: req.nextUrl.pathname,
+    search: req.nextUrl.search,
+    host: req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "",
+    appUrl: process.env.APP_URL,
+  });
+  return target ? NextResponse.redirect(target, 301) : null;
 }
 
 // Guard against the silent-disable trap (audit B3-NF): if the publishable key is
