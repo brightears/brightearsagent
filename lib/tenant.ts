@@ -76,11 +76,34 @@ export async function getCurrentBusiness() {
     const email = user?.primaryEmailAddress?.emailAddress?.toLowerCase();
     if (!email) throw new Error("Your account has no email address");
 
-    // Adopt a pre-created membership (e.g. invited member) by email.
-    const byEmail = await db.member.findFirst({
-      where: { email, clerkUserId: null },
-      include: { business: true },
-    });
+    // Adopt a membership by email. An unclaimed row (an invite that has never
+    // been signed into) wins; failing that we re-claim a row still bound to a
+    // Clerk user id that no longer resolves.
+    //
+    // That second case is not hypothetical — it is what an instance swap looks
+    // like (apex cutover, 2026-07-27). Clerk's development and production
+    // instances are separate user pools: a production instance cloned from dev
+    // copies the settings, never the users. So every id written before the
+    // pk_live swap names a user production has never heard of, the lookup above
+    // misses forever, and without this fallback the owner would sign in on the
+    // live domain and be handed a pristine EMPTY tenant while their real
+    // business — subscription, leads, EPK, venue pipeline — sat orphaned in the
+    // same database with nobody able to reach it.
+    //
+    // Re-claiming grants nothing new: Clerk only hands us an email it has
+    // verified (code or OAuth) and enforces one verified email per user within
+    // an instance, so the only person who can take this row is the person whose
+    // mailbox it already names.
+    const byEmail =
+      (await db.member.findFirst({
+        where: { email, clerkUserId: null },
+        include: { business: true },
+      })) ??
+      (await db.member.findFirst({
+        where: { email },
+        include: { business: true },
+        orderBy: { createdAt: "asc" },
+      }));
     if (byEmail) {
       await db.member.update({ where: { id: byEmail.id }, data: { clerkUserId: userId } });
       return byEmail.business;
