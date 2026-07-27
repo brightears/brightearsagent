@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval:drafts": "tsx scripts/eval-drafts.ts",
-    "eval:journeys": "tsx scripts/eval-journeys.ts"
+    "eval:journeys": "tsx scripts/eval-journeys.ts",
+    "eval:parse": "tsx scripts/eval-parse.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
