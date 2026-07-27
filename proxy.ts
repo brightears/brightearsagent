@@ -26,10 +26,22 @@ const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
  * A no-op until cutover: today APP_URL IS the onrender host, so the origins
  * match and nothing redirects. Runs before any auth logic; on the canonical
  * host it never fires, so Clerk is untouched.
+ *
+ * /api/* is DELIBERATELY EXEMPT (cutover audit 2026-07-27). Webhook providers
+ * register an absolute URL with us, and a redirect is not a delivery:
+ *   - a 301/302 on a POST is rewritten to GET with the body DROPPED, so a
+ *     redirected Postmark inbound parse would arrive empty — every forwarded
+ *     lead silently lost;
+ *   - Stripe does not follow redirects at all, it just records a failed
+ *     delivery, so subscription events would stop flipping plans.
+ * Serving /api on BOTH hosts is therefore the safe behavior, and it doubles as
+ * the cutover safety net: a webhook still pointed at the old host keeps working
+ * until it is re-registered. Only human/crawler-facing GETs get canonicalized.
  */
 function stagingHostRedirect(req: NextRequest): NextResponse | null {
   if (process.env.NODE_ENV !== "production") return null;
   if (!process.env.APP_URL) return null;
+  if (req.nextUrl.pathname.startsWith("/api/")) return null;
   // Render terminates TLS in front of the app — trust the forwarded host over
   // whatever the internal hop carries.
   const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "")
@@ -82,7 +94,15 @@ export default clerkEnabled
       const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL;
       if (!userId && signUpUrl && req.nextUrl.pathname.startsWith("/onboarding")) {
         const url = new URL(signUpUrl);
-        url.searchParams.set("redirect_url", req.url);
+        // redirect_url must be the PUBLIC address, never req.url: in middleware
+        // that is the internal origin Render dials (http://localhost:10000), so
+        // Clerk was bouncing every new signup to a dead host — on the highest-
+        // intent path in the funnel (cutover audit 2026-07-27).
+        const origin = process.env.APP_URL ?? req.nextUrl.origin;
+        url.searchParams.set(
+          "redirect_url",
+          new URL(req.nextUrl.pathname + req.nextUrl.search, origin).toString(),
+        );
         return NextResponse.redirect(url);
       }
       await auth.protect();
