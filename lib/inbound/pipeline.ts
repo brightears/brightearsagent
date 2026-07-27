@@ -38,6 +38,17 @@ export function extractSlug(toAddress: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
+/**
+ * How long a quiet conversation keeps claiming new mail from the same address.
+ * Long enough for a client chasing their own unanswered inquiry, short enough
+ * that next season's booking is recognised as the new lead it is.
+ */
+const REPLY_MATCH_WINDOW_DAYS = 45;
+
+function withinReplyWindow(lastActivity: Date, now: Date = new Date()): boolean {
+  return now.getTime() - lastActivity.getTime() <= REPLY_MATCH_WINDOW_DAYS * 86_400_000;
+}
+
 /** The whole inbound path: tenant → idempotency → reply-match → parse → triage → Lead. */
 export async function processInbound(email: InboundEmail): Promise<PipelineResult> {
   // HTML-only senders give Postmark no TextBody (10.9): strip the markup to
@@ -90,15 +101,36 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     return { outcome: "forwarding_confirmation", provider: confirmation.provider };
   }
 
-  // Reply-match: a known client writing back attaches to their lead and wakes it up.
-  const existing = await db.lead.findFirst({
+  // Reply-match: a known client writing back attaches to their lead and wakes
+  // it up — but only while that conversation is still plausibly ALIVE.
+  //
+  // The window is not optional (found live on the apex, 2026-07-27). Matching
+  // on address alone, forever, turns any lead that never got a first reply into
+  // a permanent capture trap for that address: every later email from that
+  // person — a different event, a year later — is filed as a reply to the old
+  // lead instead of becoming a new one. Nothing errors, no counter moves, the
+  // owner simply never learns the inquiry arrived. And it is not a rare corner:
+  // a lead only reaches DEAD through sequence exhaustion, sequences only start
+  // once a first reply is SENT, and the whole engine is gated on isAgentPaused
+  // — so for an unsubscribed tenant EVERY lead they own is such a trap.
+  //
+  // Measured from the lead's most recent message, so the window slides: an
+  // active back-and-forth never falls out however long it runs, while a lead
+  // nobody has touched in REPLY_MATCH_WINDOW_DAYS stops swallowing mail. The
+  // "client double-emails before our first reply" case the code below cares
+  // about happens in minutes, and is comfortably inside it.
+  const candidate = await db.lead.findFirst({
     where: {
       businessId: business.id,
       clientEmail: { equals: email.from, mode: "insensitive" },
       status: { notIn: ["BOOKED", "DEAD", "SPAM"] },
     },
     orderBy: { createdAt: "desc" },
+    include: { messages: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } },
   });
+  const existing = candidate && withinReplyWindow(candidate.messages[0]?.createdAt ?? candidate.createdAt)
+    ? candidate
+    : null;
   if (existing) {
     // ENGAGED means "they answered US" — it only applies once the thread has
     // at least one OUTBOUND message. A client double-emailing before our first
