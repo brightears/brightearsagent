@@ -26,6 +26,20 @@ const CLAUDE_TEST_SENDERS = [
 ];
 
 /**
+ * Leads the founder has confirmed were his own tests. Kept separate from the
+ * list above because these are NOT Claude's fixtures and the distinction
+ * matters if anyone re-reads this later.
+ *
+ * platzer.norbert@gmail.com is the founder's personal address, so a "client"
+ * inquiry from it is self-evidently a test. Removing it also closes a live
+ * trap: the lead is DRAFTED rather than DEAD, so while it stays open every
+ * message he sends from that address to his own parse address is filed as a
+ * reply to it instead of becoming a new lead — which is exactly what swallowed
+ * his first real test email on 2026-07-27.
+ */
+const FOUNDER_CONFIRMED_TESTS = ["platzer.norbert@gmail.com"];
+
+/**
  * The reasoning-leak row: a pre-2026-07-10 parse wrote the model's entire
  * chain-of-thought into `venue`, and it rendered on the live dashboard with a
  * real email address in it. It was also actively harmful — being an open lead
@@ -55,11 +69,14 @@ async function main() {
   console.log(`${business.name}: ${leads.length} lead(s)\n${"─".repeat(72)}`);
   const doomed: string[] = [];
   for (const l of leads) {
-    const why = CLAUDE_TEST_SENDERS.includes((l.clientEmail ?? "").toLowerCase())
+    const email = (l.clientEmail ?? "").toLowerCase();
+    const why = CLAUDE_TEST_SENDERS.includes(email)
       ? "Claude test inquiry"
-      : looksLikeReasoningLeak(l.venue)
-        ? "corrupt row — model reasoning in the venue field"
-        : null;
+      : FOUNDER_CONFIRMED_TESTS.includes(email)
+        ? "founder-confirmed test"
+        : looksLikeReasoningLeak(l.venue)
+          ? "corrupt row — model reasoning in the venue field"
+          : null;
     if (why) doomed.push(l.id);
     console.log(
       `${why ? "DELETE" : "KEEP  "}  ${(l.clientName ?? "Unknown").padEnd(24)} ${(l.clientEmail ?? "—").padEnd(34)} ` +
