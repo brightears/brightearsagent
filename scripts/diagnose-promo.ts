@@ -39,30 +39,37 @@ async function main() {
 
   // This Stripe API version does not surface `coupon` on the PromotionCode
   // type, though the object carries it — read it through a narrow cast.
+  // Best-effort: the coupon is useful context (applies_to is a classic silent
+  // killer — a coupon restricted to products that exclude the plan being bought
+  // applies to nothing) but it is NOT required to answer the question. The
+  // checkout probe below is the decisive test, so never let this stop it.
   const couponRef = (promo as unknown as { coupon?: string | { id: string } }).coupon;
-  const couponId = typeof couponRef === "string" ? couponRef : couponRef?.id;
-  if (!couponId) {
-    console.log("\ncould not resolve the coupon from the promotion code — pass its id as argv[3]");
-    process.exit(1);
+  const couponId =
+    process.argv[3] ?? (typeof couponRef === "string" ? couponRef : couponRef?.id);
+  let coupon: Awaited<ReturnType<typeof s.coupons.retrieve>> | null = null;
+  if (couponId) {
+    try {
+      coupon = await s.coupons.retrieve(couponId);
+      console.log("\nCOUPON");
+      console.log(JSON.stringify({
+        id: coupon.id, name: coupon.name, valid: coupon.valid,
+        percent_off: coupon.percent_off, amount_off: coupon.amount_off, currency: coupon.currency,
+        duration: coupon.duration, duration_in_months: coupon.duration_in_months,
+        max_redemptions: coupon.max_redemptions, times_redeemed: coupon.times_redeemed,
+        redeem_by: coupon.redeem_by, applies_to: coupon.applies_to,
+      }, null, 1));
+    } catch {
+      console.log(`\nCOUPON ${couponId} could not be read — continuing to the probe`);
+    }
+  } else {
+    console.log("\nCOUPON not resolvable from this API version — pass its id as a second argument for detail. Continuing to the probe.");
   }
-  const coupon = await s.coupons.retrieve(couponId);
-  console.log("\nCOUPON");
-  console.log(JSON.stringify({
-    id: coupon.id, name: coupon.name, valid: coupon.valid,
-    percent_off: coupon.percent_off, amount_off: coupon.amount_off, currency: coupon.currency,
-    duration: coupon.duration, duration_in_months: coupon.duration_in_months,
-    max_redemptions: coupon.max_redemptions, times_redeemed: coupon.times_redeemed,
-    redeem_by: coupon.redeem_by,
-    // The usual silent killer: a coupon restricted to products that do not
-    // include the plan being bought applies to nothing and is refused.
-    applies_to: coupon.applies_to,
-  }, null, 1));
 
   const prices = await s.prices.list({ lookup_keys: [PLAN_LOOKUP_KEYS.STARTER], limit: 1 });
   const price = prices.data[0];
   if (!price) { console.log("\nno STARTER price found — nothing to probe against"); process.exit(1); }
   console.log(`\nSTARTER price ${price.id} (${price.unit_amount} ${price.currency}), product ${String(price.product)}`);
-  if (coupon.applies_to?.products?.length) {
+  if (coupon?.applies_to?.products?.length) {
     const ok = coupon.applies_to.products.includes(String(price.product));
     console.log(`coupon applies_to.products includes this product: ${ok ? "YES" : "NO  ← this alone would reject it"}`);
   }
