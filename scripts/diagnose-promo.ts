@@ -22,7 +22,8 @@ async function main() {
   const { stripe, PLAN_LOOKUP_KEYS } = await import("../lib/billing/stripe");
   const s = stripe();
 
-  const found = await s.promotionCodes.list({ code: CODE, limit: 1 });
+  // expand: this API version omits the coupon from the promotion code unless asked.
+  const found = await s.promotionCodes.list({ code: CODE, limit: 1, expand: ["data.coupon"] });
   const promo = found.data[0];
   if (!promo) {
     console.log(`no promotion code "${CODE}" in this mode — is the key live vs test?`);
@@ -38,8 +39,13 @@ async function main() {
 
   // This Stripe API version does not surface `coupon` on the PromotionCode
   // type, though the object carries it — read it through a narrow cast.
-  const couponRef = (promo as unknown as { coupon: string | { id: string } }).coupon;
-  const coupon = await s.coupons.retrieve(typeof couponRef === "string" ? couponRef : couponRef.id);
+  const couponRef = (promo as unknown as { coupon?: string | { id: string } }).coupon;
+  const couponId = typeof couponRef === "string" ? couponRef : couponRef?.id;
+  if (!couponId) {
+    console.log("\ncould not resolve the coupon from the promotion code — pass its id as argv[3]");
+    process.exit(1);
+  }
+  const coupon = await s.coupons.retrieve(couponId);
   console.log("\nCOUPON");
   console.log(JSON.stringify({
     id: coupon.id, name: coupon.name, valid: coupon.valid,
