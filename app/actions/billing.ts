@@ -10,6 +10,57 @@ import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
 import { appUrl } from "@/lib/app-url";
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
+/**
+ * Chosen beta testers get their first month comped — WITHOUT being asked to
+ * type a code.
+ *
+ * Typing was the original design and it does not work: FOUNDER1 is a valid,
+ * active, unrestricted 100%-off-once code, and Stripe's own hosted "Add
+ * promotion code" box still answers "Something went wrong, please try again".
+ * Attaching the exact same promotion code server-side takes the total to 0.00
+ * every time (verified live, with adaptive pricing both on and off, via
+ * scripts/diagnose-promo.ts). Stripe will not say why the interactive path
+ * refuses it — a vague message is deliberate there, so codes cannot be
+ * enumerated — so we stop depending on that path.
+ *
+ * It is also the better product. A tester invited personally should not have to
+ * transcribe anything, and a code that fails in the redemption box fails at the
+ * exact moment they are deciding whether to trust us — and they will not report
+ * it, they will just leave.
+ *
+ * Controlled by env so the founder can change who is comped, or retire the
+ * offer, without a deploy:
+ *   BETA_COMP_EMAILS=a@x.com,b@y.com   owner emails to comp (exact match)
+ *   BETA_PROMO_CODE=FOUNDER1           the code whose coupon is applied
+ * Unset either and nothing is comped. Deliberately an allowlist and not a URL
+ * parameter: a link would get forwarded and the offer would escape.
+ */
+async function compDiscountFor(ownerEmail: string) {
+  const code = process.env.BETA_PROMO_CODE?.trim();
+  const allowed = (process.env.BETA_COMP_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (!code || !allowed.includes(ownerEmail.trim().toLowerCase())) return null;
+
+  const found = await stripe().promotionCodes.list({ code, active: true, limit: 1 });
+  const promo = found.data[0];
+  if (!promo) {
+    // Never fail the purchase over a comp: log it and let them buy normally.
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        kind: "beta_comp_code_missing",
+        code,
+        message: "BETA_PROMO_CODE is set but no active promotion code matches it — checkout continues at full price.",
+        ts: new Date().toISOString(),
+      }),
+    );
+    return null;
+  }
+  return promo.id;
+}
+
 /** Resolve the catalog price for a plan by its stable lookup key. */
 async function priceForPlan(plan: Exclude<PlanTier, "TRIAL">) {
   const prices = await stripe().prices.list({
@@ -85,18 +136,19 @@ export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">): Promise<v
 
   const price = await priceForPlan(plan);
   const customerId = await usableCustomerId(business);
+  const compPromoId = await compDiscountFor(business.ownerEmail);
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: price.id, quantity: 1 }],
     client_reference_id: business.id,
     ...(customerId ? { customer: customerId } : { customer_email: business.ownerEmail }),
-    // No automatic free trial (founder decision 2026-06-16). Instead, the
-    // founder mints Stripe PROMOTION CODES (a 100%-off-first-month coupon) in
-    // the Stripe Dashboard and hands them to selected artists; this flag shows
-    // the promo-code field on Stripe's checkout so a valid code makes the first
-    // month free. Nothing about trials/codes appears on our own site.
-    allow_promotion_codes: true,
+    // Stripe rejects `discounts` and `allow_promotion_codes` together, so a
+    // comped tester gets the discount already applied and no redemption box —
+    // nothing to type, nothing to mistype, nothing to fail.
+    ...(compPromoId
+      ? { discounts: [{ promotion_code: compPromoId }] }
+      : { allow_promotion_codes: true }),
     success_url: `${appUrl()}/dashboard/settings?billing=success`,
     cancel_url: `${appUrl()}/dashboard/settings?billing=cancelled`,
     subscription_data: { metadata: { businessId: business.id } },
