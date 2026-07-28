@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { llmObject } from "@/lib/llm";
 import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
+import { classifyEventType } from "@/lib/inbound/parsers/event-type";
 
 // .nullish(): cheap models return null for empty fields instead of omitting them.
 const ExtractionSchema = z.object({
@@ -112,7 +113,13 @@ export async function parseFallback(
       labeled.name ?? clean(extracted.clientName, 120) ?? (senderIsSystem ? undefined : email.fromName),
     clientEmail,
     clientPhone: labeled.phone ?? clean(extracted.clientPhone, 40),
-    eventType: labeled.eventType ?? clean(extracted.eventType, 80),
+    // Labelled field, then the model, then a deterministic read of the words
+    // themselves — the model is told never to guess, and the occasion is the
+    // one field that must be inferred or it is never known at all.
+    eventType:
+      labeled.eventType ??
+      clean(extracted.eventType, 80) ??
+      classifyEventType(`${email.subject}\n${body}`),
     eventDate,
     venue: clean(extracted.venue),
     guestCount: extracted.guestCount ?? undefined,
