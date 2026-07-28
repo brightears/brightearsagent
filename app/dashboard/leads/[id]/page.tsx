@@ -237,13 +237,20 @@ export default async function LeadDetailPage({
           </div>
         )}
 
-        {lead.spamReason && (
+        {/* Only on leads that were ACTUALLY filtered. spamReason carries the
+            triage verdict for every lead, genuine ones included, so gating on
+            its mere presence announced "Filtered as spam for you" over a real
+            booking inquiry — with the raw classifier label ("genuine_inquiry:")
+            still attached. Seen live on the founder's first real lead: the one
+            thing a new user must never doubt is whether the filter just binned
+            a paying customer. */}
+        {lead.status === "SPAM" && lead.spamReason && (
           /* Orange-soft alert card — opaque fill so it reads on the ink canvas;
              deep-amber #7a4100 lead-in on #ffdfba (~7:1, the checked pairing). */
           <div className="rounded-2xl bg-[#ffdfba] px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
             <p className="text-sm leading-relaxed text-ink-stage/80">
               <span className="font-semibold text-[#7a4100]">Filtered as spam for you</span> —{" "}
-              {lead.spamReason}
+              {lead.spamReason.replace(/^[a-z_]+:\s*/i, "")}
             </p>
           </div>
         )}
