@@ -2,6 +2,8 @@ import { z } from "zod";
 import { llmObject } from "@/lib/llm";
 import type { InboundEmail, ParsedLead } from "@/lib/inbound/types";
 import { classifyEventType } from "@/lib/inbound/parsers/event-type";
+import { extractEventDate } from "@/lib/inbound/parsers/event-date";
+import { extractGuestCount } from "@/lib/inbound/parsers/guest-count";
 
 // .nullish(): cheap models return null for empty fields instead of omitting them.
 const ExtractionSchema = z.object({
@@ -100,9 +102,14 @@ export async function parseFallback(
     clean(extracted.clientEmail),
     senderIsSystem ? undefined : email.from,
   ].find((e) => e && EMAIL_RE.test(e));
-  const eventDate = [labeled.eventDate, clean(extracted.eventDate)].find(
-    (d) => d && ISO_DATE_RE.test(d),
-  );
+  // Labelled field, then the model, then the words themselves. The model goes
+  // ahead of the regex because it handles relative phrasing ("next June") that
+  // a pattern would butcher — but it is unreliable enough (44%-92% on identical
+  // cases within one day) that leaving a written date to it alone loses half of
+  // them, and a lead with no date can never be checked against the calendar.
+  const eventDate =
+    [labeled.eventDate, clean(extracted.eventDate)].find((d) => d && ISO_DATE_RE.test(d)) ??
+    extractEventDate(`${email.subject}\n${body}`);
 
   return {
     // A form-system sender IS the website form (10.11) — before this, every
@@ -122,7 +129,7 @@ export async function parseFallback(
       classifyEventType(`${email.subject}\n${body}`),
     eventDate,
     venue: clean(extracted.venue),
-    guestCount: extracted.guestCount ?? undefined,
+    guestCount: extracted.guestCount ?? extractGuestCount(`${email.subject}\n${body}`),
     budgetHint: clean(extracted.budgetHint),
     notes: clean(extracted.notes, 300),
     confidence: 0.6,
