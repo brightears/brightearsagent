@@ -21,7 +21,11 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ plan?: string }>;
 }) {
-  const business = await getCurrentBusiness();
+  // The ONE surface allowed to create a tenant: Clerk's post-sign-up redirect
+  // lands here, so "we have never seen this identity" genuinely means "new
+  // customer". Everywhere else fails closed rather than inventing an empty
+  // workspace — see lib/tenant.ts.
+  const business = await getCurrentBusiness({ provision: true });
   // The plan the visitor picked on the pricing page rides the funnel (P5.5) —
   // the step-5 finale opens checkout for it directly. Unknown values drop.
   const { plan } = await searchParams;

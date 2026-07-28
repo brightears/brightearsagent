@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
+import { reportError } from "@/lib/report-error";
 
 const clerkEnabled = !!process.env.CLERK_SECRET_KEY;
 
@@ -46,14 +47,39 @@ async function createBusinessForUser(clerkUserId: string, email: string, name: s
   });
 }
 
+/** Signed in, but no business belongs to this identity. */
+export class NoTenantError extends Error {
+  constructor(public readonly email: string) {
+    super(`No business is linked to ${email}`);
+    this.name = "NoTenantError";
+  }
+}
+
 /**
  * Tenant resolution, in priority order:
  * 1. DEV_TENANT_SLUG (non-production only) — used by scripts/tests.
  * 2. Clerk session — member lookup by clerkUserId, adoption by email, or
- *    first-login tenant provisioning.
+ *    (only where `provision` is asked for) first-login tenant creation.
  * 3. Dev fallback (no Clerk keys): the seeded demo business.
+ *
+ * `provision` is OFF by default, and that default is the point. Creating a
+ * tenant used to be the unconditional last rung, so ANY signed-in identity we
+ * failed to recognise silently got a brand-new empty business — from any
+ * surface, with no error and no trace. That is not theoretical: it is how this
+ * account ended up with three, one of which quietly collected the live Stripe
+ * subscription while the real business sat on TRIAL with its agent paused.
+ * With Google One Tap enabled on the production Clerk instance, one stray click
+ * on the wrong Google account is enough to trigger it, and the tenant it hands
+ * back looks plausible because it is built from the same person's profile.
+ *
+ * So provisioning now happens in exactly one place — the sign-up funnel at
+ * /onboarding, which is where Clerk's post-sign-up redirect lands and the only
+ * context where "we have never seen you" genuinely means "new customer".
+ * Everywhere else fails closed and alerts, because on the dashboard or in a
+ * server action that same state means something is wrong, and inventing an
+ * empty workspace is the least helpful possible response.
  */
-export async function getCurrentBusiness() {
+export async function getCurrentBusiness(opts: { provision?: boolean } = {}) {
   if (process.env.DEV_TENANT_SLUG && process.env.NODE_ENV !== "production") {
     const business = await db.business.findUnique({
       where: { slug: process.env.DEV_TENANT_SLUG },
@@ -109,8 +135,36 @@ export async function getCurrentBusiness() {
       return byEmail.business;
     }
 
+    if (!opts.provision) {
+      // Loud on purpose. With a small tenant count the founder can eyeball
+      // every one of these, and each is either a customer locked out of their
+      // own data or someone signed in on the wrong account.
+      await reportError(new NoTenantError(email), {
+        kind: "tenant_missing",
+        clerkUserId: userId,
+        email,
+        message: "Signed-in identity has no business, and this surface does not provision. Refusing to invent one.",
+      });
+      throw new NoTenantError(email);
+    }
+
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ");
-    return createBusinessForUser(userId, email, fullName);
+    const created = await createBusinessForUser(userId, email, fullName);
+    // Every new tenant is an event worth seeing while the customer count is
+    // small — it is either a real signup worth celebrating or the duplicate
+    // that would otherwise be discovered weeks later.
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        kind: "tenant_provisioned",
+        businessId: created.id,
+        slug: created.slug,
+        email,
+        clerkUserId: userId,
+        ts: new Date().toISOString(),
+      }),
+    );
+    return created;
   }
 
   // No Clerk configured: dev single-tenant mode.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
@@ -22,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Badge for the Today tab (P9.3): everything waiting on the artist's tap.
   // Best-effort — a shell must render even if tenant resolution hiccups.
   let pendingCount = 0;
+  let noTenant = false;
   try {
     const business = await getCurrentBusiness();
     const [drafts, pitches] = await Promise.all([
@@ -29,9 +31,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
       db.venuePitch.count({ where: { status: "PENDING", businessId: business.id } }),
     ]);
     pendingCount = drafts + pitches;
-  } catch {
+  } catch (err) {
     // Signed-out / provisioning edge — the proxy handles auth; badge stays 0.
+    // But a NoTenantError is different: the dashboard no longer conjures a
+    // business for an identity it does not recognise (lib/tenant.ts), so every
+    // page under this layout would throw into the generic error screen. Send
+    // them to the sign-up funnel, which is the one place allowed to create one.
+    if ((err as Error)?.name === "NoTenantError") noTenant = true;
   }
+  // Outside the catch: redirect() signals by throwing, and must not be caught.
+  if (noTenant) redirect("/onboarding");
 
   return (
     // The app shell owns the ink canvas (docs/DESIGN.md v2): every dashboard

@@ -86,13 +86,29 @@ describe("getCurrentBusiness — adoption ladder", () => {
     expect(mockDb.member.findFirst).toHaveBeenCalledTimes(2);
   });
 
-  it("still provisions a tenant for a genuinely new signup", async () => {
+  it("provisions for a genuinely new signup ONLY where provisioning is asked for", async () => {
     mockDb.member.findFirst.mockResolvedValue(null);
     mockDb.business.findUnique.mockResolvedValue(null); // slug is free
     mockDb.business.create.mockResolvedValue({ id: "biz_new", slug: "owner" });
-    await expect(getCurrentBusiness()).resolves.toEqual({ id: "biz_new", slug: "owner" });
+    await expect(getCurrentBusiness({ provision: true })).resolves.toEqual({ id: "biz_new", slug: "owner" });
     expect(mockDb.business.create).toHaveBeenCalledOnce();
     expect(mockDb.member.update).not.toHaveBeenCalled();
+  });
+
+  // The regression that produced three tenants for one person.
+  it("refuses to invent a tenant by default, and says whose account it was", async () => {
+    mockDb.member.findFirst.mockResolvedValue(null);
+    await expect(getCurrentBusiness()).rejects.toMatchObject({
+      name: "NoTenantError",
+      email: EMAIL,
+    });
+    expect(mockDb.business.create).not.toHaveBeenCalled();
+  });
+
+  it("still prefers an existing membership over provisioning, even when allowed to provision", async () => {
+    mockDb.member.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(openRow);
+    await expect(getCurrentBusiness({ provision: true })).resolves.toBe(realBusiness);
+    expect(mockDb.business.create).not.toHaveBeenCalled();
   });
 
   it("refuses to guess a tenant for a session with no email", async () => {
