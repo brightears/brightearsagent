@@ -5,15 +5,52 @@ import { checkSharedSecret } from "@/lib/auth-secret";
 
 // P14 security mediums — the pre-cutover hardening batch.
 
-describe("clientIp takes the right-most XFF hop (14.3)", () => {
-  const req = (xff: string | null) => ({ headers: { get: () => xff } });
-  it("a spoofed left-most entry never wins", () => {
-    expect(clientIp(req("6.6.6.6, 203.0.113.9"))).toBe("203.0.113.9");
-    expect(clientIp(req("a, b, 198.51.100.4"))).toBe("198.51.100.4");
+// This invariant has been wrong twice, in opposite directions, both silently.
+// Left-most XFF (the original) let anyone spoof and evade every limit.
+// Right-most (14.3, the fix for that) resolved to Cloudflare's shared edge in
+// production, collapsing every per-IP bucket into ONE global bucket — the
+// homepage demo capped at 5 uses per day for the entire internet. Real shape,
+// measured live 2026-07-29:
+//   x-forwarded-for:  27.130.34.170, 172.68.232.160   (172.68.x = Cloudflare)
+//   cf-connecting-ip: 27.130.34.170                   (the actual visitor)
+describe("clientIp", () => {
+  const req = (headers: Record<string, string | null>) => ({
+    headers: { get: (n: string) => headers[n.toLowerCase()] ?? null },
   });
+
+  it("uses cf-connecting-ip — the real production shape", () => {
+    expect(
+      clientIp(req({ "x-forwarded-for": "27.130.34.170, 172.68.232.160", "cf-connecting-ip": "27.130.34.170" })),
+    ).toBe("27.130.34.170");
+  });
+
+  it("keeps two visitors behind the same Cloudflare node in different buckets", () => {
+    const edge = "172.68.232.160";
+    const a = clientIp(req({ "x-forwarded-for": `27.130.34.170, ${edge}`, "cf-connecting-ip": "27.130.34.170" }));
+    const b = clientIp(req({ "x-forwarded-for": `81.2.69.142, ${edge}`, "cf-connecting-ip": "81.2.69.142" }));
+    expect(a).not.toBe(b);
+  });
+
+  it("a forged x-forwarded-for cannot override the trusted value", () => {
+    expect(
+      clientIp(req({ "x-forwarded-for": "1.1.1.1, 2.2.2.2, 172.68.232.160", "cf-connecting-ip": "27.130.34.170" })),
+    ).toBe("27.130.34.170");
+  });
+
+  it("accepts true-client-ip, the same value under Cloudflare's enterprise name", () => {
+    expect(clientIp(req({ "true-client-ip": "27.130.34.170", "x-forwarded-for": "9.9.9.9, 172.68.1.1" }))).toBe(
+      "27.130.34.170",
+    );
+  });
+
+  it("without Cloudflare, reads the hop the trusted proxy saw — never the spoofable left-most", () => {
+    expect(clientIp(req({ "x-forwarded-for": "fake, 203.0.113.9, 172.68.1.1" }))).toBe("203.0.113.9");
+  });
+
   it("single hop and missing header behave", () => {
-    expect(clientIp(req("203.0.113.9"))).toBe("203.0.113.9");
-    expect(clientIp(req(null))).toBe("unknown");
+    expect(clientIp(req({ "x-forwarded-for": "203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientIp(req({}))).toBe("unknown");
+    expect(clientIp(req({ "x-forwarded-for": "" }))).toBe("unknown");
   });
 });
 
