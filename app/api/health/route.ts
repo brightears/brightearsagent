@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { CRON_FRESHNESS_MS } from "@/lib/ops-stamp";
 
@@ -13,7 +13,32 @@ import { CRON_FRESHNESS_MS } from "@/lib/ops-stamp";
  * monitor should KEYWORD-match on `"cronsHealthy":true` and alert when it
  * disappears.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Temporary, secret-gated diagnostic for the per-IP rate limiter.
+  //
+  // lib/rate-limit clientIp() takes the RIGHT-most x-forwarded-for hop, chosen
+  // to stop a client spoofing the left-most one. On Render that may instead be
+  // Render's own proxy, identical for every visitor — which would make every
+  // "per IP" bucket one global bucket, and cap the homepage demo at 5 uses per
+  // day for the entire internet. Guessing the header layout is what created the
+  // bug; this reads the actual shape from production instead. Gated on
+  // CRON_SECRET so it is not a public fingerprinting endpoint, and removed once
+  // the limiter is fixed.
+  if (req.nextUrl.searchParams.get("diag") && process.env.CRON_SECRET &&
+      req.nextUrl.searchParams.get("diag") === process.env.CRON_SECRET) {
+    const names = ["x-forwarded-for", "x-real-ip", "cf-connecting-ip", "true-client-ip", "x-client-ip", "forwarded"];
+    const forwarded: Record<string, string | null> = {};
+    for (const n of names) forwarded[n] = req.headers.get(n);
+    const xff = (req.headers.get("x-forwarded-for") ?? "").split(",").map((h) => h.trim()).filter(Boolean);
+    return NextResponse.json({
+      forwarded,
+      xffHops: xff,
+      hopCount: xff.length,
+      currentClientIpWouldBe: xff[xff.length - 1] ?? "unknown",
+      leftMostWouldBe: xff[0] ?? "unknown",
+    });
+  }
+
   // Surfaced for monitoring (audit B3-NF): in production a missing Clerk key
   // means the route guard is inactive (we fail closed in proxy.ts), so flag it.
   const clerkConfigured = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

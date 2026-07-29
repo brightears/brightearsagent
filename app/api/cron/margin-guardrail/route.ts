@@ -53,8 +53,12 @@ export async function GET(req: NextRequest) {
       fromName: "Bright Ears Ops",
       to: process.env.OPS_ALERT_EMAIL,
       replyTo: process.env.OPS_ALERT_EMAIL,
+      // A silent PAYING tenant belongs in the subject line, not buried in the
+      // body: it is the only item here that is costing someone money right now.
       subject: `Ops heartbeat: ${heartbeat.leadsIn} in · ${heartbeat.repliesSent} replies · ${heartbeat.pitchesSent} pitches${
-        heartbeat.staleCrons.length || reconcile.issues.length ? " · ATTENTION" : ""
+        heartbeat.staleCrons.length || reconcile.issues.length || heartbeat.silentTenants.length
+          ? " · ATTENTION"
+          : ""
       }`,
       textBody: renderHeartbeat(heartbeat, { flagged: flagged.length, tenants: rows.length }, reconcile),
     }).catch(() => null);

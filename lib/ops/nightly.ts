@@ -113,12 +113,61 @@ export type HeartbeatNumbers = {
   pitchesSent: number;
   tenantsScanned: number;
   staleCrons: string[];
+  silentTenants: SilentTenant[];
 };
+
+export type SilentTenant = { slug: string; plan: string; daysSubscribed: number };
+
+/** A paying tenant is "silent" when the agent has produced nothing for them. */
+const SILENCE_WINDOW_DAYS = 7;
+
+/**
+ * Paying tenants the agent has done NOTHING for.
+ *
+ * The heartbeat above is a global total, which is exactly why this was needed:
+ * with a handful of tenants, one account producing nothing disappears into the
+ * sum, and with a single tenant the digest reports zeros every day and reads
+ * like a quiet week rather than a fault. That is not hypothetical — the
+ * founder's own account sat subscribed with the agent paused, 108 hunted venues
+ * locked and the digest cheerfully reporting 0/0/0 daily, for weeks, and nobody
+ * noticed until we went looking for something else.
+ *
+ * A customer in this state is paying and receiving nothing. They will not
+ * complain; they will assume this is how it works, and churn. So it is worth an
+ * ATTENTION on the digest every single time.
+ *
+ * Deliberately counts agent OUTPUT (drafts + pitches), not inbound: a quiet
+ * week with no inquiries is not a fault, but a paid tenant whose assistant has
+ * written nothing in a week always deserves a look.
+ */
+export async function findSilentTenants(now = new Date()): Promise<SilentTenant[]> {
+  const since = new Date(now.getTime() - SILENCE_WINDOW_DAYS * 24 * 3600 * 1000);
+  const paying = await db.business.findMany({
+    where: { plan: { not: "TRIAL" } },
+    select: { id: true, slug: true, plan: true, createdAt: true },
+  });
+
+  const silent: SilentTenant[] = [];
+  for (const b of paying) {
+    const [drafts, pitches] = await Promise.all([
+      db.draft.count({ where: { createdAt: { gte: since }, lead: { businessId: b.id } } }),
+      db.venuePitch.count({ where: { createdAt: { gte: since }, businessId: b.id } }),
+    ]);
+    if (drafts === 0 && pitches === 0) {
+      silent.push({
+        slug: b.slug,
+        plan: b.plan,
+        daysSubscribed: Math.floor((now.getTime() - b.createdAt.getTime()) / 86_400_000),
+      });
+    }
+  }
+  return silent;
+}
 
 /** Counts for the founder's proof-of-life digest — the last 24 hours. */
 export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbers> {
   const since = new Date(now.getTime() - 24 * 3600 * 1000);
-  const [leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, stamps] =
+  const [leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, stamps, silentTenants] =
     await Promise.all([
       db.lead.count({ where: { createdAt: { gte: since }, status: { not: "SPAM" } } }),
       db.lead.count({ where: { createdAt: { gte: since }, status: "SPAM" } }),
@@ -127,6 +176,7 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       db.venuePitch.count({ where: { sentAt: { gte: since } } }),
       db.business.count({ where: { lastDiscoveryScanAt: { gte: since } } }),
       db.opsStamp.findMany(),
+      findSilentTenants(now),
     ]);
   const staleCrons = Object.entries(CRON_FRESHNESS_MS)
     .filter(([key, freshMs]) => {
@@ -134,7 +184,7 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       return stamp ? now.getTime() - stamp.at.getTime() > freshMs : false;
     })
     .map(([key]) => key);
-  return { leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, staleCrons };
+  return { leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, staleCrons, silentTenants };
 }
 
 export function renderHeartbeat(
@@ -155,6 +205,14 @@ export function renderHeartbeat(
     h.staleCrons.length
       ? `• STALE CRONS: ${h.staleCrons.join(", ")} — check the Render cron dashboard`
       : "• Crons: all fresh",
+    // A paying tenant the agent has done nothing for is the one number here
+    // that costs money if ignored: they are billed, they receive nothing, and
+    // they churn without ever telling you.
+    h.silentTenants.length
+      ? `• SILENT PAYING TENANTS (${SILENCE_WINDOW_DAYS}d, no drafts or pitches): ${h.silentTenants
+          .map((t) => `${t.slug} [${t.plan}, day ${t.daysSubscribed}]`)
+          .join(", ")} — check their profile gate, plan state and mailbox`
+      : "• Every paying tenant produced work this week",
     "",
     "— Bright Ears Ops",
   ].join("\n");
