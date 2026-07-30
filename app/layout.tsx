@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { appUrlLenient } from "@/lib/app-url";
+import { SOCIAL_IMAGE } from "@/lib/marketing/site";
 import "./globals.css";
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -38,8 +39,9 @@ export const metadata: Metadata = {
     title: "Bright Ears — the AI that finds gigs for performers",
     description:
       "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
+    images: [SOCIAL_IMAGE],
   },
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", images: [SOCIAL_IMAGE] },
   // Staging must never outrank (or become) the real site — noindex everything
   // while APP_URL is the onrender.com host; flips itself at cutover. Pairs
   // with the same gate in app/robots.ts. A MISSING APP_URL reads as staging

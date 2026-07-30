@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { appUrlLenient } from "@/lib/app-url";
 
+export const SOCIAL_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "Bright Ears — the AI that finds gigs for performers",
+} as const;
+
 /**
  * Marketing-site metadata plumbing (P6.12, audit 2026-07: zero OG/Twitter
  * tags on all 19 public pages — every link shared into a DJ community
@@ -19,15 +26,26 @@ export function siteOrigin(): string {
  * Per-page metadata with explicit OG/Twitter titles. Next.js inheritance
  * REPLACES nothing when a page omits openGraph — it inherits the ROOT's
  * og:title verbatim — so key pages set their own (docs: generate-metadata
- * "Inheriting fields"). The og image itself comes from the root
- * app/opengraph-image.tsx file convention and needs no mention here.
+ * "Inheriting fields"). Supplying openGraph here also replaces the root
+ * openGraph object, so the shared image must be repeated explicitly.
  */
 export function pageMeta(title: string, description: string): Metadata {
   return {
     title,
     description,
-    openGraph: { title, description, siteName: "Bright Ears", type: "website" },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: {
+      title,
+      description,
+      siteName: "Bright Ears",
+      type: "website",
+      images: [SOCIAL_IMAGE],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [SOCIAL_IMAGE],
+    },
   };
 }
 
