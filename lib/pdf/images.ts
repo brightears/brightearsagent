@@ -11,7 +11,25 @@
 // internal target), and cap the body by streaming (so a huge/endless response
 // can't blow memory before the size check runs).
 
-const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+/**
+ * Per-image ceiling for the press kit.
+ *
+ * Was 6 MB, which let ONE phone photo produce a 5.5 MB PDF — and profile
+ * strength requires THREE photos, so a completed profile would build a ~20 MB
+ * attachment that Postmark refuses outright (see MAX_ATTACHMENT_BYTES in
+ * lib/outbound/send.ts, where the reply is now protected from that).
+ *
+ * 2 MB comfortably fits a good web-resolution photo while making a
+ * refuses-to-send press kit arithmetically impossible.
+ *
+ * THIS IS A CEILING, NOT THE REAL FIX. The right answer is to downscale on
+ * UPLOAD — one resize when the artist adds the photo, instead of rejecting
+ * their camera-original later. That is deliberately not done here: it needs
+ * `sharp`, which is currently only a TRANSITIVE dependency via Next, and a
+ * production send path must not rest on a package that is not in the manifest.
+ * Add sharp explicitly, resize in the R2 upload path, then this can go back up.
+ */
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 function isPrivateIPv4(host: string): boolean {
   const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);

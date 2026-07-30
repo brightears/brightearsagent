@@ -20,6 +20,52 @@ export interface SendResult {
 }
 
 /**
+ * Postmark rejects a message whose total size exceeds 10 MB, and attachments
+ * are base64-encoded on the wire — which costs roughly a third on top of the
+ * raw bytes. So the real budget for raw attachment bytes is about 7 MB, and
+ * this is enforced HERE, at the transport, because it is the only place every
+ * send passes through.
+ *
+ * It is enforced at all because the product actively walks customers into the
+ * cliff: profile strength REQUIRES three photos to unlock pitching, uploads
+ * allow 8 MB each, and the press-kit builder accepts 6 MB per image. The live
+ * press kit is already 5.5 MB from ONE photo. Three phone photos would produce
+ * a PDF around 20 MB, ~27 MB once encoded — refused by Postmark with a 422.
+ *
+ * And the way it failed was the worst possible shape: the send threw, the draft
+ * reverted to PENDING, and the next attempt hit exactly the same wall forever.
+ * The client never received the reply, and the owner saw a draft that merely
+ * looked un-sent — no error they could act on, on the one action the whole
+ * product exists to perform.
+ *
+ * Dropping the attachment is strictly better than that. A reply that arrives
+ * without its press kit still answers the client, still starts the follow-up
+ * sequence, and still beats every DJ who answered a day later. The owner is
+ * told, so they can send the file by hand.
+ */
+const MAX_ATTACHMENT_BYTES = 7 * 1024 * 1024;
+
+/** Attachments that fit, plus the names of any dropped for being too large. */
+export function fitAttachments(attachments: OutboundAttachment[]): {
+  kept: OutboundAttachment[];
+  dropped: { filename: string; bytes: number }[];
+} {
+  const kept: OutboundAttachment[] = [];
+  const dropped: { filename: string; bytes: number }[] = [];
+  let total = 0;
+  for (const a of attachments) {
+    const bytes = a.content.byteLength;
+    if (total + bytes > MAX_ATTACHMENT_BYTES) {
+      dropped.push({ filename: a.filename, bytes });
+      continue;
+    }
+    kept.push(a);
+    total += bytes;
+  }
+  return { kept, dropped };
+}
+
+/**
  * Outbound transport. Postmark when POSTMARK_SERVER_TOKEN is set; otherwise a
  * dev transport that writes .eml files to .dev-outbox/ so the whole
  * approve→send flow is verifiable before the founder gate clears.
@@ -28,6 +74,28 @@ export interface SendResult {
 export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
   const token = process.env.POSTMARK_SERVER_TOKEN;
   const fromAddress = process.env.OUTBOUND_FROM ?? "replies@dev.invalid";
+
+  // Never let an oversized attachment take the whole reply down (see
+  // MAX_ATTACHMENT_BYTES). Log the drop loudly — it means the press-kit builder
+  // is producing files too big, which is a bug upstream worth chasing, not a
+  // condition to live with quietly.
+  if (email.attachments?.length) {
+    const { kept, dropped } = fitAttachments(email.attachments);
+    if (dropped.length) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          kind: "attachment_too_large_dropped",
+          to: email.to,
+          dropped: dropped.map((d) => `${d.filename} (${Math.round(d.bytes / 1024)}KB)`),
+          message:
+            "Attachment exceeded the Postmark size budget and was dropped so the reply itself could still send.",
+          ts: new Date().toISOString(),
+        }),
+      );
+      email = { ...email, attachments: kept };
+    }
+  }
 
   // Fail CLOSED in production (audit 2026-07): a missing token used to
   // silently write .eml files to the ephemeral disk — replies, notifications
