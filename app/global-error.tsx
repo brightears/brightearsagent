@@ -100,6 +100,8 @@ export default function GlobalError({
           >
             Try again
           </button>
+          {/* A full document reload is intentional in this last-resort root boundary. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/"
             style={{

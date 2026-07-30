@@ -1,8 +1,5 @@
-# Minimal CI tripwire (P7.9, audit 2026-07): Render auto-deploys `main` to the
-# URL customers use — 400+ green local tests are worthless as a safety net if
-# nothing runs them before a push lands. This doesn't gate the deploy (Render
-# doesn't wait for it); it's the loud red X that catches a bad push within
-# minutes. Deploy gating can come later via Render's "wait for CI" setting.
+# CI safety checks. Render must also be configured to wait for this check before
+# it becomes a release gate; that dashboard setting is tracked separately.
 name: CI
 
 on:
@@ -10,9 +7,19 @@ on:
     branches: [main, "build/**"]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Prisma validates that this exists during `npm ci`/postinstall. CI does
+      # not query a database: unit tests mock persistence and the build only
+      # compiles application code.
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/brightears_ci?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,4 +29,5 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run lint
-      - run: npx vitest run
+      - run: npm test
+      - run: npm run build
