@@ -109,7 +109,7 @@ Phase-8 cutover items (domain/DNS, Clerk production instance, Postmark approval,
 - [x] 7.7 Weekly reports per-tenant isolated; route returns {sent, failed}. *(ffaa7f4)*
 - [x] 7.8 Discovery: LRU-first under a 240s wall budget (cut-off tenants lead tomorrow); sequences: 200/tick most-overdue-first. *(abf85b4)*
 - [x] 7.9 .github/workflows/ci.yml — tsc + lint + vitest on push/PR. *(ffaa7f4)*
-- [ ] 7.10 Backup verify + one restore drill into a scratch DB (Render API/Chrome); write the runbook into DEPLOYMENT.md.
+- [x] 7.10 Backup verify + one restore drill into a scratch DB: restored the 2026-07-30 22:08:06 GMT+7 PITR point, verified 34 completed migrations and non-empty core tables read-only, then deleted the isolated database. Runbook recorded in DEPLOYMENT.md.
 - [x] 7.11 reconcileStripe() both directions (pause dead/missing subs, re-attach missed-webhook live subs via metadata) on the nightly tick. *(abf85b4)*
 - [x] 7.12 Nightly proof-of-life digest (counts + margins + reconcile + stale-cron warnings), sent every night by design. *(abf85b4)*
 
