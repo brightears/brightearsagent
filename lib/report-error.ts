@@ -52,7 +52,16 @@ export async function reportError(err: unknown, context: ErrorContext): Promise<
       to: opsEmail,
       replyTo: opsEmail,
       subject: `[brightears-app] ${error?.name ?? "Error"}: ${error?.message?.slice(0, 80) ?? "unknown"}`,
-      textBody: `${context.kind} ${context.method ?? ""} ${context.path ?? ""}\n\n${error?.stack ?? error?.message ?? String(err)}`,
+      // `detail` carries the actionable sentence — what to DO about this alert.
+      // Without it an operator gets a stack trace and has to reconstruct the
+      // context themselves, which for a silent-drop alert is most of the work.
+      textBody: [
+        `${context.kind} ${context.method ?? ""} ${context.path ?? ""}`.trim(),
+        typeof context.detail === "string" && context.detail ? `\n${context.detail}` : "",
+        `\n${error?.stack ?? error?.message ?? String(err)}`,
+      ]
+        .filter(Boolean)
+        .join("\n"),
     });
   } catch {
     // Alerting must never crash the caller.

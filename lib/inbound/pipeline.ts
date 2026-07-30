@@ -11,6 +11,8 @@ import { meterState } from "@/lib/billing/metering";
 import { canAutoSend, clientEmailGrounded } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
+import { noteUnrouted, isFirstSighting, nearestSlug } from "@/lib/inbound/unrouted";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -49,6 +51,47 @@ function withinReplyWindow(lastActivity: Date, now: Date = new Date()): boolean 
   return now.getTime() - lastActivity.getTime() <= REPLY_MATCH_WINDOW_DAYS * 86_400_000;
 }
 
+
+/**
+ * Record mail addressed to a lead address no tenant owns, and alert on a first
+ * sighting.
+ *
+ * Stray internet mail hitting a random slug is normal and must not page anyone.
+ * The case worth catching is a customer who typo'd their forwarding address in
+ * onboarding: the wildcard MX means Postmark accepts `leads@nobert.in...` just
+ * as happily as `leads@norbert.in...`, no tenant matches, and their real
+ * inquiries vanish with nobody the wiser. Naming the near-miss tenant is what
+ * turns a shrug into an action.
+ *
+ * Rate limited GLOBALLY rather than per address: a spam run against invented
+ * slugs would otherwise send one email per address, since reportError dedupes on
+ * a signature that includes the address. The nightly digest carries the full
+ * tally, so this only needs to be a nudge.
+ *
+ * Awaited, not fire-and-forget: nothing is waiting on this path (no real client
+ * inquiry is being delayed), and a voided promise can be cut short when the
+ * request ends, which would lose exactly the alert we came for.
+ */
+async function noteUnroutedRecipient(to: string, slug: string | null): Promise<void> {
+  try {
+    const entry = noteUnrouted(to, slug);
+    if (!entry || !isFirstSighting(entry)) return;
+    if (!rateLimit("unrouted-alert", 3, 3600_000).ok) return;
+
+    const slugs = slug ? (await db.business.findMany({ select: { slug: true } })).map((b) => b.slug) : [];
+    const near = nearestSlug(slug, slugs);
+    await reportError(new Error(`inbound mail for an address no tenant owns: ${to}`), {
+      kind: "inbound_unrouted",
+      detail: near
+        ? `LIKELY FORWARDING TYPO: slug "${slug}" is ${near.distance} character(s) from the real tenant "${near.slug}". If that artist set up forwarding recently, their inquiries are going nowhere — check their lead address.`
+        : `Slug ${slug ? `"${slug}"` : "(unparseable address)"} matches no tenant and is not close to one. Most likely stray mail or a probe; no action needed unless it repeats.`,
+    });
+  } catch {
+    // Visibility must never break the inlet. A dropped alert is bad; a webhook
+    // that 500s because alerting failed would make Postmark retry real mail.
+  }
+}
+
 /** The whole inbound path: tenant → idempotency → reply-match → parse → triage → Lead. */
 export async function processInbound(email: InboundEmail): Promise<PipelineResult> {
   // HTML-only senders give Postmark no TextBody (10.9): strip the markup to
@@ -59,10 +102,16 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   }
 
   const slug = extractSlug(email.to);
-  if (!slug) return { outcome: "no_tenant" };
+  if (!slug) {
+    await noteUnroutedRecipient(email.to, null);
+    return { outcome: "no_tenant" };
+  }
 
   const business = await db.business.findUnique({ where: { slug } });
-  if (!business) return { outcome: "no_tenant" };
+  if (!business) {
+    await noteUnroutedRecipient(email.to, slug);
+    return { outcome: "no_tenant" };
+  }
 
   // Idempotency: providers redeliver webhooks.
   if (email.providerMessageId) {

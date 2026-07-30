@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { buildUnroutedReport, clearUnrouted, type UnroutedReport } from "@/lib/inbound/unrouted";
 import { db } from "@/lib/db";
 import { stripe, stripeEnabled, planForLookupKey } from "@/lib/billing/stripe";
 import { reportError } from "@/lib/report-error";
@@ -114,6 +115,8 @@ export type HeartbeatNumbers = {
   tenantsScanned: number;
   staleCrons: string[];
   silentTenants: SilentTenant[];
+  /** Mail that arrived for a lead address no tenant owns (see lib/inbound/unrouted.ts). */
+  unrouted: UnroutedReport;
 };
 
 export type SilentTenant = { slug: string; plan: string; daysSubscribed: number };
@@ -184,7 +187,24 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       return stamp ? now.getTime() - stamp.at.getTime() > freshMs : false;
     })
     .map(([key]) => key);
-  return { leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, staleCrons, silentTenants };
+  // Resolve the unrouted tally against real slugs, then DRAIN it: the digest is
+  // the report, so leaving entries behind would repeat the same addresses every
+  // night until the process restarted.
+  const unrouted = await buildUnroutedReport(async () =>
+    (await db.business.findMany({ select: { slug: true } })).map((b) => b.slug),
+  );
+  clearUnrouted();
+  return {
+    leadsIn,
+    spamFiltered,
+    draftsCreated,
+    repliesSent,
+    pitchesSent,
+    tenantsScanned,
+    staleCrons,
+    silentTenants,
+    unrouted,
+  };
 }
 
 export function renderHeartbeat(
@@ -213,6 +233,17 @@ export function renderHeartbeat(
           .map((t) => `${t.slug} [${t.plan}, day ${t.daysSubscribed}]`)
           .join(", ")} — check their profile gate, plan state and mailbox`
       : "• Every paying tenant produced work this week",
+    // Mail for an address no tenant owns. Silent by design for stray internet
+    // mail, but a NEAR-MISS of a real slug is almost always a customer who
+    // typo'd their forwarding address — meaning their inquiries are going
+    // nowhere right now. That case is called out separately and loudly.
+    h.unrouted.nearMisses.length
+      ? `• LIKELY FORWARDING TYPOS: ${h.unrouted.nearMisses
+          .map((n) => `${n.to} (${n.count}x) — did they mean "${n.didYouMean}"?`)
+          .join(", ")} — verify that tenant's lead address`
+      : h.unrouted.total
+        ? `• Unroutable mail: ${h.unrouted.total} message(s) to ${h.unrouted.entries.length} unknown address(es) — none resembling a real tenant, so most likely probes`
+        : "• No unroutable mail",
     "",
     "— Bright Ears Ops",
   ].join("\n");

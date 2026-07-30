@@ -55,8 +55,16 @@ export async function GET(req: NextRequest) {
       replyTo: process.env.OPS_ALERT_EMAIL,
       // A silent PAYING tenant belongs in the subject line, not buried in the
       // body: it is the only item here that is costing someone money right now.
+      // A likely forwarding typo joins it for the same reason — that artist's
+      // inquiries are being dropped on the floor while the digest looks calm.
+      // Unroutable mail with NO near-miss is deliberately excluded: probes are
+      // constant background noise, and an ATTENTION that fires every night is an
+      // ATTENTION nobody reads.
       subject: `Ops heartbeat: ${heartbeat.leadsIn} in · ${heartbeat.repliesSent} replies · ${heartbeat.pitchesSent} pitches${
-        heartbeat.staleCrons.length || reconcile.issues.length || heartbeat.silentTenants.length
+        heartbeat.staleCrons.length ||
+        reconcile.issues.length ||
+        heartbeat.silentTenants.length ||
+        heartbeat.unrouted.nearMisses.length
           ? " · ATTENTION"
           : ""
       }`,
