@@ -175,7 +175,9 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       db.lead.count({ where: { createdAt: { gte: since }, status: { not: "SPAM" } } }),
       db.lead.count({ where: { createdAt: { gte: since }, status: "SPAM" } }),
       db.draft.count({ where: { createdAt: { gte: since } } }),
-      db.message.count({ where: { createdAt: { gte: since }, direction: "OUTBOUND" } }),
+      db.message.count({
+        where: { createdAt: { gte: since }, direction: "OUTBOUND", bouncedAt: null },
+      }),
       db.venuePitch.count({ where: { sentAt: { gte: since } } }),
       db.business.count({ where: { lastDiscoveryScanAt: { gte: since } } }),
       db.opsStamp.findMany(),

@@ -12,7 +12,12 @@ const mockDb = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 
-import { computeResults, hasResults, formatReplyTime } from "@/lib/reports/results";
+import {
+  computeResults,
+  hasResults,
+  formatReplyTime,
+  medianReplyMinutes,
+} from "@/lib/reports/results";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -101,5 +106,27 @@ describe("formatReplyTime", () => {
     expect(formatReplyTime(45)).toBe("45 min");
     expect(formatReplyTime(180)).toBe("3 hr");
     expect(formatReplyTime(60 * 24 * 2)).toBe("2 d");
+  });
+});
+
+describe("delivery-aware response time", () => {
+  it("excludes a bounced first reply but keeps a lead whose first reply delivered", () => {
+    const base = new Date("2026-06-10T00:00:00Z");
+    expect(
+      medianReplyMinutes([
+        {
+          createdAt: base,
+          firstReplyAt: new Date(base.getTime() + 10 * 60_000),
+          messages: [{ bouncedAt: new Date(base.getTime() + 11 * 60_000) }],
+        },
+        {
+          createdAt: base,
+          firstReplyAt: new Date(base.getTime() + 30 * 60_000),
+          // Only the first outbound is selected by reporting. A later
+          // follow-up bounce therefore cannot erase this delivered reply.
+          messages: [{ bouncedAt: null }],
+        },
+      ]),
+    ).toBe(30);
   });
 });

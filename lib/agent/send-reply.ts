@@ -16,6 +16,7 @@ import { resolveAttachments } from "@/lib/agent/attach-policy";
 import { isAgentPaused } from "@/lib/billing/metering";
 import { complianceFooter } from "@/lib/optout";
 import { reportError } from "@/lib/report-error";
+import { nextRunAtAfterStep } from "@/lib/sequences/timing";
 
 export type SendReplyResult =
   | { ok: true; transport: "postmark" | "dev" }
@@ -25,6 +26,7 @@ export type SendReplyResult =
 export const SEND_ERR = {
   notPending: "draft not pending",
   noEmail: "lead has no reachable email (reply on the platform instead)",
+  undeliverable: "this email address bounced — correct it before sending again",
   compliance: "this lead has opted out or is closed — nothing was sent",
   paused: "the agent is paused — subscribe to activate it",
 } as const;
@@ -57,6 +59,9 @@ export async function sendDraftReply(opts: {
   const { lead } = draft;
   if (!lead.clientEmail) {
     return { ok: false, error: SEND_ERR.noEmail };
+  }
+  if (lead.undeliverableAt) {
+    return { ok: false, error: SEND_ERR.undeliverable };
   }
   // Subscription gate at the SEND boundary (defense in depth): every caller —
   // approveDraft, auto-send, the scheduled buffer, sequence autopilot — funnels
@@ -172,6 +177,17 @@ export async function sendDraftReply(opts: {
   // a best-effort backstop so it can never be re-sent or re-drafted. The
   // Message/lead rows may be lost, but a lost receipt beats a double-email.
   const decidedStatus = editedBody?.trim() ? "EDITED" : "APPROVED";
+  const sentAt = new Date();
+  const followUpRun = draft.isFollowUp
+    ? await db.sequenceRun.findUnique({
+        where: { leadId: lead.id },
+        include: { template: { select: { stepsDays: true } } },
+      })
+    : null;
+  const recoveredStep =
+    followUpRun && draft.isFollowUp
+      ? Math.max(followUpRun.currentStep, draft.sequenceStep ?? 0)
+      : 0;
   const writeTerminal = () =>
     db.$transaction([
       db.draft.update({
@@ -181,7 +197,7 @@ export async function sendDraftReply(opts: {
         data: {
           status: decidedStatus,
           editedBody: editedBody?.trim() || null,
-          decidedAt: new Date(),
+          decidedAt: sentAt,
           autoSent: !!autoAttach,
         },
       }),
@@ -211,9 +227,29 @@ export async function sendDraftReply(opts: {
                 : draft.isFollowUp
                   ? "IN_SEQUENCE"
                   : "REPLIED",
-          firstReplyAt: lead.firstReplyAt ?? new Date(),
+          firstReplyAt: lead.firstReplyAt ?? sentAt,
         },
       }),
+      ...(followUpRun && recoveredStep > 0
+        ? [
+            db.sequenceRun.update({
+              where: { id: followUpRun.id },
+              data: {
+                currentStep: recoveredStep,
+                nextRunAt: nextRunAtAfterStep(
+                  followUpRun.template.stepsDays,
+                  recoveredStep,
+                  sentAt,
+                ),
+                // A corrected-address resend reopens the run atomically with
+                // the successful Message receipt. It can never remain stranded
+                // behind the leadId unique constraint.
+                stoppedAt: null,
+                stopReason: null,
+              },
+            }),
+          ]
+        : []),
     ]);
   try {
     await writeTerminal();

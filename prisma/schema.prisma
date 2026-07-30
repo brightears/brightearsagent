@@ -278,6 +278,11 @@ model Lead {
   bookedAt     DateTime?
   deadAt       DateTime?
   optedOut     Boolean    @default(false) // hard-stop flag for sequences
+  // Delivery recovery: a permanent Postmark bounce pauses this lead until the
+  // owner supplies a different address. Spam complaints also set optedOut and
+  // therefore cannot be "fixed" by changing the address.
+  undeliverableAt     DateTime?
+  undeliverableReason String?
 
   messages    Message[]
   drafts      Draft[]
@@ -300,6 +305,12 @@ model Message {
   fromEmail         String?
   toEmail           String?
   providerMessageId String?          @unique // dedup backstop for webhook redelivery (nulls allowed multiple)
+  // Provider delivery state. autoReply is also set on inbound OOO messages so
+  // they remain visible in the thread without entering drafting or reporting.
+  autoReply          Boolean          @default(false)
+  bouncedAt          DateTime?
+  bounceType         String?
+  bounceDetail       String?
   draftId           String?          @unique
   draft             Draft?           @relation(fields: [draftId], references: [id], onDelete: SetNull)
 

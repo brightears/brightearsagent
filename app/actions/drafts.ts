@@ -250,11 +250,14 @@ export async function draftReplyForLead(leadId: string) {
   const business = await getCurrentBusiness();
   const lead = await db.lead.findFirst({
     where: { id: leadId, businessId: business.id },
-    select: { id: true, status: true, optedOut: true },
+    select: { id: true, status: true, optedOut: true, undeliverableAt: true },
   });
   if (!lead) return { ok: false, error: "lead not found" };
   if (lead.optedOut || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") {
     return { ok: false, error: "this lead is closed — no reply to draft" };
+  }
+  if (lead.undeliverableAt) {
+    return { ok: false, error: "correct the bounced email address before drafting another reply" };
   }
   try {
     await generateDraftForLead(leadId);

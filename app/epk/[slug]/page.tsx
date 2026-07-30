@@ -153,10 +153,22 @@ export default async function EpkPage({ params }: Props) {
       businessId: business.id,
       firstReplyAt: { gte: new Date(now.getTime() - 90 * 24 * 3600 * 1000) },
     },
-    select: { createdAt: true, firstReplyAt: true },
+    select: {
+      createdAt: true,
+      firstReplyAt: true,
+      messages: {
+        where: { direction: "OUTBOUND" },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: { bouncedAt: true },
+      },
+    },
   });
   const median = medianReplyMinutes(recentReplied);
-  const respondsFast = recentReplied.length >= 5 && median !== null && median <= 60;
+  const deliveredFirstReplies = recentReplied.filter(
+    (lead) => !lead.messages[0]?.bouncedAt,
+  ).length;
+  const respondsFast = deliveredFirstReplies >= 5 && median !== null && median <= 60;
 
   const bioWords = (business.bio ?? "").trim().split(/\s+/).filter(Boolean);
   const shortBio =

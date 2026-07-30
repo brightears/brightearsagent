@@ -5,6 +5,7 @@ import { canAutoSend } from "@/lib/inbound/auto-send";
 import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
+import { nextRunAtAfterStep } from "@/lib/sequences/timing";
 
 export interface TickResult {
   expiredDrafts: number;
@@ -252,12 +253,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // Anchor the NEXT step to the actual fire time + the configured gap between
     // steps — never to firstReplyAt — so approval delays or cron outages can't
     // bunch follow-ups back-to-back. Minimum 1-day gap.
-    const followingStepIdx = nextStep; // index into stepsDays for the step AFTER this one
-    const gapDays =
-      followingStepIdx < template.stepsDays.length
-        ? Math.max(1, template.stepsDays[followingStepIdx] - template.stepsDays[nextStep - 1])
-        : 2; // exhaust-check visit after the last step
-    const nextRunAt = new Date(now.getTime() + gapDays * DAY);
+    const nextRunAt = nextRunAtAfterStep(template.stepsDays, nextStep, now);
 
     await db.sequenceRun.update({
       where: { id: run.id },

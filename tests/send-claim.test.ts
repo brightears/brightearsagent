@@ -11,7 +11,7 @@ const mockDb = vi.hoisted(() => ({
   message: { create: vi.fn() },
   lead: { update: vi.fn() },
   sequenceTemplate: { findFirst: vi.fn() },
-  sequenceRun: { create: vi.fn() },
+  sequenceRun: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
 }));
 const mockSendEmail = vi.hoisted(() => vi.fn());
@@ -59,6 +59,8 @@ beforeEach(() => {
   mockDb.message.create.mockResolvedValue({});
   mockDb.lead.update.mockResolvedValue({});
   mockDb.sequenceTemplate.findFirst.mockResolvedValue(null);
+  mockDb.sequenceRun.findUnique.mockResolvedValue(null);
+  mockDb.sequenceRun.update.mockResolvedValue({});
   mockSendEmail.mockResolvedValue({ transport: "postmark", providerMessageId: "pm1" });
 });
 
@@ -147,5 +149,31 @@ describe("sendDraftReply atomic claim", () => {
     const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });
     expect(result.ok).toBe(false);
     expect(mockDb.draft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("reopens and re-anchors a corrected follow-up only when its resend succeeds", async () => {
+    mockDb.draft.findFirst.mockResolvedValue({
+      ...pendingDraft,
+      isFollowUp: true,
+      sequenceStep: 2,
+      lead: { ...pendingDraft.lead, status: "IN_SEQUENCE" },
+    });
+    mockDb.sequenceRun.findUnique.mockResolvedValue({
+      id: "run1",
+      currentStep: 2,
+      stoppedAt: new Date(),
+      stopReason: "email_corrected_pending_resend",
+      template: { stepsDays: [2, 5, 9] },
+    });
+    await sendDraftReply({ draftId: "d1", businessId: "biz1" });
+    expect(mockDb.sequenceRun.update).toHaveBeenCalledWith({
+      where: { id: "run1" },
+      data: expect.objectContaining({
+        currentStep: 2,
+        stoppedAt: null,
+        stopReason: null,
+      }),
+    });
+    expect(mockDb.sequenceRun.update.mock.calls[0][0].data.nextRunAt).toBeInstanceOf(Date);
   });
 });

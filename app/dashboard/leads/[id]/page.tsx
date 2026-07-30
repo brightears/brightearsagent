@@ -6,6 +6,7 @@ import { Badge, Card, EmptyState, LEAD_STATUS_META, PageHeader, StatPill } from 
 import { DraftReview } from "@/components/draft-review";
 import { PushPrompt } from "@/components/push-prompt";
 import { LeadOutcomeControls } from "@/components/lead-outcome-controls";
+import { DeliveryRecovery } from "@/components/delivery-recovery";
 import { holdScheduledSend } from "@/app/actions/drafts";
 import { computeQuote } from "@/lib/quote/compute";
 import { isoDay } from "@/lib/agent/availability";
@@ -176,6 +177,18 @@ export default async function LeadDetailPage({
       />
 
       <div className="space-y-6">
+        {lead.undeliverableAt && (
+          <DeliveryRecovery
+            leadId={lead.id}
+            currentEmail={lead.clientEmail}
+            reason={lead.undeliverableReason}
+            complaint={
+              lead.optedOut &&
+              !!lead.undeliverableReason?.startsWith("Spam complaint:")
+            }
+          />
+        )}
+
         {/* Documents — generate the artist's PDF quote / press kit for this lead. */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-cream/10 bg-ink-raised px-4 py-3">
           <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/50">
@@ -271,6 +284,7 @@ export default async function LeadDetailPage({
             <ul className="space-y-4">
               {lead.messages.map((m) => {
                 const outbound = m.direction === "OUTBOUND";
+                const automatic = m.autoReply;
                 return (
                   <li key={m.id} className={`flex ${outbound ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-prose ${outbound ? "text-right" : "text-left"}`}>
@@ -279,13 +293,21 @@ export default async function LeadDetailPage({
                           ink-raised bubble (#b6eaff on #201f2b, ~11:1). */}
                       <div
                         className={`rounded-2xl p-4 text-left shadow-[0_12px_30px_rgba(0,0,0,0.35)] ${
-                          outbound ? "bg-ink-raised border border-brand-cyan/25" : "bg-white"
+                          automatic
+                            ? "border border-cream/20 bg-ink-raised/70"
+                            : outbound
+                              ? "bg-ink-raised border border-brand-cyan/25"
+                              : "bg-white"
                         }`}
                       >
                         {m.subject && (
                           <p
                             className={`text-sm font-semibold mb-1 ${
-                              outbound ? "text-brand-cyan-soft" : "text-ink-stage"
+                              automatic
+                                ? "text-cream/65"
+                                : outbound
+                                  ? "text-brand-cyan-soft"
+                                  : "text-ink-stage"
                             }`}
                           >
                             {m.subject}
@@ -293,14 +315,28 @@ export default async function LeadDetailPage({
                         )}
                         <p
                           className={`text-sm whitespace-pre-wrap leading-relaxed ${
-                            outbound ? "text-brand-cyan-soft/90" : "text-ink-stage/90"
+                            automatic
+                              ? "text-cream/60"
+                              : outbound
+                                ? "text-brand-cyan-soft/90"
+                                : "text-ink-stage/90"
                           }`}
                         >
                           {m.body}
                         </p>
+                        {m.bouncedAt && (
+                          <p className="mt-3 border-t border-neon-orange/30 pt-2 text-xs font-semibold text-neon-orange">
+                            Delivery failed{m.bounceType ? ` · ${m.bounceType}` : ""}
+                          </p>
+                        )}
                       </div>
                       <p className="mt-1 px-1 text-[11px] text-cream/65">
-                        {outbound ? "You" : (lead.clientName ?? "Them")} ·{" "}
+                        {automatic
+                          ? "Automatic reply"
+                          : outbound
+                            ? "You"
+                            : (lead.clientName ?? "Them")}{" "}
+                        ·{" "}
                         {fmtTimestamp(m.createdAt, tz)}
                       </p>
                     </div>

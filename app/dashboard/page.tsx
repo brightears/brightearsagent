@@ -203,7 +203,16 @@ export default async function Dashboard({
     // median pill in the header. Shown only when the data exists.
     db.lead.findMany({
       where: { businessId: tenant.id, firstReplyAt: { gte: monthStart(now) } },
-      select: { createdAt: true, firstReplyAt: true },
+      select: {
+        createdAt: true,
+        firstReplyAt: true,
+        messages: {
+          where: { direction: "OUTBOUND" },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { bouncedAt: true },
+        },
+      },
     }),
     // 10.3: untouched approvals (APPROVED = zero edits; EDITED excluded by
     // definition) — the graduation prompt's evidence, counted per source.

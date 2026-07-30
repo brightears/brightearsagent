@@ -213,6 +213,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
             fromEmail: email.from,
             toEmail: email.to,
             providerMessageId: email.providerMessageId,
+            autoReply: true,
           },
         });
       } catch (err) {

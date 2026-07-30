@@ -24,6 +24,15 @@ describe("providedSecret — prefer headers over the leaky ?secret= query param 
     expect(providedSecret(req({ "x-webhook-secret": "hv" }, { secret: "q" }))).toBe("hv");
   });
 
+  it("accepts the password from HTTP Basic auth for Postmark webhooks", () => {
+    const basic = Buffer.from("postmark:s3cret").toString("base64");
+    expect(providedSecret(req({ Authorization: `Basic ${basic}` }))).toBe("s3cret");
+  });
+
+  it("rejects malformed HTTP Basic auth", () => {
+    expect(providedSecret(req({ Authorization: "Basic !!!" }))).toBeNull();
+  });
+
   it("falls back to the legacy ?secret= query param", () => {
     expect(providedSecret(req({}, { secret: "legacy" }))).toBe("legacy");
   });

@@ -29,6 +29,10 @@ export async function generateDraftForLead(
   });
   if (!lead || lead.status === "SPAM" || lead.status === "BOOKED" || lead.status === "DEAD") return null;
   if (lead.optedOut) return null;
+  // Auto-responders belong in the visible audit trail, not in the conversation
+  // the drafter answers. Otherwise an OOO becomes the "latest client message"
+  // and the next human reply is drafted against a machine notice.
+  const draftingMessages = lead.messages.filter((message) => !message.autoReply);
 
   // Dedupe: never stack a second draft on a lead that already has a live one.
   // Guards against webhook redelivery, overlapping cron ticks, and retries all
@@ -92,10 +96,10 @@ export async function generateDraftForLead(
       guestCount: lead.guestCount,
       budgetHint: lead.budgetHint,
       message:
-        lead.messages.filter((m) => m.direction === "INBOUND").at(-1)?.body ?? lead.rawBody,
+        draftingMessages.filter((m) => m.direction === "INBOUND").at(-1)?.body ?? lead.rawBody,
     },
     availability: checkAvailability(eventDate, gigs, lead.business.performers),
-    thread: lead.messages.map((m) => ({ direction: m.direction, body: m.body })),
+    thread: draftingMessages.map((m) => ({ direction: m.direction, body: m.body })),
     sequenceStep,
   };
 

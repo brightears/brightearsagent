@@ -28,10 +28,13 @@ export function checkSharedSecret(envVar: string | undefined, provided: string |
  * over the query string. A `?secret=...` query param leaks into access/request
  * logs, proxies and browser history; an Authorization/header secret does not.
  *
- * Order: `Authorization: Bearer <secret>` → `x-webhook-secret` header → the
- * legacy `?secret=` query param. The query fallback is kept ONLY so already-
- * configured cron/Postmark URLs keep working through the cutover — migrate those
- * to send the header (see docs/DEPLOYMENT.md) to fully close the leak.
+ * Order: `Authorization: Bearer <secret>` → HTTP Basic password →
+ * `x-webhook-secret` header → the legacy `?secret=` query param.
+ *
+ * Postmark supports Basic authentication in webhook URLs but not arbitrary
+ * request headers. Treating the password as the shared secret lets those URLs
+ * send an Authorization header without putting the secret in request logs.
+ * The Basic username is deliberately ignored.
  */
 export function providedSecret(req: {
   headers: { get(name: string): string | null };
@@ -39,6 +42,15 @@ export function providedSecret(req: {
 }): string | null {
   const auth = req.headers.get("authorization");
   if (auth && auth.toLowerCase().startsWith("bearer ")) return auth.slice(7).trim();
+  if (auth && auth.toLowerCase().startsWith("basic ")) {
+    try {
+      const decoded = Buffer.from(auth.slice(6).trim(), "base64").toString("utf8");
+      const separator = decoded.indexOf(":");
+      if (separator >= 0) return decoded.slice(separator + 1);
+    } catch {
+      // Malformed Basic credentials are simply unauthenticated.
+    }
+  }
   const header = req.headers.get("x-webhook-secret");
   if (header) return header;
   return req.nextUrl?.searchParams.get("secret") ?? null;

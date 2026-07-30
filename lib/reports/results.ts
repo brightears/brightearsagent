@@ -62,11 +62,25 @@ export async function computeResults(businessId: string, now = new Date()): Prom
     db.lead.count({ where: { businessId, createdAt: { gte: since }, status: { not: "SPAM" } } }),
     db.lead.count({ where: { businessId, createdAt: { gte: since }, status: "SPAM" } }),
     db.message.count({
-      where: { lead: { businessId }, direction: "OUTBOUND", createdAt: { gte: since } },
+      where: {
+        lead: { businessId },
+        direction: "OUTBOUND",
+        createdAt: { gte: since },
+        bouncedAt: null,
+      },
     }),
     db.lead.findMany({
       where: { businessId, firstReplyAt: { gte: since } },
-      select: { createdAt: true, firstReplyAt: true },
+      select: {
+        createdAt: true,
+        firstReplyAt: true,
+        messages: {
+          where: { direction: "OUTBOUND" },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { bouncedAt: true },
+        },
+      },
     }),
     db.lead.count({ where: { businessId, status: "ENGAGED" } }),
     db.venue.count({ where: { businessId, createdAt: { gte: since } } }),
@@ -109,10 +123,16 @@ export async function computeResults(businessId: string, now = new Date()): Prom
 
 /** Median inquiry→first-reply gap in whole minutes; null when no data (honesty). */
 export function medianReplyMinutes(
-  rows: { createdAt: Date; firstReplyAt: Date | null }[],
+  rows: {
+    createdAt: Date;
+    firstReplyAt: Date | null;
+    messages?: { bouncedAt: Date | null }[];
+  }[],
 ): number | null {
   const minutes = rows
-    .filter((r) => r.firstReplyAt)
+    // A later follow-up bounce must not erase a real first reply. Exclude only
+    // when the lead's first outbound message itself failed delivery.
+    .filter((r) => r.firstReplyAt && !r.messages?.[0]?.bouncedAt)
     .map((r) => (r.firstReplyAt!.getTime() - r.createdAt.getTime()) / 60000)
     .sort((a, b) => a - b);
   return minutes.length ? Math.round(minutes[Math.floor(minutes.length / 2)]) : null;

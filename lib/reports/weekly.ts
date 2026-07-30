@@ -41,10 +41,24 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
       db.lead.count({ where: { businessId, createdAt: { gte: since }, status: "SPAM" } }),
       db.lead.findMany({
         where: { businessId, firstReplyAt: { gte: since } },
-        select: { createdAt: true, firstReplyAt: true },
+        select: {
+          createdAt: true,
+          firstReplyAt: true,
+          messages: {
+            where: { direction: "OUTBOUND" },
+            orderBy: { createdAt: "asc" },
+            take: 1,
+            select: { bouncedAt: true },
+          },
+        },
       }),
       db.message.count({
-        where: { lead: { businessId }, direction: "OUTBOUND", createdAt: { gte: since } },
+        where: {
+          lead: { businessId },
+          direction: "OUTBOUND",
+          createdAt: { gte: since },
+          bouncedAt: null,
+        },
       }),
       db.lead.count({ where: { businessId, status: "ENGAGED", updatedAt: { gte: since } } }),
       db.lead.count({ where: { businessId, bookedAt: { gte: since } } }),
@@ -62,6 +76,7 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
     ]);
 
   const replyMinutes = repliedLeads
+    .filter((lead) => !lead.messages[0]?.bouncedAt)
     .map((l) => (l.firstReplyAt!.getTime() - l.createdAt.getTime()) / 60000)
     .sort((a, b) => a - b);
   const medianFirstReplyMinutes = replyMinutes.length
