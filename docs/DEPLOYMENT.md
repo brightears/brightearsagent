@@ -48,9 +48,11 @@ Current build command: `npm install --include=dev && npm run build`.
 - Render sends email for service failures. Preview notifications are disabled.
 - `/api/health` checks the database and the four `OpsStamp` cron heartbeats.
   A healthy response requires `ok`, `db`, and `cronsHealthy` to be true.
-- An independent UptimeRobot monitor has not been verified; the available
-  browser session is signed out. Add or confirm an HTTPS monitor for
-  `https://brightears.io/api/health` and alert on non-200 responses.
+- UptimeRobot monitor `Bright Ears production health` (ID `803627397`) checks
+  `https://brightears.io/api/health` every 5 minutes and emails the account's
+  existing alert contact. Its first check was Up at 279 ms on 2026-07-30.
+  The onboarding test notification was accepted, and no public status page is
+  attached.
 
 ## Cron authentication
 
@@ -74,17 +76,20 @@ Both endpoints fail closed in production. They accept a Bearer token, an HTTP
 Basic password, or `x-webhook-secret`. The legacy `?secret=` fallback remains
 temporarily for compatibility but should not be used in new configuration.
 
-Postmark does not support arbitrary webhook headers. Configure HTTP Basic
-authentication in the webhook URL so Postmark emits an Authorization header:
+Postmark does not support arbitrary webhook headers. Configure its HTTP Basic
+authentication fields while keeping the endpoint URL free of credentials:
 
 ```text
-https://postmark:<INBOUND_WEBHOOK_SECRET>@brightears.io/api/webhooks/postmark
+URL:      https://brightears.io/api/webhooks/postmark
+Username: postmark
+Password: <INBOUND_WEBHOOK_SECRET>
 ```
 
-Subscribe that webhook to **Bounce** and **Spam Complaint** events. The endpoint
-is deployed and returns 401 without authentication; dashboard registration and
-the provider-side test remain pending until a founder-authenticated Postmark
-session is available.
+Outbound webhook ID `25313522` is subscribed to **Bounce** and **Spam
+Complaint** only, with content inclusion disabled. Provider read-back confirmed
+both triggers and HTTP Basic authentication on 2026-07-30. Authenticated
+production probes for an unknown bounce ID and complaint ID both returned 200;
+the endpoint still returns 401 without authentication.
 
 ## Secrets requiring founder-approved rotation
 
@@ -105,7 +110,6 @@ the relevant provider dashboards or masked Render environment variables.
 - Complete the founder profile: two more photos, one performance video, and one
   calendar gig.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
-- Record and submit the Google OAuth verification video.
-- Sign into Postmark so the delivery webhook can be registered and tested.
-- Sign into UptimeRobot (or choose another independent monitor) and approve the
-  coordinated secret-rotation pass.
+- Review, upload, and submit the prepared Google OAuth verification video.
+- Run a restore drill against a temporary database, never the live database.
+- Approve the coordinated secret-rotation pass.
