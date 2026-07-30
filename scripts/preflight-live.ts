@@ -35,7 +35,44 @@ async function mail() {
   if (fromDomain === "mail.brightears.io") ok("From is on the mail subdomain");
   else info(`From domain is ${fromDomain} — must be covered by the DKIM signature below`);
 
-  if (!token) return bad("POSTMARK_SERVER_TOKEN unset — cannot inspect real headers");
+  // What CAN be settled without a live capture: SPF authorisation and DMARC
+  // alignment, both of which are pure DNS. This is the mechanism that actually
+  // carries our mail today.
+  console.log("\n  -- SPF / DMARC alignment (DNS, authoritative):");
+  const { resolveTxt, resolveCname } = await import("node:dns/promises");
+  const orgOf = (x: string) => x.split(".").slice(-2).join(".");
+  const envelope = `pm-bounces.${fromDomain}`;
+  try {
+    const cname = await resolveCname(envelope).catch(() => []);
+    if (cname.length) ok(`${envelope} -> ${cname[0]} (custom Return-Path is live)`);
+    else bad(`${envelope} has no CNAME — Postmark falls back to its own bounce domain, which does NOT align`);
+    // Own catch: a missing TXT must not skip the alignment verdict below, which
+    // is computed from names alone and is useful even when SPF is absent.
+    const txt = (await resolveTxt(envelope).catch(() => [] as string[][])).map((r) => r.join(""));
+    const spf = txt.find((t) => t.startsWith("v=spf1"));
+    if (spf) ok(`envelope SPF: ${spf}`);
+    else bad("envelope domain publishes no SPF — SPF cannot pass");
+    if (orgOf(envelope) === orgOf(fromDomain)) {
+      ok(`aligned: envelope org ${orgOf(envelope)} == From org ${orgOf(fromDomain)} (relaxed)`);
+      if (spf) ok("=> DMARC PASSES via SPF, independently of DKIM");
+    } else {
+      bad(`NOT aligned: envelope org ${orgOf(envelope)} != From org ${orgOf(fromDomain)}`);
+    }
+  } catch (e) {
+    bad(`envelope DNS lookup failed: ${(e as Error).message}`);
+  }
+
+  const dmarc = await import("node:dns/promises")
+    .then((dns) => dns.resolveTxt(`_dmarc.${orgOf(fromDomain)}`))
+    .then((r) => r.map((x) => x.join("")).find((t) => t.startsWith("v=DMARC1")))
+    .catch(() => undefined);
+  console.log(`  DMARC: ${dmarc ?? "(none published)"}`);
+  if (dmarc?.includes("p=none")) {
+    info("p=none — nothing bounces on a failure, so problems here are silent deliverability loss, not errors");
+  }
+
+
+  if (!token) return info("POSTMARK_SERVER_TOKEN unset — skipping the sent-message inspection; the DNS verdict above is the one that matters");
 
   const h = { "X-Postmark-Server-Token": token, Accept: "application/json" };
   const listRes = await fetch("https://api.postmarkapp.com/messages/outbound?count=5&offset=0", {
@@ -53,30 +90,28 @@ async function mail() {
   const newest = list.Messages[0];
   if (!newest) return info("no sent messages yet — send one reply, then re-run");
 
-  // The raw signed source is ground truth for alignment: DKIM d= must be the
-  // From domain or its parent for relaxed DMARC alignment to hold.
+  // CAREFUL: /dump returns the message as Postmark STORED it, before its MTA
+  // signs and stamps the envelope. Both DKIM-Signature and Return-Path are
+  // added at send time, so their absence here proves NOTHING — an earlier
+  // version of this script read that absence as "DMARC cannot pass" and was
+  // wrong twice over: wrong about the evidence, and wrong about the inference,
+  // because DMARC passes on EITHER mechanism and this domain passes on SPF.
   const dumpRes = await fetch(
     `https://api.postmarkapp.com/messages/outbound/${newest.MessageID}/dump`,
     { headers: h },
   );
-  if (!dumpRes.ok) return bad(`dump failed: ${dumpRes.status}`);
-  const { Body } = (await dumpRes.json()) as { Body: string };
-  const sig = Body.match(/DKIM-Signature:[\s\S]{0,400}/i)?.[0] ?? "";
-  const d = sig.match(/[;\s]d=([^;\s]+)/i)?.[1];
-  const s = sig.match(/[;\s]s=([^;\s]+)/i)?.[1];
-  const headerFrom = Body.match(/^From:.*$/im)?.[0];
-  console.log(`  ${headerFrom ?? "(no From header found)"}`);
-  if (!d) {
-    bad("NO DKIM-Signature on a real sent message — DMARC cannot pass on DKIM");
-  } else {
-    console.log(`  DKIM: d=${d} s=${s}`);
-    const org = (x: string) => x.split(".").slice(-2).join(".");
-    if (org(d) === org(fromDomain)) ok(`aligned with From domain ${fromDomain} (relaxed alignment)`);
-    else bad(`d=${d} does NOT align with From ${fromDomain} — DMARC fails on DKIM`);
-    info(`DKIM DNS record to expect: ${s}._domainkey.${d}`);
+  if (dumpRes.ok) {
+    const { Body } = (await dumpRes.json()) as { Body: string };
+    console.log(`  ${Body.match(/^From:.*$/im)?.[0] ?? "(no From header in dump)"}`);
+    const d = Body.match(/DKIM-Signature:[\s\S]{0,400}/i)?.[0]?.match(/[;\s]d=([^;\s]+)/i)?.[1];
+    if (d) ok(`dump already carries DKIM d=${d}`);
+    else info("no DKIM-Signature in the stored copy — expected; Postmark signs on the way out, so this is inconclusive by design");
   }
-  const rp = Body.match(/^Return-Path:.*$/im)?.[0];
-  if (rp) info(rp.trim());
+
+  // DKIM is still worth having even though SPF carries us: SPF breaks the moment
+  // a recipient auto-forwards (the forwarder becomes the sender), while a DKIM
+  // signature survives it. Report whether a key is actually published.
+  info("DKIM: selector is unguessable from DNS — confirm in Postmark that mail.brightears.io shows DKIM verified, not just Return-Path");
 }
 
 async function billing() {
