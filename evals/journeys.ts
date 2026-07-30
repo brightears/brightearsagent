@@ -184,7 +184,7 @@ export const JOURNEYS: Journey[] = [
 
   {
     id: "out-of-office",
-    why: "An autoreply must not be treated as the client engaging. ENGAGED stops the sequence and expires the draft, and nothing moves a lead back out of ENGAGED — so one OOO permanently strands the lead.",
+    why: "An autoreply must not be treated as the client engaging. ENGAGED stops the sequence and expires the draft, and nothing moves a lead back out of ENGAGED — so one OOO permanently stranded the lead. NOTE: until 2026-07-30 this journey asserted `reply_attached`, i.e. it DESCRIBED the hazard in this comment while its expectation locked in the buggy behaviour. The third step exists so the assertion can never drift back: a real reply after the autoreply must still engage the thread.",
     steps: [
       {
         label: "enquiry",
@@ -199,6 +199,17 @@ export const JOURNEYS: Journey[] = [
         subject: "Automatic reply: Wedding DJ",
         textBody: "I am out of the office until 5 August with limited access to email.",
         headers: { "Auto-Submitted": "auto-replied" },
+        // Recorded on the thread, but the lead status and the follow-up sequence
+        // are left untouched — so the sequence keeps running.
+        expect: { outcome: "ignored" },
+      },
+      {
+        label: "the human reply that follows",
+        from: "ooo@example.com",
+        subject: "Re: Wedding DJ",
+        textBody: "Back now — sorry for the delay. Yes please, we would love to talk. What would you charge for the evening?",
+        // The OOO must not have poisoned the conversation: a genuine reply to
+        // the SAME lead still attaches and engages exactly as before.
         expect: { outcome: "reply_attached", sameLeadAs: "enquiry" },
       },
     ],

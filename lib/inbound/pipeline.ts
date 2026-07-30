@@ -13,6 +13,7 @@ import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 import { noteUnrouted, isFirstSighting, nearestSlug } from "@/lib/inbound/unrouted";
 import { rateLimit } from "@/lib/rate-limit";
+import { detectAutoReply } from "@/lib/inbound/auto-reply";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -150,6 +151,13 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     return { outcome: "forwarding_confirmation", provider: confirmation.provider };
   }
 
+  // Is this a machine's auto-reply rather than a human answering? Computed ONCE
+  // here and consulted in exactly two places below — the reply-match branch and
+  // the venue branch — because those are the only two that treat an inbound
+  // message as "they responded to us". Everything else (parse, triage, the new
+  // lead path) is unaffected by design.
+  const autoReply = detectAutoReply(email);
+
   // Reply-match: a known client writing back attaches to their lead and wakes
   // it up — but only while that conversation is still plausibly ALIVE.
   //
@@ -181,6 +189,51 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     ? candidate
     : null;
   if (existing) {
+    // AUTO-REPLY: record it so the thread is complete, then change NOTHING else.
+    //
+    // Specifically: do not flip to ENGAGED, do not stop the SequenceRun, do not
+    // expire a PENDING draft, do not draft a mid-thread answer, and do not fire
+    // the "they wrote back" push. Every one of those is the right response to a
+    // human and the wrong response to a mail server. Stopping the run is the
+    // unrecoverable one — prisma/schema.prisma documents stoppedAt as "never
+    // resumes", and the sequence engine re-stops any ENGAGED lead anyway, so a
+    // single OOO used to end the follow-up permanently.
+    //
+    // The Message is still written: it keeps the thread honest for the owner
+    // reading it, and it preserves the providerMessageId idempotency backstop so
+    // a webhook redelivery is recognised as a duplicate rather than replayed.
+    if (autoReply) {
+      try {
+        await db.message.create({
+          data: {
+            leadId: existing.id,
+            direction: "INBOUND",
+            subject: email.subject,
+            body: email.textBody,
+            fromEmail: email.from,
+            toEmail: email.to,
+            providerMessageId: email.providerMessageId,
+          },
+        });
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
+        throw err;
+      }
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          kind: "inbound_auto_reply",
+          leadId: existing.id,
+          businessId: business.id,
+          signal: autoReply,
+          message:
+            "Auto-reply recorded on the thread; lead status and follow-up sequence left untouched.",
+          ts: new Date().toISOString(),
+        }),
+      );
+      return { outcome: "ignored", reason: "auto_reply" };
+    }
+
     // ENGAGED means "they answered US" — it only applies once the thread has
     // at least one OUTBOUND message. A client double-emailing before our first
     // reply must NOT flip to ENGAGED: sendDraftReply skips sequence creation
@@ -254,6 +307,32 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered).${drafting ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and reply while it's hot.`,
     }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
+  }
+
+  // An auto-reply that matched no existing conversation must go no further.
+  //
+  // Reaching the venue branch would flip venue.status PITCHED → REPLIED, and
+  // lib/venues/follow-up.ts requires PITCHED to send the single polite +6-day
+  // bump — so a mail server's holiday notice would cancel the follow-up on a
+  // pitch no human has read. Reaching the new-lead path would manufacture a
+  // "lead" out of an OOO, with no inquiry behind it.
+  //
+  // Leaving the venue on PITCHED is not merely safe, it is CORRECT: the venue
+  // genuinely has not replied, so the bump should still go.
+  if (autoReply) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        kind: "inbound_auto_reply_unmatched",
+        businessId: business.id,
+        from: email.from,
+        signal: autoReply,
+        message:
+          "Auto-reply matched no open conversation — dropped before venue capture and lead creation so the pitch bump survives.",
+        ts: new Date().toISOString(),
+      }),
+    );
+    return { outcome: "ignored", reason: "auto_reply" };
   }
 
   // Venue reply capture (P8.3): a venue answering a Hunt pitch — pitches set
