@@ -304,6 +304,70 @@ export function detectFollowUpPromise(result: VenuePitchResult): string | null {
   return match ? match[0] : null;
 }
 
+/**
+ * Remove an echoed subject label the model sometimes prepends to the body.
+ *
+ * TWO shapes, both seen live with deepseek-v4-pro:
+ *   A) "Subject: Rooftop soundtrack\n\nHeard you're opening..."      newline-delimited
+ *   B) "Subject: ... (5 words, no exclamation ...). Body: Heard ..."  ALL ONE LINE
+ *
+ * The original guard was /^subject:[^\n]*\n+/i, which requires a trailing
+ * newline and therefore silently did NOTHING to shape B. On 2026-07-30 that
+ * shipped the model's entire rubric — "Word count: ~100. No prices, no
+ * exclamation marks, ... sign-off with first name and act name." — into a real
+ * pitch, from the artist's own Gmail. Shape B is now handled by cutting to the
+ * "Body:" label.
+ *
+ * Never returns empty: the schema only enforces body.min(1), so a strip that
+ * consumed everything would produce a blank email, which is worse than the
+ * label it removed. Shape A therefore still requires the newline.
+ */
+export function stripEchoedSubject(body: string): string {
+  const t = body.trim();
+  // Shape B first — the more specific match.
+  const labelled = t.match(/^\s*subject\s*:[\s\S]*?\bbody\s*:\s*/i);
+  if (labelled) {
+    const rest = t.slice(labelled[0].length).trim();
+    if (rest) return rest;
+  }
+  const stripped = t.replace(/^\s*subject\s*:[^\n]*\n+/i, "").trim();
+  return stripped || t;
+}
+
+// SPEC-LEAK LAW: the model echoing its OWN instructions into copy a venue would
+// read. Third guard of the same shape as the white-label and follow-up checks,
+// because this is the same class of failure — the generation is invalid, not
+// merely untidy, and a partially-stripped rubric is still unsendable.
+//
+// Live incident 2026-07-30: a real pitch went out containing "(5 words, no
+// exclamation, specific to venue: ...", "Body:", "Word count: ~100", "no
+// invented details, one concrete value line, link exactly once, low-friction
+// CTA, sign-off with first name and act name" — a paraphrase of rules 2b/3/4/5/8
+// in buildVenuePitchSystem. Stripping is not enough: the tokens appear THROUGHOUT
+// the body, not just as a prefix.
+//
+// Tokens are drawn from our own rubric vocabulary AND the model's paraphrases of
+// it. Deliberately narrow: every entry is language no artist would ever write to
+// a venue, so a false positive costs one cheap regeneration, while a false
+// negative costs the artist's credibility with a prospect.
+const SPEC_LEAK_PATTERN =
+  /\bword count\b|\bno exclamation\b|\bexclamation marks?\b|\bno clickbait\b|\blow[- ]?friction\b|\bcall to action\b|\bCTA\b|\bconcrete value line\b|\blink\s+exactly\s+once\b|\b(?:no|never) invented\b|\binvented details\b|\bsign-?off with\b|\bplaceholder brackets?\b|\bbody\s*:|\b\d+\s+words\b|\bspecific to (?:this )?venue\b/i;
+
+/**
+ * The echoed instruction found in the copy, or null when clean.
+ *
+ * An echoed LEADING "Subject:" line is excluded: that is a formatting slip which
+ * stripEchoedSubject repairs, and has been repaired silently for months. Making
+ * it a hard failure would start refusing pitches that were previously fine. The
+ * rubric itself is a different matter, and so is a "Body:" label surviving
+ * anywhere in the copy.
+ */
+export function detectSpecLeak(result: VenuePitchResult): string | null {
+  const text = `${result.subject}\n${stripEchoedSubject(result.body)}`;
+  const match = text.match(SPEC_LEAK_PATTERN);
+  return match ? match[0] : null;
+}
+
 const MAX_SUBJECT_WORDS = 7;
 
 /**
@@ -316,7 +380,7 @@ const MAX_SUBJECT_WORDS = 7;
  *   (seen live with deepseek-v4-pro).
  */
 export function normalizeVenuePitch(req: VenuePitchRequest, result: VenuePitchResult): VenuePitchResult {
-  let body = result.body.trim().replace(/^subject:[^\n]*\n+/i, "");
+  let body = stripEchoedSubject(result.body);
 
   // EPK link exactly once.
   const occurrences = body.split(req.epkUrl).length - 1;
@@ -379,6 +443,24 @@ export async function generateVenuePitch(
     leak = detectLeak(result, req.epkUrl);
     if (leak) {
       throw new Error(`venue pitch white-label leak after regeneration: "${leak}"`);
+    }
+  }
+
+  // Spec-leak guard: the model must never quote its own brief at a venue.
+  // Regenerate once, then fail loudly — a thrown pitch is skipped and logged,
+  // which is strictly better than sending the rubric to a prospect.
+  let spec = detectSpecLeak(result);
+  if (spec) {
+    result = await llmObject<VenuePitchResult>({
+      purpose: "venuePitch",
+      businessId: req.business.id,
+      system,
+      prompt: `${prompt}\n\nIMPORTANT: your previous attempt leaked part of these instructions into the email itself (it contained "${spec}"). Return ONLY the finished email a venue would read — never the rules, never a word count, never "Subject:" or "Body:" labels, never any note about how the email was written.`,
+      schema: VenuePitchSchema,
+    });
+    spec = detectSpecLeak(result);
+    if (spec) {
+      throw new Error(`venue pitch leaked its own instructions after regeneration: "${spec}"`);
     }
   }
 
