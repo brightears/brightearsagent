@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import type Stripe from "stripe";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
@@ -63,12 +64,36 @@ async function compDiscountFor(ownerEmail: string) {
 
 /** Resolve the catalog price for a plan by its stable lookup key. */
 async function priceForPlan(plan: Exclude<PlanTier, "TRIAL">) {
+  // active: true matters. prices.list returns archived prices too, and a
+  // lookup_key is only unique among ACTIVE prices — archiving one frees the key
+  // for reuse. Without this filter the list can hand back the archived price,
+  // checkout is created against it, and Stripe rejects it at the last step: the
+  // customer reaches the payment page and fails there, which is the most
+  // expensive place to fail.
   const prices = await stripe().prices.list({
     lookup_keys: [PLAN_LOOKUP_KEYS[plan]],
+    active: true,
     limit: 1,
   });
   const price = prices.data[0];
-  if (!price) throw new Error(`Price for ${plan} not found — run scripts/stripe-setup.ts`);
+  if (!price) {
+    // Only STARTER has ever been purchased, so PRO/STUDIO are the likely
+    // victims: a missing live price makes the tier's button an error page with
+    // no clue what went wrong. Log the cause where we will actually see it.
+    console.error(
+      JSON.stringify({
+        level: "error",
+        kind: "stripe_price_missing",
+        plan,
+        lookupKey: PLAN_LOOKUP_KEYS[plan],
+        message: "No ACTIVE Stripe price for this plan under the current keys — this tier cannot be bought at all.",
+        ts: new Date().toISOString(),
+      }),
+    );
+    throw new Error(
+      `We could not open checkout for the ${plan} plan. This is on us, not you — please contact support and we will sort it out.`,
+    );
+  }
   return price;
 }
 
@@ -165,6 +190,48 @@ function portalConfig() {
   return id ? { configuration: id } : {};
 }
 
+/**
+ * Open a portal session, surviving a pinned configuration Stripe cannot resolve.
+ *
+ * Exactly the same trap as usableCustomerId above, one object type over: a
+ * billing-portal configuration is mode-scoped, so the `bpc_` created under test
+ * keys stopped existing the moment live keys went in. Passed blindly, Stripe
+ * answers "No such billing portal configuration" and "Manage billing" becomes a
+ * dead button — for a paying subscriber that reads as "I cannot cancel", which
+ * is both the worst failure we can hand a customer and a chargeback waiting to
+ * happen.
+ *
+ * A pinned configuration is a nicety (it pre-enables subscription_update); the
+ * account's default portal works without it. So when the pin is unusable, drop
+ * it and open the default rather than failing the whole action. Only
+ * "it genuinely is not there" is recovered — auth and network errors rethrow
+ * untouched, because silently falling back on those would hide real outages.
+ */
+async function createPortalSession(
+  params: Stripe.BillingPortal.SessionCreateParams,
+): Promise<Stripe.BillingPortal.Session> {
+  const cfg = portalConfig();
+  try {
+    return await stripe().billingPortal.sessions.create({ ...params, ...cfg });
+  } catch (err) {
+    const e = err as { code?: string; message?: string };
+    const gone =
+      e.code === "resource_missing" || /No such billing portal configuration/i.test(e.message ?? "");
+    if (!cfg.configuration || !gone) throw err;
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        kind: "stripe_portal_config_stale",
+        configuration: cfg.configuration,
+        message:
+          "STRIPE_PORTAL_CONFIG is not resolvable under the current keys (a test-mode id under live keys does this) — opened the account default portal instead so the customer can still manage billing.",
+        ts: new Date().toISOString(),
+      }),
+    );
+    return await stripe().billingPortal.sessions.create(params);
+  }
+}
+
 /** Stripe-hosted customer portal: payment method, upgrades, cancellation. */
 export async function openBillingPortal() {
   if (!stripeEnabled) throw new Error("Billing not configured yet");
@@ -175,10 +242,9 @@ export async function openBillingPortal() {
   const customerId = await usableCustomerId(business);
   if (!customerId) throw new Error("No subscription yet");
 
-  const session = await stripe().billingPortal.sessions.create({
+  const session = await createPortalSession({
     customer: customerId,
     return_url: `${appUrl()}/dashboard/settings#billing`,
-    ...portalConfig(),
   });
   redirect(session.url);
 }
@@ -211,10 +277,9 @@ export async function openPlanChange(plan: Exclude<PlanTier, "TRIAL">): Promise<
     return openBillingPortal();
   }
 
-  const session = await stripe().billingPortal.sessions.create({
+  const session = await createPortalSession({
     customer: business.stripeCustomerId,
     return_url: `${appUrl()}/dashboard/settings?billing=success`,
-    ...portalConfig(),
     flow_data: {
       type: "subscription_update_confirm",
       subscription_update_confirm: {
