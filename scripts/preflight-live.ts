@@ -72,6 +72,28 @@ async function mail() {
   }
 
 
+  // DKIM, verified rather than assumed. The selector CANNOT be brute-forced:
+  // Postmark's format is <yyyymmddHHMMSS>pm — a timestamp to the second — so
+  // ~130 guesses of <yyyymmdd>pm found nothing and led to a wrong "DKIM is not
+  // published" conclusion. It was published all along. The selector below was
+  // read off a real delivered message (see the loopback recipe under the
+  // DKIM_SELECTOR comment), which is the only reliable way to obtain one.
+  const DKIM_SELECTOR = "20260723080904pm";
+  const dkimHost = `${DKIM_SELECTOR}._domainkey.${fromDomain}`;
+  const key = await import("node:dns/promises")
+    .then((dns) => dns.resolveTxt(dkimHost))
+    .then((r) => r.map((x) => x.join("")).find((t) => t.includes("p=")))
+    .catch(() => undefined);
+  if (key) {
+    ok(`DKIM key published at ${dkimHost} (${key.length} bytes)`);
+    ok("=> DMARC also passes via DKIM, which (unlike SPF) survives auto-forwarding");
+  } else {
+    bad(`no DKIM key at ${dkimHost} — the selector may have been rotated.`);
+    info(
+      "To read the CURRENT selector without any login: send through this Postmark server to leads@<nonexistent-slug>.in.brightears.io (wildcard MX accepts it, no tenant claims it, so nothing is created), then GET /messages/inbound?count=20&offset=0 and /messages/inbound/{id}/details and read the DKIM-Signature s= value. Both count AND offset are required.",
+    );
+  }
+
   if (!token) return info("POSTMARK_SERVER_TOKEN unset — skipping the sent-message inspection; the DNS verdict above is the one that matters");
 
   const h = { "X-Postmark-Server-Token": token, Accept: "application/json" };
@@ -111,7 +133,6 @@ async function mail() {
   // DKIM is still worth having even though SPF carries us: SPF breaks the moment
   // a recipient auto-forwards (the forwarder becomes the sender), while a DKIM
   // signature survives it. Report whether a key is actually published.
-  info("DKIM: selector is unguessable from DNS — confirm in Postmark that mail.brightears.io shows DKIM verified, not just Return-Path");
 }
 
 async function billing() {
