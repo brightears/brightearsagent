@@ -125,10 +125,13 @@ the relevant provider dashboards or masked Render environment variables.
 
 ## Remaining founder launch gates
 
-- Add one authentic YouTube or Vimeo performance video to the founder profile.
-  Two authentic photos and a confirmed historical gig (`2025-12-31`,
-  `New Year's Eve DJ`, `Shore, Hilton Pattaya — Pattaya`) were added and
-  live-verified on 2026-07-31; the profile now has three photos and is at 65%.
+- Decide whether to keep the performance-video hunting-license requirement or
+  let three authentic photos satisfy the visual-proof gate. Norbert confirmed
+  that no authentic performance video is available. Three authentic photos,
+  including an ABar action shot of Norbert DJing, and a confirmed historical
+  gig (`2025-12-31`, `New Year's Eve DJ`,
+  `Shore, Hilton Pattaya — Pattaya`) were added and live-verified on
+  2026-07-31; the profile now has four photos and is at 71%.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
 
 Render account two-factor authentication was enabled and live-verified on
