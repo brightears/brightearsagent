@@ -125,8 +125,10 @@ the relevant provider dashboards or masked Render environment variables.
 
 ## Remaining founder launch gates
 
-- Complete the founder profile: two more photos, one performance video, and one
-  calendar gig.
+- Add one authentic YouTube or Vimeo performance video to the founder profile.
+  Two authentic photos and a confirmed historical gig (`2025-12-31`,
+  `New Year's Eve DJ`, `Shore, Hilton Pattaya — Pattaya`) were added and
+  live-verified on 2026-07-31; the profile now has three photos and is at 65%.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
 
 Render account two-factor authentication was enabled and live-verified on
