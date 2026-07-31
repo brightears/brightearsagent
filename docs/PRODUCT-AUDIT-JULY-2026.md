@@ -1,5 +1,10 @@
 # Product Audit — July 7, 2026
 
+> **Point-in-time note (updated 2026-07-31):** References below to video as a
+> hunting-license requirement describe the July 7 implementation and are now
+> superseded. Performance video is optional; three authentic photos remain the
+> visual-proof gate.
+
 **Method:** 41-agent workflow (8 code auditors across onboarding/Hunt/inbound/billing/security/mobile/ops/copy, adversarial verification of every critical+high finding, 4 web-research streams: competitors, artist voice, agent UX, live staging-site crawl). 87 findings, 61 recommendations, 40 evidence-backed feature ideas. Severities below are POST-verification (several initial claims were downgraded or refuted — noted inline).
 
 ---

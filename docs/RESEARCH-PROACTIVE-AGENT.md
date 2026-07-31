@@ -159,7 +159,7 @@ Marketing honesty note: marketplace memberships and credits (GigSalad $359/yr, B
 
 **Profile/EPK fields needed beyond what exists** (existing: act type, rate card/packages, calendar, writing voice):
 - *Matching:* genres + 5–10 vibe tags; event types served; service radius / named cities; travel policy; **fee floor** (never pitch below) + sweet spot; languages; insured yes/no.
-- *Pitching:* headline (≤80 chars); 40–120-word bio in the artist's voice; ≥1 video link; 3–5+ photos; review count + 1–2 quotes + notable venues; an auto-generated **hosted one-page EPK** — the pitch's landing page, white-label, zero AI mention.
+- *Pitching:* headline (≤80 chars); 40–120-word bio in the artist's voice; optional video links; 3–5+ photos; review count + 1–2 quotes + notable venues; an auto-generated **hosted one-page EPK** — the pitch's landing page, white-label, zero AI mention.
 - *Closing:* existing machinery. Tech rider / stage plot is an optional "send if asked" attachment — no marketplace evidence it converts wedding buyers.
 
 **Daily life.** One home feed — the agent's desk. Inbound and found opportunities are the same card with a source badge ("Came to you" / "I found this"). Morning digest, mirrored to chat: "While you slept: scanned 412 listings across 6 channels, 3 matches, 3 drafts waiting, skipped 14 — tap to see why." The skipped list is the trust engine and the settings tutor ("skipped: below your $1,200 floor — adjust?").
