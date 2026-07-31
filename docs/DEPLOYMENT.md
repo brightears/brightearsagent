@@ -129,5 +129,6 @@ the relevant provider dashboards or masked Render environment variables.
   calendar gig.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
 - Review, upload, and submit the prepared Google OAuth verification video.
-- Enable two-factor authentication on the Render account; it was disabled when
-  the 2026-07-30 maintenance pass inspected account security.
+
+Render account two-factor authentication was enabled and live-verified on
+2026-07-31.
