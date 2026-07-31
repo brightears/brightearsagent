@@ -128,7 +128,10 @@ the relevant provider dashboards or masked Render environment variables.
 - Complete the founder profile: two more photos, one performance video, and one
   calendar gig.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
-- Review, upload, and submit the prepared Google OAuth verification video.
 
 Render account two-factor authentication was enabled and live-verified on
 2026-07-31.
+
+Google OAuth data-access verification for `gmail.send` was submitted on
+2026-07-31 and is under review. The reviewer video is the unlisted Bright Ears
+YouTube upload at `https://youtu.be/RQUNmQg0vRc`.
