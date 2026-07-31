@@ -66,3 +66,7 @@ understandable to a nontechnical performer:
    the complete experience under `prefers-reduced-motion`.
 5. **Never expose internal metaphors as requirements.** Use "pitch-ready
    profile" or "venue pitching ready", not "hunting license".
+6. **Concentrate spectacle.** One installation-quality scene can carry the
+   expressive weight of a public page, but it must demonstrate the product
+   rather than decorate it. Keep the surrounding surfaces calm enough for the
+   scene and the message to breathe.

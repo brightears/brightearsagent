@@ -77,34 +77,6 @@ body {
   animation-play-state: paused;
 }
 
-/* Homepage assistant card: motion explains the product working. The card
-   breathes, a quiet scanner line crosses the queue, and the live dot pulses.
-   Rows never disappear, so the animation cannot hide information. */
-@keyframes be-agent-float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0.35deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(-0.35deg);
-  }
-}
-
-@keyframes be-scan-sweep {
-  0% {
-    transform: translateY(-36px);
-    opacity: 0;
-  }
-  15%,
-  78% {
-    opacity: 0.55;
-  }
-  100% {
-    transform: translateY(330px);
-    opacity: 0;
-  }
-}
-
 @keyframes be-live-pulse {
   0%,
   100% {
@@ -115,51 +87,369 @@ body {
   }
 }
 
-@keyframes be-agent-row-breathe {
-  0%,
-  70%,
-  100% {
-    transform: translateX(0);
-    border-color: rgba(23, 22, 31, 0.1);
-  }
-  78% {
-    transform: translateX(3px);
-    border-color: rgba(0, 187, 228, 0.4);
-  }
-}
-
-.be-agent-card {
-  animation: be-agent-float 7s ease-in-out infinite;
-}
-
-.be-scan-line {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 187, 228, 0.9), transparent);
-  box-shadow: 0 0 18px rgba(0, 187, 228, 0.5);
-  animation: be-scan-sweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
 .be-live-dot {
   animation: be-live-pulse 1.8s ease-out infinite;
 }
 
-.be-agent-row {
-  animation: be-agent-row-breathe 5.4s ease-in-out infinite;
+/* Booking Signal Stage — the homepage's installation moment. The cycle makes
+   the invisible product legible: scan → resolve fit → produce a reviewable
+   pitch. Pointer parallax adds depth but never carries information. */
+.be-signal-stage {
+  --stage-x: 0px;
+  --stage-y: 0px;
+  isolation: isolate;
+  perspective: 900px;
+  background:
+    radial-gradient(circle at 50% 43%, rgba(0, 187, 228, 0.12), transparent 31%),
+    radial-gradient(circle at 82% 22%, rgba(255, 45, 174, 0.13), transparent 34%),
+    #201f2b;
+}
+
+.be-signal-field {
+  transform: translate3d(var(--stage-x), var(--stage-y), 0);
+  transition: transform 180ms ease-out;
+}
+
+.be-signal-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(rgba(232, 228, 220, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 228, 220, 0.08) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 72%);
+}
+
+.be-signal-aurora {
+  position: absolute;
+  inset: -35%;
+  opacity: 0.8;
+  background: conic-gradient(
+    from 80deg,
+    transparent 0deg 225deg,
+    rgba(0, 187, 228, 0.13) 250deg,
+    rgba(255, 45, 174, 0.14) 280deg,
+    transparent 315deg
+  );
+  filter: blur(28px);
+  animation: be-signal-aurora 14s linear infinite;
+}
+
+.be-signal-sweep {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 47%;
+  width: 115%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 322deg,
+    rgba(0, 187, 228, 0.18) 348deg,
+    rgba(0, 187, 228, 0.58) 359deg,
+    transparent 360deg
+  );
+  mask-image: radial-gradient(circle, transparent 0 17%, black 18% 49%, transparent 68%);
+  transform: translate(-50%, -50%);
+  animation: be-signal-radar 8s linear infinite;
+}
+
+.be-signal-path {
+  fill: none;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 7 9;
+}
+
+.be-signal-path--match {
+  stroke: rgba(0, 187, 228, 0.7);
+  animation: be-signal-path-match 8s ease-in-out infinite;
+}
+
+.be-signal-path--miss {
+  stroke: rgba(232, 228, 220, 0.16);
+  animation: be-signal-path-miss 8s ease-in-out infinite;
+}
+
+.be-profile-orbit {
+  animation: be-profile-breathe 8s ease-in-out infinite;
+}
+
+.be-profile-ring {
+  position: absolute;
+  inset: 50%;
+  display: block;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 187, 228, 0.28);
+  transform: translate(-50%, -50%);
+}
+
+.be-profile-ring--outer {
+  width: 210%;
+  height: 210%;
+  animation: be-profile-ring 4s ease-out infinite;
+}
+
+.be-profile-ring--inner {
+  width: 155%;
+  height: 155%;
+  animation: be-profile-ring 4s 1.2s ease-out infinite;
+}
+
+.be-signal-node {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 104px;
+  border: 1px solid rgba(232, 228, 220, 0.12);
+  border-radius: 999px;
+  padding: 0.55rem 0.7rem;
+  background: rgba(23, 22, 31, 0.76);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.be-signal-node-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(232, 228, 220, 0.38);
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.be-signal-node--match {
+  animation: be-signal-node-match 8s ease-in-out infinite;
+}
+
+.be-signal-node--match .be-signal-node-dot {
+  animation: be-signal-dot-match 8s ease-in-out infinite;
+}
+
+.be-signal-node--miss {
+  animation: be-signal-node-miss 8s ease-in-out infinite;
+}
+
+.be-signal-node--one {
+  left: 3%;
+  top: 17%;
+  animation-delay: -400ms;
+}
+
+.be-signal-node--two {
+  right: 2%;
+  top: 20%;
+  animation-delay: -50ms;
+}
+
+.be-signal-node--three {
+  right: 1%;
+  top: 48%;
+  animation-delay: 280ms;
+}
+
+.be-signal-node--four {
+  bottom: 14%;
+  right: 4%;
+  animation-delay: 440ms;
+}
+
+.be-signal-node--five {
+  bottom: 16%;
+  left: 2%;
+  animation-delay: 100ms;
+}
+
+.be-signal-node--six {
+  left: 1%;
+  top: 48%;
+  animation-delay: -240ms;
+}
+
+.be-pitch-ticket {
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  animation: be-pitch-arrive 8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@media (min-width: 640px) {
+  .be-pitch-ticket {
+    right: auto;
+    left: 50%;
+    width: 420px;
+    margin-left: -210px;
+  }
+}
+
+@keyframes be-signal-aurora {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes be-signal-radar {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes be-signal-path-match {
+  0%,
+  30%,
+  100% {
+    opacity: 0.18;
+    stroke-dashoffset: 30;
+  }
+  43%,
+  82% {
+    opacity: 0.9;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes be-signal-path-miss {
+  0%,
+  30%,
+  100% {
+    opacity: 0.48;
+  }
+  45%,
+  88% {
+    opacity: 0.08;
+  }
+}
+
+@keyframes be-profile-breathe {
+  0%,
+  30%,
+  100% {
+    filter: saturate(0.8);
+  }
+  44%,
+  84% {
+    filter: saturate(1.35) drop-shadow(0 0 18px rgba(0, 187, 228, 0.2));
+  }
+}
+
+@keyframes be-profile-ring {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.65);
+  }
+  25% {
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes be-signal-node-match {
+  0%,
+  28%,
+  100% {
+    border-color: rgba(232, 228, 220, 0.12);
+    background: rgba(23, 22, 31, 0.76);
+    opacity: 0.62;
+  }
+  42%,
+  84% {
+    border-color: rgba(0, 187, 228, 0.62);
+    background: rgba(0, 187, 228, 0.11);
+    opacity: 1;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28), 0 0 24px rgba(0, 187, 228, 0.12);
+  }
+}
+
+@keyframes be-signal-dot-match {
+  0%,
+  28%,
+  100% {
+    background: rgba(232, 228, 220, 0.38);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  42%,
+  84% {
+    background: #00bbe4;
+    box-shadow: 0 0 0 5px rgba(0, 187, 228, 0.11), 0 0 16px rgba(0, 187, 228, 0.7);
+  }
+}
+
+@keyframes be-signal-node-miss {
+  0%,
+  28%,
+  100% {
+    opacity: 0.52;
+  }
+  45%,
+  88% {
+    opacity: 0.16;
+  }
+}
+
+@keyframes be-pitch-arrive {
+  0%,
+  55%,
+  100% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  66%,
+  90% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .be-kinetic-word,
   .be-marquee-track,
-  .be-agent-card,
-  .be-scan-line,
   .be-live-dot,
-  .be-agent-row {
+  .be-signal-aurora,
+  .be-signal-sweep,
+  .be-signal-path,
+  .be-profile-orbit,
+  .be-profile-ring,
+  .be-signal-node,
+  .be-signal-node-dot,
+  .be-pitch-ticket {
     animation: none;
+  }
+  .be-signal-field {
+    transform: none;
+    transition: none;
+  }
+  .be-signal-node--match {
+    border-color: rgba(0, 187, 228, 0.62);
+    background: rgba(0, 187, 228, 0.11);
+    opacity: 1;
+  }
+  .be-signal-node--match .be-signal-node-dot {
+    background: #00bbe4;
+    box-shadow: 0 0 0 5px rgba(0, 187, 228, 0.11);
+  }
+  .be-signal-node--miss {
+    opacity: 0.16;
+  }
+  .be-signal-path--match {
+    opacity: 0.9;
+    stroke-dashoffset: 0;
+  }
+  .be-signal-path--miss {
+    opacity: 0.08;
+  }
+  .be-pitch-ticket {
+    opacity: 1;
+    transform: none;
   }
   .be-reveal,
   .be-reveal-hidden {

@@ -15,6 +15,7 @@ import {
   VinylDisc,
 } from "@/components/collage";
 import { DemoWidget } from "@/components/demo-widget";
+import { BookingSignalStage } from "@/components/booking-signal-stage";
 import { KineticHeadline, Marquee, RevealOnScroll } from "@/components/motion";
 import { Kicker } from "@/components/ui";
 import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
@@ -100,92 +101,6 @@ function GradWord({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A readable, animated example of the assistant's working state. */
-function AssistantLiveCard() {
-  const rows = [
-    {
-      kicker: "Looking",
-      title: "Scanning Bangkok",
-      detail: "18 venue signals checked",
-      tone: "bg-brand-cyan",
-    },
-    {
-      kicker: "Found",
-      title: "3 rooms worth a look",
-      detail: "Fit and timing explained",
-      tone: "bg-neon-orange",
-    },
-    {
-      kicker: "Ready",
-      title: "Pitch waiting for you",
-      detail: "Written in your voice",
-      tone: "bg-neon-magenta",
-    },
-  ];
-
-  return (
-    <div className="be-agent-card relative mx-auto max-w-xl">
-      <GradientBlob tone="show" className="-bottom-10 -right-8 h-48 w-72" />
-      <GradientBlob tone="cyan" className="-left-8 -top-8 h-36 w-52" />
-      <div className="relative overflow-hidden rounded-[2rem] bg-cream p-5 text-ink-stage shadow-[0_32px_100px_rgba(0,0,0,0.5)] sm:p-7">
-        <div aria-hidden className="be-scan-line" />
-        <div className="relative flex items-center justify-between gap-4">
-          <div>
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-ink-stage/45">
-              Your assistant
-            </p>
-            <p className="mt-1 text-xl font-black tracking-tight">Working between gigs</p>
-          </div>
-          <div className="flex items-center gap-2 rounded-full bg-ink-stage px-3 py-1.5 text-cream-bright">
-            <span aria-hidden className="be-live-dot size-2 rounded-full bg-brand-cyan" />
-            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">Live</span>
-          </div>
-        </div>
-
-        <div className="relative mt-6 space-y-2.5">
-          {rows.map((row, index) => (
-            <div
-              key={row.title}
-              className="be-agent-row flex items-center gap-3 rounded-2xl border border-ink-stage/10 bg-white/85 p-3 shadow-sm"
-              style={{ animationDelay: `${index * 900}ms` }}
-            >
-              <span aria-hidden className={`size-2.5 flex-none rounded-full ${row.tone}`} />
-              <div className="min-w-0 flex-1">
-                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-ink-stage/40">
-                  {row.kicker}
-                </p>
-                <p className="truncate text-sm font-extrabold">{row.title}</p>
-              </div>
-              <p className="hidden text-right text-[11px] leading-tight text-ink-stage/45 sm:block">
-                {row.detail}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="relative mt-5 flex items-center justify-between gap-4 border-t border-ink-stage/10 pt-4">
-          <p className="max-w-[240px] text-xs leading-relaxed text-ink-stage/55">
-            Nothing sends without your say-so on Starter.
-          </p>
-          <span className="rounded-full bg-brand-cyan px-4 py-2 text-xs font-black text-ink-stage shadow-[0_8px_24px_rgba(0,187,228,0.25)]">
-            Review pitch
-          </span>
-        </div>
-
-        <VinylDisc
-          size={92}
-          tone="orange"
-          spin
-          className="-bottom-11 -left-10 opacity-90"
-        />
-      </div>
-      <StickerChip tone="magenta" rotate={4} className="absolute -right-2 -top-3">
-        Three good fits
-      </StickerChip>
-    </div>
-  );
-}
-
 export default function HomePage() {
   return (
     <div className="overflow-x-clip">
@@ -249,7 +164,7 @@ export default function HomePage() {
           </div>
 
           <div>
-            <AssistantLiveCard />
+            <BookingSignalStage />
           </div>
         </div>
       </section>

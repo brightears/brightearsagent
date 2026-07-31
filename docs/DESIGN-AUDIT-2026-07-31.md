@@ -23,9 +23,11 @@ feel like one sentence:
   call to action.
 - Changed the hero to "More gigs. Less chasing." and replaced abstract feature
   language with visible outcomes.
-- Added an animated assistant card that demonstrates scanning, matching,
-  drafting and approval. It remains visible on mobile and becomes static when
-  the visitor prefers reduced motion.
+- Added an interactive booking-signal installation that turns scattered venue
+  opportunities into three good matches and one approval-ready pitch. It adds
+  depth on pointer devices, stays clear on touch screens and resolves into the
+  complete product story without motion when the visitor prefers reduced
+  motion.
 - Changed the primary call to action from generic "Get started" to "Build my
   profile".
 - Added plain-language confidence cues: no video required, saves as you go and
