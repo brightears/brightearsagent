@@ -77,9 +77,88 @@ body {
   animation-play-state: paused;
 }
 
+/* Homepage assistant card: motion explains the product working. The card
+   breathes, a quiet scanner line crosses the queue, and the live dot pulses.
+   Rows never disappear, so the animation cannot hide information. */
+@keyframes be-agent-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0.35deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-0.35deg);
+  }
+}
+
+@keyframes be-scan-sweep {
+  0% {
+    transform: translateY(-36px);
+    opacity: 0;
+  }
+  15%,
+  78% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateY(330px);
+    opacity: 0;
+  }
+}
+
+@keyframes be-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 187, 228, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(0, 187, 228, 0);
+  }
+}
+
+@keyframes be-agent-row-breathe {
+  0%,
+  70%,
+  100% {
+    transform: translateX(0);
+    border-color: rgba(23, 22, 31, 0.1);
+  }
+  78% {
+    transform: translateX(3px);
+    border-color: rgba(0, 187, 228, 0.4);
+  }
+}
+
+.be-agent-card {
+  animation: be-agent-float 7s ease-in-out infinite;
+}
+
+.be-scan-line {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 187, 228, 0.9), transparent);
+  box-shadow: 0 0 18px rgba(0, 187, 228, 0.5);
+  animation: be-scan-sweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.be-live-dot {
+  animation: be-live-pulse 1.8s ease-out infinite;
+}
+
+.be-agent-row {
+  animation: be-agent-row-breathe 5.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .be-kinetic-word,
-  .be-marquee-track {
+  .be-marquee-track,
+  .be-agent-card,
+  .be-scan-line,
+  .be-live-dot,
+  .be-agent-row {
     animation: none;
   }
   .be-reveal,

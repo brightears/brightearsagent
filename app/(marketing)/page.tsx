@@ -1,152 +1,97 @@
-// Landing page — the money page, restaged in design language v2.1 "Edge"
-// (docs/DESIGN.md, THE LAW; canonical preview: app/(marketing)/design/b/page.tsx).
-// Ink canvas, one RingsBackdrop (hero only), cream poster panels with collage
-// pieces, magenta show CTAs, cyan reserved for clickable interface. Kinetic
-// hero type, one Marquee divider, mono Kickers on every section, scroll
-// reveals (components/motion.tsx). NO EMOJI in chrome (v2.1 rule 1).
-// Customers' verbatim language in headlines (docs/PRODUCT-BRIEF.md §3);
-// factual claims and hrefs unchanged — every CTA: "Get started" → /onboarding.
-// No free trial: you subscribe to activate (month-to-month, cancel anytime;
-// at your plan's cap we pause rather than surprise-bill).
-// Reframed (audit pre-launch) to lead with discovery (the proactive Hunt); the
-// reactive fast-reply is now a supporting beat. The ONE promise is a PROCESS
-// guarantee: "you'll never miss a chance to put yourself forward" — never the booking.
+// Bright Ears homepage — artist-first, outcome-first.
+//
+// The product has two jobs: find new rooms and handle the inquiries an artist
+// already gets. The previous page repeated those mechanics across eleven long
+// sections. This version tells the whole story in one pass: one profile, a
+// working assistant, one approval queue. Motion demonstrates the work happening
+// instead of adding decoration for decoration's sake.
 import type { Metadata } from "next";
-import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
 import Link from "next/link";
 import {
   GradientBlob,
   HaloRing,
-  HeroCollage,
   RingsBackdrop,
   StickerChip,
-  StudioSpeaker,
   VinylDisc,
 } from "@/components/collage";
 import { DemoWidget } from "@/components/demo-widget";
 import { KineticHeadline, Marquee, RevealOnScroll } from "@/components/motion";
 import { Kicker } from "@/components/ui";
+import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
 
 export const metadata: Metadata = pageMeta(
-  "Bright Ears — never miss a gig you never knew existed",
-  "Bright Ears hunts the whole web for gigs that fit you, drafts the outreach in your voice, and waits for your tap. You approve — it does the rest. And when someone reaches out, you're still first to answer. Month-to-month, cancel anytime.",
+  "Bright Ears — your booking assistant for more gigs and less chasing",
+  "Build one artist profile. Bright Ears finds venues that fit, drafts pitches and replies in your voice, follows up, and waits for your approval. No video required.",
 );
 
-const TRUST_LINE = "Month-to-month · cancel anytime · setup in minutes";
-
 const MARQUEE_ITEMS = [
-  "FOUND WHILE YOU SLEPT",
-  "A GIG YOU'D HAVE MISSED",
-  "DRAFTED IN YOUR VOICE",
-  "YOU JUST APPROVE",
-  "ANYWHERE YOU PLAY",
+  "MORE PLAYING",
+  "LESS CHASING",
+  "PITCHES IN YOUR VOICE",
+  "REPLIES READY",
+  "YOU STAY IN CONTROL",
 ];
 
-// Illustrative targets, not measured claims (audit honesty rule).
-const STATS = [
-  { n: "Every week", l: "new rooms that fit you, surfaced for you to approve" },
-  { n: "First", l: "and when a lead does come in, you're first to reply" },
-  { n: "$1,800", l: "an example booking you might never have known to chase (illustrative)" },
-];
-
-/* word-by-word magenta → orange spectrum — the gradient pull-quote treatment */
-const STORY_QUOTE: { w: string; c: string }[] = [
-  { w: "We’ve", c: "#ff2dae" },
-  { w: "been", c: "#ff5a74" },
-  { w: "there.", c: "#ff8a00" },
-];
-
-/* The effortless promise — 30 seconds a day, approve from your phone. */
-const EFFORTLESS = [
-  { n: "30 seconds", l: "a day — that’s the whole job" },
-  { n: "Your phone", l: "approve from anywhere, even backstage" },
-  { n: "Just yes", l: "you say yes; the AI does the rest" },
-];
-
-/* Travel Mode — a secondary delight beat. The Hunt comes with you on tour;
-   it scans your travel cities for those dates and drafts date-bounded intros.
-   Process framing only (it FINDS and PITCHES) — never a booking guarantee. */
-const TRAVEL_MODE = [
-  { n: "Anywhere", l: "your home turf or a city across the world — the hunt follows the dates" },
-  { n: "Date-bounded", l: "guest spots and residencies inside your travel window, nothing stale" },
-  { n: "Your voice", l: "the intro drafted the way you'd write it — approve from the road" },
-];
-
-/* Pricing teaser — three plans, discovery-led, mirrors /pricing. */
-const PRICING_TEASER = [
-  { name: "Starter", price: "$25", l: "Answers up to 15 of your inquiries a month · hunts your 1 home city · you approve every send" },
-  { name: "Pro", price: "$79", l: "Up to 60 inquiries a month · hunts up to 3 cities · auto-sends from the sources you trust" },
-  { name: "Studio", price: "$149", l: "Up to 150 inquiries a month · hunts all your cities · auto-send at full stretch" },
-];
-
-const STEPS = [
+const SETUP_STEPS = [
   {
-    title: "It finds the gigs",
-    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your act — the openings you’d never have stumbled across. Each one comes scored, with the reasons spelled out.",
+    number: "01",
+    title: "Build one artist profile",
+    body: "Your sound, home city, fee floor, a short bio and one clear photo. Start with the essentials; polish the rest whenever you want.",
+    note: "No video required",
   },
   {
-    title: "It drafts in your voice",
-    body: "For every good fit, it writes the outreach the way you’d say it — warm, specific, in your own words. No blank page, no “Dear Sir or Madam,” nothing that sounds like a robot.",
+    number: "02",
+    title: "Your assistant goes looking",
+    body: "It watches public venue signals and the sources you already use, then brings back the rooms and inquiries that actually fit.",
+    note: "Starts when you subscribe",
   },
   {
-    title: "You just approve",
-    body: "The draft lands on your phone. One tap — even backstage — and it sends from your own mailbox. You say yes; the AI does the rest. You’re never the one staring at the inbox.",
+    number: "03",
+    title: "Approve from your phone",
+    body: "Pitches and replies arrive already written in your voice. Tap approve, edit if you like, and Bright Ears handles the follow-up.",
+    note: "You keep final say",
   },
 ];
 
-const FEATURES: {
-  chip: string;
-  chipTone: "magenta" | "cream" | "ink" | "outline";
-  chipRotate: number;
-  title: string;
-  body: string;
-  tilt: string;
-}[] = [
+const SMALL_WINS = [
   {
-    chip: "The Hunt",
-    chipTone: "magenta",
-    chipRotate: -4,
-    title: "It finds gigs you’d have missed",
-    body: "The AI scans the whole web for venues hiring entertainment and rooms that fit your act, scores how well each one fits you, and drafts the intro in your voice. You approve; it sends from your own mailbox. It can’t promise the room says yes — but it makes sure you’re the one who asked.",
-    tilt: "-rotate-1",
+    label: "Travel mode",
+    title: "Take the hunt with you",
+    body: "Add a city and dates. Bright Ears looks for guest spots while you’re there.",
   },
   {
-    chip: "Marked: scam",
-    chipTone: "ink",
-    chipRotate: -4,
-    title: "The scam emails you’ll never see",
-    body: "Every inquiry is triaged before it reaches your phone. The overpayment scams, the spam blasts, the fake “event planners” — gone. You only ever see real chances worth your time.",
-    tilt: "rotate-1",
+    label: "Quietly useful",
+    title: "Scams stay out",
+    body: "Suspicious inquiries are filtered before they become another thing on your phone.",
   },
   {
-    chip: "Booked or dead",
-    chipTone: "magenta",
-    chipRotate: 5,
-    title: "Nudges until you get an answer",
-    body: "Most gigs are won by the follow-up nobody has time to send. Polite nudges keep going until there’s a reply — and stop instantly on an answer, a booking, or a one-tap opt-out.",
-    tilt: "-rotate-[0.6deg]",
-  },
-  {
-    chip: "Monday, 9:00",
-    chipTone: "ink",
-    chipRotate: -5,
-    title: "A weekly report that proves it",
-    body: "Every week: the rooms it found, what came in, what got an answer. Numbers you can feel good about — or forward straight to your business partner.",
-    tilt: "rotate-[0.6deg]",
-  },
-  {
-    chip: "From: you",
-    chipTone: "outline",
-    chipRotate: 4,
-    title: "Your clients see you, never us",
-    body: "Everything sends from your business name, with your reply-to address. No “AI”, no Bright Ears branding anywhere — venues and clients just see a performer who’s impressively on it.",
-    tilt: "-rotate-[0.6deg]",
+    label: "Still working",
+    title: "Follow-up is automatic",
+    body: "Polite nudges continue until there is an answer, a booking or an opt-out.",
   },
 ];
 
-const SOURCES = ["Plain email", "Your website form", "The Knot", "WeddingWire", "Bark", "GigSalad"];
+const PLANS = [
+  {
+    name: "Starter",
+    price: "$25",
+    body: "One home city · up to 15 inquiries a month · you approve every send",
+    featured: true,
+  },
+  {
+    name: "Pro",
+    price: "$79",
+    body: "Up to 3 cities · 60 inquiries a month · trusted-source autopilot",
+    featured: false,
+  },
+  {
+    name: "Studio",
+    price: "$149",
+    body: "All your cities · 150 inquiries a month · full-stretch autopilot",
+    featured: false,
+  },
+];
 
-/** ONE gradient-painted word/phrase in a warm-white headline — the v2 signature. */
 function GradWord({ children }: { children: React.ReactNode }) {
   return (
     <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
@@ -155,12 +100,95 @@ function GradWord({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** A readable, animated example of the assistant's working state. */
+function AssistantLiveCard() {
+  const rows = [
+    {
+      kicker: "Looking",
+      title: "Scanning Bangkok",
+      detail: "18 venue signals checked",
+      tone: "bg-brand-cyan",
+    },
+    {
+      kicker: "Found",
+      title: "3 rooms worth a look",
+      detail: "Fit and timing explained",
+      tone: "bg-neon-orange",
+    },
+    {
+      kicker: "Ready",
+      title: "Pitch waiting for you",
+      detail: "Written in your voice",
+      tone: "bg-neon-magenta",
+    },
+  ];
+
+  return (
+    <div className="be-agent-card relative mx-auto max-w-xl">
+      <GradientBlob tone="show" className="-bottom-10 -right-8 h-48 w-72" />
+      <GradientBlob tone="cyan" className="-left-8 -top-8 h-36 w-52" />
+      <div className="relative overflow-hidden rounded-[2rem] bg-cream p-5 text-ink-stage shadow-[0_32px_100px_rgba(0,0,0,0.5)] sm:p-7">
+        <div aria-hidden className="be-scan-line" />
+        <div className="relative flex items-center justify-between gap-4">
+          <div>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-ink-stage/45">
+              Your assistant
+            </p>
+            <p className="mt-1 text-xl font-black tracking-tight">Working between gigs</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full bg-ink-stage px-3 py-1.5 text-cream-bright">
+            <span aria-hidden className="be-live-dot size-2 rounded-full bg-brand-cyan" />
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.18em]">Live</span>
+          </div>
+        </div>
+
+        <div className="relative mt-6 space-y-2.5">
+          {rows.map((row, index) => (
+            <div
+              key={row.title}
+              className="be-agent-row flex items-center gap-3 rounded-2xl border border-ink-stage/10 bg-white/85 p-3 shadow-sm"
+              style={{ animationDelay: `${index * 900}ms` }}
+            >
+              <span aria-hidden className={`size-2.5 flex-none rounded-full ${row.tone}`} />
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-ink-stage/40">
+                  {row.kicker}
+                </p>
+                <p className="truncate text-sm font-extrabold">{row.title}</p>
+              </div>
+              <p className="hidden text-right text-[11px] leading-tight text-ink-stage/45 sm:block">
+                {row.detail}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="relative mt-5 flex items-center justify-between gap-4 border-t border-ink-stage/10 pt-4">
+          <p className="max-w-[240px] text-xs leading-relaxed text-ink-stage/55">
+            Nothing sends without your say-so on Starter.
+          </p>
+          <span className="rounded-full bg-brand-cyan px-4 py-2 text-xs font-black text-ink-stage shadow-[0_8px_24px_rgba(0,187,228,0.25)]">
+            Review pitch
+          </span>
+        </div>
+
+        <VinylDisc
+          size={92}
+          tone="orange"
+          spin
+          className="-bottom-11 -left-10 opacity-90"
+        />
+      </div>
+      <StickerChip tone="magenta" rotate={4} className="absolute -right-2 -top-3">
+        Three good fits
+      </StickerChip>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <div className="overflow-x-clip">
-      {/* Structured data (P6.12): the HOME page had zero JSON-LD while
-          secondary pages had plenty. SoftwareApplication with offers is
-          eligible for price rich results. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
@@ -169,7 +197,8 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd()) }}
       />
-      {/* ---------- Hero — ink stage, rings, kinetic headline, collage poster ---------- */}
+
+      {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <RingsBackdrop />
         <div
@@ -177,294 +206,188 @@ export default function HomePage() {
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(640px circle at 78% 220px, rgba(255,45,174,0.10), transparent 70%), radial-gradient(520px circle at 10% 60px, rgba(255,138,0,0.07), transparent 70%)",
+              "radial-gradient(700px circle at 82% 180px, rgba(255,45,174,0.13), transparent 68%), radial-gradient(540px circle at 8% 80px, rgba(0,187,228,0.09), transparent 70%)",
           }}
         />
-        <div className="relative mx-auto max-w-6xl px-6 pb-20 pt-14 sm:pt-20">
-          <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/75">
-            <span className="h-1.5 w-1.5 rounded-full bg-neon-magenta" />
-            The AI that finds gigs for performers of every kind
-          </span>
-          <h1 className="mt-7 max-w-4xl text-6xl font-black leading-[0.95] tracking-tighter text-cream-bright sm:text-7xl lg:text-8xl">
-            <KineticHeadline accentWord="gig">Never miss a gig you never knew existed.</KineticHeadline>
-          </h1>
-          <div className="mt-10 grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
-            <div>
-              {/* The one-liner: discovery-led. The Hunt is the hero now. Names a
-                  spread of acts so every performer feels addressed, then "whatever
-                  your act" catches the rest (magicians, MCs, comedians, actors). */}
-              <p className="max-w-xl text-lg leading-relaxed text-cream/70">
-                DJ, band, dancer, magician — whatever your act, Bright Ears hunts the whole web for
-                opportunities that fit you, drafts the outreach in your voice, and waits for your tap.
-                You <strong className="font-bold text-cream-bright">approve</strong> — it does the rest.
-              </p>
-              <div className="mt-9 flex flex-wrap items-center gap-4">
-                <Link
-                  href="/onboarding"
-                  className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
-                >
-                  Get started
-                </Link>
-                <a
-                  href="#demo"
-                  className="inline-flex items-center gap-2.5 rounded-full border-[1.5px] border-cream/40 px-7 py-3.5 text-lg font-semibold text-cream transition-colors hover:border-cream/75 hover:text-cream-bright"
-                >
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-cream/50 text-[8px] leading-none">
-                    &#9654;
-                  </span>
-                  See it draft a pitch
-                </a>
-              </div>
-              <p className="mt-6 text-sm text-cream/65">{TRUST_LINE}</p>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-16 px-6 pb-20 pt-16 lg:grid-cols-[1.02fr_0.98fr] lg:pb-24 lg:pt-24">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/75">
+              <span className="size-1.5 rounded-full bg-brand-cyan" />
+              A booking assistant built for performers
+            </span>
+            <h1 className="mt-7 text-6xl font-black leading-[0.93] tracking-tighter text-cream-bright sm:text-7xl lg:text-[5.7rem]">
+              <KineticHeadline accentWord="gigs.">More gigs. Less chasing.</KineticHeadline>
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-cream/72 sm:text-xl">
+              Tell Bright Ears who you are and where you play. It finds venues that fit, writes the
+              pitch and every reply in your voice, then keeps following up.{" "}
+              <strong className="font-bold text-cream-bright">You approve. It handles the rest.</strong>
+            </p>
+
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <Link
+                href="/onboarding"
+                className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
+              >
+                Build my profile
+              </Link>
+              <a
+                href="#how-it-works"
+                className="rounded-full border-[1.5px] border-cream/35 px-7 py-3.5 text-lg font-semibold text-cream transition-colors hover:border-brand-cyan hover:text-brand-cyan"
+              >
+                See how it works
+              </a>
             </div>
-            <div className="hidden sm:block">
-              <HeroCollage />
+
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/55">
+              <span>No video required</span>
+              <span aria-hidden className="text-neon-magenta">/</span>
+              <span>Saves as you go</span>
+              <span aria-hidden className="text-neon-magenta">/</span>
+              <span>Month to month</span>
             </div>
+          </div>
+
+          <div>
+            <AssistantLiveCard />
           </div>
         </div>
       </section>
 
-      {/* ---------- Marquee — the full-bleed edge divider (one per page, LAW) ---------- */}
       <Marquee items={MARQUEE_ITEMS} className="border-y border-cream/10 py-4" />
 
-      {/* ---------- Problem — the loss frame: gigs filled before you hear about them ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
-        <RevealOnScroll className="max-w-2xl">
-          <Kicker>The problem</Kicker>
-          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-            The best gigs are filled <GradWord>before you hear</GradWord> about them.
-          </h2>
-          <p className="mt-3 text-lg text-cream/70">
-            Most rooms never post a “performer wanted” ad. The bar that just changed managers, the hotel
-            relaunching its rooftop, the venue whose regular act just quit — those gigs go to
-            whoever happens to be in front of them. Usually that’s not you. Not because you’re not
-            good enough. Because nobody had time to go looking.
-          </p>
-        </RevealOnScroll>
-        <div className="mt-12 grid gap-10 lg:grid-cols-3">
-          {/* The gigs you never see */}
-          <RevealOnScroll className="relative">
-            <GradientBlob tone="show" className="-bottom-8 -left-6 h-36 w-52" />
-            <div className="relative -rotate-2 overflow-hidden rounded-3xl bg-cream p-7 pb-8 text-ink-stage shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-              <div className="relative h-28">
-                <HaloRing width={170} height={62} tilt={-12} className="left-0 top-9" />
-                <VinylDisc size={104} tone="dark" className="-right-3 -top-5" />
-                <StickerChip tone="ink" rotate={-5} className="absolute left-1 top-0">
-                  Never posted
-                </StickerChip>
-              </div>
-              <h3 className="mt-6 text-xl font-extrabold tracking-tight">The gigs you never see</h3>
-              <blockquote className="mt-2 text-base font-bold leading-snug">
-                “I only find out a venue was hiring once they’ve booked someone else.”
-              </blockquote>
-              <p className="mt-3 text-sm leading-relaxed text-ink-stage/65">
-                You can’t pitch a room you don’t know is open. The opportunities that fit you best
-                are the ones you’ll never stumble across in time.
-              </p>
-            </div>
+      {/* Setup story */}
+      <section id="how-it-works" className="scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+          <RevealOnScroll className="max-w-3xl">
+            <Kicker>One profile. Then it works.</Kicker>
+            <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
+              Set up the <GradWord>essentials.</GradWord> Add the polish later.
+            </h2>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-cream/68">
+              Bright Ears needs enough to represent you well, not your life story. The setup is
+              broken into small steps, saves as you go, and tells you why each answer matters.
+            </p>
           </RevealOnScroll>
 
-          {/* No time to go looking */}
-          <RevealOnScroll className="relative lg:mt-8" delayMs={120}>
-            <GradientBlob tone="show" className="-bottom-8 -right-6 h-36 w-52" />
-            <div className="relative rotate-1 overflow-hidden rounded-3xl bg-cream p-7 pb-8 text-ink-stage shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-              <div className="relative h-28">
-                <StudioSpeaker size={72} className="left-6 top-0 -rotate-3" />
-                <HaloRing width={150} height={56} tilt={12} className="right-0 top-12" />
-                <StickerChip tone="ink" rotate={5} className="absolute right-0 top-0">
-                  2:13 am
-                </StickerChip>
-              </div>
-              <h3 className="mt-6 text-xl font-extrabold tracking-tight">No time to go looking</h3>
-              <blockquote className="mt-2 text-base font-bold leading-snug">
-                “Falling asleep with the laptop on.”
-              </blockquote>
-              <p className="mt-3 text-sm leading-relaxed text-ink-stage/65">
-                You already played four hours. Hunting for new venues and writing cold intros is the
-                last thing you have energy for. So it never happens.
-              </p>
-            </div>
-          </RevealOnScroll>
-
-          {/* The ceiling */}
-          <RevealOnScroll className="relative lg:mt-3" delayMs={240}>
-            <GradientBlob tone="show" className="-bottom-8 -left-6 h-36 w-52" />
-            <div className="relative -rotate-1 overflow-hidden rounded-3xl bg-cream p-7 pb-8 text-ink-stage shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-              <div className="relative h-28">
-                <div className="absolute bottom-0 left-3 flex items-end gap-2.5">
-                  {[36, 60, 84].map((h) => (
-                    <div
-                      key={h}
-                      className="w-7 rounded-t-full"
-                      style={{ height: h, background: "linear-gradient(180deg, #ff8a00, #ff2dae)" }}
-                    />
-                  ))}
-                </div>
-                <VinylDisc size={88} tone="orange" className="-right-4 top-4" />
-                <StickerChip tone="magenta" rotate={-5} className="absolute left-1 top-0">
-                  Two of you
-                </StickerChip>
-              </div>
-              <h3 className="mt-6 text-xl font-extrabold tracking-tight">The ceiling</h3>
-              <blockquote className="mt-2 text-base font-bold leading-snug">
-                “If there were two of me, I would double my business.”
-              </blockquote>
-              <p className="mt-3 text-sm leading-relaxed text-ink-stage/65">
-                The second you would be the one out finding work — knocking on doors, sending the
-                intros, chasing the next room. That’s exactly the half nobody has time for.
-              </p>
-            </div>
-          </RevealOnScroll>
+          <ol className="relative mt-14 grid gap-6 lg:grid-cols-3">
+            <div
+              aria-hidden
+              className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-brand-cyan via-neon-magenta to-neon-orange lg:block"
+            />
+            {SETUP_STEPS.map((step, index) => (
+              <RevealOnScroll key={step.number} delayMs={index * 110}>
+                <li className="relative h-full rounded-3xl border border-cream/10 bg-ink-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cream/20 hover:shadow-[0_18px_50px_rgba(0,0,0,0.3)]">
+                  <span className="relative z-10 inline-flex size-12 items-center justify-center rounded-full bg-cream font-mono text-sm font-black text-ink-stage shadow-lg">
+                    {step.number}
+                  </span>
+                  <h3 className="mt-6 text-2xl font-black tracking-tight text-cream-bright">
+                    {step.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-relaxed text-cream/60">{step.body}</p>
+                  <p className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-brand-cyan">
+                    {step.note}
+                  </p>
+                </li>
+              </RevealOnScroll>
+            ))}
+          </ol>
         </div>
       </section>
 
-      {/* ---------- The honest promise — candid line, right under the problem ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-8 sm:py-12">
-        <RevealOnScroll>
-          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised p-8 sm:p-12">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(480px circle at 90% 10%, rgba(255,45,174,0.12), transparent 70%), radial-gradient(420px circle at 10% 100%, rgba(255,138,0,0.08), transparent 70%)",
-              }}
-            />
-            <div className="relative max-w-2xl">
-              <Kicker>The honest promise</Kicker>
-              <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-                We can’t promise you the booking. We promise you <GradWord>never miss the shot.</GradWord>
-              </h2>
-              <p className="mt-4 text-lg leading-relaxed text-cream/75">
-                The AI surfaces every opportunity that fits you and drafts your pitch in your voice.
-                Whether you win the room is still down to you and the venue — that part’s honest, and
-                it always will be.
-              </p>
-              <p className="mt-3 text-lg leading-relaxed text-cream/75">
-                What we guarantee is the part that was slipping away:{" "}
-                <strong className="font-bold text-cream-bright">
-                  you’ll never miss a chance to put yourself forward
-                </strong>{" "}
-                — the AI finds it, drafts it, you just approve.
-              </p>
-            </div>
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      {/* ---------- How it works — 3 steps, discovery-first, scannable ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
+      {/* The two halves, explained in the simplest possible language. */}
+      <section className="mx-auto max-w-6xl px-6 pb-12 pt-4 sm:pb-20">
         <RevealOnScroll className="max-w-2xl lg:ml-auto lg:text-right">
-          <Kicker>How it works</Kicker>
-          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-            It finds. It drafts. You <GradWord>just say yes.</GradWord>
+          <Kicker>Two ways it keeps you booked</Kicker>
+          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
+            New rooms found. Incoming leads <GradWord>handled.</GradWord>
           </h2>
-          <p className="mt-3 text-lg text-cream/70">
-            You play the gigs. This goes out and finds the next ones. Three steps, about five minutes
-            of setup, and then it’s working while you sleep.
-          </p>
         </RevealOnScroll>
-        <RevealOnScroll delayMs={100}>
-          <ol className="mt-10 grid gap-6 sm:grid-cols-3">
-            {STEPS.map((s, i) => (
-              <li key={s.title} className="rounded-3xl border border-cream/10 bg-ink-raised p-6">
-                <span
-                  aria-hidden
-                  className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text font-mono text-4xl font-black tracking-tight text-transparent"
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mt-4 text-xl font-extrabold tracking-tight text-cream-bright">
-                  {s.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-cream/60">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </RevealOnScroll>
-      </section>
 
-      {/* ---------- Effortless — 30 seconds a day, approve from your phone ---------- */}
-      <section className="border-y border-cream/10">
-        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-12">
-          <Kicker>How little it asks of you</Kicker>
-          <h2 className="mt-4 max-w-2xl text-3xl font-black tracking-tight text-cream-bright sm:text-4xl">
-            30 seconds a day. Approve from your phone. You <GradWord>just say yes.</GradWord>
-          </h2>
-          <div className="mt-8 grid gap-10 sm:grid-cols-3">
-            {EFFORTLESS.map((s) => (
-              <div key={s.n}>
-                <div className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-4xl font-black tracking-tight text-transparent">
-                  {s.n}
-                </div>
-                <div className="mt-2 max-w-[240px] text-sm leading-snug text-cream/55">{s.l}</div>
-              </div>
-            ))}
-          </div>
-        </RevealOnScroll>
-      </section>
-
-      {/* ---------- Travel Mode — a secondary delight: the hunt tours with you ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-8 sm:py-12">
-        <RevealOnScroll>
-          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised p-8 sm:p-12">
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "radial-gradient(480px circle at 88% 12%, rgba(255,138,0,0.12), transparent 70%), radial-gradient(420px circle at 6% 100%, rgba(255,45,174,0.10), transparent 70%)",
-              }}
-            />
-            <VinylDisc size={210} tone="orange" spin className="-bottom-16 -right-16 hidden sm:block" />
-            <StickerChip tone="cream" rotate={-4} className="absolute right-8 top-8 hidden md:inline-block">
-              Works anywhere
-            </StickerChip>
-            <div className="relative max-w-2xl">
-              <Kicker>Travel mode</Kicker>
-              <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-                Going on tour? The gigs <GradWord>come with you.</GradWord>
-              </h2>
-              <p className="mt-4 text-lg leading-relaxed text-cream/75">
-                Tell Bright Ears where you&apos;re headed and the dates — it hunts guest spots and
-                residencies in that city for those days, and drafts the intro in your voice. Approve
-                from the road. It works anywhere in the world; the fine print follows wherever you
-                land.
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1.08fr_0.92fr]">
+          <RevealOnScroll>
+            <div className="relative h-full overflow-hidden rounded-[2rem] bg-cream p-8 text-ink-stage shadow-[0_28px_80px_rgba(0,0,0,0.42)] sm:p-10">
+              <HaloRing width={250} height={92} tilt={-10} className="-right-8 top-12" />
+              <StickerChip tone="magenta" rotate={-4}>Find new work</StickerChip>
+              <h3 className="relative mt-6 max-w-md text-4xl font-black leading-[0.98] tracking-tight sm:text-5xl">
+                Rooms you would never have known to call.
+              </h3>
+              <p className="relative mt-5 max-w-lg text-base leading-relaxed text-ink-stage/65">
+                Bright Ears watches for venue openings, entertainment programmes, hiring signals
+                and rooms already booking acts like yours. Every match comes with the reason it
+                fits—then a pitch is drafted for you.
               </p>
-              <p className="mt-3 text-lg leading-relaxed text-cream/75">
-                Same honest deal as always:{" "}
-                <strong className="font-bold text-cream-bright">
-                  it finds and pitches the date-bounded chances
-                </strong>{" "}
-                in your travel cities — results still depend on local demand. Included on every plan.
-              </p>
-              <div className="mt-8 grid gap-8 sm:grid-cols-3">
-                {TRAVEL_MODE.map((s) => (
-                  <div key={s.n}>
-                    <div className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-3xl font-black tracking-tight text-transparent">
-                      {s.n}
+              <div className="relative mt-8 grid gap-2 sm:grid-cols-2">
+                {["Fit explained", "Contact researched", "Pitch drafted", "You approve"].map(
+                  (item) => (
+                    <div
+                      key={item}
+                      className="rounded-2xl border border-ink-stage/10 bg-white/70 px-4 py-3 text-sm font-bold"
+                    >
+                      <span className="mr-2 text-brand-cyan">/</span>
+                      {item}
                     </div>
-                    <div className="mt-2 max-w-[240px] text-sm leading-snug text-cream/55">{s.l}</div>
-                  </div>
-                ))}
+                  ),
+                )}
+              </div>
+              <VinylDisc size={150} tone="orange" spin className="-bottom-16 -right-12" />
+            </div>
+          </RevealOnScroll>
+
+          <RevealOnScroll delayMs={120}>
+            <div className="relative h-full overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised p-8 sm:p-10">
+              <GradientBlob tone="cyan" className="-right-16 -top-16 h-52 w-72" />
+              <StickerChip tone="cream" rotate={4}>Handle inquiries</StickerChip>
+              <h3 className="relative mt-6 text-4xl font-black leading-[0.98] tracking-tight text-cream-bright">
+                The lead is answered while you’re still on stage.
+              </h3>
+              <p className="relative mt-5 text-base leading-relaxed text-cream/65">
+                Forward inquiries from email, your website or booking platforms. Bright Ears reads
+                them, filters the scams, checks your availability and writes the reply in your voice.
+              </p>
+              <div className="relative mt-8 rounded-2xl bg-white p-4 text-ink-stage shadow-xl">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-ink-stage/40">
+                  Reply ready
+                </p>
+                <p className="mt-2 text-sm font-extrabold">
+                  “Hi Maya — October 17 is open, and I’d love to play the Grandview…”
+                </p>
+                <div className="mt-4 flex items-center justify-between gap-4">
+                  <span className="text-xs text-ink-stage/45">Your voice · availability checked</span>
+                  <span className="rounded-full bg-brand-cyan px-3 py-1.5 text-xs font-black">
+                    Approve
+                  </span>
+                </div>
               </div>
             </div>
+          </RevealOnScroll>
+        </div>
+
+        <RevealOnScroll delayMs={100}>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {SMALL_WINS.map((win) => (
+              <div key={win.title} className="rounded-3xl border border-cream/10 bg-ink-raised p-5">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-cyan">
+                  {win.label}
+                </p>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-cream-bright">{win.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-cream/55">{win.body}</p>
+              </div>
+            ))}
           </div>
         </RevealOnScroll>
       </section>
 
-      {/* ---------- Reactive — the supporting beat: when someone does reach out ---------- */}
-      <section id="demo" className="scroll-mt-20">
-        <RevealOnScroll className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
-          <Kicker>And the other half</Kicker>
-          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-            When someone does reach out, you’re still the <GradWord>first to answer.</GradWord>
+      {/* Demo */}
+      <section id="demo" className="scroll-mt-20 border-y border-cream/10">
+        <RevealOnScroll className="mx-auto max-w-3xl px-6 py-20 sm:py-28">
+          <Kicker>Hear your voice come back</Kicker>
+          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
+            Paste an inquiry. Watch the reply <GradWord>write itself.</GradWord>
           </h2>
-          <p className="mt-3 text-lg text-cream/70">
-            Finding new rooms is the hero. But Bright Ears also catches every inquiry that lands in
-            your inbox — wedding, corporate, party, residency — drafts the reply in your voice, and
-            pings your phone to approve. Paste a real inquiry below and watch it write the reply,
-            live.
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-cream/68">
+            No sign-up needed. Use a real inquiry or the sample, then see what your artist assistant
+            would send back.
           </p>
           <div className="relative mt-10">
             <GradientBlob tone="show" className="-bottom-10 -left-8 h-44 w-72" />
@@ -473,195 +396,129 @@ export default function HomePage() {
         </RevealOnScroll>
       </section>
 
-      {/* ---------- The story — the Vinyl band, gradient pull quote ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-8 sm:py-12">
+      {/* Credibility without another long story section. */}
+      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
         <RevealOnScroll>
-          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised p-8 sm:p-12">
+          <div className="relative overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised p-8 sm:p-12">
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0"
+              className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(480px circle at 90% 10%, rgba(255,45,174,0.12), transparent 70%), radial-gradient(420px circle at 10% 100%, rgba(255,138,0,0.08), transparent 70%)",
+                  "radial-gradient(520px circle at 90% 0%, rgba(255,45,174,0.14), transparent 68%), radial-gradient(420px circle at 4% 100%, rgba(0,187,228,0.09), transparent 70%)",
               }}
             />
-            <VinylDisc size={230} tone="orange" spin className="-bottom-16 -right-16 hidden sm:block" />
-            <StickerChip tone="cream" rotate={4} className="absolute right-8 top-8 hidden md:inline-block">
-              Her name is Vinyl
-            </StickerChip>
-            <div className="relative max-w-2xl">
-              <Kicker>Our story</Kicker>
-              <h2 className="mt-4 text-4xl font-black tracking-tight sm:text-5xl">
-                {STORY_QUOTE.map((t, i) => (
-                  <span key={i} style={{ color: t.c }}>
-                    {t.w}
-                    {i < STORY_QUOTE.length - 1 ? " " : ""}
-                  </span>
-                ))}
-              </h2>
-              <p className="mt-4 text-lg leading-relaxed text-cream/75">
-                Twenty years running entertainment for venues — the same drowning in inquiries,
-                schedules and invoices, the same laptop glow at 2am. So we built an AI back office for
-                our own agency in Bangkok. Her name is Vinyl, and she still runs it today — finding
-                new rooms, answering every inquiry, keeping every gig straight.
-              </p>
-              <p className="mt-3 text-lg leading-relaxed text-cream/75">
-                Bright Ears is that same back office — now she goes hunting for yours.
-              </p>
+            <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+              <div className="max-w-3xl">
+                <Kicker>Built inside a real entertainment business</Kicker>
+                <blockquote className="mt-4 text-3xl font-black leading-tight tracking-tight text-cream-bright sm:text-5xl">
+                  Twenty years around venues taught us one thing:{" "}
+                  <GradWord>talent is rarely the bottleneck.</GradWord> Time is.
+                </blockquote>
+                <p className="mt-5 max-w-2xl text-base leading-relaxed text-cream/65">
+                  Bright Ears began as the back office for our own agency in Bangkok. It now does
+                  the same unglamorous chasing for independent performers—without pretending it can
+                  guarantee the booking.
+                </p>
+              </div>
               <Link
                 href="/story"
-                className="mt-6 inline-block font-semibold text-brand-cyan transition-opacity hover:opacity-80"
+                className="relative font-semibold text-brand-cyan transition-opacity hover:opacity-80"
               >
-                Read the whole story →
+                Read our story →
               </Link>
             </div>
           </div>
         </RevealOnScroll>
       </section>
 
-      {/* ---------- Features grid — cream posters, header right-aligned ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
-        <RevealOnScroll className="max-w-2xl lg:ml-auto lg:text-right">
-          <Kicker>What you get</Kicker>
-          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-            The chasing nobody has time for, <GradWord>handled.</GradWord>
+      {/* Pricing */}
+      <section className="mx-auto max-w-6xl px-6 py-12 sm:py-20">
+        <RevealOnScroll className="max-w-3xl">
+          <Kicker>Start with one city</Kicker>
+          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
+            The whole assistant starts at <GradWord>$25 a month.</GradWord>
           </h2>
-          <p className="mt-3 text-lg text-cream/70">
-            Finding the rooms, writing the intros, answering the leads, sending the nudges — all the
-            work that usually never happens, done for you. Included on every plan, without the 2am
-            shift.
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-cream/68">
+            Every plan finds venues and handles inquiries. The only differences are how many cities,
+            how many inquiries and how much you want it to send automatically.
           </p>
         </RevealOnScroll>
-        <RevealOnScroll delayMs={100}>
-          <div className="mt-12 grid gap-8 sm:grid-cols-2">
-            {FEATURES.map((f) => (
+
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {PLANS.map((plan, index) => (
+            <RevealOnScroll key={plan.name} delayMs={index * 100}>
               <div
-                key={f.title}
-                className={`rounded-3xl bg-cream p-7 text-ink-stage shadow-[0_20px_50px_rgba(0,0,0,0.4)] ${f.tilt}`}
+                className={`relative h-full rounded-3xl p-6 ${
+                  plan.featured
+                    ? "bg-cream text-ink-stage shadow-[0_24px_70px_rgba(0,0,0,0.42)]"
+                    : "border border-cream/10 bg-ink-raised text-cream-bright"
+                }`}
               >
-                <StickerChip tone={f.chipTone} rotate={f.chipRotate}>
-                  {f.chip}
-                </StickerChip>
-                <h3 className="mt-4 text-xl font-extrabold tracking-tight">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-stage/65">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </RevealOnScroll>
-        <RevealOnScroll delayMs={150}>
-          <p className="mt-14 text-center text-sm font-semibold text-cream/60">
-            And it catches the leads you already get
-          </p>
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            {SOURCES.map((s) => (
-              <span
-                key={s}
-                className="rounded-full border-[1.5px] border-cream/25 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-cream/70"
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-          <p className="mt-3 text-center text-xs text-cream/65">
-            Works with any platform that emails you, anywhere in the world. Simple email forwarding
-            — no password sharing, no OAuth.
-          </p>
-        </RevealOnScroll>
-      </section>
-
-      {/* ---------- Social proof / what to expect — illustrative targets, no measured claims ---------- */}
-      <section className="border-y border-cream/10">
-        <RevealOnScroll className="mx-auto max-w-6xl px-6 py-12">
-          <Kicker>What to expect</Kicker>
-          <div className="mt-6 grid gap-10 sm:grid-cols-3">
-            {STATS.map((s) => (
-              <div key={s.n}>
-                <div className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-4xl font-black tracking-tight text-transparent">
-                  {s.n}
-                </div>
-                <div className="mt-2 max-w-[230px] text-sm leading-snug text-cream/55">{s.l}</div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-8 max-w-2xl text-xs leading-relaxed text-cream/65">
-            Results depend on demand where you play — we can’t promise the booking, only that you
-            never miss the shot at it.
-          </p>
-        </RevealOnScroll>
-      </section>
-
-      {/* ---------- Pricing teaser — three plans, discovery-led ---------- */}
-      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-24">
-        <RevealOnScroll className="max-w-2xl">
-          <Kicker>Pricing</Kicker>
-          <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-            Less than one good <GradWord>gig.</GradWord>
-          </h2>
-          <p className="mt-3 text-lg text-cream/70">
-            Every plan is the complete engine — the same deep research on every plan: it hunts venues
-            for you and answers your inquiries. Plans only change how many inquiries, how many cities,
-            and how much autopilot. Subscribe to activate — month-to-month, cancel anytime.
-          </p>
-        </RevealOnScroll>
-        <RevealOnScroll delayMs={100}>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3">
-            {PRICING_TEASER.map((p) => (
-              <div key={p.name} className="rounded-3xl border border-cream/10 bg-ink-raised p-6">
-                <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-cream/55">
-                  {p.name}
+                {plan.featured && (
+                  <StickerChip tone="magenta" rotate={-3} className="absolute -right-2 -top-3">
+                    Start here
+                  </StickerChip>
+                )}
+                <p
+                  className={`font-mono text-[10px] font-bold uppercase tracking-[0.18em] ${
+                    plan.featured ? "text-ink-stage/45" : "text-cream/50"
+                  }`}
+                >
+                  {plan.name}
                 </p>
-                <p className="mt-3 text-4xl font-black tracking-tight text-cream-bright">
-                  {p.price}
-                  <span className="text-base font-normal text-cream/50">/mo</span>
+                <p className="mt-3 text-4xl font-black tracking-tight">
+                  {plan.price}
+                  <span className={`text-sm font-normal ${plan.featured ? "text-ink-stage/45" : "text-cream/45"}`}>
+                    /mo
+                  </span>
                 </p>
-                <p className="mt-3 text-sm leading-relaxed text-cream/60">{p.l}</p>
+                <p className={`mt-3 text-sm leading-relaxed ${plan.featured ? "text-ink-stage/60" : "text-cream/55"}`}>
+                  {plan.body}
+                </p>
               </div>
-            ))}
-          </div>
-          <p className="mt-8">
-            <Link
-              href="/pricing"
-              className="font-semibold text-brand-cyan transition-opacity hover:opacity-80"
-            >
-              See everything in each plan →
-            </Link>
-          </p>
-        </RevealOnScroll>
-      </section>
-
-      {/* ---------- Final CTA — magenta glow band ---------- */}
-      <section className="mx-auto max-w-6xl px-6 pb-8 pt-4">
+            </RevealOnScroll>
+          ))}
+        </div>
         <RevealOnScroll>
-          <div className="relative overflow-hidden rounded-3xl border border-cream/10 bg-ink-raised px-8 py-14 text-center shadow-[0_30px_90px_rgba(255,45,174,0.18)] sm:px-12 sm:py-16">
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(520px circle at 18% 0%, rgba(255,45,174,0.22), transparent 70%), radial-gradient(520px circle at 85% 100%, rgba(255,138,0,0.16), transparent 70%)",
-                }}
-              />
-              <GradientBlob tone="show" className="-left-16 -top-16 h-48 w-64" />
-              <GradientBlob tone="show" className="-bottom-16 -right-12 h-48 w-64" />
-            </div>
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Link href="/pricing" className="font-semibold text-brand-cyan hover:opacity-80">
+              Compare every plan →
+            </Link>
+            <span className="text-sm text-cream/50">Month to month · cancel anytime · no surprise usage bills</span>
+          </div>
+        </RevealOnScroll>
+      </section>
+
+      {/* Final CTA */}
+      <section className="mx-auto max-w-6xl px-6 pb-8 pt-8">
+        <RevealOnScroll>
+          <div className="relative overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised px-8 py-14 text-center shadow-[0_30px_90px_rgba(255,45,174,0.18)] sm:px-12 sm:py-16">
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(520px circle at 18% 0%, rgba(255,45,174,0.22), transparent 70%), radial-gradient(520px circle at 85% 100%, rgba(255,138,0,0.16), transparent 70%)",
+              }}
+            />
             <div className="relative">
-              <Kicker>The encore</Kicker>
-              <blockquote className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-                Never miss a gig you <GradWord>never knew existed.</GradWord>
-              </blockquote>
-              <p className="mx-auto mt-4 max-w-xl text-lg text-cream/75">
-                The AI finds the rooms, drafts the pitch in your voice, and waits for your tap. You
-                approve; it does the rest. And when a lead comes in, you’re still first to answer.
+              <Kicker>Your next room is not going to find itself</Kicker>
+              <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
+                Build the profile once. Let your assistant do the <GradWord>chasing.</GradWord>
+              </h2>
+              <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-cream/68">
+                Start with the essentials. No video, no technical setup, and no need to finish every
+                detail before you see your dashboard.
               </p>
               <Link
                 href="/onboarding"
-                className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
+                className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
               >
-                Get started
+                Build my profile
               </Link>
-              <p className="mt-4 text-sm text-cream/65">{TRUST_LINE}</p>
-              <p className="mt-1 text-xs text-cream/65">
-                From $25/mo. At your plan&rsquo;s cap we pause — never a surprise bill.
+              <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/50">
+                From $25/month · cancel anytime
               </p>
             </div>
           </div>

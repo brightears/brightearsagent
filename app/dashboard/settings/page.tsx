@@ -90,7 +90,7 @@ function Section({
   );
 }
 
-/** Profile strength + hunting-license meter (moved here from the old profile page). */
+/** Profile strength + pitch-readiness meter (moved here from the old profile page). */
 function StrengthMeter({
   percent,
   missing,
@@ -110,11 +110,11 @@ function StrengthMeter({
         </span>
         {canPitch ? (
           <StickerChip tone="magenta" rotate={-2}>
-            Hunting license: active
+            Venue pitching: ready
           </StickerChip>
         ) : (
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/65">
-            Hunting license: not yet
+            Venue pitching: not ready
           </span>
         )}
       </div>
@@ -470,7 +470,7 @@ export default async function ControlRoomPage({
             <Section
               id="profile"
               title="Voice & profile"
-              intro="How you sound and what your assistant pitches with. Fill the meter to unlock the hunting license."
+              intro="How you sound and what your assistant pitches with. Complete the essentials to make your profile ready for venues."
             >
               <StrengthMeter
                 percent={strength.percent}

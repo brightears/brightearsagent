@@ -44,7 +44,7 @@ describe("profileStrength", () => {
     const r = profileStrength(empty, noCounts);
     expect(r.percent).toBe(0);
     expect(r.canPitch).toBe(false);
-    expect(r.missing.length).toBe(13);
+    expect(r.missing.length).toBe(14);
     // Highest-priority ammunition first.
     expect(r.missing[0]).toMatch(/photo/i);
   });
@@ -62,7 +62,6 @@ describe("profileStrength", () => {
       headline: "DJ for weddings",
       bio: "A bio.",
       genres: ["house"],
-      photoUrls: ["https://x.test/1.jpg"],
     };
     const r = profileStrength(partial, { activePackages: 1, gigs: 0 });
     expect(r.percent).toBeGreaterThan(0);
@@ -75,20 +74,22 @@ describe("profileStrength", () => {
     expect(cities).toBeGreaterThan(photos);
   });
 
-  it("photo partial credit moves the meter but not the license", () => {
-    const two = profileStrength({ ...empty, photoUrls: ["a", "b"] }, noCounts);
+  it("one photo clears the pitch gate while more photos improve completeness", () => {
+    const none = profileStrength(empty, noCounts);
+    const one = profileStrength({ ...empty, photoUrls: ["a"] }, noCounts);
     const three = profileStrength({ ...empty, photoUrls: ["a", "b", "c"] }, noCounts);
-    expect(two.percent).toBeGreaterThan(0);
-    expect(three.percent).toBeGreaterThan(two.percent);
-    expect(two.canPitch).toBe(false);
-    expect(two.missing.some((m) => m.includes(String(MIN_PITCH_PHOTOS)))).toBe(true);
+    expect(one.percent).toBeGreaterThan(none.percent);
+    expect(three.percent).toBeGreaterThan(one.percent);
+    expect(none.missing.some((m) => /clear performance photo/i.test(m))).toBe(true);
+    expect(one.missing.some((m) => /clear performance photo/i.test(m))).toBe(false);
+    expect(one.missing.some((m) => /two more photos/i.test(m))).toBe(true);
     expect(three.missing.some((m) => /photo/i.test(m))).toBe(false);
   });
 
   it("license threshold edges: exactly the requirements flips canPitch true", () => {
     const justEnough: ProfileFields = {
       ...empty,
-      photoUrls: ["a", "b", "c"], // exactly MIN_PITCH_PHOTOS
+      photoUrls: Array.from({ length: MIN_PITCH_PHOTOS }, (_, index) => `photo-${index}`),
       bio: "Short but present.",
       headline: "Headline",
       genres: ["funk"],
@@ -100,7 +101,9 @@ describe("profileStrength", () => {
     expect(r.percent).toBeLessThan(100); // nice-to-haves still missing
 
     // Remove any single license requirement → license withheld.
-    expect(profileStrength({ ...justEnough, photoUrls: ["a", "b"] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
+    expect(
+      profileStrength({ ...justEnough, photoUrls: [] }, { activePackages: 1, gigs: 1 }).canPitch,
+    ).toBe(false);
     expect(profileStrength({ ...justEnough, bio: "  " }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, headline: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, genres: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);

@@ -129,8 +129,8 @@ the relevant provider dashboards or masked Render environment variables.
 
 Performance video is optional as of 2026-07-31. It is available as an EPK
 enhancement but does not affect profile strength, onboarding readiness, weekly
-freshness notifications, or the hunting license. Three photos remain the
-visual-proof requirement. The founder profile has four live-verified photos,
+freshness notifications, or pitch readiness. One clear performance photo is
+required; three are recommended for a fuller press kit. The founder profile has four live-verified photos,
 including an ABar action shot of Norbert DJing, and a confirmed historical gig
 (`2025-12-31`, `New Year's Eve DJ`,
 `Shore, Hilton Pattaya — Pattaya`).

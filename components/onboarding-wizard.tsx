@@ -55,11 +55,11 @@ const labelStyles = "block text-xs font-semibold uppercase tracking-wide text-in
 // ---------------------------------------------------------------------------
 
 const STEPS = [
-  { label: "Your business", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "Who you are", chip: "bg-neon-magenta text-ink-stage" },
+  { label: "The basics", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "Your profile", chip: "bg-neon-magenta text-ink-stage" },
   { label: "Your voice", chip: "bg-neon-orange text-ink-stage" },
-  { label: "Your calendar", chip: "bg-brand-cyan text-ink-stage" },
-  { label: "Connect leads", chip: "bg-neon-magenta text-ink-stage" },
+  { label: "Availability", chip: "bg-brand-cyan text-ink-stage" },
+  { label: "Go live", chip: "bg-neon-magenta text-ink-stage" },
 ] as const;
 
 const KINDS: { kind: PerformerKind; label: string }[] = [
@@ -322,9 +322,9 @@ const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
 // glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
 // EMOJI IN UI). Inherits color via currentColor; size with className per spot.
-/** Live license flags computed by the wizard shell from what's typed so far —
- *  mirrors the license-critical checks in lib/profile/strength.ts (the server
- *  truth that actually gates pitching). Shown, never enforced, here. */
+/** Live pitch-readiness flags computed by the wizard shell from what's typed so
+ *  far. Mirrors the checks in lib/profile/strength.ts, the server truth that
+ *  gates venue pitching. */
 export type LicenseFlags = {
   photos: boolean;
   photoCount: number;
@@ -337,14 +337,14 @@ export type LicenseFlags = {
 };
 
 /**
- * The hunting license, made visible (audit 2026-07). Video remains a useful,
+ * Pitch readiness, made visible (audit 2026-07). Video remains a useful,
  * optional EPK enhancement; three authentic photos provide the visual proof
  * required for venue pitching.
  */
 function LicenseMeter({ license }: { license: LicenseFlags }) {
   const items: { label: string; done: boolean }[] = [
     {
-      label: license.photos ? "3 photos" : `3 photos (${license.photoCount}/3)`,
+      label: license.photos ? "A clear photo" : "A clear photo (still needed)",
       done: license.photos,
     },
     { label: "A short bio", done: license.bio },
@@ -358,11 +358,11 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
   return (
     <div className="rounded-2xl border border-cream bg-cream/20 p-4">
       <SectionLabel>
-        Your hunting license — {doneCount}/{items.length}
+        Pitch-ready profile — {doneCount}/{items.length}
       </SectionLabel>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
-        Everything else works without these — but your assistant needs a credible profile before it
-        pitches in your name. Three strong photos are enough; video is optional.
+        These are the essentials your assistant needs before it pitches a venue in your name. We ask
+        for one booked date next. One clear photo is enough; extra photos and video are optional.
       </p>
       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
         {items.map((item) => (
@@ -492,8 +492,8 @@ function StepBusiness({
     <form action={formAction} className="space-y-4">
       <StepHeading
         step={0}
-        title="Your business"
-        blurb="The basics — this is the name your clients see on every reply we draft for you."
+        title="First, tell us about your act"
+        blurb="Just the basics: who you perform as and where your assistant should start looking."
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -611,7 +611,7 @@ function StepBusiness({
       <div className="flex items-center justify-end gap-3 pt-2">
         {result && !result.ok && <p className="text-sm text-red-600">{result.error}</p>}
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Next: who you are →"}
+          {pending ? "Saving…" : "Next: build your profile →"}
         </button>
       </div>
     </form>
@@ -679,10 +679,13 @@ function StepProfile({
   }
 
   const doesResidency = profile.gigTypes.includes("residency");
+  const photosReady = !uploadsEnabled || profile.photoUrls.length >= 1;
   const canAdvance =
     profile.genres.trim().length > 0 &&
     profile.headline.trim().length > 0 &&
-    profile.feeFloor.trim().length > 0;
+    profile.bio.trim().length > 0 &&
+    profile.feeFloor.trim().length > 0 &&
+    photosReady;
 
   async function handleNext() {
     setError(null);
@@ -714,8 +717,8 @@ function StepProfile({
     <div className="space-y-6">
       <StepHeading
         step={1}
-        title="Who you are"
-        blurb="This is what your assistant pitches and replies with — the more it knows you, the better (and more often) it can win you the right rooms. The essentials take a minute; add the rest now or anytime."
+        title="Build the profile venues will see"
+        blurb="Add the essentials now. Links, equipment notes and other polish can wait until later."
       />
 
       {/* A — IDENTITY (the matching + press-kit basics) */}
@@ -750,7 +753,7 @@ function StepProfile({
         <div>
           <label htmlFor="ob-bio" className={labelStyles}>
             Short bio{" "}
-            <span className="font-normal normal-case text-ink-stage/40">(optional — but it lands more gigs)</span>
+            <span className="font-normal normal-case text-ink-stage/40">(needed for venue pitches)</span>
           </label>
           <textarea
             id="ob-bio"
@@ -763,21 +766,63 @@ function StepProfile({
         </div>
       </div>
 
-      {/* B — SHOWCASE (optional links; what wins bookings for THIS kind) */}
+      {/* B — THE VISUAL PROOF THE PITCH ACTUALLY NEEDS */}
       <div className="space-y-4 rounded-2xl border border-cream bg-cream/20 p-4">
         <div>
-          <SectionLabel>Show them what you do</SectionLabel>
-          <p className="-mt-1 text-xs text-ink-stage/55">{copy.showcaseNote}</p>
+          <SectionLabel>One clear photo for your pitch</SectionLabel>
+          <p className="-mt-1 text-xs text-ink-stage/55">
+            An action shot is best. Add more later for a fuller press kit; video is never required.
+          </p>
         </div>
         {uploadsEnabled && (
           <div>
-            <span className={labelStyles}>Photos</span>
             <PhotoUploader value={profile.photoUrls} onAdd={addPhoto} onRemove={removePhoto} />
             <p className="mt-1 text-xs text-ink-stage/50">
-              A great action shot wins bookings — add a few, your best first.
+              {profile.photoUrls.length >= 1
+                ? profile.photoUrls.length >= 3
+                  ? "Your gallery is in great shape. Put your strongest image first."
+                  : "That’s enough to pitch. Two more photos are recommended, but you can move on."
+                : "Add one photo to make your profile pitch-ready."}
             </p>
           </div>
         )}
+        {!uploadsEnabled && (
+          <p className="text-xs text-ink-stage/50">
+            Photo uploads are unavailable in this environment. You can add them later from your
+            profile.
+          </p>
+        )}
+      </div>
+
+      {/* C — THE ONE COMMERCIAL BOUNDARY THE AGENT MUST NEVER GUESS */}
+      <div>
+        <label htmlFor="ob-floor" className={labelStyles}>
+          Lowest fee you&apos;ll accept ({currency})
+        </label>
+        <input
+          id="ob-floor"
+          inputMode="numeric"
+          value={profile.feeFloor}
+          onChange={(e) => set("feeFloor", e.target.value)}
+          placeholder="1200"
+          className={inputStyles}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          For a one-off gig. Your assistant will never pitch or quote below this.
+        </p>
+      </div>
+
+      {/* Everything that improves the profile but is not needed to continue is
+          deliberately tucked away. Non-technical artists see one short path;
+          power users can still give the drafter the full picture. */}
+      <Walkthrough title="Add links, rates and setup details (optional)">
+        <div className="space-y-5">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-stage/60">
+              Show them more
+            </p>
+            <p className="mb-3 text-xs text-ink-stage/50">{copy.showcaseNote}</p>
+          </div>
         <div>
           <label htmlFor="ob-video" className={labelStyles}>Video links (optional)</label>
           <textarea
@@ -802,16 +847,12 @@ function StepProfile({
           />
           <p className="mt-1 text-xs text-ink-stage/50">One link per line — they appear on your press kit page.</p>
         </div>
-        <p className="text-xs text-ink-stage/45">
-          {uploadsEnabled
-            ? "Add or change any of this anytime from your profile."
-            : "Photo uploads are coming — for now, link them above. Add or change any of this anytime from your profile."}
-        </p>
-      </div>
 
-      {/* C — HOW YOU WORK (the dials + the rider) */}
-      <div className="space-y-4 rounded-2xl border border-dashed border-ink-stage/20 bg-cream/30 p-4">
-        <SectionLabel>How you work &amp; what you need</SectionLabel>
+        <div className="border-t border-cream pt-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-stage/60">
+            How you work
+          </p>
+        </div>
         <div>
           <span className={labelStyles}>What you take on</span>
           <div className="flex flex-wrap gap-2">
@@ -836,32 +877,18 @@ function StepProfile({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="ob-floor" className={labelStyles}>Lowest fee you&apos;ll accept ({currency})</label>
+            <label htmlFor="ob-hours" className={labelStyles}>One-off price covers up to (hours)</label>
             <input
-              id="ob-floor"
+              id="ob-hours"
               inputMode="numeric"
-              value={profile.feeFloor}
-              onChange={(e) => set("feeFloor", e.target.value)}
-              placeholder="1200"
+              value={profile.oneOffHours}
+              onChange={(e) => set("oneOffHours", e.target.value)}
+              placeholder="4"
               className={inputStyles}
             />
             <p className="mt-1 text-xs text-ink-stage/50">
-              For a one-off gig. Your assistant never quotes below it.
+              Quotes state what your minimum fee includes.
             </p>
-            <div className="mt-2">
-              <label htmlFor="ob-hours" className={labelStyles}>Covers up to (hours)</label>
-              <input
-                id="ob-hours"
-                inputMode="numeric"
-                value={profile.oneOffHours}
-                onChange={(e) => set("oneOffHours", e.target.value)}
-                placeholder="4"
-                className={inputStyles}
-              />
-              <p className="mt-1 text-xs text-ink-stage/50">
-                What that price includes — quotes say it, so nobody argues later.
-              </p>
-            </div>
           </div>
           {doesResidency && (
             <div>
@@ -922,7 +949,11 @@ function StepProfile({
             up.
           </p>
         </div>
-      </div>
+          <p className="text-xs text-ink-stage/45">
+            You can change all of these details later in your Control room.
+          </p>
+        </div>
+      </Walkthrough>
 
       <LicenseMeter license={license} />
 
@@ -940,8 +971,8 @@ function StepProfile({
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
       {!canAdvance && !error && (
         <p className="text-right text-xs text-ink-stage/50">
-          Fill in the three required fields to continue — your style, your one-line description, and
-          your minimum fee.
+          To make the profile pitch-ready, add your style, one-line description, short bio,
+          minimum fee and one photo.
         </p>
       )}
     </div>
@@ -1033,14 +1064,15 @@ function StepVoice({
     <div className="space-y-5">
       <StepHeading
         step={2}
-        title="Your voice"
-        blurb="This is the secret sauce — paste a few real replies you've actually sent, then answer a couple of quick questions. We'll write every draft the way you would, so nobody can tell you didn't type it."
+        title="Show us how you sound"
+        blurb="Paste one real reply if you have it. If not, start with a clean professional voice and teach your assistant later."
       />
 
       <div>
         <span className={labelStyles}>Replies you&apos;ve sent (the real ones, typos and all)</span>
         <p className="mb-2 mt-1 text-xs text-ink-stage/50">
-          Two or three is the sweet spot — a quick yes, a follow-up, a tricky date. One per box; the more range, the more it sounds like you.
+          One is enough to start. Two or three gives your assistant more range — a quick yes, a
+          follow-up or a tricky date.
         </p>
         <div className="space-y-2">
           {voice.samples.map((s, i) => (
@@ -1163,7 +1195,7 @@ function StepVoice({
             disabled={pending}
             className="text-sm font-semibold text-ink-stage/45 underline-offset-2 hover:text-ink-stage/70 hover:underline"
           >
-            Skip for now
+            Use a clean professional voice
           </button>
           <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
             {pending ? "Saving…" : "Next: your calendar →"}
@@ -1171,8 +1203,8 @@ function StepVoice({
         </div>
       </div>
       <p className="text-right text-xs text-ink-stage/40">
-        No old replies at hand? Skip — drafts start in a clean professional tone, and you can paste
-        real ones any time in the Control room.
+        No old replies at hand? That’s fine — your drafts start clear and professional, and you can
+        teach the assistant your voice later in the Control room.
       </p>
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
     </div>
@@ -1274,8 +1306,8 @@ function StepCalendar({
     <div className="space-y-4">
       <StepHeading
         step={3}
-        title="Your calendar"
-        blurb="Drop in the dates you're already booked so we never tell a client you're free when you're not. Rough titles are fine."
+        title="Add one date you’re already booked"
+        blurb="This keeps us from offering a date you can’t play and completes your pitch-ready profile. A rough title is fine."
       />
 
       {savedCount > 0 && (
@@ -1327,10 +1359,12 @@ function StepCalendar({
         + Add another date
       </button>
 
-      {/* Residency — log a recurring weekly slot once; we expand every night. */}
-      <div className="space-y-3 rounded-2xl border border-dashed border-ink-stage/20 bg-cream/30 p-4">
+      {/* Residency is useful but uncommon. Keep the main path to one date and
+          reveal the bulk editor only to artists who need it. */}
+      <Walkthrough title="I have a regular weekly slot">
+        <div className="space-y-3">
         <div>
-          <SectionLabel>Got a residency? Log it once</SectionLabel>
+          <SectionLabel>Log the whole residency at once</SectionLabel>
           <p className="-mt-1 text-xs text-ink-stage/55">
             Playing a regular weekly slot? Pick the day and the run of dates — we&apos;ll block every one, so
             you&apos;re never shown as free that night. Add each residency separately (e.g. Wednesdays at one
@@ -1426,7 +1460,8 @@ function StepCalendar({
             {resNote.text}
           </p>
         )}
-      </div>
+        </div>
+      </Walkthrough>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
@@ -1438,10 +1473,10 @@ function StepCalendar({
             onClick={onDone}
             className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
           >
-            I’ll do this later
+            I don’t have a date handy
           </button>
           <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
-            {pending ? "Saving…" : "Next: connect your leads →"}
+            {pending ? "Saving…" : "Next: go live →"}
           </button>
         </div>
       </div>
@@ -1504,7 +1539,7 @@ function StepConnect({
   leadDetected: boolean;
   /** ~90s elapsed on this step with no lead detected (audit C2 fallback). */
   tookTooLong: boolean;
-  /** Hunting license complete (client-side view) — gates the finale's promise. */
+  /** Pitch-ready profile complete (client-side view) — gates venue outreach. */
   licenseReady: boolean;
   /** Gmail's forwarding-approval link/code, once its verification email landed. */
   forwardingConfirm: { url: string | null; code: string | null } | null;
@@ -1515,268 +1550,269 @@ function StepConnect({
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [checkoutError, setCheckoutError] = useState(false);
+  const [incomingOpen, setIncomingOpen] = useState(leadDetected || Boolean(forwardingConfirm));
+
+  function beginCheckout() {
+    if (!chosenPlan) return;
+    setCheckoutPending(true);
+    setCheckoutError(false);
+    void startCheckout(chosenPlan).catch(() => {
+      setCheckoutPending(false);
+      setCheckoutError(true);
+    });
+  }
+
+  const planLabel = chosenPlan
+    ? chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()
+    : null;
 
   return (
     <div className="space-y-4">
       <StepHeading
         step={4}
-        title="Point your inquiries here"
-        blurb="A client emails you like always. Your inbox slips a copy to your assistant, a reply drafts itself in your voice, and you approve it from your phone. Set it up once — or try it by hand right now."
+        title="You’re ready to go live"
+        blurb="Turn on venue matching now. If you also want Bright Ears to draft replies to incoming inquiries, connect your inbox today or whenever you’re ready."
       />
 
-      {/* The mental model, in three plain steps — this is what makes the page
-          make sense to a non-technical artist. */}
-      <div className="rounded-2xl bg-cream/40 p-4">
-        <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55">
-          How it works
-        </p>
-        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-stage/75">
-          <li>A client emails you — nothing changes for them.</li>
-          <li>
-            A copy of that email reaches your assistant (you forward it, or a one-time rule does it
-            for you).
-          </li>
-          <li>
-            It drafts the reply in your voice → you approve → it sends as your business. The
-            client&apos;s answer lands back in your normal inbox, and every inquiry shows up in your
-            Pipeline here.
-          </li>
-        </ol>
-        <p className="mt-2.5 text-xs leading-relaxed text-ink-stage/55">
-          Clients and venues never see your assistant&apos;s address — it&apos;s internal, only your
-          inbox uses it. Venue outreach is separate: those emails go out from your own mailbox once
-          you connect it in your Control room (Gmail today, Outlook coming).
-        </p>
-      </div>
-
-      {/* Gmail's forwarding approval — the one click self-serve activation used
-          to dead-end on (the pipeline now catches the verification email the
-          moment it arrives; the poll surfaces it here live). */}
-      {forwardingConfirm && (
-        <div className="rounded-2xl border-2 border-brand-cyan bg-white p-5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <StickerChip tone="ink" rotate={-2}>
-              Gmail confirmation caught
-            </StickerChip>
-          </div>
-          <p className="mt-3 font-bold text-ink-stage">One click left — approve the forwarding</p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
-            Gmail sent its verification to your assistant and we caught it. Approve it and every
-            inquiry flows in on its own. Already clicked it? You&apos;re done — send yourself a test
-            below.
-          </p>
-          {forwardingConfirm.url ? (
-            <a
-              href={forwardingConfirm.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`mt-3 inline-block ${buttonStyles.primary} text-sm`}
-            >
-              Approve forwarding in Gmail →
-            </a>
-          ) : (
-            <p className="mt-3 text-sm text-ink-stage/70">
-              Open the &quot;Gmail Forwarding Confirmation&quot; email Gmail also sent to your own
-              inbox and click its link.
-            </p>
-          )}
-          {forwardingConfirm.code && (
-            <p className="mt-3 text-sm text-ink-stage/70">
-              Or paste this code into Gmail&apos;s forwarding settings:{" "}
-              <span className="rounded-md bg-cream/60 px-2 py-0.5 font-mono text-xs font-bold text-ink-stage">
-                {forwardingConfirm.code}
-              </span>
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Primary action + live proof (or the celebration once a lead lands).
-          The address lives HERE, at the moment it's needed. */}
-      {leadDetected ? (
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-neon-magenta to-neon-orange p-8 text-center shadow-[0_16px_44px_rgba(255,45,174,0.35)]">
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <StickerChip tone="cream" rotate={-4}>
-              First inquiry caught
-            </StickerChip>
-            <StickerChip tone="ink" rotate={3}>
-              Now playing — your reply
-            </StickerChip>
-          </div>
-          <p className="mt-4 text-xl font-extrabold tracking-tight text-ink-stage">
-            Your first inquiry just landed — it works.
-          </p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-stage/75">
-            {licenseReady ? (
-              <>
-                We caught it and read it. Your assistant is set up and ready to reply in your voice
-                and hunt venues for you — choose a plan to switch it on, and it goes to work on this
-                one and every one after.
-              </>
-            ) : (
-              <>
-                We caught it and read it. Choose a plan and your assistant answers this inquiry — and
-                every one after — in your voice. Venue pitching unlocks once your hunting license is
-                complete (the checklist on the “Who you are” step: video, photos, a calendar gig).
-              </>
-            )}
+      {/* Activation is the main finish line. Inbox forwarding is a separate,
+          optional capability below instead of a technical gate before value. */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-neon-magenta via-neon-magenta to-neon-orange p-6 text-ink-stage shadow-[0_18px_48px_rgba(255,45,174,0.28)] sm:p-7">
+        <span
+          aria-hidden
+          className="absolute -right-12 -top-12 size-36 rounded-full border-[20px] border-cream/15"
+        />
+        <div className="relative">
+          <StickerChip tone="cream" rotate={-3}>
+            Profile saved
+          </StickerChip>
+          <h3 className="mt-4 text-2xl font-black tracking-tight">Turn on your venue hunt</h3>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-stage/75">
+            Bright Ears starts scanning for rooms that fit your act as soon as you activate.
+            {licenseReady
+              ? " Your profile is ready for pitches."
+              : " Add one booked date later to make your profile ready for venue pitches."}
           </p>
           {chosenPlan ? (
-            // They already chose on the pricing page — open checkout for that
-            // plan directly; no re-deciding at the activation moment (P5.5).
-            <>
-              <button
-                type="button"
-                disabled={checkoutPending}
-                onClick={() => {
-                  setCheckoutPending(true);
-                  setCheckoutError(false);
-                  void startCheckout(chosenPlan).catch(() => {
-                    setCheckoutPending(false);
-                    setCheckoutError(true);
-                  });
-                }}
-                className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity disabled:opacity-60"
-              >
-                {checkoutPending
-                  ? "Opening checkout…"
-                  : `Activate ${chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()} →`}
-              </button>
-              {checkoutError && (
-                <p className="mx-auto mt-3 max-w-md text-sm font-medium text-ink-stage">
-                  Couldn&apos;t open checkout — please try again, or choose your plan later from
-                  your dashboard.
-                </p>
-              )}
-            </>
+            <button
+              type="button"
+              disabled={checkoutPending}
+              onClick={beginCheckout}
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright transition-opacity hover:opacity-90 disabled:opacity-60"
+            >
+              {checkoutPending ? "Opening checkout…" : `Activate ${planLabel} →`}
+            </button>
           ) : (
             <Link
               href="/dashboard/settings#billing"
-              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright hover:opacity-90 transition-opacity"
+              className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright transition-opacity hover:opacity-90"
             >
-              Choose your plan →
+              Choose a plan →
             </Link>
           )}
-        </div>
-      ) : (
-        <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
-          <p className="font-bold text-ink-stage">Try it now — forward one inquiry</p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
-            Grab any inquiry sitting in your email — or send a quick test from your phone — and
-            forward it to your assistant:
-          </p>
-          <div className="mt-3">
-            <LeadAddressPill address={leadAddress} />
-          </div>
-          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-stage/65">
-            <span className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan" aria-hidden />
-            Listening for your first inquiry… (we check every 5 seconds)
-          </p>
-          {tookTooLong && (
-            <p className="mt-3 rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/70">
-              Taking longer than expected? Make sure you forwarded to the exact address above — or skip
-              this and we&apos;ll catch your first inquiry whenever it arrives.
+          {checkoutError && (
+            <p className="mt-3 max-w-md text-sm font-medium">
+              Couldn&apos;t open checkout — please try again, or choose your plan from the dashboard.
             </p>
           )}
+          <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-stage/60">
+            Month to month · cancel anytime
+          </p>
         </div>
-      )}
-
-      {/* Everything provider-specific is optional + tucked away (progressive
-          disclosure) so the step reads as one idea + one action. */}
-      <div className="space-y-2">
-        <Walkthrough title="Make it automatic (optional)">
-          <p className="mb-3">
-            Set a one-time rule so every inquiry forwards itself and you never touch it again — the
-            originals still land in your normal inbox. You&apos;ll paste this address:
-          </p>
-          <div className="mb-3">
-            <LeadAddressPill address={leadAddress} />
-          </div>
-          <div className="mb-3 inline-flex rounded-full border border-cream bg-white p-0.5">
-            {(["gmail", "outlook"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setProvider(p)}
-                className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
-                  provider === p ? "bg-brand-cyan text-ink-stage" : "text-ink-stage/55 hover:text-ink-stage"
-                }`}
-              >
-                {p === "gmail" ? "Gmail" : "Outlook"}
-              </button>
-            ))}
-          </div>
-          {provider === "gmail" ? (
-            <ol className="list-decimal space-y-1.5 pl-5">
-              <li>
-                Gmail → the gear (Settings) → <strong>See all settings</strong> →{" "}
-                <strong>Forwarding and POP/IMAP</strong>.
-              </li>
-              <li>
-                <strong>Add a forwarding address</strong> → paste the address above. Gmail sends a
-                confirmation — we catch it, and an <strong>approval card appears right here</strong>{" "}
-                within a minute. Click its link.
-              </li>
-              <li>
-                Choose <strong>“Forward a copy of incoming mail to”</strong> your address → keep
-                Gmail’s copy in the Inbox → <strong>Save</strong>. Done — every inquiry now arrives on
-                its own.
-              </li>
-            </ol>
-          ) : (
-            <ol className="list-decimal space-y-1.5 pl-5">
-              <li>
-                Outlook on the web → the gear (Settings) → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
-                <strong>Add new rule</strong>.
-              </li>
-              <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
-              <li>
-                Action: <strong>Forward to</strong> → paste the address above → <strong>Save</strong>.
-                No confirmation step — it starts immediately.
-              </li>
-            </ol>
-          )}
-        </Walkthrough>
-
-        <Walkthrough title="Getting inquiries from somewhere else?">
-          <p>
-            The Knot, WeddingWire, your website’s contact form — they all <strong>email you</strong>{" "}
-            when a new inquiry comes in, so a forward (or the automatic rule above) catches them with
-            nothing extra to set up.
-          </p>
-          <p className="mt-2 mb-2">
-            <strong>Power move:</strong> paste your assistant’s address straight into your website
-            form’s notification settings so those inquiries arrive on their own too:
-          </p>
-          <LeadAddressPill address={leadAddress} />
-        </Walkthrough>
       </div>
 
-      {/* Confident exit (founder preview): forwarding lives in Gmail — there is
-          nothing to save here, and the page must SAY so. One primary Done for
-          people who just set it up; the quiet skip stays for people who didn't. */}
-      {!leadDetected && (
-        <p className="pt-1 text-sm text-ink-stage/60">
-          Set the forward up already? You’re done — there’s nothing to save here. Your
-          assistant’s address is live, and the moment the first inquiry (or Gmail’s confirmation)
-          arrives, everything switches on by itself.
-        </p>
-      )}
+      <details
+        className="group overflow-hidden rounded-2xl border border-cream bg-white"
+        open={incomingOpen}
+        onToggle={(event) => setIncomingOpen(event.currentTarget.open)}
+      >
+        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="size-2 flex-none bg-brand-cyan" />
+          <span>
+            <span className="block text-sm font-bold text-ink-stage">
+              {forwardingConfirm
+                ? "Action needed: approve Gmail forwarding"
+                : leadDetected
+                  ? "Incoming inquiry automation is working"
+                  : "Also automate incoming inquiries"}
+            </span>
+            <span className="block text-xs font-normal text-ink-stage/55">
+              Optional — connect Gmail or Outlook now or later
+            </span>
+          </span>
+          <span
+            aria-hidden
+            className="ml-auto text-xl text-ink-stage/40 transition-transform group-open:rotate-90"
+          >
+            ›
+          </span>
+        </summary>
+
+        <div className="space-y-4 border-t border-cream bg-cream/15 p-4">
+          <div className="rounded-2xl bg-cream/40 p-4">
+            <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55">
+              How it works
+            </p>
+            <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-stage/75">
+              <li>A client emails you — nothing changes for them.</li>
+              <li>Your inbox sends a private copy to Bright Ears.</li>
+              <li>Bright Ears drafts the reply in your voice. You approve it before it sends.</li>
+            </ol>
+            <p className="mt-2.5 text-xs leading-relaxed text-ink-stage/55">
+              Clients never see the assistant&apos;s address. Their answers stay in your normal inbox,
+              and each inquiry appears in your Pipeline.
+            </p>
+          </div>
+
+          {forwardingConfirm && (
+            <div className="rounded-2xl border-2 border-brand-cyan bg-white p-5">
+              <StickerChip tone="ink" rotate={-2}>
+                Gmail confirmation caught
+              </StickerChip>
+              <p className="mt-3 font-bold text-ink-stage">One click left — approve forwarding</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
+                Gmail sent a verification to your assistant and we caught it. Approve it, then send
+                yourself a test below.
+              </p>
+              {forwardingConfirm.url ? (
+                <a
+                  href={forwardingConfirm.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-3 inline-block ${buttonStyles.primary} text-sm`}
+                >
+                  Approve forwarding in Gmail →
+                </a>
+              ) : (
+                <p className="mt-3 text-sm text-ink-stage/70">
+                  Open the &quot;Gmail Forwarding Confirmation&quot; email Gmail sent to your inbox
+                  and click its link.
+                </p>
+              )}
+              {forwardingConfirm.code && (
+                <p className="mt-3 text-sm text-ink-stage/70">
+                  Or paste this code into Gmail&apos;s forwarding settings:{" "}
+                  <span className="rounded-md bg-cream/60 px-2 py-0.5 font-mono text-xs font-bold text-ink-stage">
+                    {forwardingConfirm.code}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {leadDetected ? (
+            <div className="rounded-2xl bg-brand-cyan-soft p-5 text-center">
+              <StickerChip tone="ink" rotate={-2}>
+                First inquiry caught
+              </StickerChip>
+              <p className="mt-3 text-lg font-extrabold tracking-tight text-ink-stage">
+                It works. Your first inquiry just landed.
+              </p>
+              <p className="mt-1 text-sm text-ink-stage/70">
+                Bright Ears read it and is ready to draft the reply in your voice.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
+              <p className="font-bold text-ink-stage">Try it with one email</p>
+              <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
+                Forward any inquiry — or send a quick test from your phone — to:
+              </p>
+              <div className="mt-3">
+                <LeadAddressPill address={leadAddress} />
+              </div>
+              <p className="mt-3 flex items-center gap-2 text-sm font-medium text-ink-stage/65">
+                <span
+                  className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan"
+                  aria-hidden
+                />
+                Listening for a test… (we check every 5 seconds)
+              </p>
+              {tookTooLong && (
+                <p className="mt-3 rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/70">
+                  Taking longer than expected? Check the address above, or leave this for later.
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Walkthrough title="Make it automatic">
+              <p className="mb-3">
+                Set a one-time rule so inquiry emails copy themselves to Bright Ears. The originals
+                still land in your normal inbox. You&apos;ll paste this address:
+              </p>
+              <div className="mb-3">
+                <LeadAddressPill address={leadAddress} />
+              </div>
+              <div className="mb-3 inline-flex rounded-full border border-cream bg-white p-0.5">
+                {(["gmail", "outlook"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setProvider(p)}
+                    className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-colors ${
+                      provider === p
+                        ? "bg-brand-cyan text-ink-stage"
+                        : "text-ink-stage/55 hover:text-ink-stage"
+                    }`}
+                  >
+                    {p === "gmail" ? "Gmail" : "Outlook"}
+                  </button>
+                ))}
+              </div>
+              {provider === "gmail" ? (
+                <ol className="list-decimal space-y-1.5 pl-5">
+                  <li>
+                    Gmail → the gear → <strong>See all settings</strong> →{" "}
+                    <strong>Forwarding and POP/IMAP</strong>.
+                  </li>
+                  <li>
+                    <strong>Add a forwarding address</strong> → paste the address above. Gmail sends
+                    a confirmation; its approval card appears here within a minute.
+                  </li>
+                  <li>
+                    Choose <strong>Forward a copy of incoming mail to</strong> → keep Gmail&apos;s
+                    copy in the Inbox → <strong>Save</strong>.
+                  </li>
+                </ol>
+              ) : (
+                <ol className="list-decimal space-y-1.5 pl-5">
+                  <li>
+                    Outlook on the web → the gear → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
+                    <strong>Add new rule</strong>.
+                  </li>
+                  <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
+                  <li>
+                    Action: <strong>Forward to</strong> → paste the address above →{" "}
+                    <strong>Save</strong>.
+                  </li>
+                </ol>
+              )}
+            </Walkthrough>
+
+            <Walkthrough title="I get inquiries somewhere else">
+              <p>
+                The Knot, WeddingWire and most website forms already email you when an inquiry
+                arrives, so the same forwarding rule catches them too.
+              </p>
+              <p className="mb-2 mt-2">
+                You can also paste your assistant&apos;s address directly into your website
+                form&apos;s notification settings:
+              </p>
+              <LeadAddressPill address={leadAddress} />
+            </Walkthrough>
+          </div>
+        </div>
+      </details>
+
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <BackButton onBack={onBack} />
-        {!leadDetected && (
-          <div className="flex flex-wrap items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
-            >
-              I’ll set this up later
-            </Link>
-            <Link href="/dashboard" className={buttonStyles.primary}>
-              Done — open my dashboard
-            </Link>
-          </div>
-        )}
+        <Link
+          href="/dashboard"
+          className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-cyan"
+        >
+          Open my dashboard
+        </Link>
       </div>
     </div>
   );
@@ -1820,11 +1856,7 @@ export function OnboardingWizard({
     emoji: business.voiceUsesEmoji ?? null,
     phrases: business.voicePhrases ?? "",
   }));
-  const [gigRows, setGigRows] = useState<GigRow[]>([
-    { date: "", title: "" },
-    { date: "", title: "" },
-    { date: "", title: "" },
-  ]);
+  const [gigRows, setGigRows] = useState<GigRow[]>([{ date: "", title: "" }]);
   const [gigsSaved, setGigsSaved] = useState(0);
   const [homeCity, setHomeCity] = useState(business.homeCity);
   const [leadDetected, setLeadDetected] = useState(false);
@@ -1841,11 +1873,11 @@ export function OnboardingWizard({
 
   const leadAddress = `leads@${business.slug}.in.brightears.io`;
 
-  // The hunting license, computed live from what's typed so far — the display
+  // Pitch readiness, computed live from what's typed so far — the display
   // twin of lib/profile/strength.ts (server truth). Drives the step-2 meter
   // and the honest step-5 finale.
   const license: LicenseFlags = {
-    photos: profile.photoUrls.length >= 3,
+    photos: profile.photoUrls.length >= 1,
     photoCount: profile.photoUrls.length,
     bio: profile.bio.trim().length > 0,
     headline: profile.headline.trim().length > 0,
@@ -1918,14 +1950,16 @@ export function OnboardingWizard({
             <BrightEarsLogo size={56} />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-cream-bright">
-            Let’s get you{" "}
+            Build your{" "}
             <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-              set up
+              artist assistant
             </span>
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Five quick steps — under ten minutes — and your assistant is ready to hunt venues and
-            answer every inquiry in your voice. Choose a plan to switch it on; cancel anytime.
+            Start with the essentials. Everything saves as you go, and you can polish it later.
+          </p>
+          <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cream/45">
+            About 8 minutes · no video required
           </p>
         </header>
 

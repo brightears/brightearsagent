@@ -393,7 +393,7 @@ export function HuntSection({
                 }
               : !canPitch
                 ? {
-                    hint: "Venues from your city land here after each scan. To unlock pitching, finish the profile the pitches are built from — video, photos, bio, a gig on your calendar — so your assistant never sends a thin one in your name.",
+                    hint: "Venues from your city land here after each scan. To unlock pitching, finish your pitch-ready profile: one clear photo, a short bio, and one calendar gig. Video is optional.",
                     cta: (
                       <Link href="/dashboard/settings#profile" className={linkCls}>
                         Finish your profile ({profilePercent}%) →

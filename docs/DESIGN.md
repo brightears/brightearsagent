@@ -44,3 +44,25 @@ Reference added: mustardmusic.com (kinetic editorial type, scroll choreography, 
 5. **Copy attitude:** section intros may take a stance ("Speed isn't a feature. It's the whole game." / "Replies, not promises."). Never corporate-neutral filler.
 6. **Asymmetry over centering:** alternate left/right alignment per section; let collage pieces bleed off edges; avoid three-equal-cards rhythm twice in a row.
 7. **Empty states are typography-first** (founder-killed the halo-ring + mini-icon composition, June 11): full size = left-aligned statement title in display black with one gradient-painted word + optional mono kicker + vinyl corner bleed; compact = a single mono ALL-CAPS tracked line. No icons, no icon-in-a-ring, ever — type and the show gradient do the work.
+
+## v2.2 "Effortless for artists" (July 31, 2026)
+
+The visual identity was already distinctive; the product story and setup were
+too dense. These rules keep the edge while making the product immediately
+understandable to a nontechnical performer:
+
+1. **Lead with the result, then reveal the machinery.** Say "finds venues",
+   "writes the pitch" and "you approve" before terms such as forwarding,
+   signals, sources, automation or OAuth.
+2. **One visible job per setup step.** Put uncommon settings, links, residencies
+   and integrations in progressive disclosure. Optional means the artist can
+   continue without opening it.
+3. **The shortest credible profile wins.** One clear photo, a short bio, style,
+   home city, fee floor and one booked date are enough for venue pitching.
+   Extra photos, video, rider notes and social links strengthen the profile but
+   do not block it.
+4. **Motion must explain work.** Prefer a scanning line, changing work-state
+   rows and approval-ready moments over decorative floating. Always preserve
+   the complete experience under `prefers-reduced-motion`.
+5. **Never expose internal metaphors as requirements.** Use "pitch-ready
+   profile" or "venue pitching ready", not "hunting license".

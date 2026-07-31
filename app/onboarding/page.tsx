@@ -8,8 +8,9 @@ import { OnboardingWizard } from "@/components/onboarding-wizard";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Get set up — Bright Ears",
-  description: "Five quick steps and every inquiry you get starts answering itself.",
+  title: "Build your artist assistant — Bright Ears",
+  description:
+    "Create your artist profile, choose how Bright Ears should sound, and start finding better-fit venues.",
 };
 
 const wholeUnits = (cents: number | null) => (cents === null ? "" : String(cents / 100));

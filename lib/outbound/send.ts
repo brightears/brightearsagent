@@ -27,10 +27,10 @@ export interface SendResult {
  * send passes through.
  *
  * It is enforced at all because the product actively walks customers into the
- * cliff: profile strength REQUIRES three photos to unlock pitching, uploads
- * allow 8 MB each, and the press-kit builder accepts 6 MB per image. The live
- * press kit is already 5.5 MB from ONE photo. Three phone photos would produce
- * a PDF around 20 MB, ~27 MB once encoded — refused by Postmark with a 422.
+ * cliff: profile galleries may contain several photos, uploads allow 8 MB each,
+ * and the press-kit builder accepts 6 MB per image. A single live press kit
+ * photo has reached 5.5 MB; three phone photos could produce a PDF around
+ * 20 MB, ~27 MB once encoded — refused by Postmark with a 422.
  *
  * And the way it failed was the worst possible shape: the send threw, the draft
  * reverted to PENDING, and the next attempt hit exactly the same wall forever.

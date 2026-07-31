@@ -40,8 +40,10 @@ export type ProfileStrength = {
   canPitch: boolean;
 };
 
-/** Photos required before the agent may pitch (venues book what they can see). */
-export const MIN_PITCH_PHOTOS = 3;
+/** One clear photo is enough to represent the act in an initial pitch. */
+export const MIN_PITCH_PHOTOS = 1;
+/** A fuller gallery strengthens the EPK, but never blocks venue pitching. */
+export const RECOMMENDED_PROFILE_PHOTOS = 3;
 
 const present = (s: string | null | undefined) => !!s && s.trim().length > 0;
 
@@ -56,11 +58,17 @@ const CHECKS: {
   earned: (p: ProfileFields, c: ProfileCounts) => number;
 }[] = [
   {
-    weight: 12,
+    weight: 8,
     license: true,
-    hint: `Add at least ${MIN_PITCH_PHOTOS} photos — a pitch without faces gets deleted`,
-    // Partial credit per photo so the meter moves as they paste URLs.
-    earned: (p) => Math.min(p.photoUrls.length, MIN_PITCH_PHOTOS) / MIN_PITCH_PHOTOS,
+    hint: "Add one clear performance photo — venues need to see the act",
+    earned: (p) => (p.photoUrls.length >= MIN_PITCH_PHOTOS ? 1 : 0),
+  },
+  {
+    weight: 4,
+    license: false,
+    hint: "Add two more photos to round out your press kit",
+    earned: (p) =>
+      Math.min(p.photoUrls.length, RECOMMENDED_PROFILE_PHOTOS) / RECOMMENDED_PROFILE_PHOTOS,
   },
   {
     weight: 10,
