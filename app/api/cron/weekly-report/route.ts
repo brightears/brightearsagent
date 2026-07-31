@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   }
   await stampCron("cron:weekly-report");
   const { sent, failed } = await sendWeeklyReports();
-  // P12.6: the EPK freshness sweep rides the weekly cadence — link-rot and
-  // missing-video nags land alongside the report, never as extra noise days.
+  // P12.6: the EPK freshness sweep rides the weekly cadence — link-rot nags
+  // land alongside the report, never as extra noise days.
   const freshness = await runEpkFreshnessSweep();
   return NextResponse.json({ sent, failed, freshness });
 }

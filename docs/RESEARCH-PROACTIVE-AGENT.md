@@ -152,6 +152,11 @@ Marketing honesty note: marketplace memberships and credits (GigSalad $359/yr, B
 
 **The quality gate ("hunting license").** The agent finds with 4 fields but may not pitch until: 1 performance video + 3 photos + short bio + packages + calendar connected. Grounded: The Bash members with video get 3x the gigs (self-reported; top bookers average 8 videos and 46 photos), and Encore refuses to publish profiles without a vetted promo video ([Encore](https://encoremusicians.com/musician)). Framed as "give your agent ammunition — profile strength 60%; add a video to unlock pitching."
 
+> **Superseded 2026-07-31:** Bright Ears is an agent, not a talent marketplace.
+> The founder rejected mandatory video because many capable DJs and performers
+> do not have a clip ready. Video remains an optional EPK enhancement; three
+> authentic photos provide the visual proof required to pitch.
+
 **Profile/EPK fields needed beyond what exists** (existing: act type, rate card/packages, calendar, writing voice):
 - *Matching:* genres + 5–10 vibe tags; event types served; service radius / named cities; travel policy; **fee floor** (never pitch below) + sweet spot; languages; insured yes/no.
 - *Pitching:* headline (≤80 chars); 40–120-word bio in the artist's voice; ≥1 video link; 3–5+ photos; review count + 1–2 quotes + notable venues; an auto-generated **hosted one-page EPK** — the pitch's landing page, white-label, zero AI mention.

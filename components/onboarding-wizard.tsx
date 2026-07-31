@@ -326,7 +326,6 @@ const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
  *  mirrors the license-critical checks in lib/profile/strength.ts (the server
  *  truth that actually gates pitching). Shown, never enforced, here. */
 export type LicenseFlags = {
-  video: boolean;
   photos: boolean;
   photoCount: number;
   bio: boolean;
@@ -338,14 +337,12 @@ export type LicenseFlags = {
 };
 
 /**
- * The hunting license, made visible (audit 2026-07): bio/photos/video are
- * labelled "optional" by the form — true for finishing the wizard, false for
- * venue pitching. This meter says exactly what unlocks the Hunt so nobody
- * subscribes expecting pitches a locked license can't send.
+ * The hunting license, made visible (audit 2026-07). Video remains a useful,
+ * optional EPK enhancement; three authentic photos provide the visual proof
+ * required for venue pitching.
  */
 function LicenseMeter({ license }: { license: LicenseFlags }) {
   const items: { label: string; done: boolean }[] = [
-    { label: "A performance video", done: license.video },
     {
       label: license.photos ? "3 photos" : `3 photos (${license.photoCount}/3)`,
       done: license.photos,
@@ -364,8 +361,8 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
         Your hunting license — {doneCount}/{items.length}
       </SectionLabel>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
-        Everything else works without these — but venues delete pitches that arrive without a photo
-        or a video, so your assistant won&apos;t pitch in your name until yours are in place.
+        Everything else works without these — but your assistant needs a credible profile before it
+        pitches in your name. Three strong photos are enough; video is optional.
       </p>
       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
         {items.map((item) => (
@@ -782,7 +779,7 @@ function StepProfile({
           </div>
         )}
         <div>
-          <label htmlFor="ob-video" className={labelStyles}>Video links</label>
+          <label htmlFor="ob-video" className={labelStyles}>Video links (optional)</label>
           <textarea
             id="ob-video"
             value={profile.videoLinks}
@@ -1848,7 +1845,6 @@ export function OnboardingWizard({
   // twin of lib/profile/strength.ts (server truth). Drives the step-2 meter
   // and the honest step-5 finale.
   const license: LicenseFlags = {
-    video: profile.videoLinks.trim().length > 0,
     photos: profile.photoUrls.length >= 3,
     photoCount: profile.photoUrls.length,
     bio: profile.bio.trim().length > 0,

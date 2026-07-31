@@ -60,12 +60,10 @@ describe("checkEpkFreshness + sweep", () => {
     mockDb.business.findMany.mockResolvedValue([biz]);
   });
 
-  it("flags missing video when no link is embeddable", async () => {
+  it("accepts a missing performance video because video is optional", async () => {
     const ok = vi.fn(async () => res(200));
-    const r = await checkEpkFreshness({ ...biz, videoLinks: ["https://example.com/notavideo"] }, ok as never);
-    expect(r.missingVideo).toBe(true);
-    const r2 = await checkEpkFreshness(biz, ok as never);
-    expect(r2.missingVideo).toBe(false);
+    const r = await checkEpkFreshness({ ...biz, videoLinks: [] }, ok as never);
+    expect(r).toEqual({ businessId: "biz1", brokenLinks: [] });
   });
 
   it("the sweep nags only tenants with real problems", async () => {

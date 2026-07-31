@@ -44,9 +44,9 @@ describe("profileStrength", () => {
     const r = profileStrength(empty, noCounts);
     expect(r.percent).toBe(0);
     expect(r.canPitch).toBe(false);
-    expect(r.missing.length).toBe(14);
+    expect(r.missing.length).toBe(13);
     // Highest-priority ammunition first.
-    expect(r.missing[0]).toMatch(/video/i);
+    expect(r.missing[0]).toMatch(/photo/i);
   });
 
   it("full profile: 100%, license active, nothing missing", () => {
@@ -68,11 +68,11 @@ describe("profileStrength", () => {
     expect(r.percent).toBeGreaterThan(0);
     expect(r.percent).toBeLessThan(100);
     expect(r.canPitch).toBe(false);
-    // Missing list keeps priority order: video before photos before cities.
-    const video = r.missing.findIndex((m) => /video/i.test(m));
+    // Missing list keeps priority order: photos before cities.
+    const photos = r.missing.findIndex((m) => /photo/i.test(m));
     const cities = r.missing.findIndex((m) => /cities/i.test(m));
-    expect(video).toBeGreaterThanOrEqual(0);
-    expect(cities).toBeGreaterThan(video);
+    expect(photos).toBeGreaterThanOrEqual(0);
+    expect(cities).toBeGreaterThan(photos);
   });
 
   it("photo partial credit moves the meter but not the license", () => {
@@ -88,7 +88,6 @@ describe("profileStrength", () => {
   it("license threshold edges: exactly the requirements flips canPitch true", () => {
     const justEnough: ProfileFields = {
       ...empty,
-      videoLinks: ["https://vimeo.com/123"],
       photoUrls: ["a", "b", "c"], // exactly MIN_PITCH_PHOTOS
       bio: "Short but present.",
       headline: "Headline",
@@ -101,7 +100,6 @@ describe("profileStrength", () => {
     expect(r.percent).toBeLessThan(100); // nice-to-haves still missing
 
     // Remove any single license requirement → license withheld.
-    expect(profileStrength({ ...justEnough, videoLinks: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, photoUrls: ["a", "b"] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, bio: "  " }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, headline: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
@@ -112,6 +110,15 @@ describe("profileStrength", () => {
     // Hunt never reads Package) — zero packages still lets the agent pitch.
     expect(profileStrength(justEnough, { activePackages: 0, gigs: 1 }).canPitch).toBe(true);
     expect(profileStrength(justEnough, { activePackages: 1, gigs: 0 }).canPitch).toBe(false);
+  });
+
+  it("performance video is optional and does not affect strength or pitching", () => {
+    const withoutVideo = profileStrength({ ...full, videoLinks: [] }, fullCounts);
+    const withVideo = profileStrength(full, fullCounts);
+    expect(withoutVideo).toEqual(withVideo);
+    expect(withoutVideo.percent).toBe(100);
+    expect(withoutVideo.canPitch).toBe(true);
+    expect(withoutVideo.missing.some((m) => /video/i.test(m))).toBe(false);
   });
 
   it("feeFloor of 0 cents counts as set (explicit, if odd)", () => {

@@ -146,7 +146,7 @@ export function ProfileForm({
         <div className="space-y-4">
           <div>
             <label htmlFor="videoLinks" className={labelCls}>
-              Performance videos
+              Performance videos (optional)
             </label>
             <textarea
               id="videoLinks"
@@ -156,7 +156,9 @@ export function ProfileForm({
               defaultValue={profile.videoLinks.join("\n")}
               className={`${inputCls} font-mono text-xs leading-relaxed`}
             />
-            <p className={hintCls}>One YouTube or Vimeo link per line. The first one headlines your press kit.</p>
+            <p className={hintCls}>
+              Add a YouTube or Vimeo link if you have one. The first one headlines your press kit.
+            </p>
           </div>
           <div>
             <label htmlFor="photoUrls" className={labelCls}>

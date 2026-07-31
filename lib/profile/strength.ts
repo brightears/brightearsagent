@@ -56,12 +56,6 @@ const CHECKS: {
   earned: (p: ProfileFields, c: ProfileCounts) => number;
 }[] = [
   {
-    weight: 14,
-    license: true,
-    hint: "Add a performance video — venues book what they can see",
-    earned: (p) => (p.videoLinks.length > 0 ? 1 : 0),
-  },
-  {
     weight: 12,
     license: true,
     hint: `Add at least ${MIN_PITCH_PHOTOS} photos — a pitch without faces gets deleted`,

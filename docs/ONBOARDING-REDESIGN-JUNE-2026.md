@@ -133,7 +133,9 @@ This alone delivers the founder's insight: wider matching, authentic profile, lo
 4. **Public price display default:** "from ฿X" vs. hide-until-inquiry — which is the default, and can the artist toggle it?
 5. **Keep `Business.eventTypes` as a free-form breadth list at all,** or fold breadth entirely into genres + dials? (It's half-credit secondary signal today; keeping it as free-form tags adds breadth, but one fewer field is simpler.)
 6. **Currency override in v1 or deferred?** A few markets price domestically in USD (and hyperinflation markets prefer it). Derive-only for v1 with override deferred, or ship the override affordance now?
-7. **Minimum media bar as an acceptance gate?** Platforms like Encore require ≥1 demo + ≥1 video to list. Do we gate hunting-license on a media minimum, or keep it a soft nudge via the strength meter? (Current `strength.ts` already weights video 14 / photos 12 as license-critical — confirm that's the intended bar post-redesign.)
+7. **RESOLVED 2026-07-31 — minimum media bar:** Three authentic photos are the
+   visual-proof gate. Video is optional and does not affect profile strength or
+   the hunting license.
 
 ---
 

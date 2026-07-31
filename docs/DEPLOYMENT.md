@@ -125,14 +125,15 @@ the relevant provider dashboards or masked Render environment variables.
 
 ## Remaining founder launch gates
 
-- Decide whether to keep the performance-video hunting-license requirement or
-  let three authentic photos satisfy the visual-proof gate. Norbert confirmed
-  that no authentic performance video is available. Three authentic photos,
-  including an ABar action shot of Norbert DJing, and a confirmed historical
-  gig (`2025-12-31`, `New Year's Eve DJ`,
-  `Shore, Hilton Pattaya — Pattaya`) were added and live-verified on
-  2026-07-31; the profile now has four photos and is at 71%.
 - Provide the beta email list for `BETA_COMP_EMAILS`.
+
+Performance video is optional as of 2026-07-31. It is available as an EPK
+enhancement but does not affect profile strength, onboarding readiness, weekly
+freshness notifications, or the hunting license. Three photos remain the
+visual-proof requirement. The founder profile has four live-verified photos,
+including an ABar action shot of Norbert DJing, and a confirmed historical gig
+(`2025-12-31`, `New Year's Eve DJ`,
+`Shore, Hilton Pattaya — Pattaya`).
 
 Render account two-factor authentication was enabled and live-verified on
 2026-07-31.

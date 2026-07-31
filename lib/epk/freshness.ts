@@ -1,15 +1,14 @@
 import { db } from "@/lib/db";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
-import { videoEmbedUrl } from "@/lib/profile/video";
 import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
 
 /**
  * EPK freshness monitor (P12.6). The one-pager is what every pitch links to
- * — a dead photo or a 404'd video quietly kills conversions, and "no live
- * video" is bookers' #1 deal-breaker. Weekly sweep (rides the report cron):
- * checks the ARTIST-OWNED links (video, photos, website, booking link) and
- * nags via notifyBusiness only when something is actually wrong.
+ * — a dead photo or a 404'd optional video quietly kills conversions. Weekly
+ * sweep (rides the report cron) checks the ARTIST-OWNED links (video, photos,
+ * website, booking link) and nags via notifyBusiness only when something is
+ * actually broken.
  *
  * Honesty discipline for link-rot: only a hard 404/410 or a dead host
  * counts as BROKEN. 403/429/timeouts are bot walls and slow hosts — flagging
@@ -60,8 +59,6 @@ export async function checkUrl(
 export type FreshnessReport = {
   businessId: string;
   brokenLinks: string[];
-  /** Bookers' #1 deal-breaker: no playable video on the page. */
-  missingVideo: boolean;
 };
 
 export async function checkEpkFreshness(
@@ -82,12 +79,10 @@ export async function checkEpkFreshness(
   ].filter((u): u is string => !!u && /^https?:\/\//i.test(u));
 
   const checks = await Promise.all(urls.map((u) => checkUrl(u, fetchFn)));
-  const missingVideo = !business.videoLinks.some((u) => videoEmbedUrl(u) !== null);
 
   return {
     businessId: business.id,
     brokenLinks: checks.filter((c) => c.broken).map((c) => c.url),
-    missingVideo,
   };
 }
 
@@ -103,21 +98,12 @@ export async function runEpkFreshnessSweep(
   for (const business of businesses) {
     try {
       const report = await checkEpkFreshness(business, fetchFn);
-      if (report.brokenLinks.length === 0 && !report.missingVideo) continue;
+      if (report.brokenLinks.length === 0) continue;
 
-      const problems = [
-        ...(report.missingVideo
-          ? [
-              "No playable video on your page — bookers' #1 deal-breaker. Add one YouTube or Vimeo link in the Control room.",
-            ]
-          : []),
-        ...report.brokenLinks.map((u) => `Broken link (page not found): ${u}`),
-      ];
+      const problems = report.brokenLinks.map((u) => `Broken link (page not found): ${u}`);
       await notifyBusiness(business, {
         title: "Your one-pager needs a touch-up",
-        body: report.missingVideo
-          ? "It has no playable video — the #1 thing bookers look for."
-          : `${report.brokenLinks.length} link${report.brokenLinks.length === 1 ? " is" : "s are"} dead on your page.`,
+        body: `${report.brokenLinks.length} link${report.brokenLinks.length === 1 ? " is" : "s are"} dead on your page.`,
         url: "/dashboard/settings#profile",
         emailBody: `Your one-pager is what every pitch links to — and this week's check found:\n\n${problems
           .map((p) => `- ${p}`)
