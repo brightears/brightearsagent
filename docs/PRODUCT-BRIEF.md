@@ -52,6 +52,14 @@ Full engine in `MARKETING-PLAN.md`. Summary: agents produce the content/AEO/free
 
 ## 10. Gates
 
+- **Hunt beta quality check (before interpreting conversion):** the rolling
+  30-day founder scorecard measures explicit useful matches (approved versus
+  owner-skipped), direct-contact coverage, pitch approval and clear discovery
+  misses. Initial decision thresholds are ≥70% useful matches from 20 reviewed,
+  ≥60% direct contacts from 20 found, ≥70% pitch approval from 10 decisions and
+  ≤10% clear misses from 20 reviewed. Smaller samples remain visibly
+  **LEARNING** and are not launch claims. A discovery-only benchmark may scan
+  and ingest candidates, but never drafts or sends outreach.
 - **Gate 1 (launch + 90 days):** ≥10 paying businesses, ≥3 arms-length. Miss badly → reposition or kill. **Pass → unlock Money Path v1 per `ADR-003-scope-vs-price.md`** (quote → contract-lite e-sign → deposit via the DJ's own payment link, zero custody; ships to all tiers, ~2.5–4 weeks; its own success gate: ≥30% of active customers send a deposit request within 30 days).
 - **Gate 2 (month 6):** signup→subscribed ≥25%; logo churn ≤5%/mo after first cohort; case-study-grade booked-gig numbers exist.
 - **Target:** ฿150k/month profit ≈ ~50 customers at blended ~$85 — realistic 12–18 months post-launch if gates pass.

@@ -115,6 +115,13 @@ Rules of engagement for any agent working this file:
 - [ ] 10.7 Control plane: Telegram bot (digest, Approve/Edit/Skip buttons, deep links, one-time-token linking) + web push; WhatsApp utility-template digest later in this phase
 - [ ] 10.8 Multilingual + culturally-tuned pitches (recipient-language drafting); pitch-quality eval harness (extend the 16-scenario suite with venue-pitch scenarios per language); cadence tiers daily / ~3-hourly wired to plans
 - [ ] 10.9 Beta gates (conversion is the bet): instrument venue reply-rate from day 1; ≥30% of beta artists get ≥1 real venue conversation within 14 days before charging; north star = % with agent-sourced booking inside 90 days
+  - [x] 10.9a **Lead-quality instrumentation** (Aug 3): structured “Not a fit”
+    reasons work on both raw venue cards and auto-drafted pitches; a rolling
+    30-day scorecard derives useful-match, direct-contact, pitch-approval and
+    clear-miss gates from real decisions; low samples remain LEARNING; the
+    nightly founder ops email carries the aggregate; `npm run quality:hunt` is
+    a read-only drill-down and the manual live scan remains discovery-only
+    (never drafts or sends).
 
 ## Pre-launch audit + founder decisions (June 14-15, 2026)
 Full record: `docs/AUDIT-FINDINGS.md` (→ RESOLUTION LOG). Audit auto-fixes and founder decisions are on the production line; the old branch/PR status is historical.

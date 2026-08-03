@@ -14,7 +14,9 @@ import {
   draftVenuePitch,
   editVenuePitch,
   sendVenuePitch,
+  skipVenuePitch,
 } from "@/app/actions/venues";
+import { SKIP_REASONS, type SkipReason } from "@/lib/venues/feed";
 
 /** The slice of a VenuePitch row the review card renders. */
 export type HuntPitch = {
@@ -268,9 +270,34 @@ export function VenuePitchReview({
             disabled={pending}
             className={`${buttonStyles.secondaryOnLight} px-3.5 py-1.5 text-sm`}
             onClick={() => run(() => discardVenuePitch(pitch.id))}
+            title="Discard this wording but keep the venue available"
           >
-            Discard
+            Discard draft
           </button>
+          <details className="relative">
+            <summary
+              className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
+              title="Remove this venue and record why it missed"
+            >
+              Not a fit
+            </summary>
+            <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
+              <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
+                What missed?
+              </p>
+              {(Object.keys(SKIP_REASONS) as SkipReason[]).map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  disabled={pending}
+                  className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream disabled:opacity-50"
+                  onClick={() => run(() => skipVenuePitch(pitch.id, reason))}
+                >
+                  {SKIP_REASONS[reason]}
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
       )}
 

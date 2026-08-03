@@ -287,11 +287,11 @@ function VenueCard({
             <summary
               className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
             >
-              Skip
+              Not a fit
             </summary>
             <div className="absolute left-0 top-full z-10 mt-2 w-44 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
               <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
-                Why skip?
+                What missed?
               </p>
               {(Object.keys(SKIP_REASONS) as SkipReason[]).map((reason) => (
                 <form key={reason} action={skipVenueForm.bind(null, venue.id, reason)}>
@@ -364,6 +364,11 @@ export function HuntSection({
         </div>
         {totalCount > 0 && <StatPill tone="teal">{totalCount} found</StatPill>}
       </div>
+      {totalCount > 0 && (
+        <p className="-mt-1 mb-4 max-w-2xl text-sm leading-relaxed text-cream/55">
+          Approve what fits. Mark a miss with “Not a fit” — the reason is saved for quality tuning.
+        </p>
+      )}
 
       {totalCount === 0 ? (
         // Typography-first empty state (v2.1 LAW rule 7) — no icons, ever.

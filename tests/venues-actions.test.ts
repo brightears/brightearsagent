@@ -9,9 +9,14 @@ const mockDb = vi.hoisted(() => ({
   package: { count: vi.fn() },
   gig: { count: vi.fn() },
   venue: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
-  venuePitch: { findFirst: vi.fn(), count: vi.fn(), create: vi.fn() },
-  outreachSuppression: { findUnique: vi.fn() },
-  $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
+  venuePitch: {
+    findFirst: vi.fn(),
+    count: vi.fn(),
+    create: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  outreachSuppression: { findUnique: vi.fn(), upsert: vi.fn() },
+  $transaction: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -49,7 +54,11 @@ vi.mock("@/lib/agent/venue-pitch", async (importOriginal) => ({
   })),
 }));
 
-import { draftVenuePitch, setVenueStatus } from "@/app/actions/venues";
+import {
+  draftVenuePitch,
+  setVenueStatus,
+  skipVenuePitch,
+} from "@/app/actions/venues";
 import { generateVenuePitch } from "@/lib/agent/venue-pitch";
 
 const warmVenue = {
@@ -80,6 +89,18 @@ beforeEach(() => {
   mockDb.venuePitch.findFirst.mockResolvedValue(null);
   mockDb.venuePitch.count.mockResolvedValue(0);
   mockDb.venuePitch.create.mockResolvedValue({ id: "p1" });
+  mockDb.venuePitch.updateMany.mockResolvedValue({ count: 1 });
+  mockDb.outreachSuppression.upsert.mockResolvedValue({ id: "sup1" });
+  mockDb.$transaction.mockImplementation(
+    async (
+      input:
+        | unknown[]
+        | ((tx: typeof mockDb) => Promise<unknown>),
+    ) =>
+      typeof input === "function"
+        ? input(mockDb)
+        : Promise.all(input as Promise<unknown>[]),
+  );
 });
 
 describe("draftVenuePitch — 10.2c caps + temperature snapshot", () => {
@@ -130,6 +151,80 @@ describe("draftVenuePitch — 10.2c caps + temperature snapshot", () => {
     mockDb.venue.findFirst.mockResolvedValue({ ...warmVenue, temperature: "HOT" });
     mockDb.venuePitch.count.mockResolvedValue(9);
     expect(await draftVenuePitch("v1")).toEqual({ ok: true });
+  });
+});
+
+describe("skipVenuePitch — structured beta-quality feedback", () => {
+  const pendingPitch = {
+    id: "p1",
+    businessId: "biz1",
+    status: "PENDING",
+    venue: {
+      id: "v1",
+      name: "Velvet Lounge",
+      status: "PITCH_DRAFTED",
+      bookingEmail: "Events@Velvet.example",
+    },
+  };
+
+  it("atomically discards the draft, records the miss and suppresses contact", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(pendingPitch);
+
+    expect(await skipVenuePitch("p1", "NO_ENTERTAINMENT")).toEqual({ ok: true });
+    expect(mockDb.venuePitch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: "p1",
+          businessId: "biz1",
+          status: { in: ["PENDING", "APPROVED"] },
+        }),
+        data: expect.objectContaining({ status: "DISCARDED" }),
+      }),
+    );
+    expect(mockDb.venue.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "v1",
+        businessId: "biz1",
+        status: "PITCH_DRAFTED",
+      },
+      data: {
+        status: "SUPPRESSED",
+        suppressedReason: "NO_ENTERTAINMENT",
+      },
+    });
+    expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          businessId_email: {
+            businessId: "biz1",
+            email: "events@velvet.example",
+          },
+        },
+      }),
+    );
+  });
+
+  it("rejects unknown reasons before touching the database", async () => {
+    expect(await skipVenuePitch("p1", "BAD_AI_VIBES")).toEqual({
+      ok: false,
+      error: "Unknown skip reason",
+    });
+    expect(mockDb.venuePitch.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("does not suppress a pitch that a concurrent send already claimed", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue({
+      ...pendingPitch,
+      status: "APPROVED",
+    });
+    mockDb.venuePitch.updateMany.mockResolvedValue({ count: 0 });
+
+    expect(await skipVenuePitch("p1", "NOT_INTERESTED")).toEqual({
+      ok: false,
+      error: "This pitch changed — refresh and try again",
+    });
+    expect(mockDb.venue.updateMany).not.toHaveBeenCalled();
+    expect(mockDb.outreachSuppression.upsert).not.toHaveBeenCalled();
   });
 });
 

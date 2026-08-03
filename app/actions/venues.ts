@@ -79,7 +79,11 @@ export async function draftVenuePitch(venueId: string): Promise<ActionResult> {
 async function findTenantPitch(businessId: string, pitchId: string) {
   return db.venuePitch.findFirst({
     where: { id: pitchId, businessId },
-    include: { venue: { select: { id: true, name: true, status: true } } },
+    include: {
+      venue: {
+        select: { id: true, name: true, status: true, bookingEmail: true },
+      },
+    },
   });
 }
 
@@ -363,6 +367,79 @@ export async function discardVenuePitch(pitchId: string): Promise<ActionResult> 
       data: { status: "DISCOVERED" },
     }),
   ]);
+
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * The structured beta-quality decision on an auto-drafted card.
+ *
+ * "Discard draft" above means the venue may still be useful and can receive a
+ * better draft later. "Not a fit" means the opportunity itself is wrong:
+ * settle the live pitch, suppress the venue and retain the exact owner reason
+ * for the rolling Hunt-quality scorecard. Nothing is sent.
+ */
+export async function skipVenuePitch(
+  pitchId: string,
+  reason: string,
+): Promise<ActionResult> {
+  const parsed = pitchIdSchema.safeParse(pitchId);
+  if (!parsed.success) return { ok: false, error: "No pitch given" };
+  if (!isSkipReason(reason)) return { ok: false, error: "Unknown skip reason" };
+
+  const business = await getCurrentBusiness();
+  const pitch = await findTenantPitch(business.id, parsed.data);
+  if (!pitch) return { ok: false, error: "Pitch not found" };
+  if (pitch.status !== "PENDING" && pitch.status !== "APPROVED") {
+    return { ok: false, error: "This pitch is already settled" };
+  }
+
+  const conflict = "venue-pitch-skip-conflict";
+  try {
+    await db.$transaction(async (tx) => {
+      // Claim the decision before touching the venue. A concurrent send moves
+      // APPROVED → SENDING, so this update fails and the transaction rolls back
+      // instead of suppressing a pitch that just left the building.
+      const decided = await tx.venuePitch.updateMany({
+        where: {
+          id: pitch.id,
+          businessId: business.id,
+          status: { in: ["PENDING", "APPROVED"] },
+        },
+        data: { status: "DISCARDED", decidedAt: new Date() },
+      });
+      if (decided.count === 0) throw new Error(conflict);
+
+      const suppressed = await tx.venue.updateMany({
+        where: {
+          id: pitch.venue.id,
+          businessId: business.id,
+          status: "PITCH_DRAFTED",
+        },
+        data: { status: "SUPPRESSED", suppressedReason: reason },
+      });
+      if (suppressed.count === 0) throw new Error(conflict);
+
+      if (pitch.venue.bookingEmail) {
+        const email = pitch.venue.bookingEmail.toLowerCase();
+        await tx.outreachSuppression.upsert({
+          where: { businessId_email: { businessId: business.id, email } },
+          create: {
+            businessId: business.id,
+            email,
+            reason: `owner-skip:${SKIP_REASONS[reason]}`,
+          },
+          update: {},
+        });
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === conflict) {
+      return { ok: false, error: "This pitch changed — refresh and try again" };
+    }
+    throw error;
+  }
 
   revalidatePath("/dashboard");
   return { ok: true };

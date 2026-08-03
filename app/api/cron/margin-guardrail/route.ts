@@ -5,6 +5,7 @@ import { sendEmail } from "@/lib/outbound/send";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCron } from "@/lib/ops-stamp";
 import { sendMonthlyRoiReceipts } from "@/lib/reports/roi";
+import { huntQualityNeedsAttention } from "@/lib/reports/hunt-quality";
 
 export const maxDuration = 300;
 
@@ -64,7 +65,8 @@ export async function GET(req: NextRequest) {
         heartbeat.staleCrons.length ||
         reconcile.issues.length ||
         heartbeat.silentTenants.length ||
-        heartbeat.unrouted.nearMisses.length
+        heartbeat.unrouted.nearMisses.length ||
+        huntQualityNeedsAttention(heartbeat.huntQuality)
           ? " · ATTENTION"
           : ""
       }`,

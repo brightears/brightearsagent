@@ -26,11 +26,13 @@ describe("signalAgeLabel", () => {
 });
 
 describe("isSkipReason", () => {
-  it("accepts exactly the four one-tap reasons", () => {
+  it("accepts exactly the preference and discovery-miss reasons", () => {
     expect(Object.values(SKIP_REASONS)).toEqual([
       "Wrong vibe",
       "Too far",
       "Below my fee",
+      "Doesn’t book my kind of act",
+      "Closed or out of date",
       "Not interested",
     ]);
     for (const key of Object.keys(SKIP_REASONS)) expect(isSkipReason(key)).toBe(true);

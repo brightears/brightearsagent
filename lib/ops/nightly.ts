@@ -4,6 +4,11 @@ import { db } from "@/lib/db";
 import { stripe, stripeEnabled, planForLookupKey } from "@/lib/billing/stripe";
 import { reportError } from "@/lib/report-error";
 import { CRON_FRESHNESS_MS } from "@/lib/ops-stamp";
+import {
+  computeHuntQuality,
+  renderHuntQualityText,
+  type HuntQualitySummary,
+} from "@/lib/reports/hunt-quality";
 
 /**
  * Nightly ops pass — rides the existing daily margin-guardrail cron (no new
@@ -115,6 +120,8 @@ export type HeartbeatNumbers = {
   tenantsScanned: number;
   staleCrons: string[];
   silentTenants: SilentTenant[];
+  /** Rolling beta verdict: usefulness, contactability and pitch acceptance. */
+  huntQuality: HuntQualitySummary;
   /** Mail that arrived for a lead address no tenant owns (see lib/inbound/unrouted.ts). */
   unrouted: UnroutedReport;
 };
@@ -170,7 +177,17 @@ export async function findSilentTenants(now = new Date()): Promise<SilentTenant[
 /** Counts for the founder's proof-of-life digest — the last 24 hours. */
 export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbers> {
   const since = new Date(now.getTime() - 24 * 3600 * 1000);
-  const [leadsIn, spamFiltered, draftsCreated, repliesSent, pitchesSent, tenantsScanned, stamps, silentTenants] =
+  const [
+    leadsIn,
+    spamFiltered,
+    draftsCreated,
+    repliesSent,
+    pitchesSent,
+    tenantsScanned,
+    stamps,
+    silentTenants,
+    huntQuality,
+  ] =
     await Promise.all([
       db.lead.count({ where: { createdAt: { gte: since }, status: { not: "SPAM" } } }),
       db.lead.count({ where: { createdAt: { gte: since }, status: "SPAM" } }),
@@ -182,6 +199,7 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       db.business.count({ where: { lastDiscoveryScanAt: { gte: since } } }),
       db.opsStamp.findMany(),
       findSilentTenants(now),
+      computeHuntQuality({ now }),
     ]);
   const staleCrons = Object.entries(CRON_FRESHNESS_MS)
     .filter(([key, freshMs]) => {
@@ -205,6 +223,7 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
     tenantsScanned,
     staleCrons,
     silentTenants,
+    huntQuality,
     unrouted,
   };
 }
@@ -246,6 +265,8 @@ export function renderHeartbeat(
       : h.unrouted.total
         ? `• Unroutable mail: ${h.unrouted.total} message(s) to ${h.unrouted.entries.length} unknown address(es) — none resembling a real tenant, so most likely probes`
         : "• No unroutable mail",
+    "",
+    renderHuntQualityText(h.huntQuality),
     "",
     "— Bright Ears Ops",
   ].join("\n");

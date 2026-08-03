@@ -1,6 +1,7 @@
-// Manual LIVE discovery scan (Phase 10.2b): runs the full pipeline (Serper →
-// LLM extraction → ingest → contact pass) for one tenant and prints what the
-// scan found, with cost accounting (Serper queries + LLM tokens).
+// Manual LIVE discovery scan (Phase 10.2b): runs the discovery-only pipeline
+// (Serper → LLM extraction → ingest → contact pass) for one tenant and prints
+// what the scan found, with cost accounting (Serper queries + LLM tokens).
+// It deliberately does NOT call autoDraftPitches, sendVenuePitch or Gmail.
 //
 //   DEV_TENANT_SLUG=demo-dj-co npx tsx --env-file=.env.local scripts/scan-venues.ts --force [--warm]
 //
@@ -23,6 +24,10 @@ const PARSE_OUT_PER_M = 0.197;
 async function main() {
   const { db } = await import("../lib/db");
   const { runDiscoveryScan } = await import("../lib/discovery/scan");
+  const {
+    computeHuntQuality,
+    renderHuntQualityText,
+  } = await import("../lib/reports/hunt-quality");
 
   const business = await db.business.findUnique({ where: { slug: SLUG } });
   if (!business) {
@@ -90,6 +95,12 @@ async function main() {
   console.log(
     `\nCost: ${result.serperQueries} Serper queries (~$${((result.serperQueries / 1000) * 1).toFixed(4)} at $1/1k worst case)` +
       `, LLM ${inTok} in / ${outTok} out tokens (~$${llmUsd.toFixed(5)})`,
+  );
+  console.log(
+    `\n${renderHuntQualityText(await computeHuntQuality({ businessId: business.id }))}`,
+  );
+  console.log(
+    "\nOutreach safety: discovery-only run complete; no drafting or send path was called.",
   );
 }
 

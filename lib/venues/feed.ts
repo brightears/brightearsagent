@@ -52,6 +52,8 @@ export const SKIP_REASONS = {
   WRONG_VIBE: "Wrong vibe",
   TOO_FAR: "Too far",
   BELOW_FEE: "Below my fee",
+  NO_ENTERTAINMENT: "Doesn’t book my kind of act",
+  STALE_OR_CLOSED: "Closed or out of date",
   NOT_INTERESTED: "Not interested",
 } as const;
 
