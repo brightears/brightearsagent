@@ -94,10 +94,14 @@ export function PressKitDocument({ data }: { data: PressKitData }) {
         <View style={s.rule} />
 
         {/* Photos */}
+        {/* This is @react-pdf/renderer Image, not a browser img element. */}
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
         {hero ? <Image style={s.hero} src={hero} /> : null}
         {strip.length > 0 ? (
           <View style={s.strip}>
             {strip.map((p, i) => (
+              // This is @react-pdf/renderer Image, not a browser img element.
+              // eslint-disable-next-line jsx-a11y/alt-text
               <Image key={i} style={s.stripImg} src={p} />
             ))}
           </View>

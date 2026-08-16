@@ -26,6 +26,7 @@ const PERFORMER_LABELS: Record<PerformerKind, string> = {
 export type BusinessProfile = {
   name: string;
   ownerName: string;
+  postalAddress: string | null;
   replyToEmail: string | null;
   timezone: string;
   country: string;
@@ -150,6 +151,24 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             ))}
           </select>
           <p className="mt-1 text-xs text-ink-stage/50">Sets the right email compliance footer for you.</p>
+        </div>
+        <div id="business-mailing-address" className="scroll-mt-24 sm:col-span-2">
+          <label htmlFor="postalAddress" className={labelCls}>
+            Business mailing address
+          </label>
+          <textarea
+            id="postalAddress"
+            name="postalAddress"
+            required
+            rows={2}
+            autoComplete="street-address"
+            placeholder="Street, city, region, postal code, country"
+            defaultValue={business.postalAddress ?? ""}
+            className={`${inputCls} resize-y`}
+          />
+          <p className="mt-1 text-xs text-ink-stage/50">
+            Included in venue outreach to identify the sender. Never shown on your public press kit.
+          </p>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="websiteUrl" className={labelCls}>

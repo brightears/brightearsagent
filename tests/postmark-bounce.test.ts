@@ -5,6 +5,8 @@ const mockDb = vi.hoisted(() => ({
   lead: { update: vi.fn() },
   sequenceRun: { updateMany: vi.fn() },
   draft: { updateMany: vi.fn() },
+  globalOutreachSuppression: { upsert: vi.fn() },
+  outreachSuppression: { upsert: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
 }));
 const mockNotify = vi.hoisted(() => vi.fn());
@@ -28,7 +30,7 @@ const storedMessage = {
     id: "lead1",
     clientName: "Jess",
     clientEmail: "jess@example.com",
-    business: { id: "biz1", ownerEmail: "owner@example.com" },
+    business: { id: "biz1", name: "Sapphire Sounds", ownerEmail: "owner@example.com" },
   },
 };
 
@@ -54,6 +56,8 @@ beforeEach(() => {
   mockDb.lead.update.mockResolvedValue({});
   mockDb.sequenceRun.updateMany.mockResolvedValue({ count: 1 });
   mockDb.draft.updateMany.mockResolvedValue({ count: 0 });
+  mockDb.globalOutreachSuppression.upsert.mockResolvedValue({ id: "global-1" });
+  mockDb.outreachSuppression.upsert.mockResolvedValue({ id: "tenant-1" });
   mockNotify.mockResolvedValue(undefined);
 });
 
@@ -98,6 +102,24 @@ describe("applyPostmarkDeliveryEvent", () => {
     expect(mockDb.draft.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: "EXPIRED" }) }),
     );
+    expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith({
+      where: { businessId_email: { businessId: "biz1", email: "jess@example.com" } },
+      create: {
+        businessId: "biz1",
+        email: "jess@example.com",
+        reason: "hard-bounce",
+      },
+      update: { reason: "hard-bounce" },
+    });
+    expect(mockDb.globalOutreachSuppression.upsert).toHaveBeenCalledWith({
+      where: { email: "jess@example.com" },
+      create: {
+        email: "jess@example.com",
+        reason: "hard-bounce",
+        sourceBusinessId: "biz1",
+      },
+      update: {},
+    });
   });
 
   it("turns a Postmark AutoResponder event into an inbound autoReply message", async () => {
@@ -136,6 +158,44 @@ describe("applyPostmarkDeliveryEvent", () => {
         data: expect.objectContaining({ stopReason: "spam_complaint" }),
       }),
     );
+    expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ reason: "spam-complaint" }),
+      }),
+    );
+    expect(mockDb.globalOutreachSuppression.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ reason: "spam-complaint" }),
+      }),
+    );
+  });
+
+  it("never turns a soft/transient bounce into product-wide suppression", async () => {
+    await applyPostmarkDeliveryEvent({
+      ...hardBounce,
+      Type: "SoftBounce",
+      TypeCode: 0,
+      Inactive: false,
+    });
+
+    expect(mockDb.outreachSuppression.upsert).not.toHaveBeenCalled();
+    expect(mockDb.globalOutreachSuppression.upsert).not.toHaveBeenCalled();
+  });
+
+  it("keeps even a provider-inactivated SoftBounce tenant-local", async () => {
+    await applyPostmarkDeliveryEvent({
+      ...hardBounce,
+      Type: "SoftBounce",
+      TypeCode: 2,
+      Inactive: true,
+    });
+
+    expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ reason: "invalid-recipient" }),
+      }),
+    );
+    expect(mockDb.globalOutreachSuppression.upsert).not.toHaveBeenCalled();
   });
 
   it("records sender faults without blaming the recipient and alerts by push only", async () => {

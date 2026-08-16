@@ -1,13 +1,13 @@
 "use client";
 
-// The 5-step onboarding wizard (/onboarding) — every new trial walks through
+// The 5-step onboarding wizard (/onboarding) — every new account walks through
 // this once. Design brief: bright, colorful, fun (CLAUDE.md), under 10 minutes.
 // State lives client-side; each step persists via server actions on "Next":
-//   1 Your business   → saveBusinessBasics (app/actions/onboarding.ts)
-//   2 What you sell   → createPackage (app/actions/packages.ts, reused)
-//   3 Your voice      → saveVoiceSamples
-//   4 Your calendar   → addBookedDates (skippable)
-//   5 Connect leads   → walkthroughs + live verifier polling /api/onboarding/verify
+//   1 The basics    → saveBusinessBasics (identity, home city, mailing address)
+//   2 Your profile → saveOnboardingProfile (style, rates, photo; video optional)
+//   3 Your voice   → saveVoiceSamples
+//   4 Availability → addBookedDates (skippable)
+//   5 Go live      → forwarding walkthroughs + live verifier polling
 
 import {
   type Dispatch,
@@ -109,6 +109,7 @@ export interface WizardBusiness {
   ownerName: string;
   performerKind: PerformerKind;
   country: string;
+  postalAddress: string | null;
   /** Home base = serviceCities[0]; the wizard collects the first one so the
    *  Hunt is never structurally idle. More cities live in the Control Room. */
   homeCity: string;
@@ -332,14 +333,15 @@ export type LicenseFlags = {
   headline: boolean;
   genres: boolean;
   city: boolean;
+  address: boolean;
   floor: boolean;
   gig: boolean;
 };
 
 /**
- * Pitch readiness, made visible (audit 2026-07). Video remains a useful,
- * optional EPK enhancement; three authentic photos provide the visual proof
- * required for venue pitching.
+ * Pitch readiness, made visible (audit 2026-07). One authentic photo provides
+ * the visual proof required for venue pitching. Three photos strengthen the
+ * press kit, and video remains an optional EPK enhancement.
  */
 function LicenseMeter({ license }: { license: LicenseFlags }) {
   const items: { label: string; done: boolean }[] = [
@@ -351,6 +353,7 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
     { label: "Your one-liner", done: license.headline },
     { label: "Your sound / style", done: license.genres },
     { label: "Home city", done: license.city },
+    { label: "Business mailing address", done: license.address },
     { label: "Your fee floor", done: license.floor },
     { label: "A gig on your calendar (step 4)", done: license.gig },
   ];
@@ -421,18 +424,25 @@ function StepBusiness({
   onDone,
 }: {
   initial: WizardBusiness;
-  onDone: (country: string, performerKind: PerformerKind, homeCity: string) => void;
+  onDone: (
+    country: string,
+    performerKind: PerformerKind,
+    homeCity: string,
+    postalAddress: string,
+  ) => void;
 }) {
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, fd) => {
       const country = String(fd.get("country") ?? "");
       const homeCity = String(fd.get("homeCity") ?? "");
+      const postalAddress = String(fd.get("postalAddress") ?? "");
       const res = await saveBusinessBasics({
         name: String(fd.get("name") ?? ""),
         ownerName: String(fd.get("ownerName") ?? ""),
         performerKind: kind,
         country,
+        postalAddress,
         homeCity,
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
@@ -440,7 +450,14 @@ function StepBusiness({
       // Hand the chosen country, craft AND home city up so step 2 can label
       // fees in the right currency, adapt its copy to the performer kind, and
       // keep the license meter honest — all without a page reload.
-      if (res.ok) onDone(country || initial.country, kind, homeCity.trim() || initial.homeCity);
+      if (res.ok) {
+        onDone(
+          country || initial.country,
+          kind,
+          homeCity.trim() || initial.homeCity,
+          postalAddress.trim() || initial.postalAddress || "",
+        );
+      }
       return res;
     },
     null,
@@ -592,6 +609,24 @@ function StepBusiness({
         <p className="mt-1 text-xs text-ink-stage/50">
           Your home city — the first place your assistant hunts for venues and gigs. You can add more
           cities (and travel plans) later in the Control room.
+        </p>
+      </div>
+
+      <div>
+        <label htmlFor="ob-postal" className={labelStyles}>Business mailing address</label>
+        <textarea
+          id="ob-postal"
+          name="postalAddress"
+          required
+          rows={2}
+          autoComplete="street-address"
+          defaultValue={initial.postalAddress ?? ""}
+          placeholder="Street, city, region, postal code, country"
+          className={`${inputStyles} resize-y`}
+        />
+        <p className="mt-1 text-xs text-ink-stage/50">
+          Required in venue outreach so every email identifies a real sender. It is never shown on
+          your public press kit.
         </p>
       </div>
 
@@ -1859,6 +1894,7 @@ export function OnboardingWizard({
   const [gigRows, setGigRows] = useState<GigRow[]>([{ date: "", title: "" }]);
   const [gigsSaved, setGigsSaved] = useState(0);
   const [homeCity, setHomeCity] = useState(business.homeCity);
+  const [postalAddress, setPostalAddress] = useState(business.postalAddress ?? "");
   const [leadDetected, setLeadDetected] = useState(false);
   // Gmail's forwarding-approval link, once its verification email hits the
   // pipeline (intercepted + stored server-side; surfaced by the verify poll).
@@ -1883,6 +1919,7 @@ export function OnboardingWizard({
     headline: profile.headline.trim().length > 0,
     genres: profile.genres.trim().length > 0,
     city: homeCity.trim().length > 0,
+    address: postalAddress.trim().length > 0,
     floor: profile.feeFloor.trim().length > 0,
     gig: gigsSaved > 0,
   };
@@ -2002,10 +2039,11 @@ export function OnboardingWizard({
           {step === 0 && (
             <StepBusiness
               initial={business}
-              onDone={(c, k, city) => {
+              onDone={(c, k, city, address) => {
                 setCountry(c);
                 setPerformerKind(k);
                 setHomeCity(city);
+                setPostalAddress(address);
                 goTo(1);
               }}
             />

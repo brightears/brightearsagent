@@ -6,7 +6,7 @@ import { draftHotFollowUps } from "@/lib/venues/follow-up";
 import { rescoreVenues } from "@/lib/venues/rescore";
 import { notifyBusiness } from "@/lib/notify";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
-import { stampCron } from "@/lib/ops-stamp";
+import { stampCronCompletion } from "@/lib/ops-stamp";
 import { reportError } from "@/lib/report-error";
 
 export const maxDuration = 300;
@@ -31,7 +31,6 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  await stampCron("cron:discovery");
   const startedAt = Date.now();
 
   const businesses = await db.business.findMany({
@@ -130,5 +129,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ tenants: businesses.length, cutOff, results });
+  const errors = results.filter((result) => !!result.error).length;
+  const noTenantCompleted =
+    businesses.length > 0 && (results.length === 0 || errors === results.length);
+  const payload = { tenants: businesses.length, cutOff, errors, results };
+
+  // Isolation is valuable only while at least one tenant completed or made an
+  // expected no-op decision. If every attempted tenant crashed (or the budget
+  // elapsed before the first tenant), this is a provider/systemic failure: a
+  // 2xx + fresh stamp would hide a dead Hunt from both Render and monitoring.
+  if (noTenantCompleted) {
+    return NextResponse.json(
+      { ...payload, error: "No tenant discovery workload completed" },
+      { status: 503 },
+    );
+  }
+
+  await stampCronCompletion("cron:discovery");
+  return NextResponse.json(payload);
 }

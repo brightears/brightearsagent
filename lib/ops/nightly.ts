@@ -3,7 +3,7 @@ import { buildUnroutedReport, clearUnrouted, type UnroutedReport } from "@/lib/i
 import { db } from "@/lib/db";
 import { stripe, stripeEnabled, planForLookupKey } from "@/lib/billing/stripe";
 import { reportError } from "@/lib/report-error";
-import { CRON_FRESHNESS_MS } from "@/lib/ops-stamp";
+import { staleCronKeys } from "@/lib/ops-stamp";
 import {
   computeHuntQuality,
   renderHuntQualityText,
@@ -29,12 +29,21 @@ const LIVE = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_du
 
 export type ReconcileResult = {
   checked: number;
+  failed: number;
+  /** False only when reconciliation was globally incomplete, not one tenant. */
+  complete: boolean;
   healed: string[];
   issues: string[];
 };
 
 export async function reconcileStripe(): Promise<ReconcileResult> {
-  const result: ReconcileResult = { checked: 0, healed: [], issues: [] };
+  const result: ReconcileResult = {
+    checked: 0,
+    failed: 0,
+    complete: true,
+    healed: [],
+    issues: [],
+  };
   if (!stripeEnabled) return result;
 
   // Pass 1: every Business that thinks it's subscribed — verify with Stripe.
@@ -68,9 +77,14 @@ export async function reconcileStripe(): Promise<ReconcileResult> {
         });
         result.healed.push(`${b.slug}: sub missing in Stripe → paused`);
       } else {
+        result.failed++;
         result.issues.push(`${b.slug}: reconcile error ${String(err).slice(0, 120)}`);
       }
     }
+  }
+
+  if (result.checked > 0 && result.failed === result.checked) {
+    result.complete = false;
   }
 
   // Pass 2: live Stripe subs whose tenant row doesn't claim them (missed
@@ -78,6 +92,7 @@ export async function reconcileStripe(): Promise<ReconcileResult> {
   try {
     const subs = await stripe().subscriptions.list({ status: "active", limit: 100 });
     if (subs.has_more) {
+      result.complete = false;
       result.issues.push("more than 100 active subscriptions — extend reconciliation paging");
     }
     for (const sub of subs.data) {
@@ -104,6 +119,7 @@ export async function reconcileStripe(): Promise<ReconcileResult> {
       }
     }
   } catch (err) {
+    result.complete = false;
     void reportError(err, { kind: "stripe-reconcile" });
     result.issues.push(`pass-2 error: ${String(err).slice(0, 120)}`);
   }
@@ -201,12 +217,7 @@ export async function computeHeartbeat(now = new Date()): Promise<HeartbeatNumbe
       findSilentTenants(now),
       computeHuntQuality({ now }),
     ]);
-  const staleCrons = Object.entries(CRON_FRESHNESS_MS)
-    .filter(([key, freshMs]) => {
-      const stamp = stamps.find((s) => s.key === key);
-      return stamp ? now.getTime() - stamp.at.getTime() > freshMs : false;
-    })
-    .map(([key]) => key);
+  const staleCrons = staleCronKeys(stamps, now);
   // Resolve the unrouted tally against real slugs, then DRAIN it: the digest is
   // the report, so leaving entries behind would repeat the same addresses every
   // night until the process restarted.

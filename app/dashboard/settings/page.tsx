@@ -456,6 +456,7 @@ export default async function ControlRoomPage({
                   business={{
                     name: business.name,
                     ownerName: business.ownerName,
+                    postalAddress: business.postalAddress,
                     replyToEmail: business.replyToEmail,
                     timezone: business.timezone,
                     country: business.country,

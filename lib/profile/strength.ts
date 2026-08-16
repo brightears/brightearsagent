@@ -10,6 +10,8 @@
 // with these fields) plus counts they already have.
 
 export type ProfileFields = {
+  /** Physical business identity required in every venue-outreach footer. */
+  postalAddress?: string | null;
   genres: string[];
   eventTypes: string[];
   serviceCities: string[];
@@ -102,6 +104,12 @@ const CHECKS: {
     license: true,
     hint: "Name the cities you serve — the agent only hunts where you play",
     earned: (p) => (p.serviceCities.length > 0 ? 1 : 0),
+  },
+  {
+    weight: 8,
+    license: true,
+    hint: "Add your business mailing address — venue emails must identify a real sender",
+    earned: (p) => (present(p.postalAddress) ? 1 : 0),
   },
   {
     weight: 8,

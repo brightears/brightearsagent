@@ -89,12 +89,13 @@ export async function checkEpkFreshness(
 /** Weekly sweep over EPK-enabled paying tenants; per-tenant failures isolated. */
 export async function runEpkFreshnessSweep(
   fetchFn: typeof fetch = fetch,
-): Promise<{ checked: number; nagged: number }> {
+): Promise<{ checked: number; nagged: number; failed: number }> {
   const businesses = await db.business.findMany({
     where: { epkEnabled: true, plan: { not: "TRIAL" } },
   });
 
   let nagged = 0;
+  let failed = 0;
   for (const business of businesses) {
     try {
       const report = await checkEpkFreshness(business, fetchFn);
@@ -111,8 +112,9 @@ export async function runEpkFreshnessSweep(
       });
       nagged++;
     } catch (err) {
+      failed++;
       void reportError(err, { kind: "epk-freshness", businessId: business.id });
     }
   }
-  return { checked: businesses.length, nagged };
+  return { checked: businesses.length, nagged, failed };
 }

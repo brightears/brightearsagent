@@ -2,7 +2,8 @@
  * Onboarding is incomplete while the PROFILE ESSENTIALS or the VOICE are
  * missing — the things the drafter and the Hunt actually feed on:
  *
- *  - profile essentials = genres + headline + one-off fee floor, exactly what
+ *  - profile essentials = genres + headline + one-off fee floor + sender
+ *    mailing identity, exactly what
  *    the wizard's "Who you are" step requires before it lets you advance
  *    (docs/ONBOARDING-REDESIGN-JUNE-2026.md). The Hunt matches on
  *    Business.genres/serviceCities and the drafter quotes above feeFloor.
@@ -20,12 +21,16 @@ export function getSetupStatus(business: {
   genres: string[];
   headline: string | null;
   feeFloor: number | null;
+  postalAddress?: string | null;
   voiceSamples?: string | null;
   voiceGreeting?: string | null;
   voiceSignoff?: string | null;
 }) {
   const needsProfile =
-    business.genres.length === 0 || !business.headline?.trim() || !business.feeFloor;
+    business.genres.length === 0 ||
+    !business.headline?.trim() ||
+    !business.feeFloor ||
+    !business.postalAddress?.trim();
   const needsVoice =
     !business.voiceSamples?.trim() &&
     !business.voiceGreeting?.trim() &&

@@ -1,9 +1,43 @@
-import { describe, expect, it } from "vitest";
-import { planIngest, type ExistingVenue, type IngestContext, type PlannedCreate } from "@/lib/discovery/ingest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockDb = vi.hoisted(() => ({
+  business: { findUniqueOrThrow: vi.fn() },
+  venue: { findMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+  outreachSuppression: { findMany: vi.fn() },
+  globalOutreachSuppression: { findMany: vi.fn() },
+  $transaction: vi.fn(),
+}));
+vi.mock("@/lib/db", () => ({ db: mockDb }));
+
+import {
+  ingestSignals,
+  planIngest,
+  type ExistingVenue,
+  type IngestContext,
+  type PlannedCreate,
+} from "@/lib/discovery/ingest";
 import { StubDiscoveryProvider, type Metro, type RawSignal } from "@/lib/discovery/provider";
 
 const NOW = new Date("2026-06-12T12:00:00Z");
 const MANCHESTER: Metro = { city: "Manchester", country: "GB" };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockDb.business.findUniqueOrThrow.mockResolvedValue({
+    genres: ["house"],
+    eventTypes: ["club nights"],
+    serviceCities: ["Manchester"],
+    acceptsTravel: false,
+  });
+  mockDb.venue.findMany.mockResolvedValue([]);
+  mockDb.outreachSuppression.findMany.mockResolvedValue([]);
+  mockDb.globalOutreachSuppression.findMany.mockResolvedValue([]);
+  mockDb.venue.create.mockResolvedValue({ id: "venue-1" });
+  mockDb.venue.update.mockResolvedValue({ id: "venue-1" });
+  mockDb.$transaction.mockImplementation(
+    async (callback: (tx: typeof mockDb) => Promise<unknown>) => callback(mockDb),
+  );
+});
 
 const ctx = (over: Partial<IngestContext> = {}): IngestContext => ({
   existingVenues: [],
@@ -194,6 +228,37 @@ describe("planIngest", () => {
     };
     const plan = planIngest(ctx(), MANCHESTER, [incoming]);
     expect(plan.creates[0].signals[0].observedAt).toEqual(NOW);
+  });
+});
+
+describe("ingestSignals suppression loading", () => {
+  it("loads matching global stops and blocks cross-tenant discovery writes", async () => {
+    const incoming: RawSignal = {
+      venueName: "Globally Stopped Room",
+      kindGuess: "BAR",
+      type: "MANUAL",
+      summary: "Owner added",
+      sourceUrl: "manual://globally-stopped-room",
+      bookingEmail: "Bookings@Stopped.Example",
+    };
+    mockDb.globalOutreachSuppression.findMany.mockResolvedValue([
+      { email: "bookings@stopped.example" },
+    ]);
+
+    const plan = await ingestSignals("another-business", MANCHESTER, [incoming], NOW);
+
+    expect(mockDb.globalOutreachSuppression.findMany).toHaveBeenCalledWith({
+      where: { email: { in: ["bookings@stopped.example"] } },
+      select: { email: true },
+    });
+    expect(plan.creates).toEqual([]);
+    expect(plan.skipped).toEqual([
+      expect.objectContaining({
+        venueName: "Globally Stopped Room",
+        reason: expect.stringContaining("suppression"),
+      }),
+    ]);
+    expect(mockDb.venue.create).not.toHaveBeenCalled();
   });
 });
 

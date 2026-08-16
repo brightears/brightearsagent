@@ -6,9 +6,9 @@
 // Modes:
 //   STANDARD — cold B2B email is lawful with sender identity + a working
 //              opt-out. The agent may queue the send (10.5) after approval.
-//   CONSENT  — cold email needs prior consent. The agent may DRAFT but never
-//              auto-send; the card becomes a handoff (artist copies the pitch
-//              and sends it personally, owning the judgment call).
+//   CONSENT  — cold email needs prior consent or another verified lawful
+//              basis. The agent may DRAFT but never auto-send; manual transport
+//              alone does not make an otherwise prohibited email compliant.
 //   STRICT   — treated exactly like CONSENT in behavior; kept distinct so the
 //              UI can cite the right regime and future rules can diverge.
 
@@ -25,9 +25,13 @@ export type Jurisdiction = {
 const RULES: Record<string, Jurisdiction> = {
   // CAN-SPAM (US): opt-out regime — identity + opt-out line required.
   US: { mode: "STANDARD", note: "" },
-  // PECR/UK GDPR (GB): B2B email to corporate subscribers is opt-out based —
-  // identity + opt-out required.
-  GB: { mode: "STANDARD", note: "" },
+  // PECR/UK GDPR (GB): corporate subscribers and sole traders/partnerships are
+  // treated differently. We do not reliably classify recipient legal form, so
+  // automated sending fails closed; the artist may review and handle it.
+  GB: {
+    mode: "CONSENT",
+    note: "United Kingdom: recipient type changes the rule, so Bright Ears can't auto-send. Only send if you have consent or another lawful basis — copying it manually does not make it compliant.",
+  },
   // Thailand PDPA: legitimate-interest B2B outreach with identity + opt-out.
   TH: { mode: "STANDARD", note: "" },
   // New Zealand UEMA: business-relevant address, identity + unsubscribe.
@@ -48,24 +52,24 @@ const RULES: Record<string, Jurisdiction> = {
   // Agent drafts; the artist copies and sends personally.
   CA: {
     mode: "CONSENT",
-    note: "Canada: agents can't auto-send here (CASL) — copy the pitch and send it yourself.",
+    note: "Canada: CASL generally requires consent. Only send if you have consent or another applicable lawful basis — manual sending alone is not compliance.",
   },
   // Germany UWG §7: any commercial email without prior express consent is an
   // unzumutbare Belästigung, B2B included. Treat like CONSENT.
   DE: {
     mode: "STRICT",
-    note: "Germany: cold email needs prior consent (UWG) — copy the pitch and send it yourself.",
+    note: "Germany: commercial email generally needs prior consent (UWG). Only send when you can confirm a lawful basis; copying it manually does not change the rule.",
   },
   // Austria TKG §174: same consent-first regime as Germany.
   AT: {
     mode: "STRICT",
-    note: "Austria: cold email needs prior consent — copy the pitch and send it yourself.",
+    note: "Austria: commercial email generally needs prior consent. Only send when you can confirm a lawful basis; manual sending does not change the rule.",
   },
 };
 
 const UNKNOWN: Jurisdiction = {
   mode: "CONSENT",
-  note: "We don't know this country's cold-email rules — copy the pitch and send it yourself.",
+  note: "Bright Ears has not verified this country's cold-email rules. Only send if you have consent or another confirmed lawful basis — manual sending alone is not compliance.",
 };
 
 export function jurisdictionFor(countryISO2: string): Jurisdiction {
@@ -85,6 +89,8 @@ export function pitchFooter(opts: {
   businessName: string;
   /** The artist's home base — first service city is a fine input. */
   city: string;
+  /** Physical business identity required for venue outreach. */
+  postalAddress: string;
   venueName: string;
 }): string {
   const identity = opts.city ? `${opts.businessName} · ${opts.city}` : opts.businessName;
@@ -94,5 +100,6 @@ export function pitchFooter(opts: {
     opts.mode === "STANDARD"
       ? `If this isn't relevant for ${opts.venueName}, just reply and tell me — I won't write again.`
       : `If this isn't relevant for ${opts.venueName}, tell me and that's the last you'll hear from me — promise.`;
-  return ["", "—", identity, optOut].join("\n");
+  const address = opts.postalAddress.trim();
+  return ["", "—", identity, ...(address ? [address] : []), optOut].join("\n");
 }

@@ -6,8 +6,10 @@ import {
   detectFollowUpPromise,
   detectLeak,
   generateVenuePitch,
+  isVenuePitchAutoSendLanguage,
   normalizeVenuePitch,
   pitchLanguageFor,
+  validateVenuePitch,
   type VenuePitchRequest,
   type VenuePitchResult,
 } from "@/lib/agent/venue-pitch";
@@ -19,6 +21,7 @@ vi.mock("@/lib/llm", () => ({
   modelFor: vi.fn(() => "test/model"),
 }));
 import { llmObject } from "@/lib/llm";
+import { VENUE_PITCH_SCENARIOS } from "@/evals/venue-pitch-scenarios";
 const llmMock = vi.mocked(llmObject);
 
 const EPK = "https://brightears-app.onrender.com/epk/sapphire-sounds";
@@ -127,6 +130,13 @@ describe("pitchLanguageFor", () => {
     expect(pitchLanguageFor("US", ["en", "de"])).toBe("en");
     expect(pitchLanguageFor("XX", ["en"])).toBe("en");
   });
+
+  it("permits auto-send only for the language with complete semantic validators", () => {
+    expect(isVenuePitchAutoSendLanguage("en")).toBe(true);
+    for (const language of ["de", "fr", "th", "ja"]) {
+      expect(isVenuePitchAutoSendLanguage(language), language).toBe(false);
+    }
+  });
 });
 
 describe("normalizeVenuePitch", () => {
@@ -154,6 +164,16 @@ describe("normalizeVenuePitch", () => {
       body: `Look: ${EPK}\n\nAnd again ${EPK}\n\nMaya`,
     });
     expect(out.body.split(EPK).length - 1).toBe(1);
+  });
+
+  it("upgrades a legacy host for the same EPK path without leaving two links", () => {
+    const out = normalizeVenuePitch(req, {
+      subject: "A room-specific introduction",
+      body: "One-page look: http://localhost:3000/epk/sapphire-sounds\n\nMaya — Sapphire Sounds",
+    });
+    expect(out.body).toContain(EPK);
+    expect(out.body).not.toContain("localhost");
+    expect(out.body.match(/https?:\/\//g)).toHaveLength(1);
   });
 
   it("strips an echoed 'Subject:' line the model prepends to the body", () => {
@@ -198,6 +218,59 @@ describe("generateVenuePitch", () => {
     expect(llmMock.mock.calls[0][0]).toMatchObject({ purpose: "venuePitch", businessId: null });
   });
 
+  it("adds one canonical first-name + act-name sign-off when the model omits it", async () => {
+    llmMock.mockResolvedValueOnce({
+      ...clean,
+      body: clean.body.replace(/\n\nMaya — Sapphire Sounds$/, ""),
+    });
+
+    const out = await generateVenuePitch(req);
+
+    expect(out.body).toMatch(/\n\nMaya — Sapphire Sounds$/);
+    expect(out.body.split("Maya — Sapphire Sounds")).toHaveLength(2);
+    expect(llmMock).toHaveBeenCalledTimes(1);
+    expect(validateVenuePitch(req, out).issues).toEqual([]);
+  });
+
+  it("normalizes a slash-delimited echoed subject idempotently", async () => {
+    const scenario = VENUE_PITCH_SCENARIOS.find(
+      ({ name }) => name === "dancer-hot-supper-club-launch",
+    );
+    expect(scenario).toBeDefined();
+    const dancerReq = scenario!.request;
+    llmMock.mockResolvedValueOnce({
+      subject: "Cabaret for Maré's supper-club launch",
+      body: `Subject: Cabaret for Maré's supper-club launch / Hello — I noticed Maré is launching its October supper-club programme with live floor shows.\n\nWe are Velvet Duo Cabaret, a two-person cabaret act with a compact setup that can build a focused dinner-show moment without taking over the room.\n\nHere's a one-page look at our work: ${dancerReq.epkUrl}\n\nShall I hold a suitable launch date for you?\n\nAna — Velvet Duo Cabaret`,
+    });
+
+    const out = await generateVenuePitch(dancerReq);
+    const rechecked = validateVenuePitch(dancerReq, out);
+
+    expect(llmMock).toHaveBeenCalledTimes(1);
+    expect(out.body).toMatch(/^Hello —/);
+    expect(out.body).not.toMatch(/^Subject:/i);
+    expect(rechecked.issues).toEqual([]);
+    expect(rechecked.result).toEqual({ subject: out.subject, body: out.body });
+  });
+
+  it("retries one transient provider timeout, then succeeds", async () => {
+    const timeout = Object.assign(new Error("provider timed out"), { name: "TimeoutError" });
+    llmMock.mockRejectedValueOnce(timeout).mockResolvedValueOnce({ ...clean });
+
+    const out = await generateVenuePitch(req);
+
+    expect(out.body).toContain(EPK);
+    expect(llmMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the transient retry bounded to one extra provider call", async () => {
+    const timeout = Object.assign(new Error("provider timed out"), { name: "TimeoutError" });
+    llmMock.mockRejectedValue(timeout);
+
+    await expect(generateVenuePitch(req)).rejects.toThrow("provider timed out");
+    expect(llmMock).toHaveBeenCalledTimes(2);
+  });
+
   it("regenerates ONCE on a white-label leak, then succeeds", async () => {
     llmMock
       .mockResolvedValueOnce({ subject: "x", body: "I'm an AI assistant for Maya" })
@@ -235,6 +308,123 @@ const seedReq: VenuePitchRequest = {
   venue: { ...req.venue, temperature: "SEED", signals: [], entertainmentEvidence: [] },
 };
 
+describe("generateVenuePitch — deterministic CTA fallback", () => {
+  it.each([
+    ["HOT", req, "Shall I hold a suitable date for you?"],
+    [
+      "WARM",
+      warmReq,
+      "Would you consider keeping my one-page profile on file for a future slot?",
+    ],
+    ["SEED", seedReq, "Please file me away for when you next need entertainment."],
+  ] as const)("normalizes a repeated %s two-ask correction to one safe CTA", async (_, request, fallback) => {
+    const withTwoAsks = {
+      ...clean,
+      body: clean.body.replace(
+        "Shall I hold a date for you?",
+        "Would you be open to a quick call? Shall I send a few dates?",
+      ),
+    };
+    // The first failure still gets the model's normal corrective generation.
+    // Only when that correction repeats both asks does deterministic fallback
+    // take over.
+    llmMock.mockResolvedValueOnce(withTwoAsks).mockResolvedValueOnce(withTwoAsks);
+
+    const out = await generateVenuePitch(request);
+
+    expect(llmMock).toHaveBeenCalledTimes(2);
+    expect(out.body).toContain(fallback);
+    expect(out.body).not.toContain("quick call");
+    expect(out.body).not.toContain("send a few dates");
+    // Repair is sentence-scoped: venue grounding, artist value, proof and the
+    // canonical signature all survive unchanged.
+    expect(out.body).toContain("Saw The Vault just opened on the rooftop");
+    expect(out.body).toContain("I play open-format sets");
+    expect(out.body).toContain(EPK);
+    expect(out.body).toMatch(/\n\nMaya — Sapphire Sounds$/);
+    expect(validateVenuePitch(request, out).issues).toEqual([]);
+    if (request.venue.temperature === "WARM") {
+      expect(out.body).not.toMatch(/hold a (?:specific |suitable )?date/i);
+    }
+    if (request.venue.temperature === "SEED") {
+      expect(out.body).not.toContain("?");
+      expect(detectFollowUpPromise(out)).toBeNull();
+    }
+  });
+});
+
+describe("generateVenuePitch — post-correction short-copy repair", () => {
+  const shortWarm: VenuePitchResult = {
+    subject: "An introduction for Friday DJ nights",
+    body: `Saw The Vault runs Friday DJ nights.\n\nI play warm open-format sets that can sit under conversation and lift later.\n\nHere's my profile: ${EPK}\n\nWould you keep me on file?\n\nMaya — Sapphire Sounds`,
+  };
+
+  it("adds one neutral bridge to a safe 33-ish-word WARM near-miss", async () => {
+    expect(validateVenuePitch(warmReq, shortWarm).issues).toEqual([
+      expect.stringMatching(/outside the safe 40-170 word budget/),
+    ]);
+    llmMock.mockResolvedValueOnce(shortWarm).mockResolvedValueOnce(shortWarm);
+
+    const out = await generateVenuePitch(warmReq);
+
+    expect(llmMock).toHaveBeenCalledTimes(2);
+    expect(out.body).toContain(
+      "I’m keeping this introduction straightforward and focused on whether the act could suit the room.",
+    );
+    expect(out.body).toContain("Friday DJ nights");
+    expect(out.body).toContain(EPK);
+    expect(out.body).toContain("Would you keep me on file?");
+    expect(validateVenuePitch(warmReq, out).issues).toEqual([]);
+  });
+
+  it("does not let length repair conceal a forbidden commercial claim", async () => {
+    const unsafe = {
+      ...shortWarm,
+      body: shortWarm.body.replace(
+        "warm open-format sets that can sit under conversation and lift later",
+        "a free trial night at no risk for the venue",
+      ),
+    };
+    llmMock.mockResolvedValueOnce(unsafe).mockResolvedValueOnce(unsafe);
+
+    await expect(generateVenuePitch(warmReq)).rejects.toThrow(/unauthorized free/);
+    expect(llmMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("refuses to pad a severely incomplete correction up to the minimum", async () => {
+    const fragment = {
+      subject: "Friday DJ introduction",
+      body: `Friday DJ nights. ${EPK}\n\nWould you keep me on file?\n\nMaya — Sapphire Sounds`,
+    };
+    llmMock.mockResolvedValueOnce(fragment).mockResolvedValueOnce(fragment);
+
+    await expect(generateVenuePitch(warmReq)).rejects.toThrow(/outside the safe 40-170 word budget/);
+    expect(llmMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("venue-pitch live scenario punctuation", () => {
+  it("accepts either a hyphen or en dash in the exact travel date range", () => {
+    const scenario = VENUE_PITCH_SCENARIOS.find(({ name }) => name === "dj-travel-date-bounded");
+    const datePattern = scenario?.expect.mustInclude?.[1];
+
+    expect(datePattern?.test("Lisbon, August 4-11")).toBe(true);
+    expect(datePattern?.test("Lisbon, August 4–11")).toBe(true);
+  });
+
+  it("word-bounds performer-kind exclusions without missing DJ variants", () => {
+    const scenario = VENUE_PITCH_SCENARIOS.find(
+      ({ name }) => name === "comedian-warm-comedy-series",
+    );
+    const performerPattern = scenario?.expect.mustNotInclude?.[0];
+
+    expect(performerPattern?.test("I adjust the set to suit the room.")).toBe(false);
+    for (const copy of ["A DJ set", "DJs for the room", "DJing all night"]) {
+      expect(performerPattern?.test(copy), copy).toBe(true);
+    }
+  });
+});
+
 describe("temperature template selection (buildPitchTask)", () => {
   it("HOT (and legacy callers without temperature) keep the date-shaped ask", () => {
     expect(buildPitchTask("HOT")).toContain("first pitch email");
@@ -246,7 +436,7 @@ describe("temperature template selection (buildPitchTask)", () => {
     const task = buildPitchTask("WARM");
     expect(task).toContain("INTRODUCTION");
     expect(task).toContain("have NOT posted any need");
-    // 12.4: the converter CTA is a no-risk trial night; on-file is the fallback.
+    // A guest/trial scheduling question is allowed; commercial concessions are not.
     expect(task).toMatch(/trial night|on file/i);
     // The evidence facts land in the prompt as the only program grounding.
     const prompt = buildVenuePitchPrompt(warmReq);
@@ -300,12 +490,13 @@ describe("generateVenuePitch — SEED guard wiring", () => {
       })
       .mockResolvedValueOnce({
         subject: "Hello from Sapphire Sounds",
-        body: `Just introducing myself — file me away for when you need wedding entertainment. ${EPK}\n\nMaya — Sapphire Sounds`,
+        body: `Just introducing myself because The Vault keeps a strong entertainment program. I play open-format sets that build naturally from early drinks into a full room, with fifteen years behind the decks across Manchester. Here's a one-page look: ${EPK}\n\nPlease file me away for when you next need a DJ.\n\nMaya — Sapphire Sounds`,
       });
     const out = await generateVenuePitch(seedReq);
     expect(llmMock).toHaveBeenCalledTimes(2);
     const retryPrompt = llmMock.mock.calls[1][0].prompt;
-    expect(retryPrompt).toContain("ONE-TIME introduction");
+    expect(retryPrompt).toContain("CORRECTION REQUIRED");
+    expect(retryPrompt).toMatch(/one-time introduction/i);
     expect(detectFollowUpPromise(out)).toBeNull();
   });
 
@@ -319,8 +510,8 @@ describe("generateVenuePitch — SEED guard wiring", () => {
 
   it("HOT pitches are NOT subject to the follow-up guard (sequences may follow)", async () => {
     llmMock.mockResolvedValue({
-      subject: "DJ for The Vault",
-      body: `Saw you opened. ${EPK} I'll follow up next week if easier. Maya — Sapphire Sounds`,
+      ...clean,
+      body: `${clean.body}\n\nI'll follow up next week if easier.`,
     });
     const out = await generateVenuePitch(req);
     expect(llmMock).toHaveBeenCalledTimes(1);
@@ -328,13 +519,122 @@ describe("generateVenuePitch — SEED guard wiring", () => {
   });
 });
 
-describe("WARM trial-night converter (P12.4)", () => {
-  it("the WARM task offers a profit-framed no-risk trial night, no specific date", () => {
+describe("WARM trial-slot introduction", () => {
+  it("asks about a neutral trial slot without authorizing commercial concessions", () => {
     const task = buildPitchTask("WARM");
-    expect(task).toMatch(/trial night/i);
-    expect(task).toMatch(/profit/i);
+    expect(task).toMatch(/trial slot/i);
     expect(task).toMatch(/no specific date/i);
+    expect(task).toMatch(/never offer it for free/i);
+    expect(task).toMatch(/never make pay contingent/i);
+    expect(task).toMatch(/never promise revenue, profit/i);
     // The on-file fallback stays for venues where a trial night makes no sense.
     expect(task).toMatch(/on file/i);
+  });
+});
+
+describe("validateVenuePitch", () => {
+  it("rejects prices, free/performance-contingent terms, exclamations and multiple asks", () => {
+    const checked = validateVenuePitch(warmReq, {
+      subject: "A slot at The Vault!",
+      body: `Saw you run Friday DJ nights. I can do a free trial night at no risk for £0, and if the room doesn't do better numbers you owe nothing! ${EPK}\n\nWould you like a call? Shall I send dates?\n\nMaya — Sapphire Sounds`,
+    });
+    expect(checked.issues).toEqual(
+      expect.arrayContaining([
+        "contains an exclamation mark",
+        "mentions a price, fee, or rate",
+        "offers unauthorized free, contingent, or guaranteed commercial terms",
+        "call-to-action count is 2, expected 1",
+      ]),
+    );
+  });
+
+  it("rejects a WARM pitch that pretends the venue posted a current need", () => {
+    const checked = validateVenuePitch(warmReq, {
+      ...clean,
+      body: clean.body.replace(
+        "Saw The Vault just opened on the rooftop — congratulations.",
+        "Saw your post saying you're looking for a DJ right now.",
+      ),
+    });
+    expect(checked.issues).toContain("pretends the WARM venue posted a current need");
+  });
+
+  it("allows profile-backed 'I've been playing/DJing' career language", () => {
+    for (const careerLine of [
+      "I've been playing rooftops for twelve years.",
+      "I’ve been DJing across Manchester for twelve years.",
+      "I've been at this for twelve years.",
+    ]) {
+      const checked = validateVenuePitch(req, {
+        ...clean,
+        body: clean.body.replace(
+          "Saw The Vault just opened on the rooftop — congratulations.",
+          `Heard The Vault just opened on the rooftop. ${careerLine}`,
+        ),
+      });
+      expect(checked.issues, careerLine).not.toContain("claims firsthand venue experience");
+    }
+  });
+
+  it("still blocks actual target-venue visits and venue-specific firsthand content", () => {
+    for (const firsthandLine of [
+      "I've been to The Vault before.",
+      "I’ve been at your venue before.",
+      "I've visited The Vault before.",
+      "I've watched your rooftop clips.",
+      "I've heard your Friday sets.",
+      "I saw The Vault's rooftop shows.",
+    ]) {
+      const checked = validateVenuePitch(req, {
+        ...clean,
+        body: clean.body.replace(
+          "Saw The Vault just opened on the rooftop — congratulations.",
+          firsthandLine,
+        ),
+      });
+      expect(checked.issues, firsthandLine).toContain("claims firsthand venue experience");
+    }
+  });
+
+  it("rejects an additional or wrong press-kit link", () => {
+    const checked = validateVenuePitch(req, {
+      ...clean,
+      body: clean.body.replace(EPK, `${EPK} https://example.test/epk/someone-else`),
+    });
+    expect(checked.issues).toContain(
+      "body must contain the current EPK URL and no other external links",
+    );
+  });
+
+  it("rejects a non-English request answered entirely in English", () => {
+    const checked = validateVenuePitch(
+      { ...req, language: "de" },
+      clean,
+    );
+    expect(checked.issues).toContain("body does not appear to be written in de");
+  });
+
+  it("uses script-character bounds for Japanese instead of whitespace word counts", () => {
+    const japanese = validateVenuePitch(
+      { ...req, language: "ja" },
+      {
+        subject: "ザ・ヴォルトへのDJ紹介",
+        body: `ザ・ヴォルトが新しくオープンしたことを知り、ご連絡しました。私はマンチェスターを拠点に活動するオープンフォーマットDJです。お客様の流れに合わせ、落ち着いた時間からダンスフロアまで自然につながる選曲を大切にしています。会場の雰囲気を尊重しながら、幅広い年代が楽しめる夜を作ります。\n\n活動内容はこちらです: ${EPK}\n\n今後の出演候補としてご検討いただけますか？\n\nMaya — Sapphire Sounds`,
+      },
+    );
+    expect(japanese.issues.join(" ")).not.toMatch(/word budget|character budget/i);
+    expect(japanese.issues).toEqual([]);
+  });
+
+  it("uses script-character bounds for Thai instead of treating the body as one word", () => {
+    const thai = validateVenuePitch(
+      { ...req, language: "th" },
+      {
+        subject: "ดีเจสำหรับเดอะวอลต์",
+        body: `เห็นข่าวว่าเดอะวอลต์เพิ่งเปิดใหม่จึงอยากแนะนำตัวค่ะ ฉันเป็นดีเจโอเพนฟอร์แมตที่ดูบรรยากาศของห้องและค่อย ๆ พาเพลงจากช่วงนั่งดื่มไปสู่ฟลอร์เต้นรำ ฉันให้ความสำคัญกับแขกของสถานที่และเลือกเพลงให้เหมาะกับคนหลายช่วงวัยโดยไม่เร่งจังหวะเกินไป\n\nดูผลงานแบบหน้าเดียวได้ที่นี่: ${EPK}\n\nสนใจเก็บโปรไฟล์ไว้สำหรับคืนที่เหมาะสมไหมคะ?\n\nMaya — Sapphire Sounds`,
+      },
+    );
+    expect(thai.issues.join(" ")).not.toMatch(/word budget|character budget/i);
+    expect(thai.issues).toEqual([]);
   });
 });

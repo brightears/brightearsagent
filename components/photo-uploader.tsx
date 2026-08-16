@@ -103,6 +103,7 @@ export function PhotoUploader({
         {value.map((url) => (
           <div key={url} className={tile}>
             {/* External R2 URLs — plain img, not next/image (matches the EPK). */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt="" className="h-full w-full object-cover" />
             <button
               type="button"

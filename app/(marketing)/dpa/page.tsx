@@ -153,6 +153,10 @@ export default function DpaPage() {
             PostgreSQL database.
           </li>
           <li>
+            <span className="font-semibold text-ink-stage">Cloudflare R2</span> — storage and public
+            delivery of profile photos uploaded by performers.
+          </li>
+          <li>
             <span className="font-semibold text-ink-stage">Clerk</span> — authentication and session
             management.
           </li>

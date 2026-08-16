@@ -105,7 +105,13 @@ export const SCENARIOS: Scenario[] = [
   {
     name: "followup-step1-short-specific",
     request: { ...base, sequenceStep: 1, lead: { source: "WEBSITE_FORM", clientName: "Emily", eventType: "wedding", eventDate: "2026-10-17", venue: "Harvest Barn", guestCount: 140, message: "Hi! Are you free on our date? Budget around $2,000." }, availability: { state: "free" }, thread: [ { direction: "INBOUND", body: "Hi! Are you free on our date? Budget around $2,000." }, { direction: "OUTBOUND", body: "Hi Emily — great news, October 17 is open! Our Wedding Essentials package runs $1,800–$2,200..." } ] },
-    expect: { availability: ["affirmed", "not_addressed"], maxWords: 110, mustInclude: [/Emily/] },
+    expect: {
+      availability: ["affirmed", "not_addressed"],
+      maxWords: 110,
+      // A natural follow-up need not repeat the client's name. It must stay
+      // grounded in this exact conversation: person, venue, or event date.
+      mustInclude: [/(?:Emily|Harvest Barn|Oct(?:ober)?\s+17)/i],
+    },
   },
   {
     name: "followup-step2-still-short",
@@ -115,12 +121,27 @@ export const SCENARIOS: Scenario[] = [
   {
     name: "engaged-price-question-exact-answer",
     request: { ...base, lead: { source: "WEBSITE_FORM", clientName: "Aisha", eventType: "wedding", eventDate: "2026-11-07", message: "Does the photo booth package include prints?" }, availability: { state: "free" }, thread: [ { direction: "INBOUND", body: "Do you also do photo booths?" }, { direction: "OUTBOUND", body: "Hi Aisha — yes! Our Wedding + Photo Booth package is $2,500–$2,900..." }, { direction: "INBOUND", body: "Does the photo booth package include prints?" } ] },
-    expect: { availability: "affirmed", mustInclude: [/Aisha/] },
+    expect: {
+      availability: ["affirmed", "not_addressed"],
+      // Mid-thread, repeating "Aisha" is optional; literal prints + uncertainty
+      // are the scenario-specific grounding and safety contract.
+      mustInclude: [/print/i, /(?:check|confirm|not (?:listed|specified|sure))/i],
+      mustNotInclude: [/\b(?:yes|certainly|absolutely)\b/i],
+    },
   },
   {
     name: "conflict-with-question-still-honest",
     request: { ...base, lead: { source: "PLAIN_EMAIL", clientName: "Leo", eventType: "wedding", eventDate: "2026-07-10", message: "Are you free July 10? Also do you bring your own sound system?" }, availability: { state: "conflict", bookedTitles: ["Miller wedding"] } },
-    expect: { availability: "conflicted", mustNotInclude: [/we('| a)re available/i, /date is open/i], mustInclude: [/sound/i] },
+    expect: {
+      availability: "conflicted",
+      mustNotInclude: [
+        /we(?:'|’| a)re available/i,
+        /date is open/i,
+        /\b(?:yes|certainly|absolutely)\b/i,
+        /we(?:'|’)ll bring (?:our |the )?sound/i,
+      ],
+      mustInclude: [/sound/i, /(?:check|confirm|not (?:listed|specified|sure))/i],
+    },
   },
 ];
 

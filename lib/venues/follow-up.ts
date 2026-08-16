@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { isAgentPaused } from "@/lib/billing/metering";
 import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
 import { capFor, startOfTenantDay } from "@/lib/outreach/caps";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 import type { Business } from "@/app/generated/prisma/client";
 
 /**
@@ -66,12 +67,7 @@ export async function draftHotFollowUps(business: Business, now = new Date()): P
     if (jurisdictionFor(venue.country).mode !== "STANDARD") continue;
     if (!venue.bookingEmail) continue;
 
-    const suppressed = await db.outreachSuppression.findUnique({
-      where: {
-        businessId_email: { businessId: business.id, email: venue.bookingEmail.toLowerCase() },
-      },
-      select: { id: true },
-    });
+    const suppressed = await outreachSuppressionScope(business.id, venue.bookingEmail);
     if (suppressed) continue;
 
     // HOT daily creation cap includes follow-ups — same budget, same day.

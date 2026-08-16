@@ -1,17 +1,44 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { draftBookingConfirmation } from "@/lib/agent/confirmation";
 import { sendDraftReply } from "@/lib/agent/send-reply";
 import { isAgentPaused } from "@/lib/billing/metering";
+import {
+  appendVoiceExample,
+  isDraftRejectionReason,
+} from "@/lib/feedback/owner-controls";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
+import { reportError } from "@/lib/report-error";
+
+const draftEditsSchema = z.object({
+  subject: z
+    .string()
+    .trim()
+    .min(1, "Subject can't be empty")
+    .max(160, "Keep the subject under 160 characters")
+    .refine((value) => !/[\x00-\x1F\x7F]/.test(value), "Subject contains an invalid character")
+    .optional(),
+  body: z
+    .string()
+    .trim()
+    .min(1, "Reply can't be empty")
+    .max(10_000, "Keep the reply under 10,000 characters")
+    .optional(),
+  saveVoiceExample: z.boolean().optional(),
+});
+
+type DraftEdits = z.infer<typeof draftEditsSchema>;
 
 /**
  * The one-tap loop: approve (optionally with edits) → send as the business,
  * Reply-To the owner → lead becomes REPLIED (first reply timestamped).
- * Owner edits are kept on the draft (voice-tuning signal).
+ * Owner edits are kept on the draft. They affect the voice profile only when
+ * the owner explicitly checks "save this edit as a voice example".
  *
  * Thin tenant-scoped wrapper: the actual send + compliance + sequencing lives in
  * lib/agent/send-reply.ts so the inbound pipeline's AUTO-SEND (Pro+) runs the
@@ -19,9 +46,13 @@ import { isAgentPaused } from "@/lib/billing/metering";
  */
 export async function approveDraft(
   draftId: string,
-  editedBody?: string,
+  edits?: DraftEdits,
   attach?: { pressKit?: boolean; quote?: boolean },
 ) {
+  const parsed = draftEditsSchema.safeParse(edits ?? {});
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid edit" };
+  }
   const business = await getCurrentBusiness();
   // Subscription gate (founder decision 2026-06-16): the agent — including
   // sending its drafted replies — only runs on an active subscription. Same
@@ -33,7 +64,9 @@ export async function approveDraft(
   const result = await sendDraftReply({
     draftId,
     businessId: business.id,
-    editedBody,
+    editedSubject: parsed.data.subject,
+    editedBody: parsed.data.body,
+    saveVoiceExample: parsed.data.saveVoiceExample,
     attachPressKit: attach?.pressKit,
     attachQuote: attach?.quote,
   });
@@ -50,43 +83,190 @@ export async function approveDraft(
  * the first-reply clock stamped. No sequence starts: with no reachable email,
  * follow-ups would have nowhere to go.
  */
-export async function markSentOnPlatform(draftId: string, editedBody?: string) {
+export async function markSentOnPlatform(draftId: string, edits?: DraftEdits) {
+  const parsed = draftEditsSchema.safeParse(edits ?? {});
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid edit" };
+  }
   const business = await getCurrentBusiness();
   const draft = await db.draft.findFirst({
-    where: { id: draftId, status: "PENDING", lead: { businessId: business.id } },
-    include: { lead: { select: { id: true, status: true, firstReplyAt: true } } },
+    where: { id: draftId, lead: { businessId: business.id } },
+    include: {
+      message: { select: { id: true } },
+      lead: {
+        select: {
+          id: true,
+          status: true,
+          firstReplyAt: true,
+          optedOut: true,
+          clientEmail: true,
+        },
+      },
+    },
   });
-  if (!draft) return { ok: false, error: "draft not pending" };
-  const body = editedBody?.trim() || draft.body;
-  await db.$transaction([
-    db.draft.update({
-      where: { id: draft.id },
-      data: {
-        status: editedBody?.trim() ? "EDITED" : "APPROVED",
-        editedBody: editedBody?.trim() || null,
-        decidedAt: new Date(),
-      },
-    }),
-    db.message.create({
-      data: {
-        leadId: draft.lead.id,
-        direction: "OUTBOUND",
-        subject: draft.subject,
+  if (!draft) return { ok: false, error: "draft not found" };
+  // A second tap after the first transaction committed is a friendly no-op.
+  // Message.draftId is unique, so this is also the durable idempotency anchor.
+  if (draft.message && (draft.status === "APPROVED" || draft.status === "EDITED")) {
+    return { ok: true };
+  }
+  if (draft.status !== "PENDING") return { ok: false, error: "draft not pending" };
+
+  const recordableLeadStatuses = ["NEW", "DRAFTED", "REPLIED", "IN_SEQUENCE", "ENGAGED"] as const;
+  if (
+    draft.lead.optedOut ||
+    !recordableLeadStatuses.includes(
+      draft.lead.status as (typeof recordableLeadStatuses)[number],
+    )
+  ) {
+    return { ok: false, error: "this lead has opted out or is closed" };
+  }
+  if (
+    draft.lead.clientEmail &&
+    (await outreachSuppressionScope(business.id, draft.lead.clientEmail))
+  ) {
+    return { ok: false, error: "this contact is on the do-not-contact list" };
+  }
+
+  const subject = parsed.data.subject ?? draft.subject;
+  const body = parsed.data.body ?? draft.body;
+  const editedSubject =
+    parsed.data.subject !== undefined && subject !== draft.subject.trim() ? subject : null;
+  const editedBody =
+    parsed.data.body !== undefined && body !== draft.body.trim() ? body : null;
+  const hasOwnerEdits = editedSubject !== null || editedBody !== null;
+  const wantsVoiceExample = !!parsed.data.saveVoiceExample && hasOwnerEdits;
+  const decidedAt = new Date();
+  const conflict = "platform-send-record-conflict";
+  let recorded = false;
+  try {
+    recorded = await db.$transaction(async (tx) => {
+      // Claim first. The relational predicates are evaluated in the same SQL
+      // statement as PENDING -> SENDING, so a terminal/opt-out transition that
+      // won the race prevents this caller from recording anything.
+      const claim = await tx.draft.updateMany({
+        where: {
+          id: draft.id,
+          status: "PENDING",
+          lead: {
+            businessId: business.id,
+            optedOut: false,
+            status: { in: [...recordableLeadStatuses] },
+          },
+        },
+        data: { status: "SENDING" },
+      });
+      if (claim.count === 0) return false;
+
+      // Re-read after the claim, then make the lead transition itself a
+      // compare-and-set. That row update is held until commit, so a concurrent
+      // terminal transition cannot be overwritten by a stale REPLIED write.
+      const currentLead = await tx.lead.findUnique({
+        where: { id: draft.lead.id },
+        select: { businessId: true, status: true, optedOut: true },
+      });
+      if (
+        !currentLead ||
+        currentLead.businessId !== business.id ||
+        currentLead.optedOut ||
+        !recordableLeadStatuses.includes(
+          currentLead.status as (typeof recordableLeadStatuses)[number],
+        )
+      ) {
+        throw new Error(conflict);
+      }
+      const leadUpdate = await tx.lead.updateMany({
+        where: {
+          id: draft.lead.id,
+          businessId: business.id,
+          optedOut: false,
+          status: currentLead.status,
+        },
+        data: {
+          // Replying must not demote an already-engaged conversation.
+          status: currentLead.status === "ENGAGED" ? "ENGAGED" : "REPLIED",
+        },
+      });
+      if (leadUpdate.count === 0) throw new Error(conflict);
+      await tx.lead.updateMany({
+        where: { id: draft.lead.id, businessId: business.id, firstReplyAt: null },
+        data: { firstReplyAt: decidedAt },
+      });
+
+      await tx.message.create({
+        data: {
+          leadId: draft.lead.id,
+          direction: "OUTBOUND",
+          subject,
+          body,
+          draftId: draft.id,
+        },
+      });
+      const settled = await tx.draft.updateMany({
+        where: { id: draft.id, status: "SENDING" },
+        data: {
+          status: hasOwnerEdits ? "EDITED" : "APPROVED",
+          editedSubject,
+          editedBody,
+          decidedAt,
+        },
+      });
+      if (settled.count === 0) throw new Error(conflict);
+      return true;
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === conflict) {
+      return { ok: false, error: "this lead changed — refresh before recording the send" };
+    }
+    throw error;
+  }
+  if (!recorded) {
+    // Another caller may have committed between the initial read and claim.
+    const existing = await db.message.findFirst({
+      where: { draftId: draft.id, lead: { businessId: business.id } },
+      select: { id: true },
+    });
+    return existing
+      ? { ok: true }
+      : { ok: false, error: "this lead changed — refresh before recording the send" };
+  }
+
+  let voiceExampleSaved = false;
+  if (wantsVoiceExample) {
+    try {
+      const current = await db.business.findUnique({
+        where: { id: business.id },
+        select: { voiceSamples: true },
+      });
+      const nextVoiceSamples = appendVoiceExample(current?.voiceSamples, {
+        kind: "reply",
+        subject,
         body,
+      });
+      if (current && nextVoiceSamples !== current.voiceSamples) {
+        await db.$transaction([
+          db.business.update({
+            where: { id: business.id },
+            data: { voiceSamples: nextVoiceSamples },
+          }),
+          db.draft.update({
+            where: { id: draft.id },
+            data: { voiceSampleSavedAt: decidedAt },
+          }),
+        ]);
+        voiceExampleSaved = true;
+      }
+    } catch (err) {
+      await reportError(err, {
+        kind: "voice-example-save",
+        businessId: business.id,
         draftId: draft.id,
-      },
-    }),
-    db.lead.update({
-      where: { id: draft.lead.id },
-      data: {
-        // Same ENGAGED guard as sendDraftReply — replying doesn't undo a reply.
-        status: draft.lead.status === "ENGAGED" ? "ENGAGED" : "REPLIED",
-        firstReplyAt: draft.lead.firstReplyAt ?? new Date(),
-      },
-    }),
-  ]);
+        note: "platform send recorded successfully; optional voice example was not saved",
+      });
+    }
+  }
   revalidatePath("/dashboard");
-  return { ok: true };
+  return voiceExampleSaved ? { ok: true, voiceExampleSaved } : { ok: true };
 }
 
 /**
@@ -133,12 +313,15 @@ export async function holdScheduledSend(draftId: string) {
   return { ok: true as const };
 }
 
-export async function rejectDraft(draftId: string) {
+export async function rejectDraft(draftId: string, reason: string) {
+  if (!isDraftRejectionReason(reason)) {
+    return { ok: false, error: "Choose why you're rejecting this draft" };
+  }
   const business = await getCurrentBusiness();
   // Tenant-scoped count guard: only reject a PENDING draft of our own lead.
   const updated = await db.draft.updateMany({
     where: { id: draftId, status: "PENDING", lead: { businessId: business.id } },
-    data: { status: "REJECTED", decidedAt: new Date() },
+    data: { status: "REJECTED", rejectionReason: reason, decidedAt: new Date() },
   });
   if (updated.count === 0) return { ok: false, error: "draft not pending" };
   revalidatePath("/dashboard");

@@ -55,7 +55,9 @@ export default async function OnboardingPage({
           db.lead.count({ where: { businessId: business.id } }),
         ])
       : [0, 0];
-  const initialStep = !hasProfile
+  const initialStep = !business.postalAddress?.trim()
+    ? 0
+    : !hasProfile
     ? business.genres.length > 0
       ? 1
       : 0
@@ -79,6 +81,7 @@ export default async function OnboardingPage({
         ownerName: business.ownerName,
         performerKind: business.performerKind,
         country: business.country,
+        postalAddress: business.postalAddress,
         homeCity: business.serviceCities[0] ?? "",
         timezone: business.timezone,
         websiteUrl: business.websiteUrl,

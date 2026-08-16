@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyOptoutToken } from "@/lib/optout";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import {
+  globalSuppressionUpsertArgs,
+  tenantSuppressionUpsertArgs,
+} from "@/lib/outreach/suppression";
 
 const esc = (s: string) =>
   s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
@@ -85,11 +89,15 @@ export async function POST(req: NextRequest) {
   // Opt out + stop sequences, capturing the (white-label) business name for the
   // confirmation. Unknown lead id with a valid-shaped token still shows success
   // (no enumeration).
-  const businessName = await db
-    .$transaction(async (tx) => {
+  let businessName: string | null;
+  try {
+    businessName = await db.$transaction(async (tx) => {
       const lead = await tx.lead.findUnique({
         where: { id: leadId },
-        select: { business: { select: { name: true } } },
+        select: {
+          clientEmail: true,
+          business: { select: { id: true, name: true } },
+        },
       });
       if (!lead) return null;
       await tx.lead.update({
@@ -100,9 +108,34 @@ export async function POST(req: NextRequest) {
         where: { leadId, stoppedAt: null },
         data: { stoppedAt: new Date(), stopReason: "opted_out" },
       });
+      if (lead.clientEmail) {
+        await tx.outreachSuppression.upsert(
+          tenantSuppressionUpsertArgs({
+            businessId: lead.business.id,
+            email: lead.clientEmail,
+            reason: "unsubscribe",
+          }),
+        );
+        await tx.globalOutreachSuppression.upsert(
+          globalSuppressionUpsertArgs({
+            email: lead.clientEmail,
+            reason: "unsubscribe",
+            business: lead.business,
+          }),
+        );
+      }
       return lead.business.name;
-    })
-    .catch(() => null);
+    });
+  } catch {
+    // Never show a false-success page for a compliance write that did not
+    // commit. Unknown/deleted lead IDs still return success from the callback
+    // above, preserving the no-enumeration behavior.
+    return page(
+      "Please try again",
+      "We couldn't save your unsubscribe request just now. Please try again in a moment.",
+      503,
+    );
+  }
 
   const from = businessName ? ` from ${businessName}` : "";
   return page(

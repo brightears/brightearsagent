@@ -14,6 +14,13 @@ import { reportError } from "@/lib/report-error";
 import { noteUnrouted, isFirstSighting, nearestSlug } from "@/lib/inbound/unrouted";
 import { rateLimit } from "@/lib/rate-limit";
 import { detectAutoReply } from "@/lib/inbound/auto-reply";
+import { detectExplicitOptOut } from "@/lib/inbound/opt-out-intent";
+import { assessReplyMatch } from "@/lib/inbound/reply-match";
+import {
+  globalSuppressionUpsertArgs,
+  normalizeOutreachEmail,
+  tenantSuppressionUpsertArgs,
+} from "@/lib/outreach/suppression";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -22,6 +29,7 @@ export type PipelineResult =
   | { outcome: "ignored"; reason: string }
   | { outcome: "forwarding_confirmation"; provider: "gmail" }
   | { outcome: "venue_reply"; leadId: string; venueId: string }
+  | { outcome: "opted_out"; leadId?: string; venueId?: string }
   | { outcome: "lead_created"; leadId: string; status: "NEW" | "SPAM" };
 
 // Anchored local part: only exactly "leads@" (at the start or after a
@@ -157,9 +165,15 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   // message as "they responded to us". Everything else (parse, triage, the new
   // lead path) is unaffected by design.
   const autoReply = detectAutoReply(email);
+  // Consent detection runs only on the sender's NEW, de-quoted words. Our own
+  // quoted compliance footer contains opt-out language, and an auto-responder
+  // can contain an unsubscribe footer too; neither may suppress a real person.
+  const optOutReason = autoReply ? null : detectExplicitOptOut(email.textBody);
 
   // Reply-match: a known client writing back attaches to their lead and wakes
-  // it up — but only while that conversation is still plausibly ALIVE.
+  // it up — but only while that conversation is still plausibly ALIVE and the
+  // message carries positive continuity evidence. Sender address is a candidate
+  // lookup, never proof that two inquiries concern the same event.
   //
   // The window is not optional (found live on the apex, 2026-07-27). Matching
   // on address alone, forever, turns any lead that never got a first reply into
@@ -176,18 +190,71 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   // nobody has touched in REPLY_MATCH_WINDOW_DAYS stops swallowing mail. The
   // "client double-emails before our first reply" case the code below cares
   // about happens in minutes, and is comfortably inside it.
-  const candidate = await db.lead.findFirst({
-    where: {
-      businessId: business.id,
-      clientEmail: { equals: email.from, mode: "insensitive" },
-      status: { notIn: ["BOOKED", "DEAD", "SPAM"] },
-    },
-    orderBy: { createdAt: "desc" },
-    include: { messages: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } },
-  });
-  const existing = candidate && withinReplyWindow(candidate.messages[0]?.createdAt ?? candidate.createdAt)
-    ? candidate
+  // A high-confidence opt-out belongs on the latest historical conversation
+  // even when it is old or terminal. Keep that compliance path exactly as it
+  // was; compatibility scoring must never divert a stop request into a fresh
+  // sales lead.
+  const optOutCandidate = optOutReason
+    ? await db.lead.findFirst({
+        where: {
+          businessId: business.id,
+          clientEmail: { equals: email.from, mode: "insensitive" },
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          messages: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+        },
+      })
     : null;
+
+  const now = new Date();
+  const replyWindowStart = new Date(now.getTime() - REPLY_MATCH_WINDOW_DAYS * 86_400_000);
+  const replyCandidates = optOutReason
+    ? []
+    : await db.lead.findMany({
+        where: {
+          businessId: business.id,
+          clientEmail: { equals: email.from, mode: "insensitive" },
+          status: { notIn: ["BOOKED", "DEAD", "SPAM"] },
+          // A lead may be older than the window while its conversation is not.
+          OR: [
+            { createdAt: { gte: replyWindowStart } },
+            { messages: { some: { createdAt: { gte: replyWindowStart } } } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            select: {
+              createdAt: true,
+              subject: true,
+              providerMessageId: true,
+            },
+          },
+        },
+      });
+
+  // Score every plausible conversation instead of blindly picking the newest.
+  // This matters after a repeat client has two live events: an In-Reply-To or
+  // matching subject can still route a later response to the older one.
+  const liveReplyCandidates = replyCandidates.filter((candidate) =>
+    withinReplyWindow(candidate.messages[0]?.createdAt ?? candidate.createdAt, now),
+  );
+  const bestReply = liveReplyCandidates
+    .map((candidate) => ({
+      candidate,
+      assessment: assessReplyMatch(email, candidate, now),
+    }))
+    .filter(({ assessment }) => assessment.attach)
+    .sort((a, b) => b.assessment.score - a.assessment.score)[0]?.candidate;
+  // Machine replies never mutate commercial state (the branch below only
+  // records them), so preserve the old safe fallback: if an OOO mangled its
+  // subject or mentions a return date that looks like an event conflict, file
+  // it on the newest live conversation instead of manufacturing a new lead.
+  const existing = optOutCandidate ?? bestReply ?? (autoReply ? liveReplyCandidates[0] : null);
   if (existing) {
     // AUTO-REPLY: record it so the thread is complete, then change NOTHING else.
     //
@@ -233,6 +300,101 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         }),
       );
       return { outcome: "ignored", reason: "auto_reply" };
+    }
+
+    // A direct stop request is a compliance event, not a sales objection. Keep
+    // the inbound Message for the audit trail, then atomically close the lead,
+    // stop every queued reply/follow-up and suppress the lowercase address. A
+    // Hunt-backed lead also closes its Venue and any unsent follow-up pitch.
+    // Nothing below this branch (LLM draft + money-moment notification) runs.
+    if (optOutReason) {
+      const at = new Date();
+      const suppressionEmail = email.from.trim().toLowerCase();
+      const stopReason = optOutReason === "cease-and-desist" ? "cease_and_desist" : "opted_out";
+      try {
+        await db.$transaction([
+          db.message.create({
+            data: {
+              leadId: existing.id,
+              direction: "INBOUND",
+              subject: email.subject,
+              body: email.textBody,
+              fromEmail: email.from,
+              toEmail: email.to,
+              providerMessageId: email.providerMessageId,
+            },
+          }),
+          db.lead.update({
+            where: { id: existing.id },
+            data:
+              existing.status === "BOOKED"
+                ? { optedOut: true }
+                : { status: "DEAD", optedOut: true, deadAt: existing.deadAt ?? at },
+          }),
+          db.sequenceRun.updateMany({
+            where: { leadId: existing.id, stoppedAt: null },
+            data: { stoppedAt: at, stopReason },
+          }),
+          db.draft.updateMany({
+            where: { leadId: existing.id, status: "PENDING" },
+            data: { status: "EXPIRED", decidedAt: at, scheduledSendAt: null },
+          }),
+          db.outreachSuppression.upsert(
+            tenantSuppressionUpsertArgs({
+              businessId: business.id,
+              email: suppressionEmail,
+              reason: optOutReason,
+            }),
+          ),
+          db.globalOutreachSuppression.upsert(
+            globalSuppressionUpsertArgs({
+              email: suppressionEmail,
+              reason: optOutReason,
+              business,
+            }),
+          ),
+          ...(existing.venueId
+            ? [
+                db.venue.updateMany({
+                  where: {
+                    id: existing.venueId,
+                    businessId: business.id,
+                    // BOOKED is already a hard stop and remains the commercial
+                    // outcome; the master suppression still prevents contact.
+                    status: { not: "BOOKED" },
+                  },
+                  data: {
+                    status: "SUPPRESSED",
+                    suppressedReason: optOutReason,
+                    contactState: "SUPPRESSED",
+                    contactRetryAfter: null,
+                  },
+                }),
+                db.venuePitch.updateMany({
+                  where: {
+                    venueId: existing.venueId,
+                    businessId: business.id,
+                    status: { in: ["PENDING", "APPROVED"] },
+                  },
+                  data: { status: "EXPIRED", decidedAt: at },
+                }),
+              ]
+            : []),
+        ]);
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
+        throw err;
+      }
+      void notifyBusiness(business, {
+        title: `Do-not-contact saved: ${existing.clientName ?? email.from}`,
+        body: "Their request is on your suppression list. Nothing was drafted or sent.",
+        url: `/dashboard/leads/${existing.id}`,
+      }).catch(() => null);
+      return {
+        outcome: "opted_out",
+        leadId: existing.id,
+        ...(existing.venueId ? { venueId: existing.venueId } : {}),
+      };
     }
 
     // ENGAGED means "they answered US" — it only applies once the thread has
@@ -360,6 +522,100 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       orderBy: { sentAt: "desc" },
       select: { subject: true, editedSubject: true, body: true, editedBody: true, sentAt: true },
     });
+
+    // The first reply to a Hunt pitch can itself be the stop request. Preserve
+    // both the sent pitch and the inbound words on a terminal Lead, while the
+    // same transaction suppresses the target and cancels any queued bump.
+    // An opt-out is not stamped as repliedAt: it must not masquerade as a
+    // successful beta conversation.
+    if (optOutReason) {
+      const at = new Date();
+      const suppressionEmail = email.from.trim().toLowerCase();
+      let optedOutLead;
+      try {
+        [optedOutLead] = await db.$transaction([
+          db.lead.create({
+            data: {
+              businessId: business.id,
+              source: "VENUE_OUTREACH",
+              status: "DEAD",
+              optedOut: true,
+              deadAt: at,
+              venueId: venue.id,
+              clientName: venue.bookingContactName ?? venue.name,
+              clientEmail: email.from,
+              eventType: "venue booking",
+              venue: venue.name,
+              rawSubject: email.subject,
+              rawBody: email.textBody,
+              messages: {
+                create: [
+                  ...(sentPitch
+                    ? [
+                        {
+                          direction: "OUTBOUND" as const,
+                          subject: sentPitch.editedSubject ?? sentPitch.subject,
+                          body: sentPitch.editedBody ?? sentPitch.body,
+                          ...(sentPitch.sentAt ? { createdAt: sentPitch.sentAt } : {}),
+                        },
+                      ]
+                    : []),
+                  {
+                    direction: "INBOUND" as const,
+                    subject: email.subject,
+                    body: email.textBody,
+                    fromEmail: email.from,
+                    toEmail: email.to,
+                    providerMessageId: email.providerMessageId,
+                  },
+                ],
+              },
+            },
+          }),
+          db.venue.updateMany({
+            where: { id: venue.id, businessId: business.id, status: { not: "BOOKED" } },
+            data: {
+              status: "SUPPRESSED",
+              suppressedReason: optOutReason,
+              contactState: "SUPPRESSED",
+              contactRetryAfter: null,
+            },
+          }),
+          db.outreachSuppression.upsert(
+            tenantSuppressionUpsertArgs({
+              businessId: business.id,
+              email: suppressionEmail,
+              reason: optOutReason,
+            }),
+          ),
+          db.globalOutreachSuppression.upsert(
+            globalSuppressionUpsertArgs({
+              email: suppressionEmail,
+              reason: optOutReason,
+              business,
+            }),
+          ),
+          db.venuePitch.updateMany({
+            where: {
+              venueId: venue.id,
+              businessId: business.id,
+              status: { in: ["PENDING", "APPROVED"] },
+            },
+            data: { status: "EXPIRED", decidedAt: at },
+          }),
+        ]);
+      } catch (err) {
+        if ((err as { code?: string }).code === "P2002") return { outcome: "duplicate" };
+        throw err;
+      }
+      void notifyBusiness(business, {
+        title: `Do-not-contact saved: ${venue.name}`,
+        body: "Their request is on your suppression list. Nothing was drafted or sent.",
+        url: `/dashboard/leads/${optedOutLead.id}`,
+      }).catch(() => null);
+      return { outcome: "opted_out", leadId: optedOutLead.id, venueId: venue.id };
+    }
+
     let venueLead;
     try {
       venueLead = await db.lead.create({
@@ -435,6 +691,31 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for.${draftingVenueReply ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and answer while it's hot.`,
     }).catch(() => null);
     return { outcome: "venue_reply", leadId: venueLead.id, venueId: venue.id };
+  }
+
+  // A direct stop request is still authoritative when no historical lead or
+  // Hunt venue can be matched. Persist both scopes atomically and stop here:
+  // manufacturing a fresh sales lead from an unsubscribe would invite a later
+  // draft and misreport the compliance event as a new inquiry.
+  if (optOutReason) {
+    const suppressionEmail = normalizeOutreachEmail(email.from);
+    await db.$transaction([
+      db.outreachSuppression.upsert(
+        tenantSuppressionUpsertArgs({
+          businessId: business.id,
+          email: suppressionEmail,
+          reason: optOutReason,
+        }),
+      ),
+      db.globalOutreachSuppression.upsert(
+        globalSuppressionUpsertArgs({
+          email: suppressionEmail,
+          reason: optOutReason,
+          business,
+        }),
+      ),
+    ]);
+    return { outcome: "opted_out" };
   }
 
   // Parse: deterministic source parsers first, LLM fallback for the rest.

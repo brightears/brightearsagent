@@ -44,6 +44,11 @@ const basicsSchema = z.object({
     .regex(/^[A-Z]{2}$/, "Pick a country")
     // Real, non-sanctioned country — don't trust the client's dropdown.
     .refine(isAllowedCountry, "Pick a country we can support"),
+  postalAddress: z
+    .string()
+    .trim()
+    .min(8, "Add the physical mailing address your venue emails should identify")
+    .max(300, "Keep the mailing address under 300 characters"),
   timezone: z
     .string()
     .trim()
@@ -78,6 +83,7 @@ export async function saveBusinessBasics(input: {
   ownerName: string;
   performerKind: string;
   country: string;
+  postalAddress: string;
   homeCity: string;
   timezone: string;
   websiteUrl: string;

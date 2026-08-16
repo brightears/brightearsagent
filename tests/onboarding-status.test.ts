@@ -10,6 +10,7 @@ const complete = {
   genres: ["house", "disco"],
   headline: "Open-format DJ for rooftops and weddings",
   feeFloor: 40000,
+  postalAddress: "123 Music Avenue, Austin, TX 78701, USA",
   voiceSamples: "Hey! Thanks so much for reaching out about your wedding...",
   voiceGreeting: null,
   voiceSignoff: null,
@@ -36,6 +37,7 @@ describe("getSetupStatus", () => {
     expect(getSetupStatus({ ...complete, genres: [] }).needsProfile).toBe(true);
     expect(getSetupStatus({ ...complete, headline: "  " }).needsProfile).toBe(true);
     expect(getSetupStatus({ ...complete, feeFloor: null }).needsProfile).toBe(true);
+    expect(getSetupStatus({ ...complete, postalAddress: "  " }).needsProfile).toBe(true);
   });
 
   it("needs voice when neither samples nor structured signals exist", () => {

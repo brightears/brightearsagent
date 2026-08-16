@@ -9,21 +9,23 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockDb = vi.hoisted(() => ({
   venuePitch: { findFirst: vi.fn(), count: vi.fn(), updateMany: vi.fn() },
   mailboxConnection: { findUnique: vi.fn() },
+  globalOutreachSuppression: { findUnique: vi.fn() },
   outreachSuppression: { findUnique: vi.fn() },
   venue: { updateMany: vi.fn() },
-  $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
+  $transaction: vi.fn(
+    async (
+      input: unknown[] | ((tx: typeof mockDb) => Promise<unknown>),
+    ) =>
+      typeof input === "function"
+        ? input(mockDb)
+        : Promise.all(input as Promise<unknown>[]),
+  ),
 }));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+const getCurrentBusinessMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/tenant", () => ({
-  getCurrentBusiness: vi.fn(async () => ({
-    id: "biz1",
-    name: "Sapphire Sounds",
-    ownerEmail: "maya@login.com",
-    replyToEmail: null,
-    serviceCities: ["Manchester"],
-    timezone: "Europe/London",
-  })),
+  getCurrentBusiness: getCurrentBusinessMock,
 }));
 type GmailSendInput = {
   toEmail: string;
@@ -41,16 +43,46 @@ vi.mock("@/lib/outbound/gmail", () => ({
   MailboxError: class MailboxError extends Error {},
 }));
 
-import { sendVenuePitch } from "@/app/actions/venues";
+import {
+  recordManualVenuePitchSend,
+  sendVenuePitch,
+} from "@/app/actions/venues";
+
+const tenantBusiness = {
+  id: "biz1",
+  name: "Sapphire Sounds",
+  slug: "sapphire-sounds",
+  ownerName: "Maya Reyes",
+  performerKind: "DJ",
+  ownerEmail: "maya@login.com",
+  postalAddress: "12 Deansgate, Manchester M3 2BW, United Kingdom",
+  replyToEmail: null,
+  serviceCities: ["Manchester"],
+  headline: "Open-format DJ",
+  bio: "Fifteen years behind the decks.",
+  genres: ["open format"],
+  eventTypes: ["club nights"],
+  gigTypes: ["one-off"],
+  riderNotes: null,
+  reviewQuotes: [],
+  notableVenues: [],
+  timezone: "Europe/London",
+};
 
 const standardVenue = {
   id: "v1",
   businessId: "biz1",
   name: "Velvet Lounge",
-  country: "GB", // STANDARD
+  country: "US", // STANDARD
   bookingEmail: "events@velvet.co",
   bookingContactName: "Sam",
   status: "PITCH_DRAFTED",
+  city: "Manchester",
+  kind: "BAR",
+  signals: [{ summary: "Runs Friday DJ sets" }],
+  entertainmentEvidence: ["Runs Friday DJ sets"],
+  fitReasons: ["Open-format room"],
+  travelWindow: null,
 };
 
 function approvedPitch(over: Record<string, unknown> = {}) {
@@ -58,11 +90,13 @@ function approvedPitch(over: Record<string, unknown> = {}) {
     id: "p1",
     businessId: "biz1",
     status: "APPROVED",
-    subject: "Intro for your rotation",
-    body: "Saw you run Friday DJ sets — keep me on file.",
+    subject: "DJ for your Friday rotation",
+    body: `Saw you run Friday DJ sets and wanted to introduce myself properly. I am Maya, an open-format DJ with fifteen years behind the decks, building sets from early drinks into a full room without forcing the pace. That flexible arc is a natural fit for a bar crowd that changes through the evening.\n\nHere's a one-page look at Sapphire Sounds: http://localhost:3000/epk/sapphire-sounds\n\nWould you consider a guest slot when it suits your calendar?\n\nMaya — Sapphire Sounds`,
     editedSubject: null,
     editedBody: null,
     temperature: "WARM",
+    language: "en",
+    jurisdictionMode: "STANDARD",
     venue: standardVenue,
     ...over,
   };
@@ -70,8 +104,10 @@ function approvedPitch(over: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getCurrentBusinessMock.mockResolvedValue(tenantBusiness);
   mockDb.venuePitch.findFirst.mockResolvedValue(approvedPitch());
   mockDb.mailboxConnection.findUnique.mockResolvedValue({ status: "CONNECTED" });
+  mockDb.globalOutreachSuppression.findUnique.mockResolvedValue(null);
   mockDb.outreachSuppression.findUnique.mockResolvedValue(null);
   mockDb.venuePitch.count.mockResolvedValue(0);
   mockDb.venuePitch.updateMany.mockResolvedValue({ count: 1 });
@@ -119,7 +155,7 @@ describe("sendVenuePitch — jurisdiction gate (the legal handoff guarantee)", (
     const result = await sendVenuePitch("p1");
     expect(result).toEqual({
       ok: false,
-      error: "Canada/Germany are copy-and-send only — use the Copy button",
+      error: expect.stringMatching(/Canada|CASL/i),
     });
     expect(sendGmail).not.toHaveBeenCalled();
     expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
@@ -134,6 +170,18 @@ describe("sendVenuePitch — jurisdiction gate (the legal handoff guarantee)", (
     expect(sendGmail).not.toHaveBeenCalled();
   });
 
+  it("REFUSES United Kingdom auto-send while recipient legal form is unknown", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({ venue: { ...standardVenue, country: "GB" } }),
+    );
+    const result = await sendVenuePitch("p1");
+    expect(result).toEqual({
+      ok: false,
+      error: expect.stringMatching(/United Kingdom|recipient type/i),
+    });
+    expect(sendGmail).not.toHaveBeenCalled();
+  });
+
   it("REFUSES an unknown country (fail-closed CONSENT)", async () => {
     mockDb.venuePitch.findFirst.mockResolvedValue(
       approvedPitch({ venue: { ...standardVenue, country: "ZZ" } }),
@@ -141,6 +189,95 @@ describe("sendVenuePitch — jurisdiction gate (the legal handoff guarantee)", (
     const result = await sendVenuePitch("p1");
     expect(result.ok).toBe(false);
     expect(sendGmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("manual-review venue pitch handoff", () => {
+  it("never auto-sends a non-English pitch even in a STANDARD jurisdiction", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({ language: "de" }),
+    );
+
+    expect(await sendVenuePitch("p1")).toEqual({
+      ok: false,
+      error: "Non-English pitches require your manual review and send",
+    });
+    expect(sendGmail).not.toHaveBeenCalled();
+  });
+
+  it("atomically records a consent-first manual send so replies can match the venue", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({
+        jurisdictionMode: "CONSENT",
+        venue: { ...standardVenue, country: "CA" },
+      }),
+    );
+
+    expect(await recordManualVenuePitchSend("p1", true)).toEqual({ ok: true });
+    expect(sendGmail).not.toHaveBeenCalled();
+    expect(mockDb.venuePitch.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: "p1",
+        businessId: "biz1",
+        status: "APPROVED",
+        venue: { status: "PITCH_DRAFTED" },
+      },
+      data: { status: "SENT", sentAt: expect.any(Date) },
+    });
+    expect(mockDb.venue.updateMany).toHaveBeenCalledWith({
+      where: { id: "v1", businessId: "biz1", status: "PITCH_DRAFTED" },
+      data: { status: "PITCHED", pitchedAt: expect.any(Date) },
+    });
+  });
+
+  it("requires explicit lawful-basis confirmation in consent-first jurisdictions", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({
+        jurisdictionMode: "CONSENT",
+        venue: { ...standardVenue, country: "CA" },
+      }),
+    );
+
+    expect(await recordManualVenuePitchSend("p1", false)).toEqual({
+      ok: false,
+      error: "Confirm that you have consent or another lawful basis before recording this send",
+    });
+    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
+  });
+
+  it("blocks manual recording without the required postal address", async () => {
+    getCurrentBusinessMock.mockResolvedValueOnce({
+      ...tenantBusiness,
+      postalAddress: null,
+    });
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({
+        jurisdictionMode: "CONSENT",
+        venue: { ...standardVenue, country: "CA" },
+      }),
+    );
+
+    expect(await recordManualVenuePitchSend("p1", true)).toEqual({
+      ok: false,
+      error: "Add your business mailing address in Settings before copying or sending venue outreach",
+    });
+    expect(mockDb.venuePitch.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("re-checks suppression before recording a manual send", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({
+        jurisdictionMode: "CONSENT",
+        venue: { ...standardVenue, country: "CA" },
+      }),
+    );
+    mockDb.globalOutreachSuppression.findUnique.mockResolvedValue({ id: "global-1" });
+
+    expect(await recordManualVenuePitchSend("p1", true)).toEqual({
+      ok: false,
+      error: "This contact is on your do-not-contact list",
+    });
+    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
   });
 });
 
@@ -184,6 +321,39 @@ describe("sendVenuePitch — other guards", () => {
     expect(mockDb.outreachSuppression.findUnique.mock.calls[0][0].where).toEqual({
       businessId_email: { businessId: "biz1", email: "events@velvet.co" },
     });
+    expect(sendGmail).not.toHaveBeenCalled();
+  });
+
+  it("blocks a recipient who opted out through another tenant at the send boundary", async () => {
+    mockDb.globalOutreachSuppression.findUnique.mockResolvedValue({ id: "global-1" });
+
+    const result = await sendVenuePitch("p1");
+
+    expect(result).toEqual({
+      ok: false,
+      error: "This contact is on your do-not-contact list",
+    });
+    expect(mockDb.globalOutreachSuppression.findUnique).toHaveBeenCalledWith({
+      where: { email: "events@velvet.co" },
+      select: { id: true },
+    });
+    expect(mockDb.outreachSuppression.findUnique).not.toHaveBeenCalled();
+    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
+    expect(sendGmail).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before the claim when approved copy violates the pitch safety gate", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(
+      approvedPitch({
+        editedBody: "Free no-risk trial night! Would you call? Shall I send dates?",
+      }),
+    );
+    const result = await sendVenuePitch("p1");
+    expect(result).toEqual({
+      ok: false,
+      error: "This pitch needs a fresh review before it can be sent",
+    });
+    expect(mockDb.venuePitch.updateMany).not.toHaveBeenCalled();
     expect(sendGmail).not.toHaveBeenCalled();
   });
 

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // future venue-side sequence engine keys on this snapshot).
 
 const mockDb = vi.hoisted(() => ({
+  business: { findUnique: vi.fn(), update: vi.fn() },
   package: { count: vi.fn() },
   gig: { count: vi.fn() },
   venue: { findFirst: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
@@ -15,6 +16,7 @@ const mockDb = vi.hoisted(() => ({
     create: vi.fn(),
     updateMany: vi.fn(),
   },
+  globalOutreachSuppression: { findUnique: vi.fn(), upsert: vi.fn() },
   outreachSuppression: { findUnique: vi.fn(), upsert: vi.fn() },
   $transaction: vi.fn(),
 }));
@@ -28,7 +30,8 @@ vi.mock("@/lib/tenant", () => ({
     ownerName: "Maya Reyes",
     performerKind: "DJ",
     timezone: "Europe/London",
-    voiceSamples: null,
+    postalAddress: "12 Deansgate, Manchester M3 2BW, United Kingdom",
+    voiceSamples: "Thanks for getting in touch.",
     headline: null,
     bio: null,
     genres: ["house"],
@@ -55,8 +58,12 @@ vi.mock("@/lib/agent/venue-pitch", async (importOriginal) => ({
 }));
 
 import {
+  authorizeVenuePitchCopy,
+  discardVenuePitch,
   draftVenuePitch,
+  editVenuePitch,
   setVenueStatus,
+  skipVenue,
   skipVenuePitch,
 } from "@/app/actions/venues";
 import { generateVenuePitch } from "@/lib/agent/venue-pitch";
@@ -82,6 +89,10 @@ const warmVenue = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockDb.package.count.mockResolvedValue(1);
+  mockDb.business.update.mockResolvedValue({});
+  mockDb.business.findUnique.mockResolvedValue({
+    voiceSamples: "Thanks for getting in touch.",
+  });
   mockDb.gig.count.mockResolvedValue(3);
   mockDb.venue.findFirst.mockResolvedValue(warmVenue);
   mockDb.venue.updateMany.mockResolvedValue({ count: 1 });
@@ -90,6 +101,9 @@ beforeEach(() => {
   mockDb.venuePitch.count.mockResolvedValue(0);
   mockDb.venuePitch.create.mockResolvedValue({ id: "p1" });
   mockDb.venuePitch.updateMany.mockResolvedValue({ count: 1 });
+  mockDb.globalOutreachSuppression.findUnique.mockResolvedValue(null);
+  mockDb.globalOutreachSuppression.upsert.mockResolvedValue({ id: "global-sup1" });
+  mockDb.outreachSuppression.findUnique.mockResolvedValue(null);
   mockDb.outreachSuppression.upsert.mockResolvedValue({ id: "sup1" });
   mockDb.$transaction.mockImplementation(
     async (
@@ -101,6 +115,88 @@ beforeEach(() => {
         ? input(mockDb)
         : Promise.all(input as Promise<unknown>[]),
   );
+});
+
+describe("venue pitch owner feedback", () => {
+  const pendingPitch = {
+    id: "p1",
+    businessId: "biz1",
+    status: "PENDING",
+    subject: "A Friday introduction",
+    body: "I would love to play your Friday room.",
+    voiceSampleSavedAt: null,
+    venue: {
+      id: "v1",
+      name: "Velvet Lounge",
+      status: "PITCH_DRAFTED",
+      bookingEmail: "events@velvet.example",
+    },
+  };
+
+  it("persists pitch edits and appends a bounded voice example only on opt-in", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(pendingPitch);
+
+    expect(
+      await editVenuePitch(
+        "p1",
+        "A guest set for Velvet Lounge",
+        "I build open-format Friday sets around the room. Would a guest date be useful?",
+        true,
+      ),
+    ).toEqual({ ok: true, voiceExampleSaved: true });
+    expect(mockDb.venuePitch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p1", businessId: "biz1", status: "PENDING" },
+        data: expect.objectContaining({
+          editedSubject: "A guest set for Velvet Lounge",
+          voiceSampleSavedAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(mockDb.business.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { voiceSamples: expect.stringContaining("Saved venue pitch example") },
+      }),
+    );
+  });
+
+  it("persists an edit without touching voice samples when opt-in is off", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(pendingPitch);
+    expect(
+      await editVenuePitch(
+        "p1",
+        "A guest set for Velvet Lounge",
+        "A cleaner version of the pitch.",
+      ),
+    ).toEqual({ ok: true, voiceExampleSaved: false });
+    expect(mockDb.business.update).not.toHaveBeenCalled();
+  });
+
+  it("records a finite discard reason while returning the venue to the feed", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue(pendingPitch);
+    expect(await discardVenuePitch("p1", "WRONG_APPROACH")).toEqual({ ok: true });
+    expect(mockDb.venuePitch.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "DISCARDED",
+          discardReason: "WRONG_APPROACH",
+        }),
+      }),
+    );
+    expect(mockDb.venue.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "DISCOVERED", reviewedAt: expect.any(Date) },
+      }),
+    );
+  });
+
+  it("rejects unknown discard text before any database lookup", async () => {
+    expect(await discardVenuePitch("p1", "FREE_TEXT")).toEqual({
+      ok: false,
+      error: "Choose why you're discarding this draft",
+    });
+    expect(mockDb.venuePitch.findFirst).not.toHaveBeenCalled();
+  });
 });
 
 describe("draftVenuePitch — 10.2c caps + temperature snapshot", () => {
@@ -152,6 +248,52 @@ describe("draftVenuePitch — 10.2c caps + temperature snapshot", () => {
     mockDb.venuePitch.count.mockResolvedValue(9);
     expect(await draftVenuePitch("v1")).toEqual({ ok: true });
   });
+
+  it("refuses to generate when the contact opted out through another artist", async () => {
+    mockDb.venue.findFirst.mockResolvedValue({
+      ...warmVenue,
+      bookingEmail: "Events@Velvet.example",
+    });
+    mockDb.globalOutreachSuppression.findUnique.mockResolvedValue({ id: "global-1" });
+
+    expect(await draftVenuePitch("v1")).toEqual({
+      ok: false,
+      error: "This contact is on your do-not-contact list",
+    });
+    expect(mockDb.globalOutreachSuppression.findUnique).toHaveBeenCalledWith({
+      where: { email: "events@velvet.example" },
+      select: { id: true },
+    });
+    expect(mockDb.outreachSuppression.findUnique).not.toHaveBeenCalled();
+    expect(generateVenuePitch).not.toHaveBeenCalled();
+    expect(mockDb.venuePitch.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("venue pitch handoff copy boundary", () => {
+  it("blocks handoff copy when another tenant recorded the recipient stop", async () => {
+    mockDb.venuePitch.findFirst.mockResolvedValue({
+      id: "p1",
+      businessId: "biz1",
+      status: "APPROVED",
+      venue: {
+        id: "v1",
+        name: "Velvet Lounge",
+        status: "PITCH_DRAFTED",
+        bookingEmail: "Events@Velvet.example",
+      },
+    });
+    mockDb.globalOutreachSuppression.findUnique.mockResolvedValue({ id: "global-1" });
+
+    expect(await authorizeVenuePitchCopy("p1")).toEqual({
+      ok: false,
+      error: "This contact is on your do-not-contact list",
+    });
+    expect(mockDb.globalOutreachSuppression.findUnique).toHaveBeenCalledWith({
+      where: { email: "events@velvet.example" },
+      select: { id: true },
+    });
+  });
 });
 
 describe("skipVenuePitch — structured beta-quality feedback", () => {
@@ -190,6 +332,7 @@ describe("skipVenuePitch — structured beta-quality feedback", () => {
       data: {
         status: "SUPPRESSED",
         suppressedReason: "NO_ENTERTAINMENT",
+        reviewedAt: expect.any(Date),
       },
     });
     expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith(
@@ -202,6 +345,7 @@ describe("skipVenuePitch — structured beta-quality feedback", () => {
         },
       }),
     );
+    expect(mockDb.globalOutreachSuppression.upsert).not.toHaveBeenCalled();
   });
 
   it("rejects unknown reasons before touching the database", async () => {
@@ -228,6 +372,29 @@ describe("skipVenuePitch — structured beta-quality feedback", () => {
   });
 });
 
+describe("skipVenue — tenant-only owner feedback", () => {
+  it("keeps an owner Not-a-fit choice local and never creates a global stop", async () => {
+    mockDb.venue.findFirst.mockResolvedValue({
+      ...warmVenue,
+      bookingEmail: "Events@Velvet.example",
+    });
+
+    expect(await skipVenue("v1", "WRONG_VIBE")).toEqual({ ok: true });
+    expect(mockDb.outreachSuppression.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          businessId_email: {
+            businessId: "biz1",
+            email: "events@velvet.example",
+          },
+        },
+        create: expect.objectContaining({ reason: expect.stringContaining("owner-skip:") }),
+      }),
+    );
+    expect(mockDb.globalOutreachSuppression.upsert).not.toHaveBeenCalled();
+  });
+});
+
 // Post-send venue tracking (audit C2): the owner moves a PITCHED venue along by
 // hand — PITCHED → REPLIED / IN_CONVERSATION / BOOKED / DEAD — since gmail.send
 // captures no reply. Tenant-scoped, status-gated.
@@ -240,7 +407,11 @@ describe("setVenueStatus — manual in-play tracking", () => {
     expect(result).toEqual({ ok: true });
     expect(mockDb.venue.update).toHaveBeenCalledWith({
       where: { id: "v1" },
-      data: { status: "BOOKED" },
+      data: {
+        status: "BOOKED",
+        repliedAt: expect.any(Date),
+        bookedAt: expect.any(Date),
+      },
     });
   });
 

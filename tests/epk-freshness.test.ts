@@ -69,7 +69,7 @@ describe("checkEpkFreshness + sweep", () => {
   it("the sweep nags only tenants with real problems", async () => {
     const fetchFn = vi.fn(async (u: string) => (u.includes("dead.jpg") ? res(404) : res(200)));
     const r = await runEpkFreshnessSweep(fetchFn as never);
-    expect(r).toEqual({ checked: 1, nagged: 1 });
+    expect(r).toEqual({ checked: 1, nagged: 1, failed: 0 });
     const notifyArgs = mockNotify.mock.calls[0] as unknown as [unknown, { emailBody: string }];
     expect(notifyArgs[1].emailBody).toContain("dead.jpg");
     // Clean tenant → silence.
@@ -77,7 +77,7 @@ describe("checkEpkFreshness + sweep", () => {
     mockDb.business.findMany.mockResolvedValue([biz]);
     const clean = vi.fn(async () => res(200));
     const r2 = await runEpkFreshnessSweep(clean as never);
-    expect(r2).toEqual({ checked: 1, nagged: 0 });
+    expect(r2).toEqual({ checked: 1, nagged: 0, failed: 0 });
     expect(mockNotify).not.toHaveBeenCalled();
   });
 });

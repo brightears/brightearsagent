@@ -36,6 +36,10 @@ function customerIdOf(obj: Stripe.Subscription | Stripe.Checkout.Session): strin
   return typeof obj.customer === "string" ? obj.customer : obj.customer?.id ?? undefined;
 }
 
+function isBetaCohort(...objects: Array<{ metadata?: Stripe.Metadata | null }>): boolean {
+  return objects.some((object) => object.metadata?.betaCohort === "true");
+}
+
 /** Resolve the tenant for a subscription: metadata.businessId → stored sub id → customer id. */
 async function resolveBusiness(sub: Stripe.Subscription) {
   const metaId = sub.metadata?.businessId;
@@ -75,6 +79,17 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
           `stripe webhook ${event.id}: unmapped lookup_key "${lookupKey}" for business ${businessId} — plan NOT set`,
         );
         return SKIP;
+      }
+      const activatedAt = new Date();
+      await db.business.updateMany({
+        where: { id: businessId, firstSubscribedAt: null },
+        data: { firstSubscribedAt: activatedAt },
+      });
+      if (isBetaCohort(session, sub)) {
+        await db.business.updateMany({
+          where: { id: businessId, betaStartedAt: null },
+          data: { betaStartedAt: activatedAt },
+        });
       }
       await db.business.update({
         where: { id: businessId },
@@ -131,6 +146,9 @@ export async function applyStripeEvent(event: Stripe.Event): Promise<ApplyResult
             stripeSubscriptionId: fresh.id,
             stripeCustomerId: customerIdOf(fresh) ?? undefined,
             trialEndsAt: null,
+            firstSubscribedAt: business.firstSubscribedAt ?? new Date(),
+            betaStartedAt:
+              business.betaStartedAt ?? (isBetaCohort(fresh) ? new Date() : undefined),
           },
         });
         // Paused → live transition only (business.plan is the pre-write value):

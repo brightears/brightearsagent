@@ -13,11 +13,11 @@
  */
 const PATTERNS: RegExp[] = [
   // "140 guests", "about 110 people", "150 pax", "60 heads", "80+ guests"
-  /\b(\d{1,4})\s*\+?\s*(?:guests?|people|persons?|pax|attendees|heads|adults)\b/i,
+  /\b(\d{1,4})[ \t]*\+?[ \t]*(?:guests?|people|persons?|pax|attendees|heads|adults)\b/i,
   // "guests: 140", "headcount 110", "number of guests - 90"
-  /\b(?:guests?|headcount|head\s*count|number\s+of\s+guests)\s*[:\-]?\s*(\d{1,4})\b/i,
+  /\b(?:guests?|headcount|head[ \t]*count|number[ \t]+of[ \t]+guests)[ \t]*[:\-]?[ \t]*(\d{1,4})\b/i,
   // "a party of 90", "group of 60"
-  /\b(?:party|group)\s+of\s+(\d{1,4})\b/i,
+  /\b(?:party|group)[ \t]+of[ \t]+(\d{1,4})\b/i,
 ];
 
 /** Plausible headcount, or undefined when the text does not clearly state one. */

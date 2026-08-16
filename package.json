@@ -2,6 +2,10 @@
   "name": "brightears-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "npm@10.9.4",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,9 +20,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval:drafts": "tsx scripts/eval-drafts.ts",
+    "eval:venue-pitches": "tsx scripts/eval-venue-pitches.ts",
     "eval:journeys": "tsx scripts/eval-journeys.ts",
     "eval:parse": "tsx scripts/eval-parse.ts",
-    "quality:hunt": "tsx scripts/report-hunt-quality.ts"
+    "eval:triage": "tsx scripts/eval-triage.ts",
+    "quality:hunt": "tsx scripts/report-hunt-quality.ts",
+    "contacts:backfill": "tsx scripts/backfill-venue-contacts.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
@@ -29,10 +36,10 @@
     "@prisma/client": "^6.19.3",
     "@react-pdf/renderer": "^4.5.1",
     "ai": "^6.0.199",
-    "next": "16.2.12",
+    "next": "16.3.1",
     "prisma": "^6.19.3",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "stripe": "^22.2.0",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"
@@ -45,11 +52,11 @@
     "@types/web-push": "^3.6.4",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",
-    "vitest": "^3.2.6"
+    "vitest": "3.2.7"
   },
   "overrides": {
     "postcss": "8.5.25",

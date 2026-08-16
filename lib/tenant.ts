@@ -167,7 +167,18 @@ export async function getCurrentBusiness(opts: { provision?: boolean } = {}) {
     return created;
   }
 
-  // No Clerk configured: dev single-tenant mode.
+  // A missing server key must never turn production into demo-tenant mode.
+  // The publishable key can still make the proxy authenticate the request,
+  // while this module (which needs the secret) would otherwise hand every
+  // signed-in visitor the seeded demo tenant. /api/health also rejects this
+  // configuration, but the data boundary defends itself independently.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "CLERK_SECRET_KEY is not configured in production — refusing demo tenant fallback",
+    );
+  }
+
+  // No Clerk configured: local-development single-tenant mode only.
   const business = await db.business.findFirst({
     where: { slug: "demo-dj-co" },
   });

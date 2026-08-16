@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // stripe() client are mocked; planForLookupKey/PLAN_LOOKUP_KEYS stay REAL.
 
 const mockDb = vi.hoisted(() => ({
-  business: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  business: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
 }));
 const mockStripe = vi.hoisted(() => ({ subscriptions: { retrieve: vi.fn() } }));
 const mockActivationScan = vi.hoisted(() => vi.fn());
@@ -21,18 +21,29 @@ import { applyStripeEvent } from "@/lib/billing/webhook";
 
 const PRO = "brightears_pro_monthly";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const checkoutEvent = (businessId: string | null, subId: string | null, customer = "cus_1"): any => ({
+const checkoutEvent = (
+  businessId: string | null,
+  subId: string | null,
+  customer = "cus_1",
+  betaCohort = false,
+): Parameters<typeof applyStripeEvent>[0] => ({
   id: `evt_co_${subId}`,
   type: "checkout.session.completed",
-  data: { object: { client_reference_id: businessId, mode: "subscription", subscription: subId, customer } },
-});
+  data: {
+    object: {
+      client_reference_id: businessId,
+      mode: "subscription",
+      subscription: subId,
+      customer,
+      metadata: betaCohort ? { betaCohort: "true" } : {},
+    },
+  },
+}) as unknown as Parameters<typeof applyStripeEvent>[0];
 
 const subEvent = (
   kind: "updated" | "deleted",
   opts: { id: string; status?: string; lookup?: string; businessId?: string; customer?: string },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any => ({
+): Parameters<typeof applyStripeEvent>[0] => ({
   id: `evt_${kind}_${opts.id}`,
   type: `customer.subscription.${kind}`,
   data: {
@@ -44,12 +55,13 @@ const subEvent = (
       customer: opts.customer ?? "cus_1",
     },
   },
-});
+}) as unknown as Parameters<typeof applyStripeEvent>[0];
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => {});
   mockDb.business.update.mockResolvedValue({});
+  mockDb.business.updateMany.mockResolvedValue({ count: 1 });
   mockDb.business.findUnique.mockResolvedValue(null);
   mockDb.business.findFirst.mockResolvedValue(null);
   // `updated` re-retrieves the subscription (trust Stripe NOW, not the event
@@ -90,8 +102,21 @@ describe("checkout.session.completed", () => {
         data: expect.objectContaining({ plan: "PRO", stripeSubscriptionId: "sub_1" }),
       }),
     );
+    expect(mockDb.business.updateMany).toHaveBeenCalledWith({
+      where: { id: "biz1", firstSubscribedAt: null },
+      data: { firstSubscribedAt: expect.any(Date) },
+    });
     // Day one is the trial: activation kicks an immediate (post-response) hunt.
     expect(mockActivationScan).toHaveBeenCalledWith("biz1", { force: true });
+  });
+
+  it("anchors only an explicitly tagged invited beta subscription", async () => {
+    const res = await applyStripeEvent(checkoutEvent("biz1", "sub_beta", "cus_1", true));
+    expect(res.applied).toBe(true);
+    expect(mockDb.business.updateMany).toHaveBeenNthCalledWith(2, {
+      where: { id: "biz1", betaStartedAt: null },
+      data: { betaStartedAt: expect.any(Date) },
+    });
   });
 
   it("S6: does NOT activate on an unmapped lookup_key (paid, off-catalog price)", async () => {

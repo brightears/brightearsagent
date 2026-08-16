@@ -13,9 +13,10 @@ import { startOfTenantDay } from "@/lib/outreach/caps";
  *
  * The caps live in lib/billing/plan-features.ts (THE single source of truth for
  * tier capabilities); this is a derived view kept for the existing importers.
- * TRIAL = full Pro: during the window `trialEndsAt` is in the FUTURE so the
- * agent works with the Pro allowance; an expired unsubscribed trial forces
- * overCap via isAgentPaused.
+ * TRIAL = unsubscribed: `PLAN_FEATURES.TRIAL` has a zero allowance and
+ * `isAgentPaused` keeps the agent off unconditionally. A selected comp artist
+ * receives a real $0 Stripe subscription and therefore a paid plan; the
+ * vestigial `trialEndsAt` value never enables work.
  */
 export const PLAN_LEAD_CAPS: Record<PlanTier, number> = Object.fromEntries(
   (Object.entries(PLAN_FEATURES) as [PlanTier, { leadCap: number }][]).map(

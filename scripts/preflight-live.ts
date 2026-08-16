@@ -21,7 +21,11 @@ import Stripe from "stripe";
 import { PLAN_LOOKUP_KEYS } from "../lib/billing/stripe";
 
 const ok = (s: string) => console.log(`  ✓ ${s}`);
-const bad = (s: string) => console.log(`  ✗ ${s}`);
+let failureCount = 0;
+const bad = (s: string) => {
+  failureCount++;
+  console.log(`  ✗ ${s}`);
+};
 const info = (s: string) => console.log(`  · ${s}`);
 
 async function mail() {
@@ -186,7 +190,12 @@ async function billing() {
 async function main() {
   await mail().catch((e) => bad(`mail check threw: ${(e as Error).message}`));
   await billing().catch((e) => bad(`billing check threw: ${(e as Error).message}`));
-  console.log("\ndone — read-only, nothing was changed.\n");
+  console.log(
+    failureCount
+      ? `\nFAIL — ${failureCount} live preflight check(s) need attention. Nothing was changed.\n`
+      : "\nPASS — live preflight is clean. Read-only; nothing was changed.\n",
+  );
+  process.exitCode = failureCount ? 1 : 0;
 }
 
 main();
