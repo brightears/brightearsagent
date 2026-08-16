@@ -262,8 +262,103 @@ function identityPhrase(value: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+/**
+ * Venue-type words may suffix an otherwise distinctive name without appearing
+ * in its address ("Sato San Rooftop" -> "satosan"). Strip ONLY trailing type
+ * words and require a multi-word, reasonably long remainder: individual words,
+ * acronyms and generic category matches are deliberately insufficient proof.
+ */
+const VENUE_TYPE_SUFFIXES = new Set([
+  "bar",
+  "cafe",
+  "club",
+  "grill",
+  "hotel",
+  "kitchen",
+  "lounge",
+  "pub",
+  "restaurant",
+  "resort",
+  "rooftop",
+  "terrace",
+  "venue",
+]);
+
+function venueIdentityCoreTokens(value: string): string[] {
+  const tokens = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  while (tokens.length > 0 && VENUE_TYPE_SUFFIXES.has(tokens[tokens.length - 1]!)) {
+    tokens.pop();
+  }
+  return tokens.length >= 2 && tokens.join("").length >= 6 ? tokens : [];
+}
+
+function venueIdentityCore(value: string): string | null {
+  const tokens = venueIdentityCoreTokens(value);
+  return tokens.length > 0 ? tokens.join("") : null;
+}
+
+function emailContainsIdentityPhrase(email: string, phrase: string): boolean {
+  const [local = "", domain = ""] = email.toLowerCase().split("@");
+  return (
+    phrase.length >= 4 &&
+    (identityPhrase(local).includes(phrase) || identityPhrase(domain).includes(phrase))
+  );
+}
+
 function isAggregatorHost(host: string): boolean {
   return AGGREGATOR_DOMAINS.some((domain) => host.includes(domain));
+}
+
+/** Common public-suffix second levels; unknown shapes fail closed. */
+const COMMON_SECOND_LEVEL_SUFFIXES = new Set([
+  "ac",
+  "co",
+  "com",
+  "edu",
+  "go",
+  "gov",
+  "ne",
+  "net",
+  "or",
+  "org",
+]);
+
+/**
+ * Return only the registrant label, never a user-controlled subdomain. This
+ * deliberately handles the common ccTLD shapes and fails closed for unusual
+ * multi-label public suffixes rather than granting direct-contact confidence.
+ */
+function registrantLabel(host: string): string | null {
+  const labels = host.toLowerCase().replace(/\.$/, "").split(".").filter(Boolean);
+  if (labels.length < 2 || labels.some((label) => !/^[a-z0-9-]+$/.test(label))) return null;
+  const tld = labels[labels.length - 1]!;
+  const secondLevel = labels[labels.length - 2]!;
+  const hasCommonCcTldSuffix =
+    tld.length === 2 && COMMON_SECOND_LEVEL_SUFFIXES.has(secondLevel);
+  const index = labels.length - (hasCommonCcTldSuffix ? 3 : 2);
+  return index >= 0 ? labels[index]! : null;
+}
+
+/**
+ * Direct-contact identity needs stricter first-party proof than the crawler's
+ * intentionally broad any-token host selection. Require the full venue phrase
+ * or every token in its distinctive multi-word core in the registrant label.
+ */
+function isStrictFirstPartyHost(host: string, venueName: string): boolean {
+  const label = registrantLabel(host);
+  if (!label) return false;
+  const hostIdentity = identityPhrase(label);
+  const fullIdentity = identityPhrase(venueName);
+  if (fullIdentity.length >= 6 && hostIdentity.includes(fullIdentity)) return true;
+  const coreTokens = venueIdentityCoreTokens(venueName);
+  return coreTokens.length > 0 && coreTokens.every((token) => hostIdentity.includes(token));
 }
 
 /**
@@ -299,11 +394,19 @@ function isWeakParentBrandResult(
 /** A weak parent-brand page may supply only an address bound to the venue. */
 function emailBoundToVenue(email: string, venueName: string): boolean {
   const venuePhrase = identityPhrase(venueName);
-  const [local = "", domain = ""] = email.toLowerCase().split("@");
-  return (
-    venuePhrase.length >= 4 &&
-    (identityPhrase(local).includes(venuePhrase) || identityPhrase(domain).includes(venuePhrase))
-  );
+  return emailContainsIdentityPhrase(email, venuePhrase);
+}
+
+/**
+ * Strong hostname grounding lets an official page use a narrowly relaxed
+ * identity proof. The exact full-name rule remains first; the only relaxation
+ * is a distinctive multi-word core after trailing venue-type words are
+ * removed. Weak parent-brand pages intentionally do NOT use this helper.
+ */
+function emailBoundToOfficialVenue(email: string, venueName: string): boolean {
+  if (emailBoundToVenue(email, venueName)) return true;
+  const core = venueIdentityCore(venueName);
+  return core !== null && emailContainsIdentityPhrase(email, core);
 }
 
 async function discoverFromWeakParentBrandResults(
@@ -377,11 +480,39 @@ export async function discoverVenueContact(
   for (const [url, label] of pages) {
     const html = await deps.fetchPage(url);
     if (!html) continue;
-    const email = pickBestEmail(extractEmails(html));
+    const pageHost = new URL(url).hostname;
+    const strictFirstParty = isStrictFirstPartyHost(pageHost, venue.name);
+    let email: string | null = null;
+    let identityDirect = false;
+    let rank = 0;
+    for (const candidate of extractEmails(html)) {
+      const roleRank = emailRank(candidate);
+      if (roleRank < 1) continue;
+      const candidateIdentityDirect =
+        roleRank < 3 &&
+        strictFirstParty &&
+        emailBoundToOfficialVenue(candidate, venue.name);
+      // A deterministic venue identity beats a generic role address, while a
+      // purpose-specific events/bookings address remains the best outcome.
+      const candidateRank = candidateIdentityDirect ? 2.5 : roleRank;
+      if (candidateRank > rank) {
+        email = candidate;
+        identityDirect = candidateIdentityDirect;
+        rank = candidateRank;
+      }
+    }
     if (!email) continue;
-    const rank = emailRank(email);
     if (rank > bestRank) {
-      best = { email, source: `venue site ${label} — ${roleLabelFor(email, new URL(url).hostname)}` };
+      best = identityDirect
+        ? {
+            email,
+            source: `venue site ${label} — venue-bound contact (${email.split("@")[1]})`,
+            direct: true,
+          }
+        : {
+            email,
+            source: `venue site ${label} — ${roleLabelFor(email, pageHost)}`,
+          };
       bestRank = rank;
     }
     if (bestRank >= 3) break; // events@/bookings@ found — stop fetching
