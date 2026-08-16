@@ -138,6 +138,7 @@ export default async function Dashboard({
         bookingEmail: true,
         contactSource: true,
         bookingContactName: true,
+        contactState: true,
         staffNotes: true,
         retouchedAt: true,
         // Travel Mode: the window's city, when this venue is a travel find —

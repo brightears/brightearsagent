@@ -283,7 +283,8 @@ export function LeadRoiCalculator() {
             </p>
             <Link
               href={`/onboarding?plan=${leadsPerMonth <= 15 ? "starter" : leadsPerMonth <= 60 ? "pro" : "studio"}`}
-              className="inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+              prefetch={false}
+              className="inline-block rounded-full bg-neon-magenta text-ink-stage font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
               Get started
             </Link>

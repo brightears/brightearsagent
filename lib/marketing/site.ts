@@ -36,6 +36,9 @@ export function pageMeta(title: string, description: string): Metadata {
     openGraph: {
       title,
       description,
+      // Route-relative so metadataBase resolves the canonical URL for each
+      // marketing page instead of silently omitting og:url.
+      url: "./",
       siteName: "Bright Ears",
       type: "website",
       images: [SOCIAL_IMAGE],

@@ -19,7 +19,8 @@ const v = (
   temperature: "HOT" | "WARM" | "SEED",
   bookingEmail = "bookings@venue.example",
   bookingContactName: string | null = null,
-) => ({ id, temperature, bookingEmail, bookingContactName });
+  contactState: "FOUND_DIRECT" | "FOUND_GENERIC" | null = null,
+) => ({ id, temperature, bookingEmail, bookingContactName, contactState });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,6 +45,24 @@ describe("autoDraftPitches (P8.1 — the agent acts, draft-only)", () => {
     const r = await autoDraftPitches(biz());
     expect(mockDraft.mock.calls.map((c) => c[1])).toEqual(["named", "booking"]);
     expect(r).toEqual({ attempted: 2, created: 2, stoppedBy: null });
+  });
+
+  it("auto-drafts a role-neutral address backed by FOUND_DIRECT identity proof", async () => {
+    mockDb.venue.findMany.mockResolvedValue([
+      v("bound", "HOT", "baryard.kimptonmaalai@ihg.com", null, "FOUND_DIRECT"),
+      v("generic", "HOT", "kimptonmaalaibangkok@ihg.com", null, "FOUND_GENERIC"),
+    ]);
+    mockDraft.mockResolvedValue({ ok: true, created: true });
+
+    expect(await autoDraftPitches(biz())).toEqual({
+      attempted: 1,
+      created: 1,
+      stoppedBy: null,
+    });
+    expect(mockDraft.mock.calls.map((call) => call[1])).toEqual(["bound"]);
+    expect(mockDb.venue.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ select: expect.objectContaining({ contactState: true }) }),
+    );
   });
 
   it("drafts best-first and counts what was actually created", async () => {

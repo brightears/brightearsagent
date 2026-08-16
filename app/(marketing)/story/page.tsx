@@ -338,7 +338,8 @@ export default function StoryPage() {
           </p>
           <Link
             href="/onboarding"
-            className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+            prefetch={false}
+            className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
           >
             Get started
           </Link>

@@ -40,7 +40,13 @@ export async function autoDraftPitches(
     },
     orderBy: [{ temperature: "asc" }, { fitScore: "desc" }],
     take: opts.max ?? 18, // ≤ summed daily caps (HOT 10 + WARM 5 + SEED 3)
-    select: { id: true, temperature: true, bookingEmail: true, bookingContactName: true },
+    select: {
+      id: true,
+      temperature: true,
+      bookingEmail: true,
+      bookingContactName: true,
+      contactState: true,
+    },
   });
 
   const cappedTemps = new Set<string>();
@@ -49,7 +55,10 @@ export async function autoDraftPitches(
     // Contact-confidence gate (P10.5): autonomy only toward addresses that
     // plausibly reach the booker. Generic info@/hello@ stays MANUAL — the
     // card flags "verify before sending" and the owner decides.
-    if (contactConfidence(venue.bookingEmail, venue.bookingContactName) !== "high") continue;
+    if (
+      contactConfidence(venue.bookingEmail, venue.bookingContactName, venue.contactState) !==
+      "high"
+    ) continue;
     result.attempted++;
     const r = await draftPitchForVenue(business, venue.id);
     if (r.ok) {

@@ -142,7 +142,8 @@ export default function HomePage() {
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link
                 href="/onboarding"
-                className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
+                prefetch={false}
+                className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
               >
                 Build my profile
               </Link>
@@ -185,28 +186,32 @@ export default function HomePage() {
             </p>
           </RevealOnScroll>
 
-          <ol className="relative mt-14 grid gap-6 lg:grid-cols-3">
+          <div className="relative mt-14">
             <div
               aria-hidden
               className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-brand-cyan via-neon-magenta to-neon-orange lg:block"
             />
-            {SETUP_STEPS.map((step, index) => (
-              <RevealOnScroll key={step.number} delayMs={index * 110}>
-                <li className="relative h-full rounded-3xl border border-cream/10 bg-ink-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cream/20 hover:shadow-[0_18px_50px_rgba(0,0,0,0.3)]">
-                  <span className="relative z-10 inline-flex size-12 items-center justify-center rounded-full bg-cream font-mono text-sm font-black text-ink-stage shadow-lg">
-                    {step.number}
-                  </span>
-                  <h3 className="mt-6 text-2xl font-black tracking-tight text-cream-bright">
-                    {step.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-cream/60">{step.body}</p>
-                  <p className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-brand-cyan">
-                    {step.note}
-                  </p>
+            <ol className="relative grid gap-6 lg:grid-cols-3">
+              {SETUP_STEPS.map((step, index) => (
+                <li key={step.number} className="h-full">
+                  <RevealOnScroll className="h-full" delayMs={index * 110}>
+                    <div className="relative h-full rounded-3xl border border-cream/10 bg-ink-raised p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cream/20 hover:shadow-[0_18px_50px_rgba(0,0,0,0.3)]">
+                      <span className="relative z-10 inline-flex size-12 items-center justify-center rounded-full bg-cream font-mono text-sm font-black text-ink-stage shadow-lg">
+                        {step.number}
+                      </span>
+                      <h3 className="mt-6 text-2xl font-black tracking-tight text-cream-bright">
+                        {step.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-relaxed text-cream/60">{step.body}</p>
+                      <p className="mt-5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-brand-cyan">
+                        {step.note}
+                      </p>
+                    </div>
+                  </RevealOnScroll>
                 </li>
-              </RevealOnScroll>
-            ))}
-          </ol>
+              ))}
+            </ol>
+          </div>
         </div>
       </section>
 
@@ -428,7 +433,8 @@ export default function HomePage() {
               </p>
               <Link
                 href="/onboarding"
-                className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
+                prefetch={false}
+                className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
               >
                 Build my profile
               </Link>

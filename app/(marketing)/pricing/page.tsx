@@ -268,9 +268,10 @@ export default function PricingPage() {
                   // wizard → the step-5 finale opens checkout for THIS plan,
                   // so nobody re-decides at the activation moment.
                   href={`/onboarding?plan=${plan.name.toLowerCase()}`}
+                  prefetch={false}
                   className={`mt-8 block rounded-full text-center font-bold px-4 py-3 transition-opacity ${
                     plan.highlighted
-                      ? "bg-neon-magenta text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90"
+                      ? "bg-neon-magenta text-ink-stage shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90"
                       : "border-[1.5px] border-ink-stage/30 text-ink-stage/80 hover:border-ink-stage/60 hover:text-ink-stage transition-colors"
                   }`}
                 >
@@ -393,7 +394,8 @@ export default function PricingPage() {
             </p>
             <Link
               href="/onboarding"
-              className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+              prefetch={false}
+              className="relative mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
               Get started
             </Link>

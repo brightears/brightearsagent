@@ -128,7 +128,8 @@ export default function InquiryReplyGeneratorPage() {
             </p>
             <Link
               href="/onboarding"
-              className="relative inline-block rounded-full bg-neon-magenta text-white font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+              prefetch={false}
+              className="relative inline-block rounded-full bg-neon-magenta text-ink-stage font-bold px-7 py-3 shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
             >
               Get started
             </Link>

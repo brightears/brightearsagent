@@ -34,6 +34,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrlLenient()),
   alternates: { canonical: "./" },
   openGraph: {
+    url: "./",
     siteName: "Bright Ears",
     type: "website",
     title: "Bright Ears — the AI that finds gigs for performers",

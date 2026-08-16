@@ -28,6 +28,7 @@ const venue = (overrides: Partial<HuntQualityRow> = {}): HuntQualityRow => ({
   createdAt: RECENT,
   bookingEmail: null,
   bookingContactName: null,
+  contactState: null,
   suppressedReason: null,
   reviewedAt: overrides.suppressedReason ? RECENT : null,
   repliedAt: null,
@@ -97,6 +98,25 @@ describe("summarizeHuntQuality", () => {
     expect(summary.venuesPitched).toBe(1);
     expect(summary.venueReplies).toBe(1);
     expect(summary.pitchDecisions).toBe(1);
+  });
+
+  it("counts FOUND_DIRECT venue-bound addresses as high-confidence contacts", () => {
+    const summary = summarizeHuntQuality(
+      [
+        venue({
+          bookingEmail: "baryard.kimptonmaalai@ihg.com",
+          contactState: "FOUND_DIRECT",
+        }),
+        venue({
+          bookingEmail: "kimptonmaalaibangkok@ihg.com",
+          contactState: "FOUND_GENERIC",
+        }),
+      ],
+      NOW,
+    );
+
+    expect(summary.directContacts).toBe(2);
+    expect(summary.highConfidenceContacts).toBe(1);
   });
 
   it("preserves an approved decision after a later opt-out expires the unsent pitch", () => {

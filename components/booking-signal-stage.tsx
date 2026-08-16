@@ -143,7 +143,7 @@ export function BookingSignalStage() {
         className="be-pitch-ticket absolute bottom-4 left-4 right-4 z-40 rounded-2xl bg-cream p-4 text-ink-stage shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:bottom-5"
       >
         <div className="flex items-center gap-3">
-          <span className="flex size-9 flex-none items-center justify-center rounded-full bg-neon-magenta font-mono text-xs font-black text-white">
+          <span className="flex size-9 flex-none items-center justify-center rounded-full bg-neon-magenta font-mono text-xs font-black text-ink-stage">
             01
           </span>
           <div className="min-w-0 flex-1">

@@ -130,7 +130,7 @@ export function DemoWidget() {
         type="button"
         onClick={run}
         disabled={busy || inquiry.trim().length < MIN_CHARS}
-        className="w-full rounded-full bg-neon-magenta px-6 py-3 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
+        className="w-full rounded-full bg-neon-magenta px-6 py-3 font-bold text-ink-stage shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
       >
         {phase === "loading" ? "Drafting…" : phase === "typing" ? "Writing…" : "Watch the reply write itself"}
       </button>
@@ -147,7 +147,8 @@ export function DemoWidget() {
           {limited && (
             <Link
               href="/onboarding"
-              className="mt-2 inline-block rounded-full bg-neon-magenta px-4 py-1.5 text-sm font-bold text-white shadow-[0_6px_20px_rgba(255,45,174,0.3)] transition-opacity hover:opacity-90"
+              prefetch={false}
+              className="mt-2 inline-block rounded-full bg-neon-magenta px-4 py-1.5 text-sm font-bold text-ink-stage shadow-[0_6px_20px_rgba(255,45,174,0.3)] transition-opacity hover:opacity-90"
             >
               Get started
             </Link>
@@ -202,7 +203,8 @@ export function DemoWidget() {
               </p>
               <Link
                 href="/onboarding"
-                className="rounded-full bg-neon-magenta px-4 py-2 font-bold text-white shadow-[0_6px_20px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
+                prefetch={false}
+                className="rounded-full bg-neon-magenta px-4 py-2 font-bold text-ink-stage shadow-[0_6px_20px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
                 Get started
               </Link>

@@ -79,7 +79,7 @@ export function EpkInquiryForm({ slug, artistName }: { slug: string; artistName:
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-full bg-neon-magenta px-7 py-3 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="w-full rounded-full bg-neon-magenta px-7 py-3 font-bold text-ink-stage shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "Sending…" : "Check availability"}
       </button>
