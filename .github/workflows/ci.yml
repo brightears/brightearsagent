@@ -32,9 +32,6 @@ jobs:
       # The same URL powers Prisma generation and an empty-database migration
       # smoke test. Unit tests continue to mock persistence.
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/brightears_ci?schema=public
-      # Keep build-time canonicals deterministic without loading production
-      # credentials into CI.
-      APP_URL: https://brightears.io
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -50,3 +47,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+        env:
+          # Build-time canonical only. Keeping this out of the job-level env
+          # prevents unit tests from intentionally entering public-origin
+          # fail-closed mode without production secrets.
+          APP_URL: https://brightears.io
