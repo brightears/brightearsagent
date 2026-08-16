@@ -175,7 +175,7 @@ export function pickVenueSiteUrl(results: { link: string }[], venueName: string)
     } catch {
       continue;
     }
-    if (AGGREGATOR_DOMAINS.some((d) => host.includes(d))) continue;
+    if (isAggregatorHost(host)) continue;
     if (tokens.some((t) => host.replace(/[^a-z0-9]/g, "").includes(t))) return r.link;
   }
   return null;
@@ -192,7 +192,12 @@ export const CONTACT_PATHS = [
   "/contact-us",
 ] as const;
 
-export type ContactHit = { email: string; source: string };
+export type ContactHit = {
+  email: string;
+  source: string;
+  /** Exact venue identity, independent of role words in the local-part. */
+  direct?: boolean;
+};
 
 /** Normalized host ("www." stripped, lowercased) — for domain comparisons. */
 function normHost(host: string): string {
@@ -233,7 +238,106 @@ export type ContactDeps = {
 };
 
 export function contactQueryFor(name: string, city: string): string {
-  return `${name} ${city} contact OR "private hire" OR events email`;
+  // Keep this a single, plain search clause. Serper returned no organic
+  // results for the former OR-heavy shape in production, while an exact venue
+  // name plus city reliably surfaced the official site. Contact-page paths are
+  // still explored after that one grounded result, so broader search operators
+  // add query/ranking risk without improving the fetch pass.
+  return `"${name}" ${city} contact email`;
+}
+
+const WEAK_SITE_CANDIDATE_CAP = 3;
+
+/**
+ * Compact identity form for exact phrase checks across punctuation-heavy
+ * venue names, URL paths and email addresses ("Bar.Yard" -> "baryard").
+ * This is intentionally stricter than slugTokens: the weak parent-brand path
+ * may not succeed from one generic token such as "bar" or "hotel".
+ */
+function identityPhrase(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function isAggregatorHost(host: string): boolean {
+  return AGGREGATOR_DOMAINS.some((domain) => host.includes(domain));
+}
+
+/**
+ * A venue can legitimately live below its hotel's or hospitality group's
+ * hostname. Admit that weaker shape only with exact, redundant identity
+ * evidence: full venue phrase in BOTH path and title, plus city in title.
+ * Very short acronyms are too ambiguous for this fallback.
+ */
+function isWeakParentBrandResult(
+  result: { link: string; title?: string },
+  venue: { name: string; city: string },
+): boolean {
+  const venuePhrase = identityPhrase(venue.name);
+  const cityPhrase = identityPhrase(venue.city);
+  if (venuePhrase.length < 4 || cityPhrase.length === 0 || !result.title) return false;
+
+  try {
+    const url = new URL(result.link);
+    const host = url.hostname.toLowerCase();
+    if (isAggregatorHost(host)) return false;
+    const pathPhrase = identityPhrase(decodeURIComponent(url.pathname));
+    const titlePhrase = identityPhrase(result.title);
+    return (
+      pathPhrase.includes(venuePhrase) &&
+      titlePhrase.includes(venuePhrase) &&
+      titlePhrase.includes(cityPhrase)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** A weak parent-brand page may supply only an address bound to the venue. */
+function emailBoundToVenue(email: string, venueName: string): boolean {
+  const venuePhrase = identityPhrase(venueName);
+  const [local = "", domain = ""] = email.toLowerCase().split("@");
+  return (
+    venuePhrase.length >= 4 &&
+    (identityPhrase(local).includes(venuePhrase) || identityPhrase(domain).includes(venuePhrase))
+  );
+}
+
+async function discoverFromWeakParentBrandResults(
+  venue: { name: string; city: string },
+  results: { link: string; title?: string }[],
+  deps: ContactDeps,
+  excludeLink?: string,
+): Promise<ContactHit | null> {
+  const candidates = results
+    .filter(
+      (result) => result.link !== excludeLink && isWeakParentBrandResult(result, venue),
+    )
+    .slice(0, WEAK_SITE_CANDIDATE_CAP);
+
+  for (const candidate of candidates) {
+    // Weak identity means weak fetch authority: fetch ONLY the indexed hit.
+    // Never fan out to its origin or guessed contact paths as strong, hostname-
+    // grounded venue sites do below.
+    const html = await deps.fetchPage(candidate.link);
+    if (!html) continue;
+    const email = pickBestEmail(
+      extractEmails(html).filter((value) => emailBoundToVenue(value, venue.name)),
+    );
+    if (!email) continue;
+
+    const url = new URL(candidate.link);
+    const label = url.pathname.replace(/\/$/, "") || "/";
+    return {
+      email,
+      source: `venue-branded search page ${label} — exact venue-bound contact (${email.split("@")[1]})`,
+      direct: true,
+    };
+  }
+  return null;
 }
 
 /**
@@ -247,7 +351,9 @@ export async function discoverVenueContact(
 ): Promise<ContactHit | null> {
   const results = await deps.serperSearch(contactQueryFor(venue.name, venue.city));
   const siteUrl = pickVenueSiteUrl(results, venue.name);
-  if (!siteUrl) return null;
+  // A strong hostname-grounded result always wins, even if an earlier result
+  // happens to qualify for the weaker parent-brand fallback.
+  if (!siteUrl) return discoverFromWeakParentBrandResults(venue, results, deps);
 
   let origin: string;
   let hitPath: string;
@@ -280,7 +386,11 @@ export async function discoverVenueContact(
     }
     if (bestRank >= 3) break; // events@/bookings@ found — stop fetching
   }
-  return best;
+  if (best) return best;
+  // A trusted hostname is preferred and exhausted first, but a WAF/empty
+  // response must not starve a later, independently-qualified parent-brand
+  // page from the same already-paid search result set.
+  return discoverFromWeakParentBrandResults(venue, results, deps, siteUrl);
 }
 
 // ---------------------------------------------------------------------------
@@ -481,11 +591,21 @@ export async function runContactPass(
     }
 
     const email = hit.email.toLowerCase();
-    const existingRank = venue.bookingEmail ? emailRank(venue.bookingEmail) : -1;
-    const foundRank = emailRank(email);
-    const chosenEmail = foundRank > existingRank ? email : venue.bookingEmail ?? email;
-    const chosenSource = foundRank > existingRank ? hit.source : venue.contactSource;
-    const outcome = foundRank >= 3 ? "FOUND_DIRECT" : "FOUND_GENERIC";
+    const existingDirect =
+      venue.contactState === "FOUND_DIRECT" ||
+      (!!venue.bookingEmail && emailRank(venue.bookingEmail) >= 3);
+    const foundDirect = hit.direct === true || emailRank(email) >= 3;
+    const existingRank = existingDirect
+      ? 3
+      : venue.bookingEmail
+        ? emailRank(venue.bookingEmail)
+        : -1;
+    const foundRank = foundDirect ? 3 : emailRank(email);
+    const useFound = foundRank > existingRank;
+    const chosenEmail = useFound ? email : venue.bookingEmail ?? email;
+    const chosenSource = useFound ? hit.source : venue.contactSource;
+    const chosenDirect = useFound ? foundDirect : existingDirect;
+    const outcome = chosenDirect ? "FOUND_DIRECT" : "FOUND_GENERIC";
 
     // Re-check the address that would actually be persisted, at write time —
     // the list may have grown since ingest or since a generic contact was

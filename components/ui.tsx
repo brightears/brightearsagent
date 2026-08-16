@@ -67,7 +67,8 @@ export function Badge({
  * Button recipes — all pill-shaped (rounded-full) in v2.
  *   primary          → solid CYAN pill, ink text (app voice — the daily click;
  *                      ink-on-cyan ~7.5:1, white-on-cyan fails contrast)
- *   show             → solid MAGENTA pill, white text + glow (marketing voice:
+ *   show             → solid MAGENTA pill, ink text + glow (marketing voice;
+ *                      ink-on-magenta passes AA contrast, unlike white)
  *                      "Start free" and friends — never for app actions)
  *   secondary        → cream-outline ghost pill for the ink canvas
  *   secondaryOnLight → ink-outline ghost pill for use INSIDE white/cream cards
@@ -78,7 +79,7 @@ export const buttonStyles = {
   primary:
     "rounded-full bg-brand-cyan text-ink-stage font-bold px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   show:
-    "rounded-full bg-neon-magenta text-white font-bold px-5 py-2.5 shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
+    "rounded-full bg-neon-magenta text-ink-stage font-bold px-5 py-2.5 shadow-[0_8px_28px_rgba(255,45,174,0.35)] hover:opacity-90 transition-opacity disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   secondary:
     "rounded-full border-[1.5px] border-cream/40 text-cream font-semibold px-4 py-2 hover:border-cream/75 hover:text-cream-bright transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan",
   secondaryOnLight:

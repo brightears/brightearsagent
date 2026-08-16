@@ -14,6 +14,7 @@
 import { db } from "@/lib/db";
 import { contactConfidence } from "@/lib/venues/contact-confidence";
 import { SKIP_REASONS, type SkipReason } from "@/lib/venues/feed";
+import type { ContactEnrichmentState } from "@/app/generated/prisma/enums";
 
 export const HUNT_QUALITY_WINDOW_DAYS = 30;
 export const HUNT_REVIEW_SAMPLE_REQUIRED = 20;
@@ -56,6 +57,7 @@ export type HuntQualityRow = {
   createdAt: Date;
   bookingEmail: string | null;
   bookingContactName: string | null;
+  contactState: ContactEnrichmentState | null;
   suppressedReason: string | null;
   reviewedAt: Date | null;
   repliedAt: Date | null;
@@ -222,7 +224,13 @@ export function summarizeHuntQuality(
       venuesFound++;
       if (venue.bookingEmail) {
         directContacts++;
-        if (contactConfidence(venue.bookingEmail, venue.bookingContactName) === "high") {
+        if (
+          contactConfidence(
+            venue.bookingEmail,
+            venue.bookingContactName,
+            venue.contactState,
+          ) === "high"
+        ) {
           highConfidenceContacts++;
         }
       }
@@ -381,6 +389,7 @@ export async function computeHuntQuality(
         createdAt: true,
         bookingEmail: true,
         bookingContactName: true,
+        contactState: true,
         suppressedReason: true,
         reviewedAt: true,
         repliedAt: true,

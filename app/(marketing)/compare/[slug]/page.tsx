@@ -124,7 +124,7 @@ export default async function ComparisonSlugPage({ params }: Props) {
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-cream/70 max-w-2xl">{page.heroSub}</p>
           <div className="mt-8">
-            <Link href="/onboarding" className={buttonStyles.show}>
+            <Link href="/onboarding" prefetch={false} className={buttonStyles.show}>
               Get started
             </Link>
           </div>
@@ -176,6 +176,7 @@ export default async function ComparisonSlugPage({ params }: Props) {
                 ) : (
                   <Link
                     href="/onboarding"
+                    prefetch={false}
                     className="mt-4 text-sm font-bold text-ink-stage underline decoration-brand-cyan decoration-2 underline-offset-2 hover:text-brand-cyan transition-colors"
                   >
                     Get started →
@@ -338,7 +339,8 @@ export default async function ComparisonSlugPage({ params }: Props) {
             <div className="relative mt-7 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/onboarding"
-                className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+                prefetch={false}
+                className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
               >
                 Get started
               </Link>

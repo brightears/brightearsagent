@@ -18,7 +18,12 @@ import {
   signalAgeLabel,
   type SkipReason,
 } from "@/lib/venues/feed";
-import type { VenueKind, VenueStatus, VenueTemperature } from "@/app/generated/prisma/enums";
+import type {
+  ContactEnrichmentState,
+  VenueKind,
+  VenueStatus,
+  VenueTemperature,
+} from "@/app/generated/prisma/enums";
 
 /** The slice of a Venue row the feed card renders. */
 export type HuntVenue = {
@@ -41,6 +46,7 @@ export type HuntVenue = {
   lastSignalAt: Date | null;
   bookingEmail: string | null;
   contactSource: string | null;
+  contactState: ContactEnrichmentState | null;
   /** Evidence receipts (P10.1): freshest signals with WHERE we read them. */
   signals: { id: string; summary: string; sourceUrl: string }[];
   /** Named person published with the address (P10.5 confidence signal). */
@@ -225,7 +231,11 @@ function VenueCard({
           // the booker before sending.
           <p className="text-[11px] text-ink-stage/45">
             Contact: {venue.contactSource ?? "published booking contact"}
-            {contactConfidence(venue.bookingEmail, venue.bookingContactName) === "low" && (
+            {contactConfidence(
+              venue.bookingEmail,
+              venue.bookingContactName,
+              venue.contactState,
+            ) === "low" && (
               <>
                 {" · "}
                 <span aria-hidden className="mb-px mr-1 inline-block size-1 bg-neon-orange align-middle" />

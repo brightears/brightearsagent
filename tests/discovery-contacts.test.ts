@@ -115,6 +115,23 @@ describe("pickVenueSiteUrl", () => {
     ).toBeNull();
     expect(pickVenueSiteUrl([{ link: "https://instagram.com/x" }], "The Vault")).toBeNull();
   });
+
+  it("selects Above Eleven's official site from a realistic broad result set", () => {
+    const results = [
+      { link: "https://www.tripadvisor.com/Restaurant_Review-above-eleven" },
+      { link: "https://www.timeout.com/bangkok/bars/above-eleven" },
+      { link: "https://aboveeleven.com/bangkok/" },
+    ];
+    expect(pickVenueSiteUrl(results, "Above Eleven")).toBe("https://aboveeleven.com/bangkok/");
+  });
+});
+
+describe("contactQueryFor", () => {
+  it("uses one exact-name clause instead of the Serper-empty OR-heavy form", () => {
+    const query = contactQueryFor("Above Eleven", "Bangkok");
+    expect(query).toBe('"Above Eleven" Bangkok contact email');
+    expect(query).not.toMatch(/\sOR\s/);
+  });
 });
 
 describe("discoverVenueContact", () => {
@@ -171,6 +188,108 @@ describe("discoverVenueContact", () => {
     };
     expect(await discoverVenueContact(venue, deps)).toBeNull();
     expect(deps.fetchPage).not.toHaveBeenCalled();
+  });
+
+  it("accepts a venue-bound email on an exact parent-brand Bar.Yard page", async () => {
+    const hitUrl = "https://www.kimptonmaalaibangkok.com/bangkok-restaurants/baryard-rooftop-bar/";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [
+        {
+          link: hitUrl,
+          title: "Bar.Yard – Bangkok's Best Rooftop Bar | Kimpton Maa-Lai Bangkok",
+        },
+      ]),
+      fetchPage: vi.fn(async () => `
+        <p>Email: BarYard.Kimptonmaalai@ihg.com</p>
+        <footer>kimptonmaalaibangkok@ihg.com</footer>
+      `),
+    };
+
+    expect(await discoverVenueContact({ name: "Bar.Yard", city: "Bangkok" }, deps)).toEqual({
+      email: "baryard.kimptonmaalai@ihg.com",
+      source: expect.stringContaining("venue-branded search page"),
+      direct: true,
+    });
+    expect(deps.serperSearch).toHaveBeenCalledTimes(1);
+    expect(deps.fetchPage).toHaveBeenCalledOnce();
+    expect(deps.fetchPage).toHaveBeenCalledWith(hitUrl);
+  });
+
+  it("rejects a Void Acoustics publisher address and tries a later bounded candidate", async () => {
+    const voidUrl = "https://voidacoustics.com/case-studies/bar-yard-bangkok/";
+    const kimptonUrl = "https://www.kimptonmaalaibangkok.com/dining/baryard-bangkok/";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [
+        { link: voidUrl, title: "Bar.Yard Bangkok | Void Acoustics" },
+        { link: kimptonUrl, title: "Bar.Yard Bangkok | Kimpton Maa-Lai" },
+      ]),
+      fetchPage: vi.fn(async (url) =>
+        url === voidUrl ? "info@voidacoustics.com" : "BarYard.Kimptonmaalai@ihg.com",
+      ),
+    };
+
+    expect(await discoverVenueContact({ name: "Bar.Yard", city: "Bangkok" }, deps)).toEqual(
+      expect.objectContaining({ email: "baryard.kimptonmaalai@ihg.com" }),
+    );
+    expect(deps.serperSearch).toHaveBeenCalledTimes(1);
+    expect(deps.fetchPage).toHaveBeenCalledTimes(2);
+    expect(deps.fetchPage).toHaveBeenNthCalledWith(1, voidUrl);
+    expect(deps.fetchPage).toHaveBeenNthCalledWith(2, kimptonUrl);
+  });
+
+  it("rejects a general hotel email on a weak parent-brand page", async () => {
+    const hitUrl = "https://www.kimptonmaalaibangkok.com/dining/baryard-bangkok/";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [
+        { link: hitUrl, title: "Bar.Yard Bangkok | Kimpton Maa-Lai" },
+      ]),
+      fetchPage: vi.fn(async () => "kimptonmaalaibangkok@ihg.com"),
+    };
+
+    expect(await discoverVenueContact({ name: "Bar.Yard", city: "Bangkok" }, deps)).toBeNull();
+    expect(deps.fetchPage).toHaveBeenCalledOnce();
+    expect(deps.fetchPage).toHaveBeenCalledWith(hitUrl);
+  });
+
+  it("prefers a later hostname-grounded site over an earlier weak parent-brand result", async () => {
+    const weakUrl = "https://www.kimptonmaalaibangkok.com/dining/baryard-bangkok/";
+    const strongUrl = "https://baryard.example/contact";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [
+        { link: weakUrl, title: "Bar.Yard Bangkok | Kimpton Maa-Lai" },
+        { link: strongUrl, title: "Bar.Yard Bangkok" },
+      ]),
+      fetchPage: vi.fn(async (url) =>
+        url === strongUrl ? "events@baryard.example" : "BarYard.Kimptonmaalai@ihg.com",
+      ),
+    };
+
+    expect(await discoverVenueContact({ name: "Bar.Yard", city: "Bangkok" }, deps)).toEqual(
+      expect.objectContaining({ email: "events@baryard.example" }),
+    );
+    expect(deps.fetchPage).not.toHaveBeenCalledWith(weakUrl);
+  });
+
+  it("falls back to a weak parent-brand page after an empty strong-host crawl", async () => {
+    const strongUrl = "https://baryard.example/";
+    const weakUrl = "https://www.kimptonmaalaibangkok.com/dining/baryard-bangkok/";
+    const fetchPage = vi.fn(async (url: string) =>
+      url === weakUrl ? "BarYard.Kimptonmaalai@ihg.com" : null,
+    );
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [
+        { link: strongUrl, title: "Bar.Yard Bangkok" },
+        { link: weakUrl, title: "Bar.Yard Bangkok | Kimpton Maa-Lai" },
+      ]),
+      fetchPage,
+    };
+
+    expect(await discoverVenueContact({ name: "Bar.Yard", city: "Bangkok" }, deps)).toEqual(
+      expect.objectContaining({ email: "baryard.kimptonmaalai@ihg.com" }),
+    );
+    expect(deps.serperSearch).toHaveBeenCalledTimes(1);
+    expect(fetchPage).toHaveBeenCalledWith(weakUrl);
+    expect(fetchPage.mock.calls.filter(([url]) => url === strongUrl)).toHaveLength(1);
   });
 });
 
@@ -408,6 +527,44 @@ describe("runContactPass", () => {
       .find((call) => call.data.bookingEmail === "bookings@thevault.example");
     expect(saved?.data.contactState).toBe("FOUND_DIRECT");
     expect(saved?.data.contactRetryAfter).toBeNull();
+  });
+
+  it("upgrades an existing generic address with exact venue-bound identity proof", async () => {
+    const generic = {
+      ...dbVenue("v1", "Bar.Yard"),
+      bookingEmail: "hello@old-hotel.example",
+      contactSource: "venue site /contact — general contact",
+      contactAttemptCount: 1,
+      contactLastAttemptAt: new Date("2026-07-01"),
+      contactRetryAfter: new Date("2026-07-31"),
+      contactState: "FOUND_GENERIC",
+    };
+    mockDb.venue.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([generic]);
+    const deps: ContactDeps = {
+      serperSearch: async () => [
+        {
+          link: "https://www.kimptonmaalaibangkok.com/dining/baryard-manchester/",
+          title: "Bar.Yard Manchester | Kimpton",
+        },
+      ],
+      fetchPage: async () => "BarYard.Kimptonmaalai@ihg.com",
+    };
+
+    const result = await runContactPass("biz1", {
+      now: new Date("2026-08-16"),
+      deps,
+      limit: 1,
+    });
+
+    expect(result.found).toEqual([
+      expect.objectContaining({ venueId: "v1", email: "baryard.kimptonmaalai@ihg.com" }),
+    ]);
+    const saved = mockDb.venue.updateMany.mock.calls
+      .map(([call]) => call)
+      .find((call) => call.data.bookingEmail === "baryard.kimptonmaalai@ihg.com");
+    expect(saved?.data.contactState).toBe("FOUND_DIRECT");
+    expect(saved?.data.contactRetryAfter).toBeNull();
+    expect(saved?.data.contactSource).toContain("exact venue-bound contact");
   });
 
   it("does not overwrite an owner change made while the network lookup is running", async () => {

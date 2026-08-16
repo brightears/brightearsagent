@@ -89,7 +89,7 @@ export default function ComparePage() {
             contracts.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href="/onboarding" className={buttonStyles.show}>
+            <Link href="/onboarding" prefetch={false} className={buttonStyles.show}>
               Get started
             </Link>
             <a href="#roundup" className={buttonStyles.secondary}>
@@ -322,7 +322,8 @@ export default function ComparePage() {
             <div className="relative mt-7">
               <Link
                 href="/onboarding"
-                className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-white shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
+                prefetch={false}
+                className="inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-base font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] hover:opacity-90 transition-opacity"
               >
                 Get started
               </Link>
