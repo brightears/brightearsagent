@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Adversarial genuine inquiry: a buyer includes the word unsubscribe while asking about a real booking; that bulk marker must not outweigh explicit buyer intent.",
+  "from": "mina@example.com",
+  "fromName": "Mina Patel",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "Wedding DJ availability",
+  "textBody": "Are you available to DJ our wedding on 22 May 2027? We expect 85 guests and would love to see your packages. If this old address is on any newsletter, please unsubscribe it; you can reply directly here.",
+  "providerMessageId": "generic-fixture-006"
+}

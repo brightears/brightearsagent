@@ -1,8 +1,7 @@
 /**
- * Why does FOUNDER1 fail at checkout?
+ * Why does the configured beta promotion fail at checkout?
  *
- *   npx tsx scripts/diagnose-promo.ts            # inspect + probe
- *   npx tsx scripts/diagnose-promo.ts FOUNDER1
+ *   npx tsx scripts/diagnose-promo.ts <promotion-code>
  *
  * Applying a promotion code inside Stripe's hosted Checkout is Stripe's own
  * internal operation: it never reaches our API logs, and the buyer is shown a
@@ -16,7 +15,10 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-const CODE = process.argv[2] ?? "FOUNDER1";
+const CODE = process.argv[2]?.trim();
+if (!CODE) {
+  throw new Error("Pass the promotion code as the first argument; there is no safe default.");
+}
 
 async function main() {
   const { stripe, PLAN_LOOKUP_KEYS } = await import("../lib/billing/stripe");
@@ -26,13 +28,13 @@ async function main() {
   const found = await s.promotionCodes.list({ code: CODE, limit: 1, expand: ["data.coupon"] });
   const promo = found.data[0];
   if (!promo) {
-    console.log(`no promotion code "${CODE}" in this mode — is the key live vs test?`);
+    console.log("no matching promotion code in this mode — is the key live vs test?");
     process.exit(1);
   }
 
   console.log("PROMOTION CODE");
   console.log(JSON.stringify({
-    id: promo.id, code: promo.code, active: promo.active,
+    id: promo.id, active: promo.active,
     max_redemptions: promo.max_redemptions, times_redeemed: promo.times_redeemed,
     expires_at: promo.expires_at, customer: promo.customer, restrictions: promo.restrictions,
   }, null, 1));

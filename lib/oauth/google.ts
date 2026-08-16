@@ -9,7 +9,7 @@
 // guessed redirect URI silently breaks the whole flow). The two URIs
 // registered with Google are:
 //   http://localhost:3057/api/oauth/google/callback
-//   https://brightears-app.onrender.com/api/oauth/google/callback
+//   https://brightears.io/api/oauth/google/callback
 //
 // LOCAL NOTE: the client SECRET is added to Render directly, not .env.local —
 // so locally isConfigured() is false and the start/callback routes show the

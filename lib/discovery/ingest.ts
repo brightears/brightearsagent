@@ -100,7 +100,7 @@ export type ExistingVenue = {
 
 export type IngestContext = {
   existingVenues: ExistingVenue[];
-  /** Lowercased emails from OutreachSuppression. */
+  /** Lowercased emails from tenant + product-wide suppression. */
   suppressedEmails: string[];
   profile: MatchProfile;
   now: Date;
@@ -319,7 +319,14 @@ export async function ingestSignals(
   now: Date = new Date(),
   travelWindowId: string | null = null,
 ): Promise<IngestPlan> {
-  const [business, existingVenues, suppressions] = await Promise.all([
+  const candidateEmails = [
+    ...new Set(
+      rawSignals
+        .map((signal) => signal.bookingEmail?.trim().toLowerCase())
+        .filter((email): email is string => !!email),
+    ),
+  ];
+  const [business, existingVenues, suppressions, globalSuppressions] = await Promise.all([
     db.business.findUniqueOrThrow({
       where: { id: businessId },
       select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true },
@@ -346,12 +353,21 @@ export async function ingestSignals(
       },
     }),
     db.outreachSuppression.findMany({ where: { businessId }, select: { email: true } }),
+    candidateEmails.length > 0
+      ? db.globalOutreachSuppression.findMany({
+          where: { email: { in: candidateEmails } },
+          select: { email: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const plan = planIngest(
     {
       existingVenues,
-      suppressedEmails: suppressions.map((s) => s.email),
+      suppressedEmails: [
+        ...suppressions.map((suppression) => suppression.email),
+        ...globalSuppressions.map((suppression) => suppression.email),
+      ],
       profile: business,
       now,
       travelWindowId,

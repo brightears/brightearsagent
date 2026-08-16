@@ -13,8 +13,12 @@
 import { db } from "@/lib/db";
 import { sendEmail, type OutboundAttachment } from "@/lib/outbound/send";
 import { resolveAttachments } from "@/lib/agent/attach-policy";
+import { checkAvailability, isoDay } from "@/lib/agent/availability";
+import { validateDraft } from "@/lib/agent/draft-safety";
 import { isAgentPaused } from "@/lib/billing/metering";
+import { appendVoiceExample } from "@/lib/feedback/owner-controls";
 import { complianceFooter } from "@/lib/optout";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 import { reportError } from "@/lib/report-error";
 import { nextRunAtAfterStep } from "@/lib/sequences/timing";
 
@@ -29,6 +33,7 @@ export const SEND_ERR = {
   undeliverable: "this email address bounced — correct it before sending again",
   compliance: "this lead has opted out or is closed — nothing was sent",
   paused: "the agent is paused — subscribe to activate it",
+  safety: "this reply no longer matches the inquiry or current calendar — review it before sending",
 } as const;
 
 export async function sendDraftReply(opts: {
@@ -36,7 +41,10 @@ export async function sendDraftReply(opts: {
   /** Tenant scope — the draft must belong to a lead of this business. */
   businessId: string;
   /** Owner edits (manual approve only); auto-send never edits. */
+  editedSubject?: string;
   editedBody?: string;
+  /** Editing alone never changes the voice profile; this must be explicit. */
+  saveVoiceExample?: boolean;
   /** Attach the artist's press-kit PDF to this reply (manual approve). */
   attachPressKit?: boolean;
   /** Attach a grounded quote PDF (skipped silently if there's no pricing to quote from). */
@@ -49,10 +57,32 @@ export async function sendDraftReply(opts: {
    *  race — the owner's explicit cancel can never be out-run by the tick. */
   requireScheduled?: boolean;
 }): Promise<SendReplyResult> {
-  const { draftId, businessId, editedBody, attachPressKit, attachQuote, autoAttach, requireScheduled } = opts;
+  const {
+    draftId,
+    businessId,
+    editedSubject,
+    editedBody,
+    saveVoiceExample,
+    attachPressKit,
+    attachQuote,
+    autoAttach,
+    requireScheduled,
+  } = opts;
   const draft = await db.draft.findFirst({
     where: { id: draftId, lead: { businessId } }, // tenant-scoped
-    include: { lead: { include: { business: { include: { packages: { where: { active: true } } } } } } },
+    include: {
+      lead: {
+        include: {
+          business: {
+            include: {
+              packages: { where: { active: true } },
+              performers: true,
+            },
+          },
+          messages: { orderBy: { createdAt: "asc" } },
+        },
+      },
+    },
   });
   if (!draft || draft.status !== "PENDING") return { ok: false, error: SEND_ERR.notPending };
 
@@ -88,6 +118,118 @@ export async function sendDraftReply(opts: {
     return { ok: false, error: SEND_ERR.compliance };
   }
 
+  // Product-wide and tenant-local recipient stops are re-checked at the last
+  // read-only boundary shared by manual approval, scheduled sends and sequence
+  // autopilot. Expire the stale draft so no retry loop can keep presenting it.
+  if (await outreachSuppressionScope(lead.businessId, lead.clientEmail)) {
+    await db.draft.update({
+      where: { id: draft.id },
+      data: { status: "EXPIRED", decidedAt: new Date(), scheduledSendAt: null },
+    });
+    return { ok: false, error: SEND_ERR.compliance };
+  }
+
+  const approvedSubject = editedSubject === undefined ? draft.subject : editedSubject.trim();
+  const approvedBody = editedBody === undefined ? draft.body : editedBody.trim();
+  // Header/body shape is enforced even for deterministic booking
+  // confirmations, which deliberately skip the LLM-specific grounding checks.
+  if (
+    !approvedSubject ||
+    approvedSubject.length > 160 ||
+    /[\x00-\x1F\x7F]/.test(approvedSubject) ||
+    !approvedBody ||
+    approvedBody.length > 10_000
+  ) {
+    return { ok: false, error: SEND_ERR.safety };
+  }
+  const finalEditedSubject =
+    editedSubject !== undefined && approvedSubject !== draft.subject.trim()
+      ? approvedSubject
+      : null;
+  const finalEditedBody =
+    editedBody !== undefined && approvedBody !== draft.body.trim() ? approvedBody : null;
+  const hasOwnerEdits = finalEditedSubject !== null || finalEditedBody !== null;
+  const wantsVoiceExample = !!saveVoiceExample && hasOwnerEdits;
+  // Booking confirmations are deterministic contractual copy and deliberately
+  // describe the newly-booked gig, so the reactive-draft availability rules do
+  // not apply. Every LLM-authored reply is revalidated against the CURRENT gig
+  // calendar immediately before it may claim the send slot. This catches a
+  // booking added after generation and owner edits that introduce an ungrounded
+  // price or promise.
+  if (!draft.isConfirmation) {
+    const eventDate = lead.eventDate ? isoDay(lead.eventDate) : null;
+    const gigs =
+      eventDate && lead.eventDate
+        ? await db.gig.findMany({
+            where: {
+              businessId: lead.businessId,
+              date: {
+                gte: new Date(`${eventDate}T00:00:00Z`),
+                lt: new Date(`${eventDate}T23:59:59.999Z`),
+              },
+            },
+          })
+        : [];
+    const draftingMessages = (lead.messages ?? []).filter((message) => !message.autoReply);
+    const safety = validateDraft(
+      {
+        business: {
+          id: lead.business.id,
+          name: lead.business.name,
+          ownerName: lead.business.ownerName,
+          performerKind: lead.business.performerKind,
+          country: lead.business.country,
+          currency: lead.business.currency,
+          websiteUrl: lead.business.websiteUrl,
+          bookingLinkUrl: lead.business.bookingLinkUrl,
+          riderNotes: lead.business.riderNotes,
+        },
+        packages: lead.business.packages.map((pkg) => ({
+          name: pkg.name,
+          description: pkg.description,
+          priceMin: pkg.priceMin,
+          priceMax: pkg.priceMax,
+          eventTypes: pkg.eventTypes,
+        })),
+        lead: {
+          source: lead.source,
+          subject: lead.rawSubject,
+          clientName: lead.clientName,
+          clientEmail: lead.clientEmail,
+          eventType: lead.eventType,
+          eventDate,
+          venue: lead.venue,
+          guestCount: lead.guestCount,
+          budgetHint: lead.budgetHint,
+          message:
+            draftingMessages.filter((message) => message.direction === "INBOUND").at(-1)?.body ??
+            lead.rawBody,
+        },
+        availability: checkAvailability(eventDate, gigs, lead.business.performers ?? []),
+        thread: draftingMessages.map((message) => ({
+          direction: message.direction,
+          body: message.body,
+        })),
+        sequenceStep: draft.sequenceStep ?? 0,
+      },
+      {
+        subject: approvedSubject,
+        body: approvedBody,
+        availabilityStatement: "not_addressed",
+        wantsProfile: draft.wantsProfile,
+        wantsQuote: draft.wantsQuote,
+      },
+    );
+    if (safety.issues.length > 0) {
+      await reportError(new Error(safety.issues.join("; ")), {
+        kind: "draft-send-safety",
+        businessId: lead.businessId,
+        draftId: draft.id,
+      });
+      return { ok: false, error: SEND_ERR.safety };
+    }
+  }
+
   // Atomic claim (10.10): a double-tap on Approve, or manual approve racing
   // the autopilot cron, could both pass the PENDING read above and both send.
   // updateMany with the status in the WHERE lets exactly one caller through;
@@ -107,7 +249,6 @@ export async function sendDraftReply(opts: {
   });
   if (claimed.count === 0) return { ok: false, error: SEND_ERR.notPending };
 
-  const approvedBody = editedBody?.trim() || draft.body;
   // Follow-ups carry the compliance footer (who/why/opt-out) — appended at send
   // time so the owner reviews clean copy and the footer is never edited away.
   const body = draft.isFollowUp
@@ -157,7 +298,7 @@ export async function sendDraftReply(opts: {
       fromName: lead.business.name,
       to: lead.clientEmail,
       replyTo: lead.business.replyToEmail ?? lead.business.ownerEmail,
-      subject: draft.subject,
+      subject: approvedSubject,
       textBody: body,
       attachments: attachments.length > 0 ? attachments : undefined,
     });
@@ -176,7 +317,7 @@ export async function sendDraftReply(opts: {
   // if it still fails, force the draft out of SENDING to its decided status as
   // a best-effort backstop so it can never be re-sent or re-drafted. The
   // Message/lead rows may be lost, but a lost receipt beats a double-email.
-  const decidedStatus = editedBody?.trim() ? "EDITED" : "APPROVED";
+  const decidedStatus = hasOwnerEdits ? "EDITED" : "APPROVED";
   const sentAt = new Date();
   const followUpRun = draft.isFollowUp
     ? await db.sequenceRun.findUnique({
@@ -196,7 +337,8 @@ export async function sendDraftReply(opts: {
         // manual approveDraft never passes it. Keeps graduation honest.
         data: {
           status: decidedStatus,
-          editedBody: editedBody?.trim() || null,
+          editedSubject: finalEditedSubject,
+          editedBody: finalEditedBody,
           decidedAt: sentAt,
           autoSent: !!autoAttach,
         },
@@ -205,7 +347,7 @@ export async function sendDraftReply(opts: {
         data: {
           leadId: lead.id,
           direction: "OUTBOUND",
-          subject: draft.subject,
+          subject: approvedSubject,
           body,
           fromEmail: lead.business.ownerEmail,
           toEmail: lead.clientEmail,
@@ -260,7 +402,12 @@ export async function sendDraftReply(opts: {
       await db.draft
         .updateMany({
           where: { id: draft.id, status: "SENDING" },
-          data: { status: decidedStatus, decidedAt: new Date() },
+          data: {
+            status: decidedStatus,
+            editedSubject: finalEditedSubject,
+            editedBody: finalEditedBody,
+            decidedAt: new Date(),
+          },
         })
         .catch(() => null);
       await reportError(err, {
@@ -271,6 +418,43 @@ export async function sendDraftReply(opts: {
       });
       // The reply DID go out — report success so callers don't re-notify/retry.
       return { ok: true, transport: sent.transport };
+    }
+  }
+
+  // Voice examples are valuable feedback, but never part of the send receipt's
+  // critical transaction. If this optional write fails, the delivered Message
+  // and lead state remain correct. Re-read after delivery so a settings edit
+  // made while the email was in flight is not overwritten by stale samples.
+  if (wantsVoiceExample) {
+    try {
+      const current = await db.business.findUnique({
+        where: { id: lead.businessId },
+        select: { voiceSamples: true },
+      });
+      const nextVoiceSamples = appendVoiceExample(current?.voiceSamples, {
+        kind: "reply",
+        subject: approvedSubject,
+        body: approvedBody,
+      });
+      if (current && nextVoiceSamples !== current.voiceSamples) {
+        await db.$transaction([
+          db.business.update({
+            where: { id: lead.businessId },
+            data: { voiceSamples: nextVoiceSamples },
+          }),
+          db.draft.update({
+            where: { id: draft.id },
+            data: { voiceSampleSavedAt: sentAt },
+          }),
+        ]);
+      }
+    } catch (err) {
+      await reportError(err, {
+        kind: "voice-example-save",
+        businessId: lead.businessId,
+        draftId: draft.id,
+        note: "reply sent successfully; optional voice example was not saved",
+      });
     }
   }
 

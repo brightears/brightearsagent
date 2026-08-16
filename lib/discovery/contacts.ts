@@ -15,9 +15,86 @@
 import { db } from "@/lib/db";
 import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
 import { scoreVenue, type ScorableSignal, type VenueKind } from "@/lib/venues/score";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 
 export const CONTACT_VENUES_PER_SCAN = 5;
 export const CONTACT_MIN_SCORE = 60;
+export const CONTACT_MAX_ATTEMPTS = 4;
+const DAY_MS = 24 * 60 * 60 * 1_000;
+export const CONTACT_CLAIM_LEASE_MS = 15 * 60 * 1_000;
+export const CONTACT_NOT_FOUND_RETRY_MS = [7 * DAY_MS, 30 * DAY_MS, 90 * DAY_MS] as const;
+export const CONTACT_GENERIC_RETRY_MS = [30 * DAY_MS, 90 * DAY_MS, 180 * DAY_MS] as const;
+export const CONTACT_ERROR_RETRY_MS = DAY_MS;
+
+export type ContactEnrichmentState =
+  | "IN_PROGRESS"
+  | "NOT_FOUND"
+  | "ERROR"
+  | "FOUND_GENERIC"
+  | "FOUND_DIRECT"
+  | "SUPPRESSED";
+
+export type ContactAttemptState = {
+  contactAttemptCount: number;
+  contactLastAttemptAt: Date;
+  contactRetryAfter: Date | null;
+  contactExhaustedAt: Date | null;
+  contactState: ContactEnrichmentState;
+};
+
+/** A short atomic lease acquired before spending a Serper query. */
+export function contactClaimState(
+  previousAttempts: number,
+  now: Date,
+): ContactAttemptState {
+  return {
+    contactAttemptCount: previousAttempts + 1,
+    contactLastAttemptAt: now,
+    contactRetryAfter: new Date(now.getTime() + CONTACT_CLAIM_LEASE_MS),
+    contactExhaustedAt: null,
+    contactState: "IN_PROGRESS",
+  };
+}
+
+/** Settle a claimed attempt with bounded, outcome-specific retry policy. */
+export function contactAttemptState(
+  attemptCount: number,
+  outcome: Exclude<ContactEnrichmentState, "IN_PROGRESS">,
+  now: Date,
+): ContactAttemptState {
+  const terminal = outcome === "FOUND_DIRECT" || outcome === "SUPPRESSED";
+  const exhausted = !terminal && attemptCount >= CONTACT_MAX_ATTEMPTS;
+  const delay =
+    outcome === "ERROR"
+      ? CONTACT_ERROR_RETRY_MS
+      : outcome === "FOUND_GENERIC"
+        ? CONTACT_GENERIC_RETRY_MS[attemptCount - 1]
+        : CONTACT_NOT_FOUND_RETRY_MS[attemptCount - 1];
+  return {
+    contactAttemptCount: attemptCount,
+    contactLastAttemptAt: now,
+    contactRetryAfter:
+      terminal || exhausted || delay === undefined ? null : new Date(now.getTime() + delay),
+    contactExhaustedAt: outcome === "SUPPRESSED" || exhausted ? now : null,
+    contactState: outcome,
+  };
+}
+
+/** Pure mirror of the DB queue predicate, used by the backfill preview. */
+export function isContactAttemptDue(
+  venue: {
+    contactAttemptCount: number;
+    contactRetryAfter: Date | null;
+    contactExhaustedAt: Date | null;
+    contactState?: ContactEnrichmentState | null;
+  },
+  now: Date,
+): boolean {
+  if (venue.contactState === "FOUND_DIRECT" || venue.contactState === "SUPPRESSED") return false;
+  if (venue.contactExhaustedAt || venue.contactAttemptCount >= CONTACT_MAX_ATTEMPTS) return false;
+  if (venue.contactAttemptCount === 0) return true;
+  return !!venue.contactRetryAfter && venue.contactRetryAfter.getTime() <= now.getTime();
+}
 
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-tested without network/DB)
@@ -83,13 +160,14 @@ const slugTokens = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((t) => t.length > 2 && t !== "the" && t !== "and" && t !== "bar");
 
 /**
- * Pick the venue's own site from Serper organic results: skip aggregators,
- * prefer a domain that contains a token of the venue name, else first
- * non-aggregator hit.
+ * Pick the venue's own site from Serper organic results: skip aggregators and
+ * require positive name evidence in the hostname. A random non-aggregator hit
+ * may be a newspaper, PR agency or tourism guide; fetching its contact page
+ * would turn a publisher's address into a dangerously mislabeled venue lead.
  */
 export function pickVenueSiteUrl(results: { link: string }[], venueName: string): string | null {
   const tokens = slugTokens(venueName);
-  const candidates: string[] = [];
+  if (tokens.length === 0) return null;
   for (const r of results) {
     let host: string;
     try {
@@ -98,10 +176,9 @@ export function pickVenueSiteUrl(results: { link: string }[], venueName: string)
       continue;
     }
     if (AGGREGATOR_DOMAINS.some((d) => host.includes(d))) continue;
-    candidates.push(r.link);
     if (tokens.some((t) => host.replace(/[^a-z0-9]/g, "").includes(t))) return r.link;
   }
-  return candidates[0] ?? null;
+  return null;
 }
 
 /** Paths worth trying on a venue site — events/booking pages FIRST (12.8):
@@ -150,7 +227,7 @@ export function roleLabelFor(email: string, siteHost: string): string {
 
 export type ContactDeps = {
   /** 1 Serper /search query — returns organic results. */
-  serperSearch: (q: string) => Promise<{ link: string }[]>;
+  serperSearch: (q: string) => Promise<{ link: string; title?: string }[]>;
   /** Fetch a page; null on any failure (403/404/timeout/non-HTML). Never retries. */
   fetchPage: (url: string) => Promise<string | null>;
 };
@@ -229,9 +306,13 @@ export function makeLiveDeps(opts: { apiKey?: string; fetchFn?: typeof fetch; gl
         body: JSON.stringify({ q, num: 10, ...(opts.gl ? { gl: opts.gl } : {}) }),
         signal: AbortSignal.timeout(10_000),
       });
-      if (!res.ok) return [];
-      const data = (await res.json()) as { organic?: { link?: string }[] };
-      return (data.organic ?? []).filter((r): r is { link: string } => !!r.link);
+      if (!res.ok) {
+        throw new Error(`Serper contact search failed with HTTP ${res.status}`);
+      }
+      const data = (await res.json()) as { organic?: { link?: string; title?: string }[] };
+      return (data.organic ?? []).filter(
+        (r): r is { link: string; title?: string } => !!r.link,
+      );
     },
     async fetchPage(url) {
       try {
@@ -271,35 +352,77 @@ export type ContactPassResult = {
 };
 
 /**
- * The scan's contact pass: venues without a bookingEmail, score >= 60, status
- * DISCOVERED — top CONTACT_VENUES_PER_SCAN by score. Writes bookingEmail +
- * contactSource and re-scores (pitchability points) on success.
+ * The scan's contact pass: fair, leased queue over promising DISCOVERED
+ * venues. Never-attempted rows go first; due retries fill spare slots. Direct
+ * contacts settle, generic contacts remain usable for manual review while a
+ * slow upgrade retry stays scheduled.
  */
 export async function runContactPass(
   businessId: string,
-  opts: { now?: Date; deps?: ContactDeps; gl?: string } = {},
+  opts: { now?: Date; deps?: ContactDeps; gl?: string; limit?: number } = {},
 ): Promise<ContactPassResult> {
   const now = opts.now ?? new Date();
   const live = opts.deps ? null : makeLiveDeps({ gl: opts.gl });
   const deps = opts.deps ?? live!;
+  let serperQueries = 0;
+  const countedDeps: ContactDeps = {
+    ...deps,
+    serperSearch: async (query) => {
+      serperQueries++;
+      return deps.serperSearch(query);
+    },
+  };
+  const limit = Math.max(1, Math.min(CONTACT_VENUES_PER_SCAN, opts.limit ?? CONTACT_VENUES_PER_SCAN));
 
-  const [business, venues] = await Promise.all([
-    db.business.findUniqueOrThrow({
-      where: { id: businessId },
-      select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true },
+  const commonWhere = {
+    businessId,
+    status: "DISCOVERED" as const,
+    fitScore: { gte: CONTACT_MIN_SCORE },
+  };
+  const include = { signals: { select: { type: true, observedAt: true } } } as const;
+
+  const business = await db.business.findUniqueOrThrow({
+    where: { id: businessId },
+    select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true },
+  });
+
+  // Read both fair queues. When any retry/upgrade is due, reserve one slot for
+  // it even if a continuous fresh backlog could otherwise consume all five;
+  // fresh venues still lead the batch, and retries fill every remaining gap.
+  const [freshQueue, retryQueue] = await Promise.all([
+    db.venue.findMany({
+      where: {
+        ...commonWhere,
+        bookingEmail: null,
+        contactAttemptCount: 0,
+        contactExhaustedAt: null,
+      },
+      orderBy: [{ fitScore: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+      take: limit,
+      include,
     }),
     db.venue.findMany({
       where: {
-        businessId,
-        bookingEmail: null,
-        status: "DISCOVERED",
-        fitScore: { gte: CONTACT_MIN_SCORE },
+        ...commonWhere,
+        contactAttemptCount: { gt: 0, lt: CONTACT_MAX_ATTEMPTS },
+        contactRetryAfter: { lte: now },
+        contactExhaustedAt: null,
+        contactState: { in: ["IN_PROGRESS", "NOT_FOUND", "ERROR", "FOUND_GENERIC"] },
       },
-      orderBy: { fitScore: "desc" },
-      take: CONTACT_VENUES_PER_SCAN,
-      include: { signals: { select: { type: true, observedAt: true } } },
+      orderBy: [
+        { contactRetryAfter: "asc" },
+        { contactAttemptCount: "asc" },
+        { fitScore: "desc" },
+        { id: "asc" },
+      ],
+      take: limit,
+      include,
     }),
   ]);
+  const reservedRetries = retryQueue.length > 0 ? 1 : 0;
+  const fresh = freshQueue.slice(0, limit - reservedRetries);
+  const retries = retryQueue.slice(0, limit - fresh.length);
+  const venues = [...fresh, ...retries];
 
   const result: ContactPassResult = {
     eligible: venues.length,
@@ -310,22 +433,81 @@ export async function runContactPass(
   };
 
   for (const venue of venues) {
+    // A cron and a manual backfill may overlap. Claim against the exact queue
+    // version we selected; only one worker may spend the external query.
+    const claimState = contactClaimState(venue.contactAttemptCount, now);
+    const claim = await db.venue.updateMany({
+      where: {
+        id: venue.id,
+        businessId,
+        status: "DISCOVERED",
+        bookingEmail: venue.bookingEmail,
+        contactAttemptCount: venue.contactAttemptCount,
+        contactRetryAfter: venue.contactRetryAfter,
+        contactExhaustedAt: null,
+        contactState: venue.contactState,
+      },
+      data: claimState,
+    });
+    if (claim.count !== 1) continue;
+
     result.attempted++;
     let hit: ContactHit | null = null;
+    let errored = false;
     try {
-      hit = await discoverVenueContact(venue, deps);
+      hit = await discoverVenueContact(venue, countedDeps);
     } catch (err) {
+      errored = true;
       console.error(`contact discovery failed for venue ${venue.id} (${venue.name})`, err);
     }
-    if (!hit) continue;
+    if (!hit) {
+      const outcome: Exclude<ContactEnrichmentState, "IN_PROGRESS"> = errored
+        ? "ERROR"
+        : venue.bookingEmail
+          ? "FOUND_GENERIC"
+          : "NOT_FOUND";
+      await db.venue.updateMany({
+        where: {
+          id: venue.id,
+          businessId,
+          status: "DISCOVERED",
+          bookingEmail: venue.bookingEmail,
+          contactAttemptCount: claimState.contactAttemptCount,
+          contactState: "IN_PROGRESS",
+        },
+        data: contactAttemptState(claimState.contactAttemptCount, outcome, now),
+      });
+      continue;
+    }
 
     const email = hit.email.toLowerCase();
-    // Re-check suppression at write time — the list may have grown since ingest.
-    const suppressedRow = await db.outreachSuppression.findUnique({
-      where: { businessId_email: { businessId, email } },
-    });
+    const existingRank = venue.bookingEmail ? emailRank(venue.bookingEmail) : -1;
+    const foundRank = emailRank(email);
+    const chosenEmail = foundRank > existingRank ? email : venue.bookingEmail ?? email;
+    const chosenSource = foundRank > existingRank ? hit.source : venue.contactSource;
+    const outcome = foundRank >= 3 ? "FOUND_DIRECT" : "FOUND_GENERIC";
+
+    // Re-check the address that would actually be persisted, at write time —
+    // the list may have grown since ingest or since a generic contact was
+    // first stored. This also closes the generic→direct upgrade path.
+    const suppressedRow = await outreachSuppressionScope(businessId, chosenEmail);
     if (suppressedRow) {
-      result.suppressed.push({ venueId: venue.id, name: venue.name, email });
+      await db.venue.updateMany({
+        where: {
+          id: venue.id,
+          businessId,
+          status: "DISCOVERED",
+          bookingEmail: venue.bookingEmail,
+          contactAttemptCount: claimState.contactAttemptCount,
+          contactState: "IN_PROGRESS",
+        },
+        data: {
+          ...contactAttemptState(claimState.contactAttemptCount, "SUPPRESSED", now),
+          status: "SUPPRESSED",
+          suppressedReason: "CONTACT_SUPPRESSED",
+        },
+      });
+      result.suppressed.push({ venueId: venue.id, name: venue.name, email: chosenEmail });
       continue;
     }
 
@@ -337,26 +519,41 @@ export async function runContactPass(
         city: venue.city,
         country: venue.country,
         kind: venue.kind as VenueKind,
-        bookingEmail: email,
+        bookingEmail: chosenEmail,
         travelWindowId: venue.travelWindowId,
       },
       signals,
       business,
       now,
     );
-    await db.venue.update({
-      where: { id: venue.id },
+    const saved = await db.venue.updateMany({
+      where: {
+        id: venue.id,
+        businessId,
+        status: "DISCOVERED",
+        bookingEmail: venue.bookingEmail,
+        contactAttemptCount: claimState.contactAttemptCount,
+        contactState: "IN_PROGRESS",
+      },
       data: {
-        bookingEmail: email,
-        contactSource: hit.source,
+        ...contactAttemptState(claimState.contactAttemptCount, outcome, now),
+        bookingEmail: chosenEmail,
+        contactSource: chosenSource,
         fitScore: score.fitScore,
         fitReasons: score.reasons,
         caution: score.caution ?? null,
       },
     });
-    result.found.push({ venueId: venue.id, name: venue.name, email, source: hit.source });
+    if (saved.count === 1) {
+      result.found.push({
+        venueId: venue.id,
+        name: venue.name,
+        email: chosenEmail,
+        source: chosenSource ?? hit.source,
+      });
+    }
   }
 
-  result.serperQueries = live ? live.queries() : result.attempted;
+  result.serperQueries = serperQueries;
   return result;
 }

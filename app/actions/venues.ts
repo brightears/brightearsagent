@@ -12,6 +12,10 @@ import { db } from "@/lib/db";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { isAgentPaused } from "@/lib/billing/metering";
 import {
+  appendVoiceExample,
+  isVenuePitchDiscardReason,
+} from "@/lib/feedback/owner-controls";
+import {
   isSkipReason,
   SKIP_REASONS,
   isInPlayStatus,
@@ -19,11 +23,15 @@ import {
 } from "@/lib/venues/feed";
 import { jurisdictionFor, pitchFooter } from "@/lib/outreach/jurisdiction";
 import { sentCapFor, sendCapError, startOfTenantDay, SEND_CAP_STATUSES } from "@/lib/outreach/caps";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 import { draftPitchForVenue } from "@/lib/venues/draft-pitch";
 import {
   epkUrlFor,
+  formatTravelDateRange,
   generateVenuePitch,
+  isVenuePitchAutoSendLanguage,
   pitchLanguageFor,
+  validateVenuePitch,
   type VenuePitchRequest,
 } from "@/lib/agent/venue-pitch";
 import { sendGmail, MailboxError } from "@/lib/outbound/gmail";
@@ -33,7 +41,9 @@ import {
   testSendAllowed,
 } from "@/lib/outreach/test-email";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; voiceExampleSaved?: boolean }
+  | { ok: false; error: string };
 
 const venueIdSchema = z.string().trim().min(1, "No venue given").max(64);
 const pitchIdSchema = z.string().trim().min(1, "No pitch given").max(64);
@@ -81,7 +91,13 @@ async function findTenantPitch(businessId: string, pitchId: string) {
     where: { id: pitchId, businessId },
     include: {
       venue: {
-        select: { id: true, name: true, status: true, bookingEmail: true },
+        select: {
+          id: true,
+          name: true,
+          country: true,
+          status: true,
+          bookingEmail: true,
+        },
       },
     },
   });
@@ -90,7 +106,7 @@ async function findTenantPitch(businessId: string, pitchId: string) {
 /**
  * Approve a PENDING pitch: it parks as APPROVED (the venue stays
  * PITCH_DRAFTED, card badge "Ready to send"). Actual sending is 10.5 —
- * Gmail/Microsoft OAuth — so nothing leaves the building here. The
+ * Google/Gmail OAuth — so nothing leaves the building here. The
  * jurisdiction footer is appended at send/copy time from jurisdictionMode,
  * never stored in the editable body (drafts.ts footer-at-send pattern).
  */
@@ -99,13 +115,51 @@ export async function approveVenuePitch(pitchId: string): Promise<ActionResult> 
   if (!parsed.success) return { ok: false, error: "No pitch given" };
 
   const business = await getCurrentBusiness();
+  const decidedAt = new Date();
   const updated = await db.venuePitch.updateMany({
     where: { id: parsed.data, businessId: business.id, status: "PENDING" },
-    data: { status: "APPROVED", decidedAt: new Date() },
+    data: { status: "APPROVED", decidedAt },
   });
   if (updated.count === 0) return { ok: false, error: "Pitch not pending" };
+  await db.venue.updateMany({
+    where: { businessId: business.id, pitches: { some: { id: parsed.data } } },
+    data: { reviewedAt: decidedAt },
+  });
 
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/**
+ * Last-moment compliance check for every manual-handoff copy. Clipboard
+ * handoff is not a Bright Ears transport, but it is still an outbound Hunt
+ * path the product actively facilitates, so a product-wide or tenant stop must
+ * block it just like Send now.
+ */
+export async function authorizeVenuePitchCopy(
+  pitchId: string,
+): Promise<ActionResult> {
+  const parsed = pitchIdSchema.safeParse(pitchId);
+  if (!parsed.success) return { ok: false, error: "No pitch given" };
+
+  const business = await getCurrentBusiness();
+  if (!business.postalAddress?.trim()) {
+    return {
+      ok: false,
+      error: "Add your business mailing address in Settings before copying venue outreach",
+    };
+  }
+  const pitch = await findTenantPitch(business.id, parsed.data);
+  if (!pitch) return { ok: false, error: "Pitch not found" };
+  if (pitch.status !== "APPROVED") {
+    return { ok: false, error: "Approve the pitch before copying it" };
+  }
+  if (!pitch.venue.bookingEmail) {
+    return { ok: false, error: "No booking email on file for this venue" };
+  }
+  if (await outreachSuppressionScope(business.id, pitch.venue.bookingEmail)) {
+    return { ok: false, error: "This contact is on your do-not-contact list" };
+  }
   return { ok: true };
 }
 
@@ -118,9 +172,10 @@ export async function approveVenuePitch(pitchId: string): Promise<ActionResult> 
  *      pitches send). Already-SENT or in-flight SENDING → idempotent no-op
  *      success (NEVER a second real email).
  *   2. mailbox CONNECTED for this tenant ("Connect your mailbox first").
- *   3. jurisdiction MUST be STANDARD — CONSENT/STRICT (Canada/Germany/…) are
- *      copy-and-send only; auto-send is REFUSED (the legal handoff guarantee,
- *      ADR-004 D4 / lib/outreach/jurisdiction.ts).
+ *   3. jurisdiction MUST be STANDARD — CONSENT/STRICT (GB/Canada/Germany/…)
+ *      are review-and-copy handoffs; auto-send is REFUSED, and recording a
+ *      manual send requires confirmation of consent or another lawful basis
+ *      (ADR-004 D4 / lib/outreach/jurisdiction.ts).
  *   4. suppression re-check: the venue's bookingEmail must not be on the master
  *      do-not-contact list (re-checked here, not just at draft).
  *   5. daily SEND cap by temperature (count SENT + SENDING today, tenant tz —
@@ -143,16 +198,30 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
 
   const business = await getCurrentBusiness();
 
-  // Active trial OR paid plan: the agent sends. Only an expired trial with no
-  // subscription is paused — same gate as the reactive lead path.
+  // Only a paid plan may send. TRIAL is the unsubscribed/paused state, using
+  // the same fail-closed gate as the reactive lead path.
   if (isAgentPaused(business.plan)) {
     return { ok: false, error: TRIAL_ENDED };
+  }
+  const postalAddress = business.postalAddress?.trim();
+  if (!postalAddress) {
+    return {
+      ok: false,
+      error: "Add your business mailing address in Settings before sending venue outreach",
+    };
   }
 
   // (1) Tenant-scoped lookup + status gate.
   const pitch = await db.venuePitch.findFirst({
     where: { id: parsed.data, businessId: business.id },
-    include: { venue: true },
+    include: {
+      venue: {
+        include: {
+          signals: { orderBy: { observedAt: "desc" }, take: 5 },
+          travelWindow: { select: { city: true, startDate: true, endDate: true } },
+        },
+      },
+    },
   });
   if (!pitch) return { ok: false, error: "Pitch not found" };
   // Idempotency: an already-SENT pitch — or one currently SENDING (claimed by a
@@ -175,23 +244,84 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
     return { ok: false, error: "Connect your mailbox first" };
   }
 
-  // (3) Jurisdiction: STANDARD only — CONSENT/STRICT are copy-and-send by law.
+  // (3) Jurisdiction: STANDARD only. CONSENT/STRICT are review/copy handoffs;
+  // manual transport is not a lawful basis and does not bypass this refusal.
   const jurisdiction = jurisdictionFor(venue.country);
   if (jurisdiction.mode !== "STANDARD") {
     return {
       ok: false,
-      error: "Canada/Germany are copy-and-send only — use the Copy button",
+      error: jurisdiction.note || "This jurisdiction is copy-and-send only — use the Copy button",
+    };
+  }
+  if (!isVenuePitchAutoSendLanguage(pitch.language)) {
+    return {
+      ok: false,
+      error: "Non-English pitches require your manual review and send",
     };
   }
 
   // (4) Suppression re-check (email always lowercased — schema contract).
   const email = venue.bookingEmail.toLowerCase();
-  const suppressed = await db.outreachSuppression.findUnique({
-    where: { businessId_email: { businessId: business.id, email } },
-    select: { id: true },
-  });
+  const suppressed = await outreachSuppressionScope(business.id, email);
   if (suppressed) {
     return { ok: false, error: "This contact is on your do-not-contact list" };
+  }
+
+  // Re-run the exact generation safety gate at the delivery boundary. This
+  // protects legacy drafts created before the gate shipped and catches owner
+  // edits that accidentally add a second ask, an invented commercial promise,
+  // or open-ended travel availability. Normalization is deterministic (EPK
+  // once, clean subject) and the normalized copy is what crosses the network.
+  const travelWindow = venue.travelWindow
+    ? {
+        city: venue.travelWindow.city,
+        dateRange: formatTravelDateRange(
+          venue.travelWindow.startDate,
+          venue.travelWindow.endDate,
+        ),
+      }
+    : undefined;
+  const checkedPitch = validateVenuePitch(
+    {
+      business: {
+        id: business.id,
+        name: business.name,
+        ownerName: business.ownerName,
+        performerKind: business.performerKind,
+        headline: business.headline,
+        bio: business.bio,
+        genres: business.genres,
+        eventTypes: business.eventTypes,
+        serviceCities: business.serviceCities,
+        gigTypes: business.gigTypes,
+        riderNotes: business.riderNotes,
+        reviewQuotes: business.reviewQuotes,
+        notableVenues: business.notableVenues,
+      },
+      venue: {
+        name: venue.name,
+        city: venue.city,
+        country: venue.country,
+        kind: venue.kind,
+        temperature: pitch.temperature,
+        signals: venue.signals.map((signal) => signal.summary),
+        entertainmentEvidence: venue.entertainmentEvidence,
+        fitReasons: venue.fitReasons,
+        travelWindow,
+      },
+      epkUrl: epkUrlFor(business.slug),
+      language: pitch.language,
+    },
+    {
+      subject: pitch.editedSubject ?? pitch.subject,
+      body: pitch.editedBody ?? pitch.body,
+    },
+  );
+  if (checkedPitch.issues.length > 0) {
+    return {
+      ok: false,
+      error: "This pitch needs a fresh review before it can be sent",
+    };
   }
 
   // (5) Daily SEND cap by temperature — count SENT + SENDING today in the
@@ -249,12 +379,13 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
 
   // (7) Build + send. The owner's edits win; the jurisdiction footer is
   // appended HERE (at send), never stored in the editable body.
-  const subject = pitch.editedSubject ?? pitch.subject;
-  const body = (pitch.editedBody ?? pitch.body) +
+  const subject = checkedPitch.result.subject;
+  const body = checkedPitch.result.body +
     pitchFooter({
       mode: jurisdiction.mode,
       businessName: business.name,
       city: business.serviceCities[0] ?? "",
+      postalAddress,
       venueName: venue.name,
     });
 
@@ -292,10 +423,10 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
   // successful Gmail send but BEFORE this write lands, the pitch is stuck
   // SENDING — the email was delivered but not recorded. That is the SAFE
   // direction: a retry sees SENDING (step 1 idempotency guard) and REFUSES to
-  // re-send, so we never double-email a venue. A SENDING pitch older than a few
-  // minutes is a human-recoverable state (an operator can mark it SENT or
-  // re-open it). We do NOT build a reaper here — just flag the recovery point.
-  // TODO(reaper): sweep pitches SENDING > N minutes → surface for manual review.
+  // re-send, so we never double-email a venue. The sequence cron's read-only
+  // recovery sweep surfaces SENDING claims older than 10 minutes with the
+  // identifiers operators need to inspect Gmail Sent and logs. It deliberately
+  // never mutates, reopens or resends an uncertain pitch.
   await db.$transaction([
     db.venuePitch.updateMany({
       where: { id: pitch.id, businessId: business.id, status: "SENDING" },
@@ -311,44 +442,189 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/**
+ * Record a copy-only pitch after the artist actually sent it themselves.
+ * This is not a compliance bypass: consent-first jurisdictions require an
+ * explicit lawful-basis confirmation, and the current address/suppression
+ * gates are re-checked immediately before the atomic state transition.
+ */
+export async function recordManualVenuePitchSend(
+  pitchId: string,
+  lawfulBasisConfirmed = false,
+): Promise<ActionResult> {
+  const parsed = pitchIdSchema.safeParse(pitchId);
+  if (!parsed.success) return { ok: false, error: "No pitch given" };
+
+  const business = await getCurrentBusiness();
+  if (!business.postalAddress?.trim()) {
+    return {
+      ok: false,
+      error: "Add your business mailing address in Settings before copying or sending venue outreach",
+    };
+  }
+
+  const pitch = await findTenantPitch(business.id, parsed.data);
+  if (!pitch) return { ok: false, error: "Pitch not found" };
+  if (pitch.status === "SENT") return { ok: true };
+  if (pitch.status !== "APPROVED") {
+    return { ok: false, error: "Approve the pitch before recording a manual send" };
+  }
+  if (!pitch.venue.bookingEmail) {
+    return { ok: false, error: "No booking email on file for this venue" };
+  }
+
+  const liveJurisdiction = jurisdictionFor(pitch.venue.country);
+  const consentFirst =
+    liveJurisdiction.mode !== "STANDARD" || pitch.jurisdictionMode !== "STANDARD";
+  const manualReviewLanguage = !isVenuePitchAutoSendLanguage(pitch.language);
+  if (!consentFirst && !manualReviewLanguage) {
+    return { ok: false, error: "Use Send now for this fully validated pitch" };
+  }
+  if (consentFirst && !lawfulBasisConfirmed) {
+    return {
+      ok: false,
+      error: "Confirm that you have consent or another lawful basis before recording this send",
+    };
+  }
+
+  const email = pitch.venue.bookingEmail.toLowerCase();
+  if (await outreachSuppressionScope(business.id, email)) {
+    return { ok: false, error: "This contact is on your do-not-contact list" };
+  }
+
+  const sentAt = new Date();
+  const conflict = "manual-venue-pitch-send-conflict";
+  try {
+    const recorded = await db.$transaction(async (tx) => {
+      const claimed = await tx.venuePitch.updateMany({
+        where: {
+          id: pitch.id,
+          businessId: business.id,
+          status: "APPROVED",
+          venue: { status: "PITCH_DRAFTED" },
+        },
+        data: { status: "SENT", sentAt },
+      });
+      if (claimed.count === 0) return false;
+      const advanced = await tx.venue.updateMany({
+        where: {
+          id: pitch.venue.id,
+          businessId: business.id,
+          status: "PITCH_DRAFTED",
+        },
+        data: { status: "PITCHED", pitchedAt: sentAt },
+      });
+      if (advanced.count === 0) throw new Error(conflict);
+      return true;
+    });
+    if (!recorded) {
+      return { ok: false, error: "This pitch changed — refresh before recording the send" };
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === conflict) {
+      return { ok: false, error: "This pitch changed — refresh before recording the send" };
+    }
+    throw error;
+  }
+
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 const editPitchSchema = z.object({
   pitchId: pitchIdSchema,
   subject: z.string().trim().min(1, "Subject can't be empty").max(120),
   body: z.string().trim().min(1, "Body can't be empty").max(4000),
+  saveVoiceExample: z.boolean(),
 });
 
 /**
- * Save owner edits on a PENDING pitch (editedSubject/editedBody — the voice-
- * tuning signal, same pattern as Draft.editedBody). Approval is separate.
+ * Save owner edits on a PENDING pitch. Approval is separate. Editing alone
+ * never changes the voice profile; an example is appended only when the owner
+ * explicitly opts in, and at most once for a given pitch.
  */
 export async function editVenuePitch(
   pitchId: string,
   subject: string,
   body: string,
+  saveVoiceExample = false,
 ): Promise<ActionResult> {
-  const parsed = editPitchSchema.safeParse({ pitchId, subject, body });
+  const parsed = editPitchSchema.safeParse({ pitchId, subject, body, saveVoiceExample });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid edit" };
   }
 
   const business = await getCurrentBusiness();
-  const updated = await db.venuePitch.updateMany({
+  const pitch = await db.venuePitch.findFirst({
     where: { id: parsed.data.pitchId, businessId: business.id, status: "PENDING" },
-    data: { editedSubject: parsed.data.subject, editedBody: parsed.data.body },
+    select: {
+      id: true,
+      subject: true,
+      body: true,
+      voiceSampleSavedAt: true,
+    },
   });
-  if (updated.count === 0) return { ok: false, error: "Pitch not pending" };
+  if (!pitch) return { ok: false, error: "Pitch not pending" };
+
+  const hasOwnerEdits =
+    parsed.data.subject !== pitch.subject.trim() || parsed.data.body !== pitch.body.trim();
+  const wantsVoiceExample =
+    parsed.data.saveVoiceExample &&
+    hasOwnerEdits &&
+    !pitch.voiceSampleSavedAt;
+  const savedAt = new Date();
+  const outcome = await db.$transaction(async (tx) => {
+    const current = wantsVoiceExample
+      ? await tx.business.findUnique({
+          where: { id: business.id },
+          select: { voiceSamples: true },
+        })
+      : null;
+    const nextVoiceSamples = current
+      ? appendVoiceExample(current.voiceSamples, {
+          kind: "venue pitch",
+          subject: parsed.data.subject,
+          body: parsed.data.body,
+        })
+      : null;
+    const storesVoiceExample =
+      !!current && nextVoiceSamples !== current.voiceSamples;
+    const claimed = await tx.venuePitch.updateMany({
+      where: { id: pitch.id, businessId: business.id, status: "PENDING" },
+      data: {
+        editedSubject: parsed.data.subject,
+        editedBody: parsed.data.body,
+        ...(storesVoiceExample ? { voiceSampleSavedAt: savedAt } : {}),
+      },
+    });
+    if (claimed.count === 0) return { updated: false, voiceExampleSaved: false };
+    if (storesVoiceExample) {
+      await tx.business.update({
+        where: { id: business.id },
+        data: { voiceSamples: nextVoiceSamples },
+      });
+    }
+    return { updated: true, voiceExampleSaved: storesVoiceExample };
+  });
+  if (!outcome.updated) return { ok: false, error: "Pitch not pending" };
 
   revalidatePath("/dashboard");
-  return { ok: true };
+  return { ok: true, voiceExampleSaved: outcome.voiceExampleSaved };
 }
 
 /**
  * Discard a pitch (PENDING or parked APPROVED): pitch → DISCARDED, venue back
  * to DISCOVERED so it can be re-drafted later (pitch history is kept).
  */
-export async function discardVenuePitch(pitchId: string): Promise<ActionResult> {
+export async function discardVenuePitch(
+  pitchId: string,
+  reason: string,
+): Promise<ActionResult> {
   const parsed = pitchIdSchema.safeParse(pitchId);
   if (!parsed.success) return { ok: false, error: "No pitch given" };
+  if (!isVenuePitchDiscardReason(reason)) {
+    return { ok: false, error: "Choose why you're discarding this draft" };
+  }
 
   const business = await getCurrentBusiness();
   const pitch = await findTenantPitch(business.id, parsed.data);
@@ -357,16 +633,26 @@ export async function discardVenuePitch(pitchId: string): Promise<ActionResult> 
     return { ok: false, error: "This pitch is already settled" };
   }
 
-  await db.$transaction([
-    db.venuePitch.update({
-      where: { id: pitch.id },
-      data: { status: "DISCARDED", decidedAt: new Date() },
-    }),
-    db.venue.updateMany({
+  const decidedAt = new Date();
+  const discarded = await db.$transaction(async (tx) => {
+    const claimed = await tx.venuePitch.updateMany({
+      where: {
+        id: pitch.id,
+        businessId: business.id,
+        status: { in: ["PENDING", "APPROVED"] },
+      },
+      data: { status: "DISCARDED", discardReason: reason, decidedAt },
+    });
+    if (claimed.count === 0) return false;
+    await tx.venue.updateMany({
       where: { id: pitch.venue.id, businessId: business.id, status: "PITCH_DRAFTED" },
-      data: { status: "DISCOVERED" },
-    }),
-  ]);
+      data: { status: "DISCOVERED", reviewedAt: decidedAt },
+    });
+    return true;
+  });
+  if (!discarded) {
+    return { ok: false, error: "This pitch changed — refresh and try again" };
+  }
 
   revalidatePath("/dashboard");
   return { ok: true };
@@ -396,6 +682,7 @@ export async function skipVenuePitch(
   }
 
   const conflict = "venue-pitch-skip-conflict";
+  const reviewedAt = new Date();
   try {
     await db.$transaction(async (tx) => {
       // Claim the decision before touching the venue. A concurrent send moves
@@ -407,7 +694,7 @@ export async function skipVenuePitch(
           businessId: business.id,
           status: { in: ["PENDING", "APPROVED"] },
         },
-        data: { status: "DISCARDED", decidedAt: new Date() },
+        data: { status: "DISCARDED", decidedAt: reviewedAt },
       });
       if (decided.count === 0) throw new Error(conflict);
 
@@ -417,7 +704,7 @@ export async function skipVenuePitch(
           businessId: business.id,
           status: "PITCH_DRAFTED",
         },
-        data: { status: "SUPPRESSED", suppressedReason: reason },
+        data: { status: "SUPPRESSED", suppressedReason: reason, reviewedAt },
       });
       if (suppressed.count === 0) throw new Error(conflict);
 
@@ -463,7 +750,7 @@ export async function skipVenue(venueId: string, reason: string): Promise<Action
   if (venue.status !== "SUPPRESSED") {
     await db.venue.update({
       where: { id: venue.id },
-      data: { status: "SUPPRESSED", suppressedReason: reason },
+      data: { status: "SUPPRESSED", suppressedReason: reason, reviewedAt: new Date() },
     });
   }
 
@@ -565,7 +852,14 @@ export async function setVenueStatus(venueId: string, status: string): Promise<A
 
   await db.venue.update({
     where: { id: venue.id },
-    data: { status },
+    data: {
+      status,
+      ...((status === "REPLIED" || status === "IN_CONVERSATION" || status === "BOOKED") &&
+      !venue.repliedAt
+        ? { repliedAt: new Date() }
+        : {}),
+      ...(status === "BOOKED" && !venue.bookedAt ? { bookedAt: new Date() } : {}),
+    },
   });
 
   revalidatePath("/dashboard");
@@ -587,7 +881,9 @@ export async function setVenueStatusForm(venueId: string, status: string): Promi
 // + the in-memory rate limiter live in lib/outreach/test-email (a "use server"
 // module may only export async functions).
 
-type TestEmailResult = { ok: true; sentTo: string } | { ok: false; error: string };
+type TestEmailResult =
+  | { ok: true; sentTo: string; generation: "ai" | "static-fallback" }
+  | { ok: false; error: string };
 
 /**
  * Send a SAMPLE venue pitch to the owner's OWN connected mailbox (onboarding /
@@ -608,6 +904,13 @@ type TestEmailResult = { ok: true; sentTo: string } | { ok: false; error: string
  */
 export async function sendTestEmail(): Promise<TestEmailResult> {
   const business = await getCurrentBusiness();
+  const postalAddress = business.postalAddress?.trim();
+  if (!postalAddress) {
+    return {
+      ok: false,
+      error: "Add your business mailing address in Settings before testing venue outreach",
+    };
+  }
 
   // (2) Mailbox must be connected.
   const connection = await db.mailboxConnection.findUnique({
@@ -664,11 +967,13 @@ export async function sendTestEmail(): Promise<TestEmailResult> {
   // failure so the test still proves sending works.
   let subject: string;
   let pitchBody: string;
+  let generation: "ai" | "static-fallback" = "ai";
   try {
     const pitch = await generateVenuePitch(req);
     subject = pitch.subject;
     pitchBody = pitch.body;
   } catch {
+    generation = "static-fallback";
     subject = TEST_EMAIL_STATIC_SAMPLE.subject;
     pitchBody = TEST_EMAIL_STATIC_SAMPLE.body;
   }
@@ -681,6 +986,7 @@ export async function sendTestEmail(): Promise<TestEmailResult> {
       mode: jurisdiction.mode,
       businessName: business.name,
       city: sampleCity,
+      postalAddress,
       venueName: req.venue.name,
     });
 
@@ -698,5 +1004,5 @@ export async function sendTestEmail(): Promise<TestEmailResult> {
     return { ok: false, error: "The test email didn't go through — try again in a moment" };
   }
 
-  return { ok: true, sentTo: connection.email };
+  return { ok: true, sentTo: connection.email, generation };
 }

@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
 import { notifyBusiness } from "@/lib/notify";
+import {
+  globalSuppressionUpsertArgs,
+  normalizeOutreachEmail,
+  tenantSuppressionUpsertArgs,
+  type GlobalSuppressionReason,
+} from "@/lib/outreach/suppression";
 
 export interface PostmarkBouncePayload {
   RecordType?: string;
@@ -48,6 +54,11 @@ const PERMANENT_TYPES = new Set([
   "Unconfirmed",
 ]);
 
+const DEFINITIVE_INVALID_RECIPIENT_TYPES = new Set([
+  "AddressChange",
+  "BadEmailAddress",
+]);
+
 /**
  * Postmark's Type is more useful than a single hard/soft boolean:
  * autoresponders are replies, complaints are consent stops, sender faults are
@@ -88,6 +99,31 @@ export function classifyPostmarkDeliveryEvent(
 function eventName(event: PostmarkBouncePayload): string {
   if (event.RecordType === "SpamComplaint") return "SpamComplaint";
   return event.Type ?? event.RecordType ?? "Unknown";
+}
+
+/**
+ * Only definitive recipient failures become product-wide. In particular, a
+ * SoftBounce remains tenant-local even when Postmark has temporarily marked
+ * the address inactive; sender faults and ordinary transient events never
+ * create suppression rows.
+ */
+export function globalSuppressionReasonForPostmarkEvent(
+  event: PostmarkBouncePayload,
+): GlobalSuppressionReason | null {
+  const eventClass = classifyPostmarkDeliveryEvent(event);
+  const type = eventName(event);
+  if (eventClass === "complaint") {
+    return type === "Unsubscribe" ? "unsubscribe" : "spam-complaint";
+  }
+  if (eventClass !== "permanent" || type === "SoftBounce") return null;
+  if (type === "HardBounce" || event.TypeCode === 1) return "hard-bounce";
+  if (
+    DEFINITIVE_INVALID_RECIPIENT_TYPES.has(type) ||
+    event.TypeCode === 100000
+  ) {
+    return "invalid-recipient";
+  }
+  return null;
 }
 
 function detailFor(event: PostmarkBouncePayload): string {
@@ -187,6 +223,14 @@ export async function applyPostmarkDeliveryEvent(
   });
 
   if (eventClass === "permanent" || eventClass === "complaint") {
+    const recipientEmail = normalizeOutreachEmail(
+      message.toEmail ?? message.lead.clientEmail ?? event.Email ?? "",
+    );
+    const globalReason = globalSuppressionReasonForPostmarkEvent(event);
+    const tenantReason: GlobalSuppressionReason =
+      eventClass === "complaint"
+        ? globalReason ?? "spam-complaint"
+        : globalReason ?? "invalid-recipient";
     const reason =
       eventClass === "complaint"
         ? `Spam complaint: ${detail || type}`
@@ -212,6 +256,28 @@ export async function applyPostmarkDeliveryEvent(
         where: { leadId: message.leadId, status: "PENDING" },
         data: { status: "EXPIRED", decidedAt: bouncedAt, scheduledSendAt: null },
       }),
+      ...(recipientEmail
+        ? [
+            db.outreachSuppression.upsert(
+              tenantSuppressionUpsertArgs({
+                businessId: message.lead.business.id,
+                email: recipientEmail,
+                reason: tenantReason,
+              }),
+            ),
+            ...(globalReason
+              ? [
+                  db.globalOutreachSuppression.upsert(
+                    globalSuppressionUpsertArgs({
+                      email: recipientEmail,
+                      reason: globalReason,
+                      business: message.lead.business,
+                    }),
+                  ),
+                ]
+              : []),
+          ]
+        : []),
     ]);
 
     const pushOnly =

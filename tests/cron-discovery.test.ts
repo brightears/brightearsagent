@@ -79,6 +79,16 @@ describe("GET /api/cron/discovery", () => {
       ],
     });
     expect(body.results[0]).toMatchObject({ slug: "alpha", ran: true, serperQueries: 8 });
+    expect(scanMock.mock.invocationCallOrder[1]).toBeLessThan(
+      mockDb.opsStamp.upsert.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("does not record a completion when the top-level workload crashes", async () => {
+    mockDb.business.findMany.mockRejectedValueOnce(new Error("database unavailable"));
+
+    await expect(GET(req("cron-test-secret"))).rejects.toThrow("database unavailable");
+    expect(mockDb.opsStamp.upsert).not.toHaveBeenCalled();
   });
 
   it("isolates per-tenant failures — one crash never blocks the rest", async () => {
@@ -89,6 +99,18 @@ describe("GET /api/cron/discovery", () => {
     expect(body.results[0]).toMatchObject({ slug: "alpha", ran: false });
     expect(body.results[0].error).toContain("serper down");
     expect(body.results[1]).toMatchObject({ slug: "beta", ran: true });
+    expect(mockDb.opsStamp.upsert).toHaveBeenCalledOnce();
+  });
+
+  it("returns 503 and leaves the completion stale when every tenant crashes", async () => {
+    scanMock.mockRejectedValue(new Error("provider unavailable"));
+
+    const res = await GET(req("cron-test-secret"));
+    const body = await res.json();
+
+    expect(res.status).toBe(503);
+    expect(body.errors).toBe(2);
+    expect(mockDb.opsStamp.upsert).not.toHaveBeenCalled();
   });
 
   it("reports a budget-guard refusal as ran=false with the reason", async () => {

@@ -22,6 +22,7 @@ const empty: ProfileFields = {
 };
 
 const full: ProfileFields = {
+  postalAddress: "123 Congress Ave, Austin, TX 78701, USA",
   genres: ["house", "disco", "open format"],
   eventTypes: ["wedding", "corporate"],
   serviceCities: ["Austin", "San Antonio"],
@@ -44,7 +45,7 @@ describe("profileStrength", () => {
     const r = profileStrength(empty, noCounts);
     expect(r.percent).toBe(0);
     expect(r.canPitch).toBe(false);
-    expect(r.missing.length).toBe(14);
+    expect(r.missing.length).toBe(15);
     // Highest-priority ammunition first.
     expect(r.missing[0]).toMatch(/photo/i);
   });
@@ -89,6 +90,7 @@ describe("profileStrength", () => {
   it("license threshold edges: exactly the requirements flips canPitch true", () => {
     const justEnough: ProfileFields = {
       ...empty,
+      postalAddress: "123 Congress Ave, Austin, TX 78701, USA",
       photoUrls: Array.from({ length: MIN_PITCH_PHOTOS }, (_, index) => `photo-${index}`),
       bio: "Short but present.",
       headline: "Headline",
@@ -108,6 +110,7 @@ describe("profileStrength", () => {
     expect(profileStrength({ ...justEnough, headline: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, genres: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, serviceCities: [] }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
+    expect(profileStrength({ ...justEnough, postalAddress: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     expect(profileStrength({ ...justEnough, feeFloor: null }, { activePackages: 1, gigs: 1 }).canPitch).toBe(false);
     // Packages are NO LONGER license-critical (onboarding is profile-first; the
     // Hunt never reads Package) — zero packages still lets the agent pitch.

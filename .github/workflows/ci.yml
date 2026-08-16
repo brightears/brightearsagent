@@ -14,19 +14,38 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: brightears_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d brightears_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      # Prisma validates that this exists during `npm ci`/postinstall. CI does
-      # not query a database: unit tests mock persistence and the build only
-      # compiles application code.
+      # The same URL powers Prisma generation and an empty-database migration
+      # smoke test. Unit tests continue to mock persistence.
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/brightears_ci?schema=public
+      # Keep build-time canonicals deterministic without loading production
+      # credentials into CI.
+      APP_URL: https://brightears.io
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: npm
       - run: npm ci
+      - run: npx prisma validate
+      - run: npm run db:deploy
+      - run: npx prisma migrate status
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test

@@ -162,8 +162,10 @@ export default async function Dashboard({
             body: true,
             status: true,
             jurisdictionMode: true,
+            language: true,
             editedSubject: true,
             editedBody: true,
+            voiceSampleSavedAt: true,
             sentAt: true,
           },
         },
@@ -392,6 +394,7 @@ export default async function Dashboard({
         profilePercent={strength.percent}
         businessName={tenant.name}
         homeCity={homeCity}
+        postalAddress={tenant.postalAddress ?? ""}
         mailboxConnected={mailboxConnected}
         subscribed={subscribed}
       />

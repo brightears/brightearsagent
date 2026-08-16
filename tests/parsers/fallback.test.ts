@@ -67,7 +67,16 @@ describe("parseFallback source classification", () => {
 
   it("non-inquiries return null", async () => {
     mockLlmObject.mockResolvedValue({ ...extraction, isInquiry: false });
-    expect(await parseFallback(base, "biz1")).toBeNull();
+    expect(
+      await parseFallback(
+        {
+          ...base,
+          subject: "Your weekly music industry digest",
+          textBody: "Five trends for festival season. Read online. Unsubscribe at any time.",
+        },
+        "biz1",
+      ),
+    ).toBeNull();
   });
 
   it("labeled body fields win when the model returns null (staging 2026-07-10: 'Unknown' lead)", async () => {
@@ -108,5 +117,134 @@ describe("parseFallback source classification", () => {
     await parseFallback(base, "biz1");
     const call = mockLlmObject.mock.calls[0][0];
     expect(call.system).toContain(new Date().toISOString().slice(0, 10));
+  });
+
+  it("does not let model=false drop a sparse but explicit booking inquiry", async () => {
+    mockLlmObject.mockResolvedValue({ ...extraction, isInquiry: false });
+
+    const lead = await parseFallback(
+      {
+        ...base,
+        fromName: undefined,
+        subject: "Sept 12",
+        textBody: "Are you free on 12 September 2027 for a wedding in Bangkok?",
+      },
+      "biz1",
+    );
+
+    expect(lead).toMatchObject({
+      source: "PLAIN_EMAIL",
+      eventType: "wedding",
+      eventDate: "2027-09-12",
+    });
+  });
+
+  it("recovers an explicit sparse inquiry from a provider timeout", async () => {
+    mockLlmObject.mockRejectedValue(new DOMException("timed out", "TimeoutError"));
+
+    await expect(
+      parseFallback(
+        {
+          ...base,
+          fromName: undefined,
+          subject: "Sept 12",
+          textBody: "Are you free on 12 September 2027 for a wedding in Bangkok?",
+        },
+        "biz1",
+      ),
+    ).resolves.toMatchObject({ eventType: "wedding", eventDate: "2027-09-12" });
+  });
+
+  it("rethrows a timeout for ambiguous mail so the webhook can retry", async () => {
+    const timeout = new DOMException("timed out", "TimeoutError");
+    mockLlmObject.mockRejectedValue(timeout);
+
+    await expect(
+      parseFallback(
+        { ...base, subject: "Hello", textBody: "Could you tell me more about what you do?" },
+        "biz1",
+      ),
+    ).rejects.toBe(timeout);
+  });
+
+  it.each([
+    {
+      subject: "Your weekly music industry digest",
+      textBody: "Five trends shaping live entertainment. Read online. Unsubscribe at any time.",
+    },
+    {
+      subject: "Partnership opportunity for your DJ business",
+      textBody: "Our SEO services get DJs more bookings. Can I book 15 minutes to show you a demo?",
+    },
+  ])("keeps obvious news/vendor mail out and retryable", async (mail) => {
+    mockLlmObject.mockResolvedValueOnce({ ...extraction, isInquiry: false });
+    await expect(parseFallback({ ...base, ...mail }, "biz1")).resolves.toBeNull();
+
+    const timeout = new DOMException("timed out", "TimeoutError");
+    mockLlmObject.mockRejectedValueOnce(timeout);
+    await expect(parseFallback({ ...base, ...mail }, "biz1")).rejects.toBe(timeout);
+  });
+
+  it("lets explicit dates and guest counts beat corrupted model values", async () => {
+    mockLlmObject.mockResolvedValue({
+      ...extraction,
+      eventType: "corporate",
+      eventDate: "2028-01-01",
+      guestCount: 12,
+    });
+
+    const lead = await parseFallback(
+      {
+        ...base,
+        textBody: "Event type: Wedding\nEvent date: 2027-09-12\nGuests: 120\nMessage: Are you free?",
+      },
+      "biz1",
+    );
+
+    expect(lead).toMatchObject({ eventType: "wedding", eventDate: "2027-09-12", guestCount: 120 });
+  });
+
+  it("rejects placeholder venues rather than turning TBD into a lead fact", async () => {
+    mockLlmObject.mockResolvedValue({ ...extraction, venue: "venue is still TBD" });
+    const lead = await parseFallback(
+      { ...base, textBody: "Wedding on 03/14/2027, about 90 guests. Venue is still TBD." },
+      "biz1",
+    );
+    expect(lead?.venue).toBeUndefined();
+  });
+
+  it("extracts an explicitly named venue while rejecting a generic room description", async () => {
+    mockLlmObject.mockResolvedValue({ ...extraction, venue: null });
+    const named = await parseFallback(
+      {
+        ...base,
+        textBody:
+          "We are getting married on 12 September 2027 at The Siam Hotel in Bangkok with 140 guests.",
+      },
+      "biz1",
+    );
+    expect(named?.venue).toBe("The Siam Hotel");
+
+    const generic = await parseFallback(
+      {
+        ...base,
+        textBody:
+          "We are planning a company party on 18 December 2027 at a hotel ballroom in Sathorn.",
+      },
+      "biz1",
+    );
+    expect(generic?.venue).toBeUndefined();
+  });
+
+  it.each([
+    ["Hello, my name is Somchai Ratanakul. We are having our wedding reception.", "Somchai Ratanakul"],
+    ["We're planning a company party. Best regards, Kessara", "Kessara"],
+    ["Checking availability for our wedding. Thanks! Brooke", "Brooke"],
+    ["Do you do private parties? — Nok", "Nok"],
+    ["We're getting married. Name: Jessica Park. Could you send your rates?", "Jessica Park"],
+  ])("extracts a defensible explicit/signature name", async (textBody, name) => {
+    mockLlmObject.mockResolvedValue({ ...extraction, clientName: null });
+    const lead = await parseFallback({ ...base, fromName: undefined, textBody }, "biz1");
+    expect(lead?.clientName).toBe(name);
   });
 });

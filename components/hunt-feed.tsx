@@ -99,6 +99,7 @@ function VenueCard({
   profilePercent,
   businessName,
   homeCity,
+  postalAddress,
   mailboxConnected,
   now,
 }: {
@@ -107,6 +108,7 @@ function VenueCard({
   profilePercent: number;
   businessName: string;
   homeCity: string;
+  postalAddress: string;
   /** 10.5: a sending mailbox is connected — gates the "Send now" button. */
   mailboxConnected: boolean;
   now: Date;
@@ -257,10 +259,12 @@ function VenueCard({
           pitch={venue.pitch}
           jurisdictionNote={jurisdiction.note}
           mailboxConnected={mailboxConnected}
+          postalAddressReady={!!postalAddress.trim()}
           footer={pitchFooter({
             mode: jurisdiction.mode,
             businessName,
             city: homeCity,
+            postalAddress,
             venueName: venue.name,
           })}
         />
@@ -334,6 +338,7 @@ export function HuntSection({
   profilePercent,
   businessName,
   homeCity,
+  postalAddress,
   mailboxConnected = false,
   subscribed = true,
 }: {
@@ -347,6 +352,8 @@ export function HuntSection({
   businessName: string;
   /** …plus home-base city (first service city; empty string when unset). */
   homeCity: string;
+  /** Physical sender identity appended to approved outreach. */
+  postalAddress: string;
   /** 10.5: a sending mailbox is connected — gates "Send now" on STANDARD cards. */
   mailboxConnected?: boolean;
   /** Subscribe-to-activate: unsubscribed tenants' scans never run. */
@@ -448,6 +455,7 @@ export function HuntSection({
                 profilePercent={profilePercent}
                 businessName={businessName}
                 homeCity={homeCity}
+                postalAddress={postalAddress}
                 mailboxConnected={mailboxConnected}
                 now={now}
               />

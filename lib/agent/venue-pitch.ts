@@ -9,6 +9,7 @@
 // layer — never here, never in the editable body.
 
 import { z } from "zod";
+import { APICallError, NoObjectGeneratedError, RetryError } from "ai";
 import { llmObject, modelFor } from "@/lib/llm";
 import { appUrl } from "@/lib/app-url";
 import type { VenueTemperature } from "@/lib/venues/timing";
@@ -99,26 +100,28 @@ export const VenuePitchSchema = z.object({
  * 2027". Date-only (UTC) so a window entered as "Aug 4-11" reads exactly that
  * regardless of server tz. Same-day windows collapse to a single date.
  */
-export function formatTravelDateRange(start: Date, end: Date): string {
+export function formatTravelDateRange(
+  start: Date,
+  end: Date,
+  referenceDate = new Date(),
+): string {
   const month = (d: Date) =>
     d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
   const day = (d: Date) => d.getUTCDate();
   const year = (d: Date) => d.getUTCFullYear();
   const sameYear = year(start) === year(end);
-  // Show the year only when the range straddles years OR isn't the current one
-  // — keep the common case ("August 4-11") clean; callers in a future year are
-  // rare. We always include the year when the two dates differ in year.
-  const startStr = sameYear
-    ? `${month(start)} ${day(start)}`
-    : `${month(start)} ${day(start)}, ${year(start)}`;
-  if (start.getTime() === end.getTime()) return startStr;
-  const endStr =
-    month(start) === month(end) && sameYear
-      ? `${day(end)}`
-      : sameYear
-        ? `${month(end)} ${day(end)}`
-        : `${month(end)} ${day(end)}, ${year(end)}`;
-  return `${startStr}-${endStr}`;
+  const includeSharedYear = sameYear && year(start) !== year(referenceDate);
+  if (start.getTime() === end.getTime()) {
+    return `${month(start)} ${day(start)}${includeSharedYear ? `, ${year(start)}` : ""}`;
+  }
+  if (sameYear) {
+    const range =
+      month(start) === month(end)
+        ? `${month(start)} ${day(start)}-${day(end)}`
+        : `${month(start)} ${day(start)}-${month(end)} ${day(end)}`;
+    return `${range}${includeSharedYear ? `, ${year(start)}` : ""}`;
+  }
+  return `${month(start)} ${day(start)}, ${year(start)}-${month(end)} ${day(end)}, ${year(end)}`;
 }
 
 /** The hosted EPK link for a tenant — strict appUrl(): this link goes into
@@ -148,6 +151,15 @@ const COUNTRY_LANGUAGE: Record<string, string> = {
 export function pitchLanguageFor(countryISO2: string, pitchLanguages: string[]): string {
   const wanted = COUNTRY_LANGUAGE[countryISO2.trim().toUpperCase()];
   return wanted && pitchLanguages.includes(wanted) ? wanted : "en";
+}
+
+/**
+ * Only English currently has complete deterministic semantic gates for price,
+ * unsupported commercial promises, firsthand claims and CTA shape. Other
+ * languages remain useful drafts, but must be reviewed and sent manually.
+ */
+export function isVenuePitchAutoSendLanguage(language: string): boolean {
+  return language.trim().toLowerCase() === "en";
 }
 
 /** Pure system-prompt assembly — the artist's voice + the hard pitch rules. */
@@ -202,7 +214,7 @@ export function buildVenuePitchSystem(req: VenuePitchRequest): string {
     temperature === "HOT"
       ? `5. End with ONE low-friction call to action — a short call, or an offer like "shall I hold a date?". Never two asks.`
       : temperature === "WARM"
-        ? `5. End with ONE low-friction call to action — a no-risk trial night (see TASK) or keeping the one-pager on file. Never ask to hold a specific date, and never two asks.`
+        ? `5. End with ONE low-friction call to action — ask whether they would consider a guest/trial slot when it suits their calendar, or simply keeping the one-pager on file. Never offer free work, discounts, contingent terms or performance guarantees. Never ask to hold a specific date, and never two asks.`
         : `5. End with NO call to action beyond "file me away for when you need entertainment" — no call, no meeting, no date, and NEVER a promise to follow up.`,
     `6. NEVER mention prices, fees or rates in this first email — pricing comes when they reply.`,
     `7. Never mention AI, software, automation, agents or assistants, or any company or brand other than the artist's own business. You are simply ${b.ownerName} writing.`,
@@ -233,7 +245,7 @@ export function buildPitchTask(temperature: VenueTemperature): string {
         `TASK: write an INTRODUCTION email to this venue's booking contact. They already book entertainment (see the evidence above) but have NOT posted any need — do not pretend they did.`,
         `- Open by referencing their EXISTING entertainment program, using ONLY the evidence facts above (e.g. "saw you run Friday DJ sets").`,
         `- Be plainly honest that this is an introduction for their roster/future slots, not a response to anything.`,
-        `- The single call to action (12.4 trial-night converter, profit-framed): offer ONE no-risk trial night on their quietest evening — frame it around THEIR take, e.g. "give me one quiet night; if the room doesn't do better numbers, that's the end of it — easy life for you, and a profit if it works". One sentence, zero pressure, no specific date. If a trial night genuinely doesn't fit this venue's evidence (e.g. a wedding venue), fall back to asking them to keep the one-pager on file.`,
+        `- The single call to action: ask whether they would consider one guest/trial slot when it suits their calendar. This is only a scheduling question — never offer it for free, never call it "no-risk", never make pay contingent on results, and never promise revenue, profit, crowd size or sales. If a trial slot does not fit this venue's evidence (e.g. a wedding venue), ask them to keep the one-pager on file instead. One sentence, zero pressure, no specific date.`,
       ].join("\n");
     case "SEED":
       return [
@@ -307,9 +319,10 @@ export function detectFollowUpPromise(result: VenuePitchResult): string | null {
 /**
  * Remove an echoed subject label the model sometimes prepends to the body.
  *
- * TWO shapes, both seen live with deepseek-v4-pro:
+ * THREE shapes, all seen live with deepseek-v4-pro:
  *   A) "Subject: Rooftop soundtrack\n\nHeard you're opening..."      newline-delimited
  *   B) "Subject: ... (5 words, no exclamation ...). Body: Heard ..."  ALL ONE LINE
+ *   C) "Subject: Cabaret for Maré / Hello — ..."                      slash-delimited
  *
  * The original guard was /^subject:[^\n]*\n+/i, which requires a trailing
  * newline and therefore silently did NOTHING to shape B. On 2026-07-30 that
@@ -330,6 +343,14 @@ export function stripEchoedSubject(body: string): string {
     const rest = t.slice(labelled[0].length).trim();
     if (rest) return rest;
   }
+  // Shape C: the model sometimes uses a slash as the field delimiter. Require
+  // a normal email opener after the slash so a subject containing "/" is not
+  // cut at the wrong place. The lazy prefix can backtrack to a later slash
+  // when the echoed subject itself contains one.
+  const slashDelimited = t.match(
+    /^\s*subject\s*:[\s\S]{1,200}?\s*\/\s*((?:hello|hi|hey|dear|good (?:morning|afternoon|evening)|saw|heard|noticed|i(?:['’]m| am)|we(?:['’]re| are))\b[\s\S]+)$/i,
+  );
+  if (slashDelimited?.[1]?.trim()) return slashDelimited[1].trim();
   const stripped = t.replace(/^\s*subject\s*:[^\n]*\n+/i, "").trim();
   return stripped || t;
 }
@@ -369,18 +390,119 @@ export function detectSpecLeak(result: VenuePitchResult): string | null {
 }
 
 const MAX_SUBJECT_WORDS = 7;
+const HTTP_URL_PATTERN = /https?:\/\/[^\s<>()]+/gi;
+
+function canonicalizeHostedEpkLinks(body: string, canonicalUrl: string): string {
+  let canonicalPath: string;
+  try {
+    canonicalPath = new URL(canonicalUrl).pathname.replace(/\/+$/, "");
+  } catch {
+    return body;
+  }
+  return body.replace(HTTP_URL_PATTERN, (matched) => {
+    const clean = matched.replace(/[.,;:!?]+$/, "");
+    const punctuation = matched.slice(clean.length);
+    try {
+      const path = new URL(clean).pathname.replace(/\/+$/, "");
+      return path === canonicalPath ? `${canonicalUrl}${punctuation}` : matched;
+    } catch {
+      return matched;
+    }
+  });
+}
+
+function identityComparable(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\p{P}\p{S}\s]+/gu, " ")
+    .trim();
+}
+
+function canonicalPitchSignoff(req: VenuePitchRequest): string {
+  const owner = req.business.ownerName?.trim() ?? "";
+  const firstName = owner.split(/\s+/)[0] || req.business.name?.trim() || "";
+  const actName = req.business.name?.trim() ?? "";
+  if (!firstName) return actName;
+  if (!actName) return firstName;
+  return `${firstName} — ${actName}`;
+}
+
+function isSignatureBlock(req: VenuePitchRequest, block: string): boolean {
+  const owner = req.business.ownerName?.trim() ?? "";
+  const firstName = owner.split(/\s+/)[0] || req.business.name?.trim() || "";
+  const actName = req.business.name?.trim() ?? "";
+  let normalized = identityComparable(block);
+  for (const closing of [
+    "all the best",
+    "best regards",
+    "kind regards",
+    "warm regards",
+    "thank you",
+    "thanks",
+    "cheers",
+    "regards",
+    "warmly",
+    "best",
+  ]) {
+    if (normalized.startsWith(`${closing} `)) {
+      normalized = normalized.slice(closing.length).trim();
+      break;
+    }
+  }
+  const allowed = [
+    firstName,
+    owner,
+    actName,
+    `${firstName} ${actName}`,
+    `${owner} ${actName}`,
+  ]
+    .map(identityComparable)
+    .filter(Boolean);
+  return !!normalized && allowed.includes(normalized);
+}
+
+/** Replace zero, partial or repeated trailing signatures with one stable form. */
+function ensureCanonicalSignoff(req: VenuePitchRequest, body: string): string {
+  const canonical = canonicalPitchSignoff(req);
+  if (!canonical) return body.trim();
+
+  let lines = body.trim().split(/\r?\n/);
+  // A model may return "Best,\nMaya\nSapphire Sounds", only "Maya", or even
+  // the same signature twice. Remove only a short signature-shaped suffix;
+  // names appearing naturally in the introduction remain untouched.
+  while (lines.length > 0) {
+    let cutAt = -1;
+    for (let index = Math.max(0, lines.length - 4); index < lines.length; index++) {
+      if (isSignatureBlock(req, lines.slice(index).join("\n").trim())) {
+        cutAt = index;
+        break;
+      }
+    }
+    if (cutAt < 0) break;
+    lines = lines.slice(0, cutAt);
+    while (lines.at(-1)?.trim() === "") lines.pop();
+  }
+
+  const content = lines.join("\n").trim();
+  return content ? `${content}\n\n${canonical}` : canonical;
+}
 
 /**
  * Deterministic normalization (the normalizeStatement discipline): the rules
  * that MUST hold are enforced in code, not trusted to the model.
  * - EPK link appears EXACTLY once: inject before the sign-off if dropped;
  *   strip duplicates if repeated.
+ * - End with exactly one canonical first-name + act-name sign-off.
  * - Subject: collapse whitespace, strip exclamation marks, cap at 7 words.
  * - Strip an echoed "Subject: …" line the model sometimes prepends to the body
  *   (seen live with deepseek-v4-pro).
  */
 export function normalizeVenuePitch(req: VenuePitchRequest, result: VenuePitchResult): VenuePitchResult {
-  let body = stripEchoedSubject(result.body);
+  // Legacy drafts can contain the correct /epk/{slug} path on an old Render or
+  // localhost origin. Canonicalize that exact path before enforcing one link so
+  // a deployment-host change cannot leave two press-kit links in a sent email.
+  let body = canonicalizeHostedEpkLinks(stripEchoedSubject(result.body), req.epkUrl);
 
   // EPK link exactly once.
   const occurrences = body.split(req.epkUrl).length - 1;
@@ -401,6 +523,8 @@ export function normalizeVenuePitch(req: VenuePitchRequest, result: VenuePitchRe
     body = (first + req.epkUrl + rest.join("")).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n");
   }
 
+  body = ensureCanonicalSignoff(req, body);
+
   let subject = result.subject.replace(/\s+/g, " ").replace(/!/g, "").trim();
   const words = subject.split(" ");
   if (words.length > MAX_SUBJECT_WORDS) {
@@ -410,11 +534,291 @@ export function normalizeVenuePitch(req: VenuePitchRequest, result: VenuePitchRe
   return { subject, body };
 }
 
+const PITCH_PLACEHOLDER =
+  /\[[a-z][a-z _-]{1,40}\]|\{\{[^}]{1,50}\}\}|<\s*(?:name|date|venue|price|link)\s*>/i;
+const PRICE_OR_RATE =
+  /(?:[\$£€฿¥₹₩₫₱₽]\s*\d|\b(?:USD|GBP|EUR|THB|JPY|CAD|AUD)\s*\d|\b(?:price|pricing|fees?|rates?)\b)/i;
+const UNAUTHORIZED_TERMS =
+  /\b(?:no[- ]risk|free (?:set|night|show|performance|trial|gig)|at no cost|on the house|profit if|better numbers|revenue guarantee|guaranteed (?:crowd|sales|revenue|profit))\b/i;
+const FIRSTHAND_CLAIM =
+  /\b(?:i(?:['’]ve| have) (?:been\s+(?:(?:to|inside)\s+(?:your|the|this|that)\s+(?:venue|room|space|bar|club|hotel|restaurant|rooftop|lounge)|at\s+(?:your|the|this|that)\s+(?:venue|room|space|bar|club|hotel|restaurant|rooftop|lounge))|visited\s+(?:your|the|this|that)\s+(?:venue|room|space|bar|club|hotel|restaurant|rooftop|lounge)|(?:seen|watched)\s+(?:your|the|this|that)\s+(?:[a-z0-9'’-]+\s+){0,3}(?:sets?|shows?|clips?|videos?|venue|room|space|crowd|events?|nights?)|heard\s+(?:your|the|this|that)\s+(?:[a-z0-9'’-]+\s+){0,3}(?:sets?|shows?|music|sound|crowd))|i (?:saw|watched|heard) (?:your|the|this|that) (?:[a-z0-9'’-]+\s+){0,3}(?:sets?|shows?|clips?|videos?|music|sound|venue|room|space|crowd|events?|nights?)|i love your|caught (?:a|your) set|stopped by|when i was at)\b/i;
+const WARM_FALSE_NEED =
+  /\b(?:you(?:'re| are) (?:looking|searching|booking now)|you (?:need|requested|asked for)|your (?:request|job post|listing)|saw your (?:post|ad|request))\b/i;
+
+function claimsFirsthandVenueExperience(body: string, venueName: string): boolean {
+  if (FIRSTHAND_CLAIM.test(body)) return true;
+  const escapedName = venueName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!escapedName) return false;
+  const namedVisit = new RegExp(
+    `\\bi(?:['’]ve| have)\\s+(?:been\\s+(?:to|at|inside)|visited)\\s+(?:the\\s+)?${escapedName}\\b`,
+    "i",
+  );
+  const namedContent = new RegExp(
+    `\\bi(?:(?:['’]ve| have)\\s+|\\s+)(?:saw|seen|watched|heard)\\s+(?:the\\s+)?${escapedName}['’]s\\s+(?:[a-z0-9'’-]+\\s+){0,3}(?:sets?|shows?|clips?|videos?|music|sound|crowd|events?|nights?)\\b`,
+    "i",
+  );
+  return namedVisit.test(body) || namedContent.test(body);
+}
+
+function pitchLength(
+  body: string,
+  language: string,
+  temperature: VenueTemperature,
+): { value: number; min: number; max: number; unit: "word" | "character" } {
+  const normalizedLanguage = language.trim().toLowerCase();
+  if (normalizedLanguage === "th" || normalizedLanguage === "ja") {
+    // Thai does not delimit every word with spaces; Japanese generally does
+    // not delimit words at all. Count script characters (including combining
+    // marks), excluding the proof URL, instead of pretending one paragraph is
+    // one word. Bounds are deliberately broad because these drafts are manual
+    // review only at launch.
+    const text = body.replace(HTTP_URL_PATTERN, " ");
+    const value = [...text.matchAll(/[\p{L}\p{M}\p{N}]/gu)].length;
+    return temperature === "SEED"
+      ? { value, min: 50, max: 500, unit: "character" }
+      : { value, min: 80, max: 900, unit: "character" };
+  }
+  const value = body.trim() ? body.trim().split(/\s+/).length : 0;
+  return temperature === "SEED"
+    ? { value, min: 25, max: 110, unit: "word" }
+    : { value, min: 40, max: 170, unit: "word" };
+}
+
+function isCallToActionUnit(line: string): boolean {
+  return (
+    /[?？]/.test(line) ||
+    /\b(?:let me know|keep me on file|file me away|open to|would you|could we|can we|shall i|happy to chat|worth a quick call)\b/i.test(
+      line,
+    )
+  );
+}
+
+function callToActionCount(body: string): number {
+  return body
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(isCallToActionUnit).length;
+}
+
+function canonicalCallToAction(temperature: VenueTemperature): string {
+  switch (temperature) {
+    case "WARM":
+      return "Would you consider keeping my one-page profile on file for a future slot?";
+    case "SEED":
+      return "Please file me away for when you next need entertainment.";
+    default:
+      return "Shall I hold a suitable date for you?";
+  }
+}
+
 /**
- * Generate a venue pitch: LLM call (purpose "venuePitch", metered) →
- * white-label leak check (regenerate ONCE on a leak, then fail loudly) →
- * deterministic normalization. Returns the clean editable copy — the
- * jurisdiction footer is the caller's job at approval time.
+ * Last-resort English CTA repair after the model has already had its one
+ * corrective generation. Remove every conservatively detected ask and insert
+ * one temperature-safe fallback; all other validators run again afterwards.
+ */
+function normalizeEnglishCallToAction(
+  req: VenuePitchRequest,
+  result: VenuePitchResult,
+): VenuePitchResult {
+  if (!isVenuePitchAutoSendLanguage(req.language) || callToActionCount(result.body) === 1) {
+    return result;
+  }
+
+  const canonicalSignoff = canonicalPitchSignoff(req);
+  const signedBody = ensureCanonicalSignoff(req, result.body);
+  const paragraphs = signedBody.split(/\n\n+/);
+  if (identityComparable(paragraphs.at(-1) ?? "") === identityComparable(canonicalSignoff)) {
+    paragraphs.pop();
+  }
+
+  const content = paragraphs
+    .map((paragraph) =>
+      paragraph
+        .split(/\n+/)
+        .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+        .map((unit) => unit.trim())
+        .filter(Boolean)
+        .filter((unit) => !isCallToActionUnit(unit))
+        .join(" "),
+    )
+    .filter(Boolean);
+
+  return {
+    ...result,
+    body: [...content, canonicalCallToAction(req.venue.temperature ?? "HOT"), canonicalSignoff]
+      .filter(Boolean)
+      .join("\n\n"),
+  };
+}
+
+const SHORT_PITCH_BRIDGE =
+  "I’m keeping this introduction straightforward and focused on whether the act could suit the room.";
+
+/**
+ * Repair a near-miss after corrective generation without inventing profile or
+ * venue facts. One neutral, conditional bridge is enough for the observed
+ * 33-word result. If it cannot reach the existing 40-word floor by itself, the
+ * candidate is too incomplete to pad safely and remains a hard failure.
+ */
+function repairShortEnglishVenuePitch(
+  req: VenuePitchRequest,
+  result: VenuePitchResult,
+): VenuePitchResult {
+  const temperature = req.venue.temperature ?? "HOT";
+  const length = pitchLength(result.body, req.language, temperature);
+  if (
+    !isVenuePitchAutoSendLanguage(req.language) ||
+    temperature === "SEED" ||
+    length.unit !== "word" ||
+    length.value >= length.min
+  ) {
+    return result;
+  }
+
+  const bridgeWords = SHORT_PITCH_BRIDGE.split(/\s+/).length;
+  if (length.value + bridgeWords < length.min) return result;
+
+  const signedBody = ensureCanonicalSignoff(req, result.body);
+  const paragraphs = signedBody.split(/\n\n+/);
+  const signoff = paragraphs.pop();
+  const proofIndex = paragraphs.findIndex((paragraph) => paragraph.includes(req.epkUrl));
+  const insertAt = proofIndex > 0 ? proofIndex : Math.min(1, paragraphs.length);
+  paragraphs.splice(insertAt, 0, SHORT_PITCH_BRIDGE);
+  if (signoff) paragraphs.push(signoff);
+  return { ...result, body: paragraphs.join("\n\n") };
+}
+
+function isTransientGenerationError(error: unknown): boolean {
+  if (NoObjectGeneratedError.isInstance(error)) return true;
+  if (APICallError.isInstance(error)) return error.isRetryable;
+  if (RetryError.isInstance(error)) {
+    if (error.reason === "maxRetriesExceeded" || error.reason === "abort") return true;
+    return isTransientGenerationError(error.lastError);
+  }
+  if (!(error instanceof Error)) return false;
+  if (/^(?:AbortError|TimeoutError|NoObjectGeneratedError)$/i.test(error.name)) return true;
+  return /\b(?:timed?\s*out|timeout|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|network error|fetch failed|temporarily unavailable)\b/i.test(
+    error.message,
+  );
+}
+
+function comparable(value: string): string {
+  return value.toLowerCase().replace(/[^À-ɏa-z0-9]+/g, " ").trim();
+}
+
+function looksLikeLanguage(text: string, language: string): boolean {
+  const normalizedLanguage = language.trim().toLowerCase();
+  if (normalizedLanguage === "en") return true;
+  if (normalizedLanguage === "th") return /[฀-๿]/.test(text);
+  if (normalizedLanguage === "ja") return /[぀-ヿ㐀-鿿]/.test(text);
+  const hints: Record<string, RegExp> = {
+    de: /\b(?:ich|und|für|gerne|viele|mit|sie|ihr)\b/i,
+    fr: /\b(?:je|et|pour|avec|vous|votre|bien|merci)\b/i,
+    es: /\b(?:yo|y|para|con|usted|su|gracias|encantaría)\b/i,
+    it: /\b(?:io|e|per|con|voi|vostro|grazie|piacerebbe)\b/i,
+    nl: /\b(?:ik|en|voor|met|jullie|uw|graag|bedankt)\b/i,
+    pt: /\b(?:eu|e|para|com|você|seu|obrigad|gostaria)\b/i,
+  };
+  return hints[normalizedLanguage]?.test(text) ?? true;
+}
+
+export type VenuePitchValidation = { result: VenuePitchResult; issues: string[] };
+
+/** Pure runtime gate shared by generation, tests/evals, and the send boundary. */
+export function validateVenuePitch(
+  req: VenuePitchRequest,
+  candidate: VenuePitchResult,
+): VenuePitchValidation {
+  const result = normalizeVenuePitch(req, candidate);
+  const issues: string[] = [];
+  const temperature = req.venue.temperature ?? "HOT";
+  const combined = `${result.subject}\n${result.body}`;
+  const length = pitchLength(result.body, req.language, temperature);
+  const fullyValidatedLanguage = isVenuePitchAutoSendLanguage(req.language);
+
+  const leak = detectLeak(result, req.epkUrl);
+  if (leak) issues.push(`white-label leak: ${leak}`);
+  const spec = detectSpecLeak(result);
+  if (spec) issues.push(`instruction leak: ${spec}`);
+  if (temperature === "SEED") {
+    const promise = detectFollowUpPromise(result);
+    if (promise) issues.push(`SEED follow-up promise: ${promise}`);
+  }
+  if (!result.subject.trim()) issues.push("empty subject");
+  if (result.subject.trim().split(/\s+/).length > MAX_SUBJECT_WORDS) {
+    issues.push("subject exceeds seven words");
+  }
+  if (combined.includes("!")) issues.push("contains an exclamation mark");
+  if (PITCH_PLACEHOLDER.test(combined)) issues.push("contains an unresolved placeholder");
+  if (PRICE_OR_RATE.test(result.body)) issues.push("mentions a price, fee, or rate");
+  if (UNAUTHORIZED_TERMS.test(result.body)) {
+    issues.push("offers unauthorized free, contingent, or guaranteed commercial terms");
+  }
+  if (claimsFirsthandVenueExperience(result.body, req.venue.name)) {
+    issues.push("claims firsthand venue experience");
+  }
+  if (temperature === "WARM" && WARM_FALSE_NEED.test(result.body)) {
+    issues.push("pretends the WARM venue posted a current need");
+  }
+  if (length.value < length.min || length.value > length.max) {
+    issues.push(
+      `body is outside the safe ${length.min}-${length.max} ${length.unit} budget (${length.value})`,
+    );
+  }
+  const links = result.body.split(req.epkUrl).length - 1;
+  if (links !== 1) issues.push(`EPK link count is ${links}, expected 1`);
+  const urls = (result.body.match(HTTP_URL_PATTERN) ?? []).map((url) =>
+    url.replace(/[.,;:!?]+$/, ""),
+  );
+  if (urls.length !== 1 || urls[0] !== req.epkUrl) {
+    issues.push("body must contain the current EPK URL and no other external links");
+  }
+  const ctas = callToActionCount(result.body);
+  if (fullyValidatedLanguage) {
+    if (ctas !== 1) issues.push(`call-to-action count is ${ctas}, expected 1`);
+  } else if (ctas > 1) {
+    // Partial structural guard only. Delivery remains manual-review-only, so
+    // absence of an English-recognizable CTA is not treated as validated.
+    issues.push(`call-to-action count is ${ctas}, expected no more than 1`);
+  }
+
+  const firstName = req.business.ownerName.trim().split(/\s+/)[0];
+  if (firstName && !result.body.toLowerCase().includes(firstName.toLowerCase())) {
+    issues.push("missing artist first-name sign-off");
+  }
+  if (!result.body.toLowerCase().includes(req.business.name.toLowerCase())) {
+    issues.push("missing act-name sign-off");
+  }
+
+  if (!looksLikeLanguage(result.body, req.language)) {
+    issues.push(`body does not appear to be written in ${req.language}`);
+  }
+
+  const travel = req.venue.travelWindow;
+  if (travel) {
+    const normalizedBody = comparable(result.body);
+    if (!normalizedBody.includes(comparable(travel.city))) {
+      issues.push("travel pitch omits the destination city");
+    }
+    if (!normalizedBody.includes(comparable(travel.dateRange))) {
+      issues.push("travel pitch omits the exact travel window");
+    }
+    const escapedCity = travel.city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const falseLocal = new RegExp(
+      `\\b(?:based|local|live|living)\\s+(?:in|around)\\s+${escapedCity}\\b|\\b(?:always|regularly)\\s+in\\s+${escapedCity}\\b|\\bavailable\\s+anytime\\b`,
+      "i",
+    );
+    if (falseLocal.test(result.body)) issues.push("travel pitch falsely implies local/open-ended availability");
+  }
+
+  return { result, issues };
+}
+
+/**
+ * Generate a venue pitch: LLM call → normalize + validate every hard rule →
+ * one corrective regeneration → fail closed. Returns clean editable copy;
+ * the jurisdiction footer remains the caller's job at approval time.
  */
 export async function generateVenuePitch(
   req: VenuePitchRequest,
@@ -422,67 +826,52 @@ export async function generateVenuePitch(
   const system = buildVenuePitchSystem(req);
   const prompt = buildVenuePitchPrompt(req);
 
-  let result = await llmObject<VenuePitchResult>({
-    purpose: "venuePitch",
-    businessId: req.business.id,
-    system,
-    prompt,
-    schema: VenuePitchSchema,
-  });
-
-  let leak = detectLeak(result, req.epkUrl);
-  if (leak) {
-    // One retry with the violation called out — cheap models occasionally slip.
-    result = await llmObject<VenuePitchResult>({
+  const callProvider = (attemptPrompt: string) =>
+    llmObject<VenuePitchResult>({
       purpose: "venuePitch",
       businessId: req.business.id,
       system,
-      prompt: `${prompt}\n\nIMPORTANT: your previous attempt mentioned "${leak}" — that word class is forbidden. The email must read as written personally by the artist; never reference tools, software, automation or any other brand.`,
+      prompt: attemptPrompt,
       schema: VenuePitchSchema,
     });
-    leak = detectLeak(result, req.epkUrl);
-    if (leak) {
-      throw new Error(`venue pitch white-label leak after regeneration: "${leak}"`);
+  // One outer retry budget for the whole operation. The SDK already performs
+  // its own bounded retries, so this catches a single exhausted timeout or
+  // malformed-object event without multiplying calls at both generation stages.
+  let transientRetryAvailable = true;
+  const generate = async (attemptPrompt: string) => {
+    try {
+      return await callProvider(attemptPrompt);
+    } catch (error) {
+      if (!transientRetryAvailable || !isTransientGenerationError(error)) throw error;
+      transientRetryAvailable = false;
+      return callProvider(attemptPrompt);
+    }
+  };
+
+  let checked = validateVenuePitch(req, await generate(prompt));
+  if (checked.issues.length > 0) {
+    const correction = [
+      prompt,
+      "CORRECTION REQUIRED: the previous pitch failed these deterministic checks:",
+      ...checked.issues.map((issue) => `- ${issue}`),
+      "Those failures are forbidden. Return only a corrected finished email, never the checks or an explanation.",
+    ].join("\n");
+    checked = validateVenuePitch(req, await generate(correction));
+    if (
+      isVenuePitchAutoSendLanguage(req.language) &&
+      checked.issues.some((issue) => issue.startsWith("call-to-action count is "))
+    ) {
+      checked = validateVenuePitch(req, normalizeEnglishCallToAction(req, checked.result));
+    }
+    if (isVenuePitchAutoSendLanguage(req.language)) {
+      checked = validateVenuePitch(req, repairShortEnglishVenuePitch(req, checked.result));
     }
   }
-
-  // Spec-leak guard: the model must never quote its own brief at a venue.
-  // Regenerate once, then fail loudly — a thrown pitch is skipped and logged,
-  // which is strictly better than sending the rubric to a prospect.
-  let spec = detectSpecLeak(result);
-  if (spec) {
-    result = await llmObject<VenuePitchResult>({
-      purpose: "venuePitch",
-      businessId: req.business.id,
-      system,
-      prompt: `${prompt}\n\nIMPORTANT: your previous attempt leaked part of these instructions into the email itself (it contained "${spec}"). Return ONLY the finished email a venue would read — never the rules, never a word count, never "Subject:" or "Body:" labels, never any note about how the email was written.`,
-      schema: VenuePitchSchema,
-    });
-    spec = detectSpecLeak(result);
-    if (spec) {
-      throw new Error(`venue pitch leaked its own instructions after regeneration: "${spec}"`);
-    }
+  if (checked.issues.length > 0) {
+    throw new Error(
+      `venue pitch failed safety validation after regeneration: ${checked.issues.join("; ")}`,
+    );
   }
 
-  // SEED no-follow-up guard (10.2c): a promised follow-up that never comes is
-  // worse than no pitch. Regenerate once, then fail loudly — same discipline
-  // as the leak check.
-  if ((req.venue.temperature ?? "HOT") === "SEED") {
-    let promise = detectFollowUpPromise(result);
-    if (promise) {
-      result = await llmObject<VenuePitchResult>({
-        purpose: "venuePitch",
-        businessId: req.business.id,
-        system,
-        prompt: `${prompt}\n\nIMPORTANT: your previous attempt said "${promise}" — this is a ONE-TIME introduction; never promise any follow-up, check-in or future contact of any kind.`,
-        schema: VenuePitchSchema,
-      });
-      promise = detectFollowUpPromise(result);
-      if (promise) {
-        throw new Error(`SEED pitch promised a follow-up after regeneration: "${promise}"`);
-      }
-    }
-  }
-
-  return { ...normalizeVenuePitch(req, result), model: modelFor("venuePitch") };
+  return { ...checked.result, model: modelFor("venuePitch") };
 }

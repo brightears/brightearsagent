@@ -27,6 +27,7 @@ vi.mock("@/lib/tenant", () => ({
     ownerName: "Maya Reyes",
     performerKind: "DJ",
     country: "GB", // STANDARD jurisdiction → footer resolves
+    postalAddress: "12 Deansgate, Manchester M3 2BW, United Kingdom",
     timezone: "Europe/London",
     voiceSamples: null,
     headline: null,
@@ -102,7 +103,7 @@ describe("sendTestEmail — requires a connected mailbox", () => {
 describe("sendTestEmail — sends a sample to the owner's OWN address", () => {
   it("sends to the connection's own email with a [Test] subject and the banner in the body", async () => {
     const result = await sendTestEmail();
-    expect(result).toEqual({ ok: true, sentTo: "maya@studio.com" });
+    expect(result).toEqual({ ok: true, sentTo: "maya@studio.com", generation: "ai" });
     expect(sendGmail).toHaveBeenCalledOnce();
 
     const [businessId, input] = sendGmail.mock.calls[0];
@@ -150,7 +151,11 @@ describe("sendTestEmail — generation failure falls back to a static sample", (
   it("still sends (with the banner) when the generator throws", async () => {
     vi.mocked(generateVenuePitch).mockRejectedValueOnce(new Error("openrouter down"));
     const result = await sendTestEmail();
-    expect(result).toEqual({ ok: true, sentTo: "maya@studio.com" });
+    expect(result).toEqual({
+      ok: true,
+      sentTo: "maya@studio.com",
+      generation: "static-fallback",
+    });
     expect(sendGmail).toHaveBeenCalledOnce();
     const input = sendGmail.mock.calls[0][1];
     expect(input.subject).toContain("[Test]");

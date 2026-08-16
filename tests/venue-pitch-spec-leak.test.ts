@@ -72,6 +72,14 @@ describe("detectSpecLeak", () => {
     const body = `Subject: Rooftop soundtrack\n\n${CLEAN_BODY}`;
     expect(detectSpecLeak({ subject: "Rooftop soundtrack", body })).toBeNull();
   });
+
+  it("still catches instruction copy after a slash-delimited echoed subject", () => {
+    const body =
+      "Subject: Cabaret for the supper club / Hello — Word count: 100. " + CLEAN_BODY;
+    expect(detectSpecLeak({ subject: "Cabaret for the supper club", body })).toMatch(
+      /word count/i,
+    );
+  });
 });
 
 describe("stripEchoedSubject", () => {
@@ -85,6 +93,25 @@ describe("stripEchoedSubject", () => {
     expect(stripEchoedSubject("Subject: Rooftop soundtrack\n\nHeard you're opening...")).toBe(
       "Heard you're opening...",
     );
+  });
+
+  it("strips the live slash-delimited Subject: ... / Hello shape", () => {
+    for (const body of [
+      "Subject: Cabaret for Maré's launch / Hello — I noticed the supper-club announcement.",
+      "Subject: Cabaret for Maré's launch/Hello — I noticed the supper-club announcement.",
+    ]) {
+      expect(stripEchoedSubject(body)).toBe(
+        "Hello — I noticed the supper-club announcement.",
+      );
+    }
+  });
+
+  it("uses the slash before the greeting when the echoed subject also has a slash", () => {
+    expect(
+      stripEchoedSubject(
+        "Subject: Cabaret / dance for Maré / Hello — I noticed the supper-club announcement.",
+      ),
+    ).toBe("Hello — I noticed the supper-club announcement.");
   });
 
   it("leaves a clean body untouched", () => {

@@ -23,8 +23,15 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
 
   const name = optional(formData, "name");
   const ownerName = optional(formData, "ownerName");
+  const postalAddress = optional(formData, "postalAddress");
   if (!name) return { ok: false, error: "Business name is required" };
   if (!ownerName) return { ok: false, error: "Your name is required" };
+  if (!postalAddress || postalAddress.length < 8) {
+    return { ok: false, error: "A physical business mailing address is required for venue outreach" };
+  }
+  if (postalAddress.length > 300) {
+    return { ok: false, error: "Keep the business mailing address under 300 characters" };
+  }
 
   const performerKindRaw = optional(formData, "performerKind");
   if (
@@ -63,6 +70,7 @@ export async function updateBusiness(formData: FormData): Promise<ActionResult> 
     data: {
       name,
       ownerName,
+      postalAddress,
       replyToEmail,
       timezone: timezone ?? business.timezone,
       country: resolvedCountry,

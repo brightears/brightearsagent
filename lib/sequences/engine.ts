@@ -6,11 +6,16 @@ import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 import { nextRunAtAfterStep } from "@/lib/sequences/timing";
+import { surfaceStuckVenuePitchClaims } from "@/lib/ops/sending-recovery";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 
 export interface TickResult {
   expiredDrafts: number;
   backfilledRuns: number;
   redraftedLeads: number;
+  /** Draft-generation work attempted/failed, used to detect provider-wide failure. */
+  draftAttempts: number;
+  draftFailures: number;
   agingPings: number;
   stepsFired: number;
   exhausted: number;
@@ -18,6 +23,8 @@ export interface TickResult {
   /** P10.4 buffer: scheduled autonomous sends fired / degraded this tick. */
   scheduledSent: number;
   scheduledBlocked: number;
+  /** Read-only alert count; these uncertain sends are never retried here. */
+  stuckVenuePitches: number;
 }
 
 const DAY = 24 * 3600 * 1000;
@@ -33,7 +40,20 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
-  const result: TickResult = { expiredDrafts: 0, backfilledRuns: 0, redraftedLeads: 0, agingPings: 0, stepsFired: 0, exhausted: 0, skipped: 0, scheduledSent: 0, scheduledBlocked: 0 };
+  const result: TickResult = {
+    expiredDrafts: 0,
+    backfilledRuns: 0,
+    redraftedLeads: 0,
+    draftAttempts: 0,
+    draftFailures: 0,
+    agingPings: 0,
+    stepsFired: 0,
+    exhausted: 0,
+    skipped: 0,
+    scheduledSent: 0,
+    scheduledBlocked: 0,
+    stuckVenuePitches: 0,
+  };
 
   // 0. Fire "sending soon" buffers that elapsed (P10.4) — FIRST, so a
   // scheduled send never waits an extra tick behind step processing.
@@ -94,6 +114,13 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     take: 50,
   });
   for (const lead of undrafted) {
+    if (
+      lead.clientEmail &&
+      (await outreachSuppressionScope(lead.businessId, lead.clientEmail))
+    ) {
+      result.skipped++;
+      continue;
+    }
     const meter = await meterState(
       lead.business.id,
       lead.business.plan,
@@ -102,10 +129,12 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       lead.business.timezone,
     );
     if (meter.overCap) continue; // still capped — leave NEW, owner already nudged
+    result.draftAttempts++;
     try {
       await generateDraftForLead(lead.id);
       result.redraftedLeads++;
     } catch (err) {
+      result.draftFailures++;
       void reportError(err, { kind: "sequence-redraft", leadId: lead.id });
     }
   }
@@ -132,12 +161,26 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     });
   }
 
+  // Venue pitches have the same unavoidable send-success / terminal-write
+  // crash window as reactive drafts. Unlike a transport throw (which safely
+  // reopens APPROVED), an old SENDING row has uncertain delivery and therefore
+  // stays frozen. Surface exact recovery identifiers to ops; never mutate or
+  // auto-resend it.
+  result.stuckVenuePitches = await surfaceStuckVenuePitchClaims(now);
+
   // 2. Backfill runs for REPLIED leads without one.
   const orphans = await db.lead.findMany({
     where: { status: "REPLIED", optedOut: false, sequenceRun: null, firstReplyAt: { not: null } },
     include: { business: { include: { sequences: { where: { active: true }, take: 1 } } } },
   });
   for (const lead of orphans) {
+    if (
+      lead.clientEmail &&
+      (await outreachSuppressionScope(lead.businessId, lead.clientEmail))
+    ) {
+      result.skipped++;
+      continue;
+    }
     const template = lead.business.sequences[0];
     if (!template || template.stepsDays.length === 0) continue;
     await db.sequenceRun.create({
@@ -188,6 +231,21 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       continue;
     }
 
+    // A recipient can stop all Bright Ears contact through another tenant, or
+    // acquire a definitive delivery suppression after this run was created.
+    // Close the run before generating or scheduling another follow-up.
+    if (
+      lead.clientEmail &&
+      (await outreachSuppressionScope(lead.businessId, lead.clientEmail))
+    ) {
+      await db.sequenceRun.update({
+        where: { id: run.id },
+        data: { stoppedAt: now, stopReason: "suppressed" },
+      });
+      result.skipped++;
+      continue;
+    }
+
     // Subscription gate: an unsubscribed (plan=TRIAL) tenant's agent does
     // nothing — the aging ping (1a) and redraft sweep (1b) already pause here,
     // and the due-run loop must too, or follow-up steps would keep drafting
@@ -231,6 +289,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // canAutoSend, rule 4). A blocked/failed send degrades to the normal
     // PENDING draft + action ping — nothing is ever lost.
     const autopilot = canAutoSend(lead.business.plan, lead.business.autoSendSources, lead.source);
+    result.draftAttempts++;
     try {
       const draftId = await generateDraftForLead(lead.id, nextStep, { suppressPush: autopilot });
       if (autopilot && draftId) {
@@ -245,6 +304,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
         }
       }
     } catch (err) {
+      result.draftFailures++;
       void reportError(err, { kind: "sequence-step", leadId: lead.id, step: nextStep });
       result.skipped++;
       continue;

@@ -3,9 +3,10 @@ import { computeMargins } from "@/lib/billing/margin";
 import { reconcileStripe, computeHeartbeat, renderHeartbeat } from "@/lib/ops/nightly";
 import { sendEmail } from "@/lib/outbound/send";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
-import { stampCron } from "@/lib/ops-stamp";
+import { stampCronCompletion } from "@/lib/ops-stamp";
 import { sendMonthlyRoiReceipts } from "@/lib/reports/roi";
 import { huntQualityNeedsAttention } from "@/lib/reports/hunt-quality";
+import { reportError } from "@/lib/report-error";
 
 export const maxDuration = 300;
 
@@ -26,11 +27,10 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  await stampCron("cron:margin-guardrail");
-
   const rows = await computeMargins();
   const flagged = rows.filter((r) => r.flagged);
 
+  let marginAlertFailed = false;
   if (flagged.length && process.env.OPS_ALERT_EMAIL) {
     await sendEmail({
       fromName: "Bright Ears Ops",
@@ -40,7 +40,10 @@ export async function GET(req: NextRequest) {
       textBody: flagged
         .map((r) => `${r.businessName} (${r.plan}): $${r.llmCostUsd} LLM cost vs $${r.planUsd} → ${r.grossMarginPct}%`)
         .join("\n"),
-    }).catch(() => null);
+    }).catch((error) => {
+      marginAlertFailed = true;
+      void reportError(error, { kind: "margin-guardrail-alert" });
+    });
   }
 
   const reconcile = await reconcileStripe();
@@ -49,36 +52,67 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const roi = now.getUTCDate() === 1 ? await sendMonthlyRoiReceipts(now) : null;
 
+  let heartbeatDelivered = false;
   if (process.env.OPS_ALERT_EMAIL) {
-    await sendEmail({
-      fromName: "Bright Ears Ops",
-      to: process.env.OPS_ALERT_EMAIL,
-      replyTo: process.env.OPS_ALERT_EMAIL,
-      // A silent PAYING tenant belongs in the subject line, not buried in the
-      // body: it is the only item here that is costing someone money right now.
-      // A likely forwarding typo joins it for the same reason — that artist's
-      // inquiries are being dropped on the floor while the digest looks calm.
-      // Unroutable mail with NO near-miss is deliberately excluded: probes are
-      // constant background noise, and an ATTENTION that fires every night is an
-      // ATTENTION nobody reads.
-      subject: `Ops heartbeat: ${heartbeat.leadsIn} in · ${heartbeat.repliesSent} replies · ${heartbeat.pitchesSent} pitches${
-        heartbeat.staleCrons.length ||
-        reconcile.issues.length ||
-        heartbeat.silentTenants.length ||
-        heartbeat.unrouted.nearMisses.length ||
-        huntQualityNeedsAttention(heartbeat.huntQuality)
-          ? " · ATTENTION"
-          : ""
-      }`,
-      textBody: renderHeartbeat(heartbeat, { flagged: flagged.length, tenants: rows.length }, reconcile),
-    }).catch(() => null);
+    try {
+      await sendEmail({
+        fromName: "Bright Ears Ops",
+        to: process.env.OPS_ALERT_EMAIL,
+        replyTo: process.env.OPS_ALERT_EMAIL,
+        // A silent PAYING tenant belongs in the subject line, not buried in the
+        // body: it is the only item here that is costing someone money right now.
+        // A likely forwarding typo joins it for the same reason — that artist's
+        // inquiries are being dropped on the floor while the digest looks calm.
+        // Unroutable mail with NO near-miss is deliberately excluded: probes are
+        // constant background noise, and an ATTENTION that fires every night is an
+        // ATTENTION nobody reads.
+        subject: `Ops heartbeat: ${heartbeat.leadsIn} in · ${heartbeat.repliesSent} replies · ${heartbeat.pitchesSent} pitches${
+          heartbeat.staleCrons.length ||
+          reconcile.issues.length ||
+          heartbeat.silentTenants.length ||
+          heartbeat.unrouted.nearMisses.length ||
+          huntQualityNeedsAttention(heartbeat.huntQuality)
+            ? " · ATTENTION"
+            : ""
+        }`,
+        textBody: renderHeartbeat(
+          heartbeat,
+          { flagged: flagged.length, tenants: rows.length },
+          reconcile,
+        ),
+      });
+      heartbeatDelivered = true;
+    } catch (error) {
+      void reportError(error, { kind: "ops-heartbeat-delivery" });
+    }
   }
 
-  return NextResponse.json({
+  const systemicIssues = [
+    !process.env.OPS_ALERT_EMAIL || !heartbeatDelivered
+      ? "ops heartbeat was not delivered"
+      : null,
+    !reconcile.complete
+      ? `Stripe reconciliation was systemically incomplete (${reconcile.issues.length} issue(s))`
+      : null,
+    roi && roi.failed > 0 && roi.sent === 0
+      ? "all attempted monthly ROI receipts failed"
+      : null,
+  ].filter((issue): issue is string => !!issue);
+
+  const payload = {
     tenants: rows.length,
     flagged: flagged.map((r) => r.businessName),
+    marginAlertFailed,
     reconcile,
     heartbeat,
+    heartbeatDelivered,
     roi,
-  });
+  };
+
+  if (systemicIssues.length > 0) {
+    return NextResponse.json({ ...payload, systemicIssues }, { status: 503 });
+  }
+
+  await stampCronCompletion("cron:margin-guardrail");
+  return NextResponse.json(payload);
 }

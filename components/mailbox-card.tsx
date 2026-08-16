@@ -82,7 +82,12 @@ function SendTestEmailButton() {
       const res = await sendTestEmail();
       setResult(
         res.ok
-          ? { ok: true, text: `Test sent to ${res.sentTo} — check your inbox.` }
+          ? res.generation === "ai"
+            ? { ok: true, text: `AI-generated test sent to ${res.sentTo} — check your inbox.` }
+            : {
+                ok: false,
+                text: `Mailbox delivery worked, but AI generation failed and the email used a static sample. Try again before relying on venue drafts.`,
+              }
           : { ok: false, text: res.error },
       );
     });

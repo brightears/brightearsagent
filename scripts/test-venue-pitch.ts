@@ -87,6 +87,7 @@ async function main() {
     mode: jurisdiction.mode,
     businessName: business.name,
     city: business.serviceCities[0] ?? "",
+    postalAddress: business.postalAddress ?? "",
     venueName: venue.name,
   });
 

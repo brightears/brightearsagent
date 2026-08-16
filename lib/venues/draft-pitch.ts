@@ -3,6 +3,7 @@ import { isAgentPaused } from "@/lib/billing/metering";
 import { profileStrength } from "@/lib/profile/strength";
 import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
 import { capError, capFor, startOfTenantDay } from "@/lib/outreach/caps";
+import { outreachSuppressionScope } from "@/lib/outreach/suppression";
 import {
   epkUrlFor,
   formatTravelDateRange,
@@ -60,12 +61,7 @@ export async function draftPitchForVenue(business: Business, venueId: string): P
   // Master do-not-contact list (ADR-004 hard cap) — checked before generating,
   // not just before sending: never even draft toward a suppressed contact.
   if (venue.bookingEmail) {
-    const suppressed = await db.outreachSuppression.findUnique({
-      where: {
-        businessId_email: { businessId: business.id, email: venue.bookingEmail.toLowerCase() },
-      },
-      select: { id: true },
-    });
+    const suppressed = await outreachSuppressionScope(business.id, venue.bookingEmail);
     if (suppressed) {
       return { ok: false, error: "This contact is on your do-not-contact list", reason: "state" };
     }

@@ -17,7 +17,12 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-import { PARSE_CASES, type ParseCase } from "../evals/parse-cases";
+import { PARSE_CASES } from "../evals/parse-cases";
+import {
+  assessParseQuality,
+  type ParseEvalField,
+  type ParseEvalTally,
+} from "../evals/parse-quality";
 
 const DEFAULT_MODELS = [
   "deepseek/deepseek-v4-flash", // current default
@@ -26,10 +31,10 @@ const DEFAULT_MODELS = [
 const MODELS = (process.argv[2] ?? process.env.MODELS ?? DEFAULT_MODELS.join(",")).split(",").map((m) => m.trim()).filter(Boolean);
 const RUNS = Number(process.env.RUNS ?? 1);
 
-type Field = "isInquiry" | "eventType" | "eventDate" | "clientName" | "guestCount" | "venue";
+type Field = ParseEvalField;
 const FIELDS: Field[] = ["isInquiry", "eventType", "eventDate", "clientName", "guestCount", "venue"];
 
-interface Tally { hit: number; total: number; hallucinated: number }
+type Tally = ParseEvalTally;
 const blank = (): Tally => ({ hit: 0, total: 0, hallucinated: 0 });
 
 function scoreField(field: Field, expected: unknown, parsed: Record<string, unknown> | null): "skip" | "hit" | "miss" | "hallucinated" {
@@ -119,12 +124,25 @@ async function main() {
 
   const best = [...overall].sort((a, b) => b.pct - a.pct)[0];
   console.log(`\nbest: ${best.m} at ${best.pct}%`);
+  const assessments = MODELS.map((model) => ({
+    model,
+    assessment: assessParseQuality(perModel.get(model)!),
+  }));
+  console.log("\nquality gate:");
+  for (const { model, assessment } of assessments) {
+    console.log(
+      `  ${assessment.pass ? "PASS" : "FAIL"} ${model}${assessment.reasons.length ? ` — ${assessment.reasons.join("; ")}` : ""}`,
+    );
+  }
   if (caseNotes.length) {
     console.log(`\nmisses (${caseNotes.length}):`);
     for (const n of caseNotes.slice(0, 40)) console.log(`  ${n}`);
     if (caseNotes.length > 40) console.log(`  … ${caseNotes.length - 40} more`);
   }
-  process.exit(0);
+  // A bake-off succeeds when at least one candidate clears every floor. A
+  // scoreboard alone is not a release gate: an 80% "best" model still loses
+  // real leads, so failed candidates must produce a non-zero command status.
+  process.exit(assessments.some(({ assessment }) => assessment.pass) ? 0 : 1);
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

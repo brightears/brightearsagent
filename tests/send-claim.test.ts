@@ -7,9 +7,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // the draft stays retryable.
 
 const mockDb = vi.hoisted(() => ({
+  business: { findUnique: vi.fn(), update: vi.fn() },
   draft: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+  gig: { findMany: vi.fn() },
   message: { create: vi.fn() },
   lead: { update: vi.fn() },
+  globalOutreachSuppression: { findUnique: vi.fn() },
+  outreachSuppression: { findUnique: vi.fn() },
   sequenceTemplate: { findFirst: vi.fn() },
   sequenceRun: { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
@@ -26,9 +30,12 @@ const business = {
   slug: "sapphire-sounds",
   ownerEmail: "owner@example.com",
   replyToEmail: null,
+  currency: "USD",
   autoAttachProfile: false,
   autoAttachQuote: false,
+  voiceSamples: "Thanks for reaching out.",
   packages: [],
+  performers: [],
 };
 
 const pendingDraft = {
@@ -44,9 +51,22 @@ const pendingDraft = {
     id: "l1",
     businessId: "biz1",
     status: "DRAFTED",
+    source: "PLAIN_EMAIL",
     clientEmail: "jess@example.com",
+    clientName: "Jess",
+    eventDate: new Date("2026-09-14T12:00:00.000Z"),
+    eventType: "wedding",
+    rawSubject: "Wedding inquiry",
+    rawBody: "Are you free on September 14?",
     optedOut: false,
     firstReplyAt: null,
+    messages: [
+      {
+        direction: "INBOUND",
+        body: "Are you free on September 14?",
+        autoReply: false,
+      },
+    ],
     business,
   },
 };
@@ -54,10 +74,15 @@ const pendingDraft = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockDb.draft.findFirst.mockResolvedValue(pendingDraft);
+  mockDb.gig.findMany.mockResolvedValue([]);
   mockDb.draft.update.mockResolvedValue({});
+  mockDb.business.findUnique.mockResolvedValue({ voiceSamples: business.voiceSamples });
+  mockDb.business.update.mockResolvedValue({});
   mockDb.draft.updateMany.mockResolvedValue({ count: 1 });
   mockDb.message.create.mockResolvedValue({});
   mockDb.lead.update.mockResolvedValue({});
+  mockDb.globalOutreachSuppression.findUnique.mockResolvedValue(null);
+  mockDb.outreachSuppression.findUnique.mockResolvedValue(null);
   mockDb.sequenceTemplate.findFirst.mockResolvedValue(null);
   mockDb.sequenceRun.findUnique.mockResolvedValue(null);
   mockDb.sequenceRun.update.mockResolvedValue({});
@@ -77,6 +102,88 @@ describe("sendDraftReply atomic claim", () => {
     const sendOrder = mockSendEmail.mock.invocationCallOrder[0];
     expect(claimOrder).toBeLessThan(sendOrder);
     expect(mockSendEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("expires without claiming when another tenant recorded a recipient stop", async () => {
+    mockDb.globalOutreachSuppression.findUnique.mockResolvedValue({ id: "global-1" });
+
+    const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "this lead has opted out or is closed — nothing was sent",
+    });
+    expect(mockDb.globalOutreachSuppression.findUnique).toHaveBeenCalledWith({
+      where: { email: "jess@example.com" },
+      select: { id: true },
+    });
+    expect(mockDb.outreachSuppression.findUnique).not.toHaveBeenCalled();
+    expect(mockDb.draft.update).toHaveBeenCalledWith({
+      where: { id: "d1" },
+      data: {
+        status: "EXPIRED",
+        decidedAt: expect.any(Date),
+        scheduledSendAt: null,
+      },
+    });
+    expect(mockDb.draft.updateMany).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
+  });
+
+  it("revalidates, sends, and persists the owner's edited subject", async () => {
+    const result = await sendDraftReply({
+      draftId: "d1",
+      businessId: "biz1",
+      editedSubject: "Your September wedding",
+      editedBody: "Hi Jess — September 14 is open for your wedding.",
+      saveVoiceExample: true,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: "Your September wedding",
+        textBody: "Hi Jess — September 14 is open for your wedding.",
+      }),
+    );
+    expect(mockDb.message.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ subject: "Your September wedding" }),
+      }),
+    );
+    expect(mockDb.draft.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "EDITED",
+          editedSubject: "Your September wedding",
+          editedBody: "Hi Jess — September 14 is open for your wedding.",
+        }),
+      }),
+    );
+    expect(mockDb.draft.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { voiceSampleSavedAt: expect.any(Date) },
+      }),
+    );
+    expect(mockDb.business.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { voiceSamples: expect.stringContaining("Saved reply example") },
+      }),
+    );
+  });
+
+  it("rejects an unsafe edited subject before claiming or sending", async () => {
+    const result = await sendDraftReply({
+      draftId: "d1",
+      businessId: "biz1",
+      editedSubject: "Hello\nBcc: other@example.com",
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: "this reply no longer matches the inquiry or current calendar — review it before sending",
+    });
+    expect(mockDb.draft.updateMany).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
   it("the racing loser (claim count 0) never sends", async () => {
@@ -99,6 +206,25 @@ describe("sendDraftReply atomic claim", () => {
     // Nothing was recorded as sent.
     expect(mockDb.message.create).not.toHaveBeenCalled();
     expect(mockDb.lead.update).not.toHaveBeenCalled();
+  });
+
+  it("blocks before claiming when the current calendar now contradicts the draft", async () => {
+    mockDb.gig.findMany.mockResolvedValue([
+      {
+        date: new Date("2026-09-14T12:00:00.000Z"),
+        title: "New booking",
+        performerId: null,
+      },
+    ]);
+
+    const result = await sendDraftReply({ draftId: "d1", businessId: "biz1" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "this reply no longer matches the inquiry or current calendar — review it before sending",
+    });
+    expect(mockDb.draft.updateMany).not.toHaveBeenCalled();
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
   it("a booking confirmation sends on a BOOKED lead, keeps BOOKED, starts no sequence (11.2)", async () => {

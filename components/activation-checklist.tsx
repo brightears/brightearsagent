@@ -23,6 +23,7 @@ export async function ActivationChecklist({
     genres: string[];
     headline: string | null;
     feeFloor: number | null;
+    postalAddress?: string | null;
     voiceSamples?: string | null;
     voiceGreeting?: string | null;
     voiceSignoff?: string | null;
@@ -48,7 +49,7 @@ export async function ActivationChecklist({
   }[] = [
     {
       label: "Tell us who you are & how you sound",
-      detail: "Your sound, one-liner, rate floor and voice — what every reply and pitch is built from.",
+      detail: "Your sound, one-liner, rate floor, mailing identity and voice — what every reply and pitch is built from.",
       done: !setup.incomplete,
       href: "/onboarding",
       cta: "Resume setup",

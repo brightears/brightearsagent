@@ -32,6 +32,10 @@ describe("extractGuestCount", () => {
     ).toBe(110);
   });
 
+  it("does not bind an ISO date's day across a newline to a Guests label", () => {
+    expect(extractGuestCount("Event date: 2027-09-12\nGuests: 120")).toBe(120);
+  });
+
   it("rejects counts outside anything this product would book", () => {
     expect(extractGuestCount("a party of 2")).toBeUndefined();
     expect(extractGuestCount("40000 people at the stadium")).toBeUndefined();

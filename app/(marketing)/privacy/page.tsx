@@ -315,6 +315,10 @@ export default function PrivacyPage() {
             PostgreSQL database.
           </li>
           <li>
+            <span className="font-semibold text-ink-stage">Cloudflare R2</span> — storage and public
+            delivery of profile photos uploaded by performers.
+          </li>
+          <li>
             <span className="font-semibold text-ink-stage">Clerk</span> — authentication and session
             management.
           </li>
@@ -380,8 +384,8 @@ export default function PrivacyPage() {
             <span className="font-semibold text-ink-stage">Scraped venue/contact data:</span> retained
             only while a contact remains a live prospect; reviewed and purged when stale (target: removed
             within 12 months of last activity), and deleted promptly on a valid objection or opt-out.
-            Opt-out/suppression records are kept (minimal: an email and a reason) for as long as needed to
-            keep honouring the opt-out.
+            Opt-out/suppression records are kept (minimal: an email, a reason and, where needed, the
+            originating customer ID) for as long as needed to keep honouring the opt-out.
           </li>
         </ul>
       </LegalSection>

@@ -15,8 +15,8 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
  * Chosen beta testers get their first month comped — WITHOUT being asked to
  * type a code.
  *
- * Typing was the original design and it does not work: FOUNDER1 is a valid,
- * active, unrestricted 100%-off-once code, and Stripe's own hosted "Add
+ * Typing was the original design and it does not work: the configured code is
+ * a valid, active 100%-off-once promotion, and Stripe's own hosted "Add
  * promotion code" box still answers "Something went wrong, please try again".
  * Attaching the exact same promotion code server-side takes the total to 0.00
  * every time (verified live, with adaptive pricing both on and off, via
@@ -32,32 +32,41 @@ import type { PlanTier } from "@/app/generated/prisma/enums";
  * Controlled by env so the founder can change who is comped, or retire the
  * offer, without a deploy:
  *   BETA_COMP_EMAILS=a@x.com,b@y.com   owner emails to comp (exact match)
- *   BETA_PROMO_CODE=FOUNDER1           the code whose coupon is applied
+ *   BETA_PROMO_CODE=<private code>     the code whose coupon is applied
  * Unset either and nothing is comped. Deliberately an allowlist and not a URL
  * parameter: a link would get forwarded and the offer would escape.
  */
 async function compDiscountFor(ownerEmail: string) {
-  const code = process.env.BETA_PROMO_CODE?.trim();
   const allowed = (process.env.BETA_COMP_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  if (!code || !allowed.includes(ownerEmail.trim().toLowerCase())) return null;
+  if (!allowed.includes(ownerEmail.trim().toLowerCase())) return null;
+
+  // An address on the invite allowlist was explicitly promised a $0 first
+  // month. Never silently turn that promise into a full-price checkout because
+  // an environment variable or Stripe promotion went missing.
+  const code = process.env.BETA_PROMO_CODE?.trim();
+  if (!code) {
+    throw new Error(
+      "Your beta invite could not be applied. You have not been charged. Please contact support and we will fix it.",
+    );
+  }
 
   const found = await stripe().promotionCodes.list({ code, active: true, limit: 1 });
   const promo = found.data[0];
   if (!promo) {
-    // Never fail the purchase over a comp: log it and let them buy normally.
-    console.warn(
+    console.error(
       JSON.stringify({
-        level: "warn",
+        level: "error",
         kind: "beta_comp_code_missing",
-        code,
-        message: "BETA_PROMO_CODE is set but no active promotion code matches it — checkout continues at full price.",
+        message: "An invited beta checkout was stopped because no active promotion code matched BETA_PROMO_CODE.",
         ts: new Date().toISOString(),
       }),
     );
-    return null;
+    throw new Error(
+      "Your beta invite could not be applied. You have not been charged. Please contact support and we will fix it.",
+    );
   }
   return promo.id;
 }
@@ -168,15 +177,18 @@ export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">): Promise<v
     line_items: [{ price: price.id, quantity: 1 }],
     client_reference_id: business.id,
     ...(customerId ? { customer: customerId } : { customer_email: business.ownerEmail }),
-    // Stripe rejects `discounts` and `allow_promotion_codes` together, so a
-    // comped tester gets the discount already applied and no redemption box —
-    // nothing to type, nothing to mistype, nothing to fail.
-    ...(compPromoId
-      ? { discounts: [{ promotion_code: compPromoId }] }
-      : { allow_promotion_codes: true }),
+    // The selected beta allowlist is the only supported discount path. Do not
+    // expose Stripe's generic promotion-code box: old or leaked catalog codes
+    // must never bypass the application-side invite boundary.
+    ...(compPromoId ? { discounts: [{ promotion_code: compPromoId }] } : {}),
     success_url: `${appUrl()}/dashboard/settings?billing=success`,
     cancel_url: `${appUrl()}/dashboard/settings?billing=cancelled`,
-    subscription_data: { metadata: { businessId: business.id } },
+    // Duplicate the cohort bit on Checkout and Subscription so either webhook
+    // event shape can durably anchor the selected-testers-only quality cohort.
+    metadata: { businessId: business.id, betaCohort: compPromoId ? "true" : "false" },
+    subscription_data: {
+      metadata: { businessId: business.id, betaCohort: compPromoId ? "true" : "false" },
+    },
   });
 
   redirect(session.url!);

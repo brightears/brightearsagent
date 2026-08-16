@@ -9,6 +9,40 @@ import { db } from "@/lib/db";
  */
 export type LlmPurpose = "parse" | "triage" | "draft" | "followup" | "venuePitch";
 
+/**
+ * Hard wall-clock budgets for the complete provider call, including any AI SDK
+ * retry. Parse and triage run on the inbound webhook (in parallel) and must
+ * return quickly enough for Postmark to retry a transient failure. Customer-
+ * facing prose has larger prompts/outputs and runs outside the synchronous
+ * webhook response, so it gets a deliberately more generous ceiling.
+ */
+const LLM_TIMEOUT_MS: Record<LlmPurpose, number> = {
+  triage: 20_000,
+  parse: 30_000,
+  draft: 90_000,
+  followup: 90_000,
+  venuePitch: 90_000,
+};
+
+export function timeoutMsFor(purpose: LlmPurpose): number {
+  return LLM_TIMEOUT_MS[purpose];
+}
+
+function callDeadline(purpose: LlmPurpose, requestedMs?: number): {
+  abortSignal: AbortSignal;
+  timeout: { totalMs: number };
+} {
+  const purposeMs = timeoutMsFor(purpose);
+  const totalMs = Math.max(1, Math.min(purposeMs, requestedMs ?? purposeMs));
+  return {
+    // Explicitly pass the signal all the way to the provider transport. The AI
+    // SDK timeout also bounds its own retries; using both prevents either layer
+    // from extending a hung call beyond this purpose's total budget.
+    abortSignal: AbortSignal.timeout(totalMs),
+    timeout: { totalMs },
+  };
+}
+
 // Read lazily so scripts (dotenv after import hoisting; eval model overrides)
 // and Next.js runtime env all behave identically.
 export function modelFor(purpose: LlmPurpose): string {
@@ -62,6 +96,10 @@ export async function llmObject<T>(opts: {
   system: string;
   prompt: string;
   schema: z.ZodType<T>;
+  /** Optional stricter per-call wall clock; never extends the purpose ceiling. */
+  timeoutMs?: number;
+  /** Explicit transport retry budget for operations with an outer deadline. */
+  maxRetries?: number;
 }): Promise<T> {
   const model = modelFor(opts.purpose);
   const result = await generateObject({
@@ -69,6 +107,8 @@ export async function llmObject<T>(opts: {
     system: opts.system,
     prompt: opts.prompt,
     schema: opts.schema,
+    ...callDeadline(opts.purpose, opts.timeoutMs),
+    ...(opts.maxRetries === undefined ? {} : { maxRetries: opts.maxRetries }),
     // Extraction and classification are lookups, not writing: the answer is
     // already in the text and there is nothing to be creative about. Left at
     // the provider default (~1.0) the same message parsed three different ways
@@ -94,6 +134,7 @@ export async function llmText(opts: {
     model: openrouter(model),
     system: opts.system,
     prompt: opts.prompt,
+    ...callDeadline(opts.purpose),
   });
   await logUsage(opts.businessId, opts.purpose, model, result.usage);
   return result.text;

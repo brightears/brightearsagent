@@ -15,7 +15,7 @@
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
-import { JOURNEYS, type Journey, type JourneyStep } from "../evals/journeys";
+import { JOURNEYS, type Journey } from "../evals/journeys";
 
 const KEEP = !!process.env.KEEP;
 const filter = process.argv[2];

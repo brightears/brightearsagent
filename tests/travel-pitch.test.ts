@@ -3,6 +3,7 @@ import {
   buildVenuePitchPrompt,
   buildVenuePitchSystem,
   formatTravelDateRange,
+  validateVenuePitch,
   type VenuePitchRequest,
 } from "@/lib/agent/venue-pitch";
 import { jurisdictionFor } from "@/lib/outreach/jurisdiction";
@@ -49,23 +50,30 @@ const travelReq: VenuePitchRequest = {
 
 describe("formatTravelDateRange (UTC date-only)", () => {
   const day = (iso: string) => new Date(`${iso}T00:00:00Z`);
+  const reference = day("2026-01-01");
 
   it("formats a same-month range as 'Month start-end'", () => {
-    expect(formatTravelDateRange(day("2026-08-04"), day("2026-08-11"))).toBe("August 4-11");
+    expect(formatTravelDateRange(day("2026-08-04"), day("2026-08-11"), reference)).toBe("August 4-11");
   });
 
   it("spans months within a year", () => {
-    expect(formatTravelDateRange(day("2026-08-28"), day("2026-09-02"))).toBe("August 28-September 2");
+    expect(formatTravelDateRange(day("2026-08-28"), day("2026-09-02"), reference)).toBe("August 28-September 2");
   });
 
   it("includes years when the range straddles a year boundary", () => {
-    expect(formatTravelDateRange(day("2026-12-30"), day("2027-01-02"))).toBe(
+    expect(formatTravelDateRange(day("2026-12-30"), day("2027-01-02"), reference)).toBe(
       "December 30, 2026-January 2, 2027",
     );
   });
 
+  it("includes a shared year when the window is not in the reference year", () => {
+    expect(formatTravelDateRange(day("2027-08-04"), day("2027-08-11"), reference)).toBe(
+      "August 4-11, 2027",
+    );
+  });
+
   it("collapses a single-day window", () => {
-    expect(formatTravelDateRange(day("2026-08-04"), day("2026-08-04"))).toBe("August 4");
+    expect(formatTravelDateRange(day("2026-08-04"), day("2026-08-04"), reference)).toBe("August 4");
   });
 });
 
@@ -111,5 +119,18 @@ describe("date-bounded travel pitch prompt", () => {
     // PT isn't in the STANDARD allow-list → fail-closed CONSENT (copy-and-send),
     // which is exactly the destination-jurisdiction behavior Travel Mode needs.
     expect(jurisdictionFor("PT").mode).toBe("CONSENT");
+  });
+
+  it("runtime validation rejects omitted dates and false local claims", () => {
+    const checked = validateVenuePitch(travelReq, {
+      subject: "Guest DJ for Park Bar",
+      body: `I am based in Lisbon and available anytime. I play open-format rooftop sets that start deep and build with the room, backed by fifteen years behind the decks. Here's a one-page look: ${EPK}\n\nWould a guest slot suit your calendar?\n\nMaya — Sapphire Sounds`,
+    });
+    expect(checked.issues).toEqual(
+      expect.arrayContaining([
+        "travel pitch omits the exact travel window",
+        "travel pitch falsely implies local/open-ended availability",
+      ]),
+    );
   });
 });

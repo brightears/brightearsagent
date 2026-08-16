@@ -1,8 +1,8 @@
 "use client";
 
 // Draft review panel — the heart of the approve-from-phone loop.
-// Edit the body freely; "Approve & send" passes edits through to approveDraft
-// (owner edits feed voice tuning). Booked/dead controls live in their own row.
+// Edit the subject/body freely; "Approve & send" persists the final copy.
+// An edit changes future voice guidance only through the explicit opt-in.
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +14,10 @@ import {
 } from "@/app/actions/drafts";
 import { buttonStyles } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
+import {
+  DRAFT_REJECTION_REASONS,
+  type DraftRejectionReason,
+} from "@/lib/feedback/owner-controls";
 import { parseFeeToMinor } from "@/lib/quote/fee";
 
 // "Mark booked" is the celebration: ghost pill at rest, magenta→orange
@@ -30,6 +34,40 @@ type ActionResult = {
 };
 
 type Note = { kind: "success" | "error"; text: string };
+
+function RejectDraftMenu({
+  busy,
+  onReject,
+}: {
+  busy: boolean;
+  onReject: (reason: DraftRejectionReason) => void;
+}) {
+  return (
+    <details>
+      <summary
+        className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+      >
+        Reject
+      </summary>
+      <div className="mt-2 w-60 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
+        <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
+          What needs fixing?
+        </p>
+        {(Object.keys(DRAFT_REJECTION_REASONS) as DraftRejectionReason[]).map((reason) => (
+          <button
+            key={reason}
+            type="button"
+            disabled={busy}
+            className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream disabled:opacity-50"
+            onClick={() => onReject(reason)}
+          >
+            {DRAFT_REJECTION_REASONS[reason]}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
 
 export function DraftReview({
   draftId,
@@ -69,7 +107,9 @@ export function DraftReview({
   suggestedFeeMinor?: number | null;
 }) {
   const router = useRouter();
+  const [editedSubject, setEditedSubject] = useState(subject);
   const [editedBody, setEditedBody] = useState(body);
+  const [saveVoiceExample, setSaveVoiceExample] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [note, setNote] = useState<Note | null>(null);
   const [done, setDone] = useState(false);
@@ -84,6 +124,18 @@ export function DraftReview({
   );
 
   const busy = isPending || done;
+  const subjectChanged = editedSubject.trim() !== subject.trim();
+  const bodyChanged = editedBody.trim() !== body.trim();
+  const hasEdits = subjectChanged || bodyChanged;
+
+  const edits = () =>
+    hasEdits
+      ? {
+          subject: subjectChanged ? editedSubject : undefined,
+          body: bodyChanged ? editedBody : undefined,
+          saveVoiceExample,
+        }
+      : undefined;
 
   // Show the outcome for a beat, then pull fresh server data (thread + status).
   const succeed = (text: string) => {
@@ -107,10 +159,9 @@ export function DraftReview({
     });
 
   const onApprove = () => {
-    const changed = editedBody.trim() !== body.trim();
     run(
       () =>
-        approveDraft(draftId, changed ? editedBody : undefined, {
+        approveDraft(draftId, edits(), {
           pressKit: attachPressKit,
           quote: attachQuote,
         }),
@@ -139,16 +190,15 @@ export function DraftReview({
   };
 
   const onSentOnPlatform = () => {
-    const changed = editedBody.trim() !== body.trim();
     run(
-      () => markSentOnPlatform(draftId, changed ? editedBody : undefined),
+      () => markSentOnPlatform(draftId, edits()),
       () => "Recorded — the lead is now in Replied.",
     );
   };
 
-  const onReject = () =>
+  const onReject = (reason: DraftRejectionReason) =>
     run(
-      () => rejectDraft(draftId),
+      () => rejectDraft(draftId, reason),
       () => "Draft rejected — it won't be sent.",
     );
 
@@ -189,10 +239,20 @@ export function DraftReview({
 
       <div className="space-y-4 px-6 pb-6 pt-1">
         <div>
-          <p className="mb-1 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55">
+          <label
+            htmlFor="draft-subject"
+            className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
+          >
             Subject
-          </p>
-          <p className="font-semibold text-ink-stage">{subject}</p>
+          </label>
+          <input
+            id="draft-subject"
+            value={editedSubject}
+            onChange={(event) => setEditedSubject(event.target.value)}
+            disabled={busy}
+            maxLength={160}
+            className="w-full rounded-xl border border-ink-stage/15 bg-white px-3 py-2 text-base font-semibold text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
+          />
         </div>
 
         <div>
@@ -210,9 +270,28 @@ export function DraftReview({
             onChange={(e) => setEditedBody(e.target.value)}
             disabled={busy}
             rows={10}
+            maxLength={10000}
             className="w-full rounded-xl border border-ink-stage/15 bg-white p-3 text-base sm:text-sm leading-relaxed text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
           />
         </div>
+
+        {hasEdits && (
+          <div className="rounded-xl bg-white/60 px-3 py-2.5">
+            <label className="flex items-start gap-2 text-sm font-semibold text-ink-stage/80">
+              <input
+                type="checkbox"
+                checked={saveVoiceExample}
+                onChange={(event) => setSaveVoiceExample(event.target.checked)}
+                disabled={busy}
+                className="mt-0.5 size-4 accent-brand-cyan"
+              />
+              Save this edit as a voice example
+            </label>
+            <p className="ml-6 mt-1 text-xs text-ink-stage/50">
+              Optional. Editing this reply alone won&apos;t change future writing.
+            </p>
+          </div>
+        )}
 
         {note && (
           <p
@@ -296,14 +375,7 @@ export function DraftReview({
             >
               {isPending ? "Working…" : "I sent it there"}
             </button>
-            <button
-              type="button"
-              onClick={onReject}
-              disabled={busy}
-              className="text-sm font-semibold text-ink-stage/45 transition-colors hover:text-ink-stage/70"
-            >
-              Reject
-            </button>
+            <RejectDraftMenu busy={busy} onReject={onReject} />
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
@@ -317,14 +389,7 @@ export function DraftReview({
               {isPending ? "Working…" : "Approve & send"}
             </button>
             {/* Ghost pill — ink outline on the cream panel (cream outline would vanish here). */}
-            <button
-              type="button"
-              onClick={onReject}
-              disabled={busy}
-              className={buttonStyles.secondaryOnLight}
-            >
-              Reject
-            </button>
+            <RejectDraftMenu busy={busy} onReject={onReject} />
           </div>
         )}
 

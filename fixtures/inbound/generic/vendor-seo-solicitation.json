@@ -1,0 +1,9 @@
+{
+  "_researchNotes": "Adversarial non-lead: a vendor uses a booking-like CTA, but the product being sold is SEO services rather than entertainment.",
+  "from": "sales@rankrocket.example",
+  "fromName": "Rank Rocket",
+  "to": "leads@demo-dj-co.in.brightears.io",
+  "subject": "SEO services for your DJ company",
+  "textBody": "We help DJs rank first in local search and generate more bookings. Our SEO services include a technical audit and monthly content. Would you have 15 minutes for a demo next week?",
+  "providerMessageId": "generic-fixture-005"
+}

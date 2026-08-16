@@ -13,7 +13,7 @@
 //                     sitemap) where a wrong value is recoverable and a
 //                     crash would take the marketing site down with it.
 
-const STAGING_FALLBACK = "https://brightears-app.onrender.com";
+const CANONICAL_FALLBACK = "https://brightears.io";
 
 function fromEnv(): string | null {
   const url = process.env.APP_URL;
@@ -39,8 +39,8 @@ export function appUrlLenient(): string {
   if (process.env.NODE_ENV === "production" && !warned) {
     warned = true;
     console.error(
-      JSON.stringify({ level: "error", msg: "APP_URL unset — metadata falling back", fallback: STAGING_FALLBACK }),
+      JSON.stringify({ level: "error", msg: "APP_URL unset — metadata falling back", fallback: CANONICAL_FALLBACK }),
     );
   }
-  return process.env.NODE_ENV === "production" ? STAGING_FALLBACK : "http://localhost:3000";
+  return process.env.NODE_ENV === "production" ? CANONICAL_FALLBACK : "http://localhost:3000";
 }

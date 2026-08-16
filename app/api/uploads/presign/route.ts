@@ -1,5 +1,5 @@
 import { getCurrentBusiness } from "@/lib/tenant";
-import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   uploadsEnabled,
   presignUpload,
