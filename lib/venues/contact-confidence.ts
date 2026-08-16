@@ -9,11 +9,11 @@ import type { ContactEnrichmentState } from "@/app/generated/prisma/enums";
  * card. (A pitch to reservations@ isn't dangerous, it's wasted — and wasted
  * sends burn the artist's own Gmail reputation.)
  *
- * HIGH = a booking-specific local part (events@/bookings@/privatehire@ — the
- * top emailRank tier), a NAMED contact (a person published next to the
- * address), or an enrichment result whose exact venue-identity proof was
- * persisted as FOUND_DIRECT. LOW = generic (info@/hello@/contact@) or unknown
- * locals without one of those proofs.
+ * HIGH = an enrichment result whose strict first-party proof was persisted as
+ * FOUND_DIRECT, or (only for legacy/manual rows with no enrichment state) a
+ * named/booking-specific contact. Any other persisted state is authoritative
+ * LOW: a stale snippet name or role words from a publisher must not bypass the
+ * autonomy gate.
  */
 export type ContactConfidence = "high" | "low";
 
@@ -24,6 +24,7 @@ export function contactConfidence(
 ): ContactConfidence | null {
   if (!email) return null;
   if (contactState === "FOUND_DIRECT") return "high";
+  if (contactState != null) return "low";
   if (contactName && contactName.trim().length > 1) return "high";
   return emailRank(email) >= 3 ? "high" : "low";
 }
