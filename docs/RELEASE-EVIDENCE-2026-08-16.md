@@ -1,8 +1,9 @@
 # Release evidence — 2026-08-16
 
 This is a sanitized evidence snapshot for the currently deployed Bright Ears
-release. It records what was verified and keeps local follow-up work separate
-from production. It is **not** approval to accept a first paying customer and
+release. It records what was verified and distinguishes current production
+from inherited historical evidence. It is **not** approval to accept a first
+paying customer and
 does not replace the controlled beta, founder or legal gates in `ROADMAP.md` and
 `docs/DEPLOYMENT.md`.
 
@@ -10,18 +11,17 @@ does not replace the controlled beta, founder or legal gates in `ROADMAP.md` and
 
 | Evidence | Verified result |
 |---|---|
-| Production revision | GitHub `main` and Render were both at `9ebc937`. |
-| GitHub Actions | Main workflow run **#121** was green. Its disposable Postgres 16 service applied all **39** migrations before TypeScript, ESLint, Vitest and the production build. |
-| Deployed test count | Run #121 passed **963/963 tests across 95 files**. This is the test count attached to `9ebc937` and the deployed release. |
-| Local follow-up | The current local contact/discovery/metrics candidate is **not deployed**. Its final local suite passed **989/989 tests across 95 files**, but neither the patch nor that count is production evidence. |
+| Production revision | PR #5 was squash-merged; GitHub `main` and Render were both at `246b411ea35ab9086fe0e548e82fa031fe4d6f1b`. |
+| GitHub Actions | Main workflow **#123** (run `31953952713`, job `95181584951`) succeeded in **2m01s**. Its disposable Postgres 16 service applied all **39** migrations before TypeScript, ESLint, Vitest and the production build. |
+| Deployed test count | Run #123 passed **989/989 tests across 95 files**. This count is attached to `246b411` and the deployed release. |
+| Render | Deployment completed in **2m41s** and reported **Live** at the full revision above. |
 | Production dependency audit | `npm audit --omit=dev` reported **0 production vulnerabilities**. |
 
 ## Production runtime and recovery
 
-- Render served the deployed revision and the live readiness endpoint returned
-  HTTP **200**. Its sanitized result showed zero configuration issues, a
-  reachable database, and healthy completion heartbeats for all four scheduled
-  jobs.
+- A production-shell request to the live readiness endpoint returned HTTP
+  **200** with `ok`, `db`, `config`, `clerkConfigured` and `cronsHealthy` all
+  true. All four cron states were fresh.
 - Production and the repository both had **39 applied migrations**. The fresh
   Postgres 16 CI run independently exercised that complete migration chain.
 - Dashboard read-back confirmed that all four cron wrappers use the masked
@@ -75,11 +75,12 @@ RUNS=3 npm run eval:venue-pitches
 | Venue pitches | **21/21** passed with zero runtime-safety or quality failures. |
 
 These results demonstrate the live model/prompt release floor collected on
-`fd8f292`, a direct ancestor of current production `9ebc937`. The intervening
-release changed deterministic contact discovery and its tests only, not the
-model or prompt paths; the provider suites were not rerun after that merge, so
-this is inherited evidence rather than a fresh `9ebc937` live eval. It does not
-demonstrate artist satisfaction, venue conversion or beta retention.
+`fd8f292`, a direct ancestor of current production `246b411`. Changes since the
+evaluated revision were limited to deterministic contact discovery, confidence,
+reporting, documentation and their tests; model and prompt paths did not
+change. The provider suites were not rerun after `fd8f292`, so this is inherited
+evidence rather than a fresh `246b411` live eval. It does not demonstrate artist
+satisfaction, venue conversion or beta retention.
 
 ## Public-site verification
 
@@ -92,30 +93,35 @@ demonstrate artist satisfaction, venue conversion or beta retention.
   the verification run observed no protected-route prefetch request or related
   Clerk cross-origin console error.
 - Canonical and `og:url` values agree on the homepage and pricing page.
+- Post-deploy smoke checks for `/`, `/pricing`, `/compare` and `/story` were
+  clean, and protected routes produced the expected Clerk redirects.
 
 ## Contact discovery evidence and remaining quality gate
 
-The cumulative bounded live contact checks completed **25 attempts and 25
-search queries** and found **7 legitimate published contacts**. Three are
-persisted as direct/actionable. The deployed read-only classifier canary also
-classifies two previously generic contacts as venue-bound direct contacts, but
-they remain candidate upgrades until the normal persistence path records
-`FOUND_DIRECT`; they are not blended into the persisted count.
+The deployed read-only `quality:hunt` run for `norbert` covered one tenant over
+the rolling 30-day window. Of **53** attempted venues, **10 were published
+(19%)**, including **4 persisted actionable (8%)** and **6 generic**. Latest
+attempt outcomes were 4 direct, 6 generic and 43 not found yet, with zero
+exhausted, error, in-progress or suppressed outcomes. Attempt coverage remains
+unavailable because no historical eligible-at-start denominator was stored.
 
-The local scorecard follow-up measures this funnel over distinct tenant venues
-with `contactLastAttemptAt` inside the reporting window, rather than dividing by
-all recently created venues. It separates current stored-contact inventory
+The scorecard measures the funnel over distinct tenant venues with
+`contactLastAttemptAt` inside the reporting window, rather than dividing by all
+recently created venues. It separates current stored-contact inventory
 (published, persisted actionable, generic and suppressed) from mutually
 exclusive latest-attempt states (direct, generic, retryable-not-found,
 exhausted-not-found, error, in-progress, suppressed and unclassified), so a
 retained email does not disappear while a retry is in progress or errors.
-Historical attempt coverage remains unavailable because no eligible-at-start
-cohort or per-attempt history was stored. The former 60% actionable-contact
+The former 60% actionable-contact
 threshold is absent from gates and operational alerts: a terminal-only
 denominator would mature successes earlier than retries and bias the reported
 rate. Published and actionable yield are descriptive fractions of all distinct
 in-window attempted venues and carry no verdict. None of these changes turns
 the contact sample into artist-conversion or beta evidence.
+
+The same production read-back found zero reviewed matches, pitches, replies or
+bookings. The 14-day human-beta gate was **LEARNING at 0/10**. These zeroes are
+an empty evidence cohort, not a negative conversion result.
 
 ## Explicitly open gates
 
@@ -130,5 +136,6 @@ the contact sample into artist-conversion or beta evidence.
 - The founder profile still has no real `postalAddress`. The field and migration
   are live, but every launching artist—including the founder—must supply their
   own real business mailing address; no value may be inferred.
-- Real-world contact yield is still a learning sample, and the two read-only
-  direct candidates still require normal persistence as described above.
+- Real-world contact yield remains descriptive, and the scorecard still has no
+  reviewed matches, pitches, replies or bookings from which to validate the
+  first-customer experience.

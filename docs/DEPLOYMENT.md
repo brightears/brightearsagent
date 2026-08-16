@@ -54,9 +54,11 @@ Render found 34 migrations, applied
 `20260730144500_postmark_delivery_state`, and brought the service live.
 
 The 2026-08-16 release then proved the current path on deployed revision
-`9ebc937`: GitHub main workflow run #121 applied all 39 migrations to fresh
-Postgres 16 and passed TypeScript, ESLint, 963/963 tests across 95 files and the
-production build. Render and GitHub `main` both read back at that revision.
+`246b411ea35ab9086fe0e548e82fa031fe4d6f1b`: PR #5 was squash-merged and GitHub
+main workflow #123 (run `31953952713`, job `95181584951`) completed in 2m01s.
+Fresh Postgres 16 applied all 39 migrations before TypeScript, ESLint, 989/989
+tests across 95 files and the production build. Render completed the deploy in
+2m41s and reported Live at that revision.
 
 The repository's required and live-read-back Render build command is
 `npm ci && npm run build`. The old
@@ -106,9 +108,10 @@ fix or explicitly investigate the recurring case first.
   invalid, the database cannot be reached, or any of the four `OpsStamp` cron
   **completion** heartbeats is stale. Its public config diagnostics expose only
   environment-variable names, issue codes and a count, never values or full
-  internal messages. On 2026-08-16 the live endpoint returned HTTP 200 with a
-  zero config-issue count, database reachability and all four cron completion
-  heartbeats healthy. The 503 contract is covered deterministically; no real
+  internal messages. On deployed `246b411`, a production-shell request returned
+  HTTP 200 with `ok`, `db`, `config`, `clerkConfigured` and `cronsHealthy` all
+  true and all four cron states fresh. The 503 contract is covered
+  deterministically; no real
   production dependency was disabled merely to force an outage probe.
 - Each cron route stamps only after an acceptable completion, so a tick that
   starts and then crashes or fails for every tenant cannot look green. On a
