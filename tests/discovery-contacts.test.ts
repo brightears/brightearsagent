@@ -190,6 +190,103 @@ describe("discoverVenueContact", () => {
     expect(deps.fetchPage).not.toHaveBeenCalled();
   });
 
+  it("marks a near-exact venue local-part from the official site as direct", async () => {
+    const hitUrl = "https://bangkokisland.com/contact/";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [{ link: hitUrl }]),
+      fetchPage: vi.fn(async (url) =>
+        url === hitUrl ? "Email us at bangkokislands@gmail.com" : null,
+      ),
+    };
+
+    expect(
+      await discoverVenueContact({ name: "Bangkok Island", city: "Bangkok" }, deps),
+    ).toEqual({
+      email: "bangkokislands@gmail.com",
+      source: "venue site /contact — venue-bound contact (gmail.com)",
+      direct: true,
+    });
+    expect(deps.serperSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses a distinctive multi-word core when a trailing venue type is absent from the address", async () => {
+    const hitUrl = "https://satosanrooftop.example/contact-location";
+    const deps: ContactDeps = {
+      serperSearch: vi.fn(async () => [{ link: hitUrl }]),
+      fetchPage: vi.fn(async (url) =>
+        url === hitUrl
+          ? "info@voidacoustics.com moxy.bkkox.satosan@moxyhotels.com"
+          : null,
+      ),
+    };
+
+    expect(
+      await discoverVenueContact({ name: "Sato San Rooftop", city: "Bangkok" }, deps),
+    ).toEqual({
+      email: "moxy.bkkox.satosan@moxyhotels.com",
+      source: "venue site /contact-location — venue-bound contact (moxyhotels.com)",
+      direct: true,
+    });
+  });
+
+  it("does not promote identity-looking emails from loosely token-matched publisher hosts", async () => {
+    const scenarios = [
+      {
+        venue: { name: "Bangkok Island", city: "Bangkok" },
+        url: "https://bangkokevents.example/article",
+        email: "bangkokislandtips@publisher.example",
+      },
+      {
+        venue: { name: "Sato San Rooftop", city: "Bangkok" },
+        url: "https://rooftopguide.example/sato-san",
+        email: "newsletter.satosan@publisher.example",
+      },
+    ];
+
+    for (const { venue: currentVenue, url, email } of scenarios) {
+      const fetchPage = vi.fn(async (fetchedUrl: string) =>
+        fetchedUrl === url ? email : null,
+      );
+      const hit = await discoverVenueContact(currentVenue, {
+        serperSearch: async () => [{ link: url }],
+        fetchPage,
+      });
+
+      expect(hit).toEqual(expect.objectContaining({ email }));
+      expect(hit).not.toHaveProperty("direct");
+      expect(fetchPage).toHaveBeenCalledWith(url);
+    }
+  });
+
+  it("does not treat a corporate acronym or generic publisher address as venue identity", async () => {
+    const scenarios = [
+      {
+        venue: { name: "Centara Grand", city: "Bangkok" },
+        url: "https://centarahotelsresorts.example/contact",
+        email: "cgcw@chr.co.th",
+      },
+      {
+        venue: { name: "Sato San Rooftop", city: "Bangkok" },
+        url: "https://satosanrooftop.example/contact-location",
+        email: "info@voidacoustics.com",
+      },
+      {
+        venue: { name: "Sato San Rooftop", city: "Bangkok" },
+        url: "https://satosanrooftop.example/contact-location",
+        email: "moxy.bkkox@moxyhotels.com",
+      },
+    ];
+
+    for (const { venue: currentVenue, url, email } of scenarios) {
+      const hit = await discoverVenueContact(currentVenue, {
+        serperSearch: async () => [{ link: url }],
+        fetchPage: async (fetchedUrl) => (fetchedUrl === url ? email : null),
+      });
+      expect(hit).toEqual(expect.objectContaining({ email }));
+      expect(hit).not.toHaveProperty("direct");
+    }
+  });
+
   it("accepts a venue-bound email on an exact parent-brand Bar.Yard page", async () => {
     const hitUrl = "https://www.kimptonmaalaibangkok.com/bangkok-restaurants/baryard-rooftop-bar/";
     const deps: ContactDeps = {
@@ -484,18 +581,19 @@ describe("runContactPass", () => {
     expect(deps.serperSearch).not.toHaveBeenCalled();
   });
 
-  it("keeps a generic contact usable and schedules a later direct-contact upgrade", async () => {
-    mockDb.venue.findMany.mockResolvedValueOnce([dbVenue("v1", "The Vault")]);
+  it("keeps an acronym-only corporate contact generic and schedules a later upgrade", async () => {
+    mockDb.venue.findMany.mockResolvedValueOnce([dbVenue("v1", "Centara Grand")]);
     const deps: ContactDeps = {
-      serperSearch: async () => [{ link: "https://thevault.example/" }],
-      fetchPage: async () => "hello@thevault.example",
+      serperSearch: async () => [{ link: "https://centarahotelsresorts.example/contact" }],
+      fetchPage: async (url) =>
+        url === "https://centarahotelsresorts.example/contact" ? "cgcw@chr.co.th" : null,
     };
 
     await runContactPass("biz1", { now: new Date("2026-08-16"), deps, limit: 1 });
 
     const saved = mockDb.venue.updateMany.mock.calls
       .map(([call]) => call)
-      .find((call) => call.data.bookingEmail === "hello@thevault.example");
+      .find((call) => call.data.bookingEmail === "cgcw@chr.co.th");
     expect(saved?.data.contactState).toBe("FOUND_GENERIC");
     expect(saved?.data.contactRetryAfter).toEqual(new Date("2026-09-15"));
     expect(saved?.data.contactExhaustedAt).toBeNull();
@@ -565,6 +663,41 @@ describe("runContactPass", () => {
     expect(saved?.data.contactState).toBe("FOUND_DIRECT");
     expect(saved?.data.contactRetryAfter).toBeNull();
     expect(saved?.data.contactSource).toContain("exact venue-bound contact");
+  });
+
+  it("upgrades an existing generic address with official-site venue-core identity proof", async () => {
+    const generic = {
+      ...dbVenue("v1", "Sato San Rooftop"),
+      bookingEmail: "hello@old-hotel.example",
+      contactSource: "venue site /contact — general contact",
+      contactAttemptCount: 1,
+      contactLastAttemptAt: new Date("2026-07-01"),
+      contactRetryAfter: new Date("2026-07-31"),
+      contactState: "FOUND_GENERIC",
+    };
+    mockDb.venue.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([generic]);
+    const hitUrl = "https://satosanrooftop.example/contact-location";
+    const deps: ContactDeps = {
+      serperSearch: async () => [{ link: hitUrl }],
+      fetchPage: async (url) =>
+        url === hitUrl ? "moxy.bkkox.satosan@moxyhotels.com" : null,
+    };
+
+    const result = await runContactPass("biz1", {
+      now: new Date("2026-08-16"),
+      deps,
+      limit: 1,
+    });
+
+    expect(result.found).toEqual([
+      expect.objectContaining({ venueId: "v1", email: "moxy.bkkox.satosan@moxyhotels.com" }),
+    ]);
+    const saved = mockDb.venue.updateMany.mock.calls
+      .map(([call]) => call)
+      .find((call) => call.data.bookingEmail === "moxy.bkkox.satosan@moxyhotels.com");
+    expect(saved?.data.contactState).toBe("FOUND_DIRECT");
+    expect(saved?.data.contactRetryAfter).toBeNull();
+    expect(saved?.data.contactSource).toContain("venue-bound contact");
   });
 
   it("does not overwrite an owner change made while the network lookup is running", async () => {
