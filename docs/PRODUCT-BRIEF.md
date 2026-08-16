@@ -58,14 +58,18 @@ Full engine in `MARKETING-PLAN.md`. Summary: agents produce the content/AEO/free
 
 - **Hunt beta quality check (before interpreting conversion):** the rolling
   30-day founder scorecard measures explicit useful matches (approved versus
-  owner-skipped), actionable/high-confidence-contact coverage, pitch approval
-  and clear discovery
-  misses. Initial decision thresholds are ≥70% useful matches from 20 reviewed,
-  ≥60% actionable/high-confidence contacts from 20 found, ≥70% pitch approval
-  from 10 decisions and
-  ≤10% clear misses from 20 reviewed. Smaller samples remain visibly
-  **LEARNING** and are not launch claims. A discovery-only benchmark may scan
-  and ingest candidates, but never drafts or sends outreach.
+  owner-skipped), pitch approval and clear discovery misses. Initial decision
+  thresholds are ≥70% useful matches from 20 reviewed, ≥70% pitch approval
+  from 10 decisions and ≤10% clear misses from 20 reviewed. Contact discovery
+  is reported separately as current stored-contact inventory and mutually
+  exclusive latest-attempt states, with descriptive published and
+  persisted-actionable yield among distinct tenant venues actually attempted
+  in the 30-day window.
+  It has no calibrated pass/fail target: historical eligible-at-start coverage
+  and per-attempt history were not stored, and the former 60% from 20 recently
+  found venues was not a valid cohort metric. Smaller decision samples remain
+  visibly **LEARNING** and are not launch claims. A discovery-only benchmark may
+  scan and ingest candidates, but never drafts or sends outreach.
 - **Hunt 14-day conversation gate:** only selected comp artists stamped with
   `betaStartedAt` enter this cohort. Once at least 10 artists have completed 14
   days, require ≥30% to have a real venue reply after a primary pitch sent

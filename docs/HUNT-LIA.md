@@ -129,9 +129,10 @@ The balance does **not** pass for unrestricted production use today:
 2. The 2026-08-16 release adds `GlobalOutreachSuppression`, a non-cascading
    product-wide hard stop for explicit opt-outs, cease-and-desist requests,
    spam complaints and definitive invalid recipients. All discovery, draft,
-   copy and send boundaries consume it. This safeguard is implemented and
-   tested but remains pending production migration and live validation. It does
-   not yet deduplicate an otherwise-unsuppressed venue across several artists
+   copy and send boundaries consume it. Its additive migration is among the 39
+   applied in production, and the boundary checks were live-validated on
+   2026-08-16. The safeguard does not yet deduplicate an otherwise-unsuppressed
+   venue across several artists
    or impose a cross-tenant contact-frequency cap; the controlled beta must
    monitor repeat-contact risk and counsel must approve the permitted scale.
 3. Official
@@ -166,10 +167,10 @@ Founder and privacy counsel may approve a narrower result only after they:
   first-message delivery mechanism;
 - approve the target countries and recipient classes, with UK/EU activity
   disabled or corrected as above;
-- verify the product-wide suppression migration and send-boundary checks in
-  production, approve any controlled-beta cross-tenant frequency limit, and
-  accept the documented manual retention operations with a deadline for purge
-  automation;
+- acknowledge the live-verified product-wide suppression migration and
+  send-boundary checks, approve any controlled-beta cross-tenant frequency
+  limit, and accept the documented manual retention operations with a deadline
+  for purge automation;
 - verify provider contracts, international-transfer mechanisms and actual log
   retention; and
 - sign and date this assessment with any restrictions.

@@ -1,9 +1,10 @@
 # Deployment — Bright Ears SaaS
 
-Production infrastructure was last live-verified on **2026-07-30**. This
-recovery and release contract was revised on **2026-08-16**; its current Render
-state must be read back before the next release rather than inferred from this
-file.
+Production infrastructure and the deployed revision were last live-verified on
+**2026-08-16**. The sanitized verification record is
+`docs/RELEASE-EVIDENCE-2026-08-16.md`. Historical recovery evidence below stays
+date-stamped; read the dashboard back again before any future release rather
+than assuming this snapshot is still current.
 
 `brightears.io` is the production Bright Ears SaaS app. It is separate from the
 Vinyl agency service at `agency.brightears.io`; never modify, import from, or
@@ -52,13 +53,18 @@ The 2026-07-30 delivery-state release proved this path in production: CI passed,
 Render found 34 migrations, applied
 `20260730144500_postmark_delivery_state`, and brought the service live.
 
-The repository's required Render build command is
+The 2026-08-16 release then proved the current path on deployed revision
+`9ebc937`: GitHub main workflow run #121 applied all 39 migrations to fresh
+Postgres 16 and passed TypeScript, ESLint, 963/963 tests across 95 files and the
+production build. Render and GitHub `main` both read back at that revision.
+
+The repository's required and live-read-back Render build command is
 `npm ci && npm run build`. The old
 `npm install --include=dev && npm run build` command is no longer the recovery
 baseline because it can resolve a dependency tree different from the lockfile.
-The production dashboard still showed that old command when read back on
-2026-08-16. Changing it and reading it back is a pending live release action;
-this file does not assert that the dashboard has already been corrected.
+The production dashboard was corrected and read back on 2026-08-16; the
+pre-deploy command remains `npm run db:deploy` and the start command remains
+`npm start`.
 
 ### AI release gate
 
@@ -95,13 +101,15 @@ fix or explicitly investigate the recurring case first.
   tables. The temporary database and its one-IP access rule were deleted after
   verification; the live database was never modified.
 - Render sends email for service failures. Preview notifications are disabled.
-- The current release code upgrades `/api/health` to a readiness check. Once
-  deployed, it returns HTTP 503 when the production environment contract is
+- `/api/health` is deployed as a readiness check. It returns HTTP 503 when the
+  production environment contract is
   invalid, the database cannot be reached, or any of the four `OpsStamp` cron
   **completion** heartbeats is stale. Its public config diagnostics expose only
   environment-variable names, issue codes and a count, never values or full
-  internal messages. This stronger behavior is pending deployment and a live
-  503/200 probe.
+  internal messages. On 2026-08-16 the live endpoint returned HTTP 200 with a
+  zero config-issue count, database reachability and all four cron completion
+  heartbeats healthy. The 503 contract is covered deterministically; no real
+  production dependency was disabled merely to force an outage probe.
 - Each cron route stamps only after an acceptable completion, so a tick that
   starts and then crashes or fails for every tenant cannot look green. On a
   completely fresh database with no completion stamps, each never-completed job
@@ -112,16 +120,15 @@ fix or explicitly investigate the recurring case first.
 - UptimeRobot monitor `Bright Ears production health` (ID `803627397`) checks
   `https://brightears.io/api/health` every 5 minutes and emails the account's
   existing alert contact. Its first check was Up at 279 ms on 2026-07-30.
-  HTTP status alone will be sufficient after the readiness release is deployed
-  and its live failure probe returns 503; until then, do not infer that the
-  existing HTTP-only monitor sees stale cron/config state. No unverified JSON
-  keyword matcher is assumed. The onboarding test notification was accepted,
-  and no public status page is attached.
+  HTTP status now represents config, database and cron readiness. No unverified
+  JSON keyword matcher is assumed, and the monitor's delivery of a real 503 was
+  not tested by inducing a production outage. The onboarding test notification
+  was accepted, and no public status page is attached.
 
 ## Cron authentication
 
-The four live cron commands were last read back on 2026-07-30. At that time
-they used a 120-second wrapper timeout. The current recovery baseline is:
+All four live cron commands were read back on 2026-08-16 and match the current
+recovery baseline:
 
 - read `CRON_SECRET` from the cron service's masked environment at runtime;
 - send it as `Authorization: Bearer ...`, never in the query string;
@@ -133,11 +140,11 @@ they used a 120-second wrapper timeout. The current recovery baseline is:
   routes declare a 300-second budget, so the wrapper has enough headroom to
   receive and judge the server response instead of aborting legitimate work.
 
-`scripts/render-crons.py` is the reproducible source for those wrappers. Before
-release, read back all four live commands and update any remaining 120-second
-wrapper to the 330-second form. Never interpolate the secret into a Render
-command: command text is visible in the dashboard and deployment history. Cron
-services should be linked only to a dedicated environment group containing
+`scripts/render-crons.py` is the reproducible source for those wrappers. Read
+all four commands back before each future release and correct any drift from
+the 330-second form. Never interpolate the secret into a Render command:
+command text is visible in the dashboard and deployment history. Cron services
+should be linked only to a dedicated environment group containing
 `CRON_SECRET`; they do not need the web service's customer or provider secrets.
 
 All-tenant or systemic failures return non-2xx and do not stamp completion;
@@ -286,12 +293,12 @@ provider webhooks or customer data.
    before the API can link the environment group; treat that run as disposable
    and do not enable traffic until the linked, manually triggered deploy is
    healthy. The web pre-deploy command must be `npm run db:deploy`.
-5. The repository currently contains 39 migrations. Production was last
-   verified with 34, so the next empty-database CI run and live pre-deploy should
-   include the five additive `20260816...` migrations for contact fairness,
-   beta measurement, postal address, feedback controls and global suppression.
-   Run `npx prisma migrate status` in the live environment after deploy and
-   compare the applied list, not just the count.
+5. The repository and production currently contain 39 applied migrations. On
+   2026-08-16 the empty-database CI run and live pre-deploy applied the complete
+   chain, including the five additive `20260816...` migrations for contact
+   fairness, beta measurement, postal address, feedback controls and global
+   suppression. Run `npx prisma migrate status` in the live environment after
+   each future deploy and compare the applied list, not just the count.
 6. Recreate and read back provider-side state that environment groups cannot
    capture: the Clerk production domain/redirects; Google redirect URI
    `https://brightears.io/api/oauth/google/callback`; Stripe live prices,
@@ -309,7 +316,7 @@ provider webhooks or customer data.
 A Render code rollback does not reverse Prisma migrations. Take or confirm a
 recoverable database point before deploying; never use `prisma migrate reset`,
 `prisma db push`, or delete an applied migration in production. The five
-currently pending migrations are additive and intentionally tolerate the
+2026-08-16 migrations are applied, additive and intentionally tolerate the
 previous application version, so the normal response to a failed release is to
 roll the application back while leaving those schema additions in place, then
 ship a corrected forward migration/code change. Restore the database only as a
@@ -337,11 +344,11 @@ customer writes that would be lost.
   stated retention periods.
 - The all-customer hard-stop is implemented in
   `GlobalOutreachSuppression` and consumed at discovery, draft, copy, follow-up
-  and send boundaries. Apply its migration and verify those checks in
-  production before the controlled beta. Continue the monthly retention review
-  and manual privacy-objection intake in `docs/PRIVACY-OPERATIONS.md`; global
-  suppression does not replace retention operations or a future cross-tenant
-  contact-frequency policy.
+  and send boundaries. Its migration is applied in production and its boundary
+  checks were verified for the 2026-08-16 release. Continue the monthly
+  retention review and manual privacy-objection intake in
+  `docs/PRIVACY-OPERATIONS.md`; global suppression does not replace retention
+  operations or a future cross-tenant contact-frequency policy.
 
 The internal privacy procedures are documented in
 `docs/PRIVACY-OPERATIONS.md`. They cover access/export, correction, objections,
