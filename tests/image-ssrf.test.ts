@@ -7,6 +7,8 @@ describe("isBlockedHost (SSRF guard for tenant-supplied image URLs)", () => {
       "localhost", "app.localhost", "thing.local", "svc.internal",
       "127.0.0.1", "0.0.0.0", "10.1.2.3", "172.16.0.1", "172.31.255.1",
       "192.168.1.1", "169.254.169.254", "100.64.0.1", "::1", "fe80::1", "fd00::1",
+      "[::ffff:7f00:1]", "::ffff:a00:1", "::ffff:0:a00:1", "::a9fe:a9fe",
+      "64:ff9b::a00:1", "ff02::1",
     ]) {
       expect(isBlockedHost(h), h).toBe(true);
     }
@@ -15,7 +17,8 @@ describe("isBlockedHost (SSRF guard for tenant-supplied image URLs)", () => {
   it("allows public hosts (the artist's real CDN/site)", () => {
     for (const h of [
       "pub-abc.r2.dev", "instagram.com", "i.imgur.com", "example.com",
-      "172.32.0.1", "8.8.8.8", "192.169.0.1",
+      "172.32.0.1", "8.8.8.8", "192.169.0.1", "2001:4860:4860::8888",
+      "::ffff:5db8:d822", "64:ff9b::5db8:d822",
     ]) {
       expect(isBlockedHost(h), h).toBe(false);
     }
