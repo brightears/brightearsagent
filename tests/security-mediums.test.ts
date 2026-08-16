@@ -60,6 +60,10 @@ describe("SSRF guard resolves DNS (14.4)", () => {
     expect(await resolvesToBlockedIp("innocent.example", evil)).toBe(true);
     const fine = async () => [{ address: "93.184.216.34" }];
     expect(await resolvesToBlockedIp("innocent.example", fine)).toBe(false);
+    const mappedLoopback = async () => [{ address: "::ffff:7f00:1" }];
+    expect(await resolvesToBlockedIp("innocent.example", mappedLoopback)).toBe(true);
+    const publicIpv6 = async () => [{ address: "2001:4860:4860::8888" }];
+    expect(await resolvesToBlockedIp("innocent.example", publicIpv6)).toBe(false);
   });
   it("mixed records block if ANY address is private; unresolvable blocks", async () => {
     const mixed = async () => [{ address: "93.184.216.34" }, { address: "10.0.0.5" }];
@@ -71,6 +75,7 @@ describe("SSRF guard resolves DNS (14.4)", () => {
   });
   it("IPv4-mapped IPv6 can't hide a private address", () => {
     expect(isBlockedHost("::ffff:10.0.0.1")).toBe(true);
+    expect(isBlockedHost("[::ffff:7f00:1]")).toBe(true);
     expect(isBlockedHost("::ffff:93.184.216.34")).toBe(false);
   });
 });

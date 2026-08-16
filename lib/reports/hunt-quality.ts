@@ -25,7 +25,6 @@ export const HUNT_BETA_CONVERSATION_TARGET_PCT = 30;
 
 export const HUNT_QUALITY_TARGETS = {
   usefulMatch: { targetPct: 70, minSample: 20, direction: "min" },
-  actionableContact: { targetPct: 60, minSample: 20, direction: "min" },
   pitchApproval: { targetPct: 70, minSample: 10, direction: "min" },
   clearMiss: { targetPct: 10, minSample: 20, direction: "max" },
 } as const;
@@ -53,11 +52,14 @@ export type QualityGate = {
 };
 
 export type HuntQualityRow = {
+  id: string;
   businessId: string;
   createdAt: Date;
   bookingEmail: string | null;
   bookingContactName: string | null;
   contactState: ContactEnrichmentState | null;
+  contactLastAttemptAt: Date | null;
+  contactExhaustedAt: Date | null;
   suppressedReason: string | null;
   reviewedAt: Date | null;
   repliedAt: Date | null;
@@ -99,13 +101,44 @@ export type BetaConversationGate = {
   state: QualityState;
 };
 
+export type ContactAttemptCoverage = {
+  numerator: number;
+  denominator: null;
+  ratePct: null;
+  state: "unavailable";
+  reason: string;
+};
+
+export type HuntContactFunnel = {
+  /** Distinct tenant-scoped Venue rows attempted inside the report window. */
+  attemptedVenues: number;
+  /** Current stored-contact inventory, independent of the latest retry state. */
+  inventory: {
+    publishedContacts: number;
+    actionableContacts: number;
+    genericContacts: number;
+    suppressedContacts: number;
+  };
+  /** Mutually exclusive latest-attempt states; these sum to attemptedVenues. */
+  latestAttemptOutcomes: {
+    foundDirect: number;
+    foundGeneric: number;
+    notFoundRetryable: number;
+    notFoundExhausted: number;
+    errors: number;
+    inProgress: number;
+    suppressed: number;
+    unclassified: number;
+  };
+  attemptCoverage: ContactAttemptCoverage;
+};
+
 export type HuntQualitySummary = {
   since: Date;
   windowDays: number;
   tenantsRepresented: number;
   venuesFound: number;
-  directContacts: number;
-  highConfidenceContacts: number;
+  contactFunnel: HuntContactFunnel;
   reviewedMatches: number;
   pursuedMatches: number;
   skippedMatches: number;
@@ -122,7 +155,6 @@ export type HuntQualitySummary = {
   betaConversation: BetaConversationGate;
   gates: {
     usefulMatch: QualityGate;
-    actionableContact: QualityGate;
     pitchApproval: QualityGate;
     clearMiss: QualityGate;
   };
@@ -201,8 +233,6 @@ export function summarizeHuntQuality(
   betaBusinesses: HuntBetaBusinessRow[] = [],
 ): HuntQualitySummary {
   const since = new Date(now.getTime() - windowDays * 24 * 3600 * 1_000);
-  let directContacts = 0;
-  let highConfidenceContacts = 0;
   let pursuedMatches = 0;
   let skippedMatches = 0;
   let clearMisses = 0;
@@ -216,24 +246,23 @@ export function summarizeHuntQuality(
   const skipReasons: Partial<Record<SkipReason, number>> = {};
   const representedBusinesses = new Set<string>();
   let venuesFound = 0;
+  const attemptedContacts = new Map<string, HuntQualityRow>();
 
   for (const venue of rows) {
+    if (venue.contactLastAttemptAt && venue.contactLastAttemptAt >= since) {
+      const key = `${venue.businessId}:${venue.id}`;
+      const existing = attemptedContacts.get(key);
+      if (
+        !existing?.contactLastAttemptAt ||
+        existing.contactLastAttemptAt < venue.contactLastAttemptAt
+      ) {
+        attemptedContacts.set(key, venue);
+      }
+    }
     const discoveredInWindow = venue.createdAt >= since;
     if (discoveredInWindow) {
       representedBusinesses.add(venue.businessId);
       venuesFound++;
-      if (venue.bookingEmail) {
-        directContacts++;
-        if (
-          contactConfidence(
-            venue.bookingEmail,
-            venue.bookingContactName,
-            venue.contactState,
-          ) === "high"
-        ) {
-          highConfidenceContacts++;
-        }
-      }
     }
 
     const primaryPitches = venue.pitches.filter((pitch) => !pitch.followUpOfId);
@@ -310,6 +339,78 @@ export function summarizeHuntQuality(
     }
   }
 
+  let publishedContacts = 0;
+  let actionableContacts = 0;
+  let genericContacts = 0;
+  let suppressedContacts = 0;
+  let foundDirect = 0;
+  let foundGeneric = 0;
+  let notFoundRetryable = 0;
+  let notFoundExhausted = 0;
+  let errors = 0;
+  let inProgress = 0;
+  let suppressed = 0;
+  let unclassified = 0;
+  for (const venue of attemptedContacts.values()) {
+    representedBusinesses.add(venue.businessId);
+    const actionable =
+      venue.contactState !== "SUPPRESSED" &&
+      contactConfidence(
+        venue.bookingEmail,
+        venue.bookingContactName,
+        venue.contactState,
+      ) === "high";
+    // Inventory and attempt state are intentionally orthogonal. A retry may
+    // leave an older published email on the row while its current state is
+    // ERROR or IN_PROGRESS; that contact must not vanish from inventory.
+    if (venue.bookingEmail) {
+      publishedContacts++;
+      if (venue.contactState === "SUPPRESSED") suppressedContacts++;
+      else {
+        if (actionable) actionableContacts++;
+        else genericContacts++;
+      }
+    }
+
+    // Every attempted venue contributes to exactly one latest-state bucket.
+    if (venue.contactState === "FOUND_DIRECT") foundDirect++;
+    else if (venue.contactState === "FOUND_GENERIC") foundGeneric++;
+    else if (venue.contactState === "SUPPRESSED") suppressed++;
+    else if (venue.contactState === "NOT_FOUND") {
+      if (venue.contactExhaustedAt) notFoundExhausted++;
+      else notFoundRetryable++;
+    }
+    else if (venue.contactState === "ERROR") errors++;
+    else if (venue.contactState === "IN_PROGRESS") inProgress++;
+    else unclassified++;
+  }
+  const contactFunnel: HuntContactFunnel = {
+    attemptedVenues: attemptedContacts.size,
+    inventory: {
+      publishedContacts,
+      actionableContacts,
+      genericContacts,
+      suppressedContacts,
+    },
+    latestAttemptOutcomes: {
+      foundDirect,
+      foundGeneric,
+      notFoundRetryable,
+      notFoundExhausted,
+      errors,
+      inProgress,
+      suppressed,
+      unclassified,
+    },
+    attemptCoverage: {
+      numerator: attemptedContacts.size,
+      denominator: null,
+      ratePct: null,
+      state: "unavailable",
+      reason: "historical eligible/due cohort is not stored",
+    },
+  };
+
   const reviewedMatches = pursuedMatches + skippedMatches;
   const reviewCoverage: ReviewCoverage = {
     reviewed: reviewedMatches,
@@ -321,8 +422,7 @@ export function summarizeHuntQuality(
     windowDays,
     tenantsRepresented: representedBusinesses.size,
     venuesFound,
-    directContacts,
-    highConfidenceContacts,
+    contactFunnel,
     reviewedMatches,
     pursuedMatches,
     skippedMatches,
@@ -342,11 +442,6 @@ export function summarizeHuntQuality(
         pursuedMatches,
         reviewedMatches,
         HUNT_QUALITY_TARGETS.usefulMatch,
-      ),
-      actionableContact: gate(
-        highConfidenceContacts,
-        venuesFound,
-        HUNT_QUALITY_TARGETS.actionableContact,
       ),
       pitchApproval: gate(
         pitchesApproved,
@@ -377,6 +472,7 @@ export async function computeHuntQuality(
         ...(opts.businessId ? { businessId: opts.businessId } : {}),
         OR: [
           { createdAt: { gte: since } },
+          { contactLastAttemptAt: { gte: since } },
           { reviewedAt: { gte: since } },
           { repliedAt: { gte: since } },
           { bookedAt: { gte: since } },
@@ -385,11 +481,14 @@ export async function computeHuntQuality(
         ],
       },
       select: {
+        id: true,
         businessId: true,
         createdAt: true,
         bookingEmail: true,
         bookingContactName: true,
         contactState: true,
+        contactLastAttemptAt: true,
+        contactExhaustedAt: true,
         suppressedReason: true,
         reviewedAt: true,
         repliedAt: true,
@@ -447,6 +546,11 @@ function rateLabel(gate: QualityGate): string {
 export function renderHuntQualityText(summary: HuntQualitySummary): string {
   const replyPct = pct(summary.venueReplies, summary.venuesPitched);
   const beta = summary.betaConversation;
+  const contacts = summary.contactFunnel;
+  const inventory = contacts.inventory;
+  const outcomes = contacts.latestAttemptOutcomes;
+  const publishedYield = pct(inventory.publishedContacts, contacts.attemptedVenues);
+  const actionableYield = pct(inventory.actionableContacts, contacts.attemptedVenues);
   const betaState =
     beta.state === "learning"
       ? `LEARNING ${beta.maturedArtists}/${beta.minSample}`
@@ -456,8 +560,9 @@ export function renderHuntQualityText(summary: HuntQualitySummary): string {
   return [
     `HUNT QUALITY · rolling ${summary.windowDays}d · ${summary.tenantsRepresented} tenant${summary.tenantsRepresented === 1 ? "" : "s"}`,
     `• Useful matches: ${rateLabel(summary.gates.usefulMatch)} · ${stateLabel(summary.gates.usefulMatch)} · target ≥${summary.gates.usefulMatch.targetPct}%`,
-    `• Actionable contacts: ${rateLabel(summary.gates.actionableContact)} · ${stateLabel(summary.gates.actionableContact)} · target ≥${summary.gates.actionableContact.targetPct}%`,
-    `• Published contacts: ${summary.directContacts}/${summary.venuesFound} · ${summary.highConfidenceContacts} actionable`,
+    `• Contact inventory (descriptive, no verdict): ${inventory.publishedContacts}/${contacts.attemptedVenues} published${publishedYield === null ? "" : ` (${publishedYield}%)`} · ${inventory.actionableContacts}/${contacts.attemptedVenues} persisted actionable${actionableYield === null ? "" : ` (${actionableYield}%)`} · ${inventory.genericContacts} generic${inventory.suppressedContacts ? ` · ${inventory.suppressedContacts} suppressed` : ""}`,
+    `• Latest attempt outcomes (mutually exclusive): ${outcomes.foundDirect} direct · ${outcomes.foundGeneric} generic · ${outcomes.notFoundRetryable} not found yet · ${outcomes.notFoundExhausted} not found exhausted · ${outcomes.errors} error · ${outcomes.inProgress} in progress · ${outcomes.suppressed} suppressed${outcomes.unclassified ? ` · ${outcomes.unclassified} unclassified` : ""}`,
+    `• Attempt coverage: unavailable · ${contacts.attemptCoverage.reason}`,
     `• Review sample: ${summary.reviewCoverage.reviewed}/${summary.reviewCoverage.required} reviewed decisions · ${summary.reviewCoverage.state === "on_track" ? "ON TRACK" : "LEARNING"}`,
     `• Pitch approval: ${rateLabel(summary.gates.pitchApproval)} · ${stateLabel(summary.gates.pitchApproval)} · target ≥${summary.gates.pitchApproval.targetPct}%`,
     `• Clear discovery misses: ${rateLabel(summary.gates.clearMiss)} · ${stateLabel(summary.gates.clearMiss)} · guardrail ≤${summary.gates.clearMiss.targetPct}%`,
@@ -468,7 +573,9 @@ export function renderHuntQualityText(summary: HuntQualitySummary): string {
 
 export function huntQualityNeedsAttention(summary: HuntQualitySummary): boolean {
   return (
-    Object.values(summary.gates).some((metric) => metric.state === "needs_work") ||
+    summary.gates.usefulMatch.state === "needs_work" ||
+    summary.gates.pitchApproval.state === "needs_work" ||
+    summary.gates.clearMiss.state === "needs_work" ||
     summary.betaConversation.state === "needs_work"
   );
 }

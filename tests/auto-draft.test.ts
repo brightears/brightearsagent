@@ -19,7 +19,12 @@ const v = (
   temperature: "HOT" | "WARM" | "SEED",
   bookingEmail = "bookings@venue.example",
   bookingContactName: string | null = null,
-  contactState: "FOUND_DIRECT" | "FOUND_GENERIC" | null = null,
+  contactState:
+    | "FOUND_DIRECT"
+    | "FOUND_GENERIC"
+    | "ERROR"
+    | "IN_PROGRESS"
+    | null = null,
 ) => ({ id, temperature, bookingEmail, bookingContactName, contactState });
 
 beforeEach(() => {
@@ -50,7 +55,7 @@ describe("autoDraftPitches (P8.1 — the agent acts, draft-only)", () => {
   it("auto-drafts a role-neutral address backed by FOUND_DIRECT identity proof", async () => {
     mockDb.venue.findMany.mockResolvedValue([
       v("bound", "HOT", "baryard.kimptonmaalai@ihg.com", null, "FOUND_DIRECT"),
-      v("generic", "HOT", "kimptonmaalaibangkok@ihg.com", null, "FOUND_GENERIC"),
+      v("weak-bound", "HOT", "baryard.kimptonmaalai@ihg.com", null, "FOUND_GENERIC"),
     ]);
     mockDraft.mockResolvedValue({ ok: true, created: true });
 
@@ -63,6 +68,24 @@ describe("autoDraftPitches (P8.1 — the agent acts, draft-only)", () => {
     expect(mockDb.venue.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ select: expect.objectContaining({ contactState: true }) }),
     );
+  });
+
+  it("treats persisted enrichment state as authoritative for role addresses", async () => {
+    mockDb.venue.findMany.mockResolvedValue([
+      v("generic-role", "HOT", "events@publisher.example", null, "FOUND_GENERIC"),
+      v("error-role", "HOT", "bookings@publisher.example", null, "ERROR"),
+      v("leased-role", "HOT", "events@publisher.example", null, "IN_PROGRESS"),
+      v("legacy-role", "WARM", "bookings@venue.example", null, null),
+      v("named-generic", "SEED", "info@venue.example", "Dana Ko", "FOUND_GENERIC"),
+    ]);
+    mockDraft.mockResolvedValue({ ok: true, created: true });
+
+    expect(await autoDraftPitches(biz())).toEqual({
+      attempted: 1,
+      created: 1,
+      stoppedBy: null,
+    });
+    expect(mockDraft.mock.calls.map((call) => call[1])).toEqual(["legacy-role"]);
   });
 
   it("drafts best-first and counts what was actually created", async () => {

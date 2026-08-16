@@ -31,11 +31,19 @@
  */
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
+function parseIPv4(host: string): [number, number, number, number] | null {
+  const parts = host.split(".");
+  if (
+    parts.length !== 4 ||
+    parts.some((part) => !/^\d{1,3}$/.test(part) || Number(part) > 255)
+  ) return null;
+  return parts.map(Number) as [number, number, number, number];
+}
+
 function isPrivateIPv4(host: string): boolean {
-  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!m) return false;
-  const a = Number(m[1]);
-  const b = Number(m[2]);
+  const octets = parseIPv4(host);
+  if (!octets) return false;
+  const [a, b] = octets;
   if (a === 0 || a === 10 || a === 127) return true; // this-host, private, loopback
   if (a === 169 && b === 254) return true; // link-local + cloud metadata (169.254.169.254)
   if (a === 172 && b >= 16 && b <= 31) return true; // private
@@ -44,16 +52,77 @@ function isPrivateIPv4(host: string): boolean {
   return false;
 }
 
+/** Expand an IPv6 literal to eight hextets, including dotted-v4 tails. */
+function parseIPv6(host: string): number[] | null {
+  let value = host.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!value.includes(":") || value.includes("%")) return null;
+
+  if (value.includes(".")) {
+    const colon = value.lastIndexOf(":");
+    if (colon < 0) return null;
+    const ipv4 = parseIPv4(value.slice(colon + 1));
+    if (!ipv4) return null;
+    const high = (ipv4[0] << 8) | ipv4[1];
+    const low = (ipv4[2] << 8) | ipv4[3];
+    value = `${value.slice(0, colon)}:${high.toString(16)}:${low.toString(16)}`;
+  }
+
+  if (value.split("::").length > 2) return null;
+  const compressed = value.includes("::");
+  const [leftRaw, rightRaw = ""] = value.split("::");
+  const parseSide = (side: string): number[] | null => {
+    if (!side) return [];
+    const tokens = side.split(":");
+    if (tokens.some((token) => !/^[0-9a-f]{1,4}$/.test(token))) return null;
+    return tokens.map((token) => Number.parseInt(token, 16));
+  };
+  const left = parseSide(leftRaw);
+  const right = parseSide(rightRaw);
+  if (!left || !right) return null;
+  const explicit = left.length + right.length;
+  if ((!compressed && explicit !== 8) || (compressed && explicit >= 8)) return null;
+  return compressed
+    ? [...left, ...Array<number>(8 - explicit).fill(0), ...right]
+    : left;
+}
+
+function isBlockedIPv6(parts: number[]): boolean {
+  if (parts.length !== 8) return true;
+  const [first] = parts;
+  // IPv4-mapped (::ffff:a.b.c.d) and IPv4-compatible (::a.b.c.d) forms.
+  const mapped = parts.slice(0, 5).every((part) => part === 0) && parts[5] === 0xffff;
+  const compatible = parts.slice(0, 6).every((part) => part === 0);
+  const translated =
+    parts.slice(0, 4).every((part) => part === 0) &&
+    parts[4] === 0xffff &&
+    parts[5] === 0;
+  const wellKnownNat64 =
+    parts[0] === 0x64 &&
+    parts[1] === 0xff9b &&
+    parts.slice(2, 6).every((part) => part === 0);
+  if (mapped || compatible || translated || wellKnownNat64) {
+    const ipv4 = `${parts[6]! >> 8}.${parts[6]! & 0xff}.${parts[7]! >> 8}.${parts[7]! & 0xff}`;
+    return isPrivateIPv4(ipv4);
+  }
+  if ((first! & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+  if ((first! & 0xfe00) === 0xfc00) return true; // unique-local fc00::/7
+  if ((first! & 0xff00) === 0xff00) return true; // multicast ff00::/8
+  if ((first! & 0xffc0) === 0xfec0) return true; // deprecated site-local fec0::/10
+  return false;
+}
+
 export function isBlockedHost(hostname: string): boolean {
-  let h = hostname.toLowerCase().replace(/^\[|\]$/g, ""); // strip IPv6 brackets
-  // IPv4-mapped IPv6 (::ffff:10.0.0.1) hides a v4 address — unwrap it (14.4).
-  h = h.replace(/^::ffff:/, "");
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, ""); // strip IPv6 brackets
   if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) {
     return true;
   }
-  // IPv6 loopback / link-local / unique-local.
-  if (h === "::1" || h.startsWith("fe80:") || h.startsWith("fc") || h.startsWith("fd")) return true;
-  if (isPrivateIPv4(h)) return true;
+  const ipv4 = parseIPv4(h);
+  if (ipv4) return isPrivateIPv4(h);
+  if (/^[\d.]+$/.test(h)) return true; // malformed IPv4-looking literal
+  if (h.includes(":")) {
+    const ipv6 = parseIPv6(h);
+    return ipv6 === null || isBlockedIPv6(ipv6);
+  }
   return false;
 }
 
@@ -68,7 +137,9 @@ export async function resolvesToBlockedIp(
   lookupFn?: (host: string) => Promise<{ address: string }[]>,
 ): Promise<boolean> {
   // Literal IPs were already judged by isBlockedHost — only names resolve.
-  if (/^[\d.]+$/.test(hostname) || hostname.includes(":")) return false;
+  const literal = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (parseIPv4(literal) || parseIPv6(literal)) return false;
+  if (/^[\d.]+$/.test(literal) || literal.includes(":")) return true;
   try {
     const lookup =
       lookupFn ??
@@ -100,7 +171,7 @@ export async function fetchImageDataUri(url: string): Promise<string | null> {
   // Fully closing it needs connection-level IP pinning (a custom undici
   // dispatcher/lookup), which Next's global fetch doesn't expose cleanly. The
   // exposure is bounded: the fetch is GET-only, no-redirect, 6s-capped, and
-  // only image/* under 6MB is ever read — no response body is surfaced to the
+  // only image/* under 2MB is ever read — no response body is surfaced to the
   // attacker, so this is a low-value blind SSRF, not data exfiltration.
   if (await resolvesToBlockedIp(parsed.hostname)) return null;
 

@@ -5,11 +5,10 @@
 //
 // Frugal + polite by design:
 //   * cap CONTACT_VENUES_PER_SCAN venues per scan, 1 Serper query each
-//   * plain fetch, 5s timeout, text/html only, 200KB cap
+//   * plain fetch, 3s timeout, text/html only, bounded head+tail sample
 //   * 403/404 = skip, never retry, never proxy
 //   * SSRF-guarded: private/loopback/metadata hosts (and names resolving to
-//     them) are refused, redirects are never followed (a public host could
-//     302 to an internal target)
+//     them) are refused; one same-host redirect is revalidated before fetching
 //   * suppression re-checked at write time (defense in depth vs. ingest)
 
 import { db } from "@/lib/db";
@@ -22,6 +21,7 @@ export const CONTACT_MIN_SCORE = 60;
 export const CONTACT_MAX_ATTEMPTS = 4;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 export const CONTACT_CLAIM_LEASE_MS = 15 * 60 * 1_000;
+export const CONTACT_PASS_WALL_BUDGET_MS = 75_000;
 export const CONTACT_NOT_FOUND_RETRY_MS = [7 * DAY_MS, 30 * DAY_MS, 90 * DAY_MS] as const;
 export const CONTACT_GENERIC_RETRY_MS = [30 * DAY_MS, 90 * DAY_MS, 180 * DAY_MS] as const;
 export const CONTACT_ERROR_RETRY_MS = DAY_MS;
@@ -100,19 +100,45 @@ export function isContactAttemptDue(
 // Pure helpers (unit-tested without network/DB)
 // ---------------------------------------------------------------------------
 
-const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+// RFC-compatible practical bounds also keep hostile long text runs from
+// turning the global scan into quadratic backtracking work.
+const EMAIL_RE = /(?<![A-Z0-9._%+-])[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}(?![A-Z0-9.-])/gi;
 /** Filename-looking matches the text regex catches in srcsets etc. */
 const NOT_AN_EMAIL = /\.(png|jpe?g|gif|webp|svg|css|js|woff2?)$/i;
 
+/**
+ * Decode only exact email punctuation encodings seen in HTML/JSON-LD. This is
+ * deliberately not a general entity decoder: broad decoding can join unrelated
+ * page fragments into something that merely looks like an address.
+ */
+function decodeEmailPunctuation(value: string): string {
+  return value
+    .replace(/(?:&#0*64;|&#x0*40;|&commat;)/gi, "@")
+    .replace(/(?:&#0*46;|&#x0*2e;|&period;)/gi, ".")
+    .replace(/\\u0040/gi, "@")
+    .replace(/\\u002e/gi, ".");
+}
+
 /** All literal emails on a page — mailto: links plus plain-text matches. */
 export function extractEmails(html: string): string[] {
+  const decodedHtml = decodeEmailPunctuation(html);
   const found = new Set<string>();
-  for (const m of html.matchAll(/mailto:([^"'?\s>]+)/gi)) {
-    const e = decodeURIComponent(m[1]).trim().toLowerCase();
-    if (EMAIL_RE.test(e) && !NOT_AN_EMAIL.test(e)) found.add(e);
+  for (const m of decodedHtml.matchAll(/mailto:([^"'?\s>]+)/gi)) {
+    let decoded = m[1];
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      // A malformed percent escape must not abort extraction of other literal
+      // addresses on the page.
+    }
+    EMAIL_RE.lastIndex = 0;
+    for (const emailMatch of decoded.matchAll(EMAIL_RE)) {
+      const e = emailMatch[0].toLowerCase();
+      if (!NOT_AN_EMAIL.test(e)) found.add(e);
+    }
     EMAIL_RE.lastIndex = 0;
   }
-  for (const m of html.matchAll(EMAIL_RE)) {
+  for (const m of decodedHtml.matchAll(EMAIL_RE)) {
     const e = m[0].toLowerCase();
     if (!NOT_AN_EMAIL.test(e)) found.add(e);
   }
@@ -125,7 +151,7 @@ export function extractEmails(html: string): string[] {
  */
 export function emailRank(email: string): number {
   const local = email.split("@")[0] ?? "";
-  if (/(no-?reply|donotreply|career|jobs?|recruit|press|privacy|abuse|unsubscribe|postmaster|webmaster)/.test(local)) {
+  if (/(no-?reply|donotreply|career|jobs?|recruit|press|privacy|abuse|unsubscribe|postmaster|webmaster|newsletters?|editorial|support|customer[._-]?service|marketing)/.test(local)) {
     return -1;
   }
   if (/(event|booking|privatehire|private-hire|functions?|venuehire|parties)/.test(local)) return 3;
@@ -159,35 +185,11 @@ const AGGREGATOR_DOMAINS = [
 const slugTokens = (name: string) =>
   name.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((t) => t.length > 2 && t !== "the" && t !== "and" && t !== "bar");
 
-/**
- * Pick the venue's own site from Serper organic results: skip aggregators and
- * require positive name evidence in the hostname. A random non-aggregator hit
- * may be a newspaper, PR agency or tourism guide; fetching its contact page
- * would turn a publisher's address into a dangerously mislabeled venue lead.
- */
-export function pickVenueSiteUrl(results: { link: string }[], venueName: string): string | null {
-  const tokens = slugTokens(venueName);
-  if (tokens.length === 0) return null;
-  for (const r of results) {
-    let host: string;
-    try {
-      host = new URL(r.link).hostname.toLowerCase();
-    } catch {
-      continue;
-    }
-    if (isAggregatorHost(host)) continue;
-    if (tokens.some((t) => host.replace(/[^a-z0-9]/g, "").includes(t))) return r.link;
-  }
-  return null;
-}
-
 /** Paths worth trying on a venue site — events/booking pages FIRST (12.8):
  *  an events@ found on /events is the booker; info@ on /contact is a lottery. */
 export const CONTACT_PATHS = [
   "/events",
   "/private-hire",
-  "/functions",
-  "/weddings",
   "/contact",
   "/contact-us",
 ] as const;
@@ -195,7 +197,10 @@ export const CONTACT_PATHS = [
 export type ContactHit = {
   email: string;
   source: string;
-  /** Exact venue identity, independent of role words in the local-part. */
+  /**
+   * true = exact venue identity; false = explicitly generic despite role words
+   * (used for a loosely grounded search page); absent = infer from role rank.
+   */
   direct?: boolean;
 };
 
@@ -246,7 +251,10 @@ export function contactQueryFor(name: string, city: string): string {
   return `"${name}" ${city} contact email`;
 }
 
-const WEAK_SITE_CANDIDATE_CAP = 3;
+const SEARCH_RESULT_CANDIDATE_CAP = 3;
+const DISCOVERED_CONTACT_LINK_CAP = 2;
+const DISCOVERED_CONTACT_LINK_PARSE_CAP = 12;
+export const CONTACT_PAGE_FETCH_CAP_PER_VENUE = 8;
 
 /**
  * Compact identity form for exact phrase checks across punctuation-heavy
@@ -348,24 +356,68 @@ function registrantLabel(host: string): string | null {
 
 /**
  * Direct-contact identity needs stricter first-party proof than the crawler's
- * intentionally broad any-token host selection. Require the full venue phrase
- * or every token in its distinctive multi-word core in the registrant label.
+ * intentionally broad any-token host selection. The registrant label must be
+ * an exact full/core venue identity with only a known city or venue-type
+ * prefix/suffix — arbitrary publisher words such as "guide" or "tickets" fail.
  */
-function isStrictFirstPartyHost(host: string, venueName: string): boolean {
+function isStrictFirstPartyHost(host: string, venueName: string, city: string): boolean {
   const label = registrantLabel(host);
   if (!label) return false;
   const hostIdentity = identityPhrase(label);
   const fullIdentity = identityPhrase(venueName);
-  if (fullIdentity.length >= 6 && hostIdentity.includes(fullIdentity)) return true;
-  const coreTokens = venueIdentityCoreTokens(venueName);
-  return coreTokens.length > 0 && coreTokens.every((token) => hostIdentity.includes(token));
+  // Short brands are too collision-prone for substring matching. Permit only
+  // the exact registrant label, or the exact brand/city concatenation in
+  // either order (Veyla -> veyla, veylabangkok, bangkokveyla).
+  if (fullIdentity.length >= 4 && fullIdentity.length <= 5) {
+    const cityIdentity = identityPhrase(city);
+    if (
+      hostIdentity === fullIdentity ||
+      (cityIdentity.length > 0 &&
+        (hostIdentity === `${fullIdentity}${cityIdentity}` ||
+          hostIdentity === `${cityIdentity}${fullIdentity}`))
+    ) {
+      return true;
+    }
+    return false;
+  }
+  if (fullIdentity.length < 6) return false;
+
+  const bases = new Set([fullIdentity]);
+  const core = venueIdentityCore(venueName);
+  if (core) bases.add(core);
+  const cityIdentity = identityPhrase(city);
+  const venueTypes = [...VENUE_TYPE_SUFFIXES].map(identityPhrase).filter(Boolean);
+  const allowed = new Set<string>();
+
+  for (const base of bases) {
+    allowed.add(base);
+    if (cityIdentity) {
+      allowed.add(`${base}${cityIdentity}`);
+      allowed.add(`${cityIdentity}${base}`);
+    }
+    for (const venueType of venueTypes) {
+      allowed.add(`${base}${venueType}`);
+      allowed.add(`${venueType}${base}`);
+      if (!cityIdentity) continue;
+      // Every ordering of one exact city, one known venue type and the exact
+      // venue base remains finite and auditable; no arbitrary extra token is
+      // admitted.
+      allowed.add(`${base}${cityIdentity}${venueType}`);
+      allowed.add(`${base}${venueType}${cityIdentity}`);
+      allowed.add(`${cityIdentity}${base}${venueType}`);
+      allowed.add(`${cityIdentity}${venueType}${base}`);
+      allowed.add(`${venueType}${base}${cityIdentity}`);
+      allowed.add(`${venueType}${cityIdentity}${base}`);
+    }
+  }
+  return allowed.has(hostIdentity);
 }
 
 /**
  * A venue can legitimately live below its hotel's or hospitality group's
- * hostname. Admit that weaker shape only with exact, redundant identity
- * evidence: full venue phrase in BOTH path and title, plus city in title.
- * Very short acronyms are too ambiguous for this fallback.
+ * hostname. Retain that weaker shape for manual verification only when the
+ * full venue phrase appears in BOTH path and title, plus city in title. Very
+ * short acronyms are too ambiguous even for this generic fallback.
  */
 function isWeakParentBrandResult(
   result: { link: string; title?: string },
@@ -391,7 +443,7 @@ function isWeakParentBrandResult(
   }
 }
 
-/** A weak parent-brand page may supply only an address bound to the venue. */
+/** A weak parent-brand page may retain only an address visibly named for the venue. */
 function emailBoundToVenue(email: string, venueName: string): boolean {
   const venuePhrase = identityPhrase(venueName);
   return emailContainsIdentityPhrase(email, venuePhrase);
@@ -409,54 +461,201 @@ function emailBoundToOfficialVenue(email: string, venueName: string): boolean {
   return core !== null && emailContainsIdentityPhrase(email, core);
 }
 
-async function discoverFromWeakParentBrandResults(
-  venue: { name: string; city: string },
-  results: { link: string; title?: string }[],
-  deps: ContactDeps,
-  excludeLink?: string,
-): Promise<ContactHit | null> {
-  const candidates = results
-    .filter(
-      (result) => result.link !== excludeLink && isWeakParentBrandResult(result, venue),
-    )
-    .slice(0, WEAK_SITE_CANDIDATE_CAP);
+type ContactSearchResult = { link: string; title?: string };
+type ContactCandidateKind = "strict" | "weak" | "loose";
 
-  for (const candidate of candidates) {
-    // Weak identity means weak fetch authority: fetch ONLY the indexed hit.
-    // Never fan out to its origin or guessed contact paths as strong, hostname-
-    // grounded venue sites do below.
-    const html = await deps.fetchPage(candidate.link);
-    if (!html) continue;
-    const email = pickBestEmail(
-      extractEmails(html).filter((value) => emailBoundToVenue(value, venue.name)),
-    );
-    if (!email) continue;
-
-    const url = new URL(candidate.link);
-    const label = url.pathname.replace(/\/$/, "") || "/";
-    return {
-      email,
-      source: `venue-branded search page ${label} — exact venue-bound contact (${email.split("@")[1]})`,
-      direct: true,
-    };
-  }
-  return null;
+function looseHostnameMatchesVenue(host: string, venueName: string): boolean {
+  const compactHost = host.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return slugTokens(venueName).some((token) => compactHost.includes(token));
 }
 
 /**
- * The per-venue hunt, DB-free for tests: 1 search query → venue's own site →
- * fetch the hit page + homepage + contact-ish paths, stop at the first
- * top-rank email; otherwise keep the best seen across pages.
+ * Rank redundant first-party proof ahead of broad any-token matching, while
+ * preserving result order inside each proof class. Only three already-paid
+ * organic hits may be evaluated for a venue.
  */
-export async function discoverVenueContact(
+function rankedContactCandidates(
+  results: ContactSearchResult[],
   venue: { name: string; city: string },
+): { result: ContactSearchResult; kind: ContactCandidateKind }[] {
+  const ranked: {
+    result: ContactSearchResult;
+    kind: ContactCandidateKind;
+    index: number;
+  }[] = [];
+  const seen = new Set<string>();
+
+  for (const [index, result] of results.entries()) {
+    if (seen.has(result.link)) continue;
+    let host: string;
+    try {
+      host = new URL(result.link).hostname.toLowerCase();
+    } catch {
+      continue;
+    }
+    if (isAggregatorHost(host)) continue;
+
+    let kind: ContactCandidateKind | null = null;
+    if (isStrictFirstPartyHost(host, venue.name, venue.city)) kind = "strict";
+    else if (isWeakParentBrandResult(result, venue)) kind = "weak";
+    else if (looseHostnameMatchesVenue(host, venue.name)) kind = "loose";
+    if (!kind) continue;
+
+    seen.add(result.link);
+    ranked.push({ result, kind, index });
+  }
+
+  const weight: Record<ContactCandidateKind, number> = {
+    strict: 0,
+    weak: 1,
+    loose: 2,
+  };
+  return ranked
+    .sort((a, b) => weight[a.kind] - weight[b.kind] || a.index - b.index)
+    .slice(0, SEARCH_RESULT_CANDIDATE_CAP)
+    .map(({ result, kind }) => ({ result, kind }));
+}
+
+/** Bounded purpose-looking links, exact same origin, from strict sites only. */
+function discoveredContactLinks(html: string, baseUrl: string, siteOrigin: string): string[] {
+  const found: string[] = [];
+  const seen = new Set<string>();
+  const purpose = /(?:contact|events?|private[-_/]?hire|functions?|weddings?|bookings?|venue[-_/]?hire|meetings?)/i;
+  for (const match of html.matchAll(/href\s*=\s*(?:"([^"]*)"|'([^']*)')/gi)) {
+    if (found.length >= DISCOVERED_CONTACT_LINK_PARSE_CAP) break;
+    const rawHref = (match[1] ?? match[2] ?? "").replace(/&amp;/gi, "&").trim();
+    if (!rawHref || rawHref.startsWith("#") || rawHref.length > 2_048) continue;
+    let url: URL;
+    try {
+      url = new URL(rawHref, baseUrl);
+    } catch {
+      continue;
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+    if (url.username || url.password) continue;
+    // Exact origin also rejects HTTPS downgrades and alternate-port pivots.
+    if (url.origin.toLowerCase() !== siteOrigin.toLowerCase()) continue;
+    if (!purpose.test(`${url.pathname}${url.search}`)) continue;
+    url.hash = "";
+    const value = url.toString();
+    if (seen.has(value)) continue;
+    seen.add(value);
+    found.push(value);
+  }
+  return found;
+}
+
+async function discoverFromWeakParentBrandResult(
+  venue: { name: string; city: string },
+  candidate: ContactSearchResult,
   deps: ContactDeps,
 ): Promise<ContactHit | null> {
-  const results = await deps.serperSearch(contactQueryFor(venue.name, venue.city));
-  const siteUrl = pickVenueSiteUrl(results, venue.name);
-  // A strong hostname-grounded result always wins, even if an earlier result
-  // happens to qualify for the weaker parent-brand fallback.
-  if (!siteUrl) return discoverFromWeakParentBrandResults(venue, results, deps);
+  // Weak identity means weak fetch authority: fetch ONLY the indexed hit.
+  // Never fan out to its origin, guessed paths or discovered links.
+  const html = await deps.fetchPage(candidate.link);
+  if (!html) return null;
+  const email = pickBestEmail(
+    extractEmails(html).filter((value) => emailBoundToVenue(value, venue.name)),
+  );
+  if (!email) return null;
+
+  const url = new URL(candidate.link);
+  const label = url.pathname.replace(/\/$/, "") || "/";
+  return {
+    email,
+    source: `venue-branded search page ${label} — venue-named contact, verify parent brand (${email.split("@")[1]})`,
+    // Path/title/email agreement on a parent or publisher host is useful
+    // provenance, not first-party proof. Keep it manual and retryable.
+    direct: false,
+  };
+}
+
+/**
+ * A broad any-token hostname remains useful for a generic lead, but it is not
+ * strong enough to grant direct confidence or authority to crawl more pages.
+ */
+async function discoverFromLooseResult(
+  venue: { name: string; city: string },
+  candidate: ContactSearchResult,
+  deps: ContactDeps,
+): Promise<ContactHit | null> {
+  const html = await deps.fetchPage(candidate.link);
+  if (!html) return null;
+  const email = pickBestEmail(extractEmails(html));
+  if (!email) return null;
+  const url = new URL(candidate.link);
+  const label = url.pathname.replace(/\/$/, "") || "/";
+  return {
+    email,
+    source: `search-matched page ${label} — ${roleLabelFor(email, url.hostname)}`,
+    // Purpose words alone cannot turn a broad any-token publisher match into
+    // a direct venue contact. The explicit false survives persistence.
+    ...(emailRank(email) >= 3 ? { direct: false } : {}),
+  };
+}
+
+type RankedContactHit = { hit: ContactHit; rank: number };
+
+function contactHitFromStrictPage(
+  html: string,
+  venue: { name: string },
+  pageUrl: string,
+  label: string,
+): RankedContactHit | null {
+  const pageHost = new URL(pageUrl).hostname;
+  let email: string | null = null;
+  let identityDirect = false;
+  let rank = 0;
+  for (const candidate of extractEmails(html)) {
+    const roleRank = emailRank(candidate);
+    if (roleRank < 1) continue;
+    const candidateIdentityDirect =
+      roleRank < 3 && emailBoundToOfficialVenue(candidate, venue.name);
+    // A deterministic venue identity beats a generic role address, while a
+    // purpose-specific events/bookings address remains the best outcome.
+    const candidateRank = candidateIdentityDirect ? 2.5 : roleRank;
+    if (candidateRank > rank) {
+      email = candidate;
+      identityDirect = candidateIdentityDirect;
+      rank = candidateRank;
+    }
+  }
+  if (!email) return null;
+  return {
+    hit: identityDirect
+      ? {
+          email,
+          source: `venue site ${label} — venue-bound contact (${email.split("@")[1]})`,
+          direct: true,
+        }
+      : {
+          email,
+          source: `venue site ${label} — ${roleLabelFor(email, pageHost)}`,
+        },
+    rank,
+  };
+}
+
+/** Later strict candidates get only their indexed hit; no second full crawl. */
+async function discoverFromStrictHit(
+  venue: { name: string; city: string },
+  candidate: ContactSearchResult,
+  deps: ContactDeps,
+): Promise<ContactHit | null> {
+  const html = await deps.fetchPage(candidate.link);
+  if (!html) return null;
+  const url = new URL(candidate.link);
+  const label = url.pathname.replace(/\/$/, "") || "/";
+  return contactHitFromStrictPage(html, venue, candidate.link, label)?.hit ?? null;
+}
+
+/** Strict first-party crawl: indexed hit, fixed paths, then two same-host links. */
+async function discoverFromStrictResult(
+  venue: { name: string; city: string },
+  candidate: ContactSearchResult,
+  deps: ContactDeps,
+): Promise<ContactHit | null> {
+  const siteUrl = candidate.link;
 
   let origin: string;
   let hitPath: string;
@@ -477,59 +676,134 @@ export async function discoverVenueContact(
 
   let best: ContactHit | null = null;
   let bestRank = 0;
+  let discoveredCount = 0;
   for (const [url, label] of pages) {
     const html = await deps.fetchPage(url);
     if (!html) continue;
-    const pageHost = new URL(url).hostname;
-    const strictFirstParty = isStrictFirstPartyHost(pageHost, venue.name);
-    let email: string | null = null;
-    let identityDirect = false;
-    let rank = 0;
-    for (const candidate of extractEmails(html)) {
-      const roleRank = emailRank(candidate);
-      if (roleRank < 1) continue;
-      const candidateIdentityDirect =
-        roleRank < 3 &&
-        strictFirstParty &&
-        emailBoundToOfficialVenue(candidate, venue.name);
-      // A deterministic venue identity beats a generic role address, while a
-      // purpose-specific events/bookings address remains the best outcome.
-      const candidateRank = candidateIdentityDirect ? 2.5 : roleRank;
-      if (candidateRank > rank) {
-        email = candidate;
-        identityDirect = candidateIdentityDirect;
-        rank = candidateRank;
+    if (discoveredCount < DISCOVERED_CONTACT_LINK_CAP) {
+      for (const discoveredUrl of discoveredContactLinks(html, url, origin)) {
+        if (discoveredCount >= DISCOVERED_CONTACT_LINK_CAP) break;
+        if (pages.has(discoveredUrl)) continue;
+        const discoveredPath = new URL(discoveredUrl).pathname.replace(/\/$/, "") || "/";
+        pages.set(discoveredUrl, discoveredPath);
+        discoveredCount++;
       }
     }
-    if (!email) continue;
-    if (rank > bestRank) {
-      best = identityDirect
-        ? {
-            email,
-            source: `venue site ${label} — venue-bound contact (${email.split("@")[1]})`,
-            direct: true,
-          }
-        : {
-            email,
-            source: `venue site ${label} — ${roleLabelFor(email, pageHost)}`,
-          };
-      bestRank = rank;
+    const pageHit = contactHitFromStrictPage(html, venue, url, label);
+    if (!pageHit) continue;
+    if (pageHit.rank > bestRank) {
+      best = pageHit.hit;
+      bestRank = pageHit.rank;
     }
     if (bestRank >= 3) break; // events@/bookings@ found — stop fetching
   }
-  if (best) return best;
-  // A trusted hostname is preferred and exhausted first, but a WAF/empty
-  // response must not starve a later, independently-qualified parent-brand
-  // page from the same already-paid search result set.
-  return discoverFromWeakParentBrandResults(venue, results, deps, siteUrl);
+  return best;
+}
+
+/**
+ * The per-venue hunt, DB-free for tests: one search query, at most three
+ * grounded results. A direct result wins; otherwise retain only the best one
+ * generic result while continuing the bounded candidate pass.
+ */
+export async function discoverVenueContact(
+  venue: { name: string; city: string },
+  deps: ContactDeps,
+): Promise<ContactHit | null> {
+  const results = await deps.serperSearch(contactQueryFor(venue.name, venue.city));
+  const candidates = rankedContactCandidates(results, venue);
+  let pageFetches = 0;
+  const boundedDeps: ContactDeps = {
+    ...deps,
+    fetchPage: async (url) => {
+      if (pageFetches >= CONTACT_PAGE_FETCH_CAP_PER_VENUE) return null;
+      pageFetches++;
+      return deps.fetchPage(url);
+    },
+  };
+  let generic: ContactHit | null = null;
+  let genericRank = 0;
+  let strictCrawlSpent = false;
+
+  for (const candidate of candidates) {
+    let hit: ContactHit | null;
+    if (candidate.kind === "strict") {
+      if (strictCrawlSpent) {
+        hit = await discoverFromStrictHit(venue, candidate.result, boundedDeps);
+      } else {
+        strictCrawlSpent = true;
+        hit = await discoverFromStrictResult(venue, candidate.result, boundedDeps);
+      }
+    } else if (candidate.kind === "weak") {
+      hit = await discoverFromWeakParentBrandResult(venue, candidate.result, boundedDeps);
+    } else {
+      hit = await discoverFromLooseResult(venue, candidate.result, boundedDeps);
+    }
+    if (!hit) continue;
+    if (hit.direct === true || (hit.direct !== false && emailRank(hit.email) >= 3)) return hit;
+    const rank = emailRank(hit.email);
+    if (rank > genericRank) {
+      generic = hit;
+      genericRank = rank;
+    }
+  }
+  return generic;
 }
 
 // ---------------------------------------------------------------------------
 // Real-world deps + DB pass
 // ---------------------------------------------------------------------------
 
-const PAGE_BYTE_CAP = 200_000;
-const PAGE_TIMEOUT_MS = 5_000;
+export const CONTACT_PAGE_HEAD_CHAR_CAP = 140_000;
+export const CONTACT_PAGE_TAIL_CHAR_CAP = 60_000;
+export const CONTACT_PAGE_DECODED_CHAR_CAP = 1_000_000;
+export const CONTACT_PAGE_SAMPLE_SEPARATOR = "\n<!-- bright-ears page sample boundary -->\n";
+const PAGE_TIMEOUT_MS = 3_000;
+
+function sampledPageBody(value: string): string {
+  const retainedCap = CONTACT_PAGE_HEAD_CHAR_CAP + CONTACT_PAGE_TAIL_CHAR_CAP;
+  if (value.length <= retainedCap) return value;
+  return (
+    value.slice(0, CONTACT_PAGE_HEAD_CHAR_CAP) +
+    CONTACT_PAGE_SAMPLE_SEPARATOR +
+    value.slice(-CONTACT_PAGE_TAIL_CHAR_CAP)
+  );
+}
+
+/**
+ * Stream and decode only an absolute bounded amount, then cancel. Within that
+ * bound retain a deterministic head+tail sample so footer mailto/JSON-LD is not
+ * lost, with an explicit separator that prevents false email splicing.
+ */
+async function readBoundedHtml(res: Response): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let decoded = "";
+  let capped = false;
+
+  while (decoded.length < CONTACT_PAGE_DECODED_CHAR_CAP) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const part = decoder.decode(value, { stream: true });
+    const remaining = CONTACT_PAGE_DECODED_CHAR_CAP - decoded.length;
+    if (part.length >= remaining) {
+      decoded += part.slice(0, remaining);
+      capped = true;
+      break;
+    }
+    decoded += part;
+  }
+
+  if (capped || decoded.length >= CONTACT_PAGE_DECODED_CHAR_CAP) {
+    await reader.cancel().catch(() => undefined);
+  } else {
+    const tail = decoder.decode();
+    const remaining = CONTACT_PAGE_DECODED_CHAR_CAP - decoded.length;
+    decoded += tail.slice(0, remaining);
+    if (tail.length > remaining) await reader.cancel().catch(() => undefined);
+  }
+  return sampledPageBody(decoded);
+}
 
 export function makeLiveDeps(opts: { apiKey?: string; fetchFn?: typeof fetch; gl?: string } = {}): ContactDeps & {
   queries: () => number;
@@ -560,23 +834,53 @@ export function makeLiveDeps(opts: { apiKey?: string; fetchFn?: typeof fetch; gl
         // SSRF guard: the URL comes from Serper results (attacker-influencable
         // web content), and this fetch runs inside the trust boundary — same
         // discipline as lib/pdf/images.ts: http(s) only, no private/loopback/
-        // metadata hosts, re-check what the NAME actually resolves to, and
-        // never follow a redirect (a public host could 302 internal).
-        const parsed = new URL(url);
-        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-        if (isBlockedHost(parsed.hostname)) return null;
-        if (await resolvesToBlockedIp(parsed.hostname)) return null;
-        const res = await fetchFn(url, {
-          headers: { Accept: "text/html" },
-          signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
-          redirect: "manual",
-        });
-        if (res.status >= 300 && res.status < 400) return null; // redirect — skip, never follow
-        if (!res.ok) return null; // 403/404/5xx — skip, never retry
-        const type = res.headers.get("content-type") ?? "";
-        if (!type.includes("text/html")) return null;
-        const text = await res.text();
-        return text.slice(0, PAGE_BYTE_CAP);
+        // metadata hosts, and re-check what the NAME actually resolves to.
+        // One relative/same-host redirect is allowed for ordinary canonical
+        // contact URLs; its target goes through every check again.
+        const pageSignal = AbortSignal.timeout(PAGE_TIMEOUT_MS);
+        const resolvesBlockedBeforeDeadline = async (hostname: string) => {
+          if (pageSignal.aborted) return true;
+          return Promise.race([
+            resolvesToBlockedIp(hostname),
+            new Promise<boolean>((resolve) => {
+              pageSignal.addEventListener("abort", () => resolve(true), { once: true });
+            }),
+          ]);
+        };
+        const fetchValidated = async (
+          target: string,
+          redirectsRemaining: number,
+        ): Promise<string | null> => {
+          const parsed = new URL(target);
+          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+          if (parsed.username || parsed.password) return null;
+          if (isBlockedHost(parsed.hostname)) return null;
+          if (await resolvesBlockedBeforeDeadline(parsed.hostname)) return null;
+
+          const res = await fetchFn(target, {
+            headers: { Accept: "text/html" },
+            signal: pageSignal,
+            redirect: "manual",
+          });
+          if (res.status >= 300 && res.status < 400) {
+            const location = res.headers.get("location");
+            if (res.body) await res.body.cancel().catch(() => undefined);
+            if (redirectsRemaining === 0) return null;
+            if (!location) return null;
+            const redirected = new URL(location, parsed);
+            if (redirected.protocol !== "https:" && redirected.protocol !== "http:") return null;
+            if (redirected.username || redirected.password) return null;
+            if (redirected.host.toLowerCase() !== parsed.host.toLowerCase()) return null;
+            if (parsed.protocol === "https:" && redirected.protocol !== "https:") return null;
+            return fetchValidated(redirected.toString(), redirectsRemaining - 1);
+          }
+          if (!res.ok) return null; // 403/404/5xx — skip, never retry
+          const type = res.headers.get("content-type") ?? "";
+          if (!type.toLowerCase().includes("text/html")) return null;
+          return readBoundedHtml(res);
+        };
+
+        return await fetchValidated(url, 1);
       } catch {
         return null; // timeout/DNS/abort/bad URL — skip
       }
@@ -600,7 +904,13 @@ export type ContactPassResult = {
  */
 export async function runContactPass(
   businessId: string,
-  opts: { now?: Date; deps?: ContactDeps; gl?: string; limit?: number } = {},
+  opts: {
+    now?: Date;
+    deps?: ContactDeps;
+    gl?: string;
+    limit?: number;
+    wallClock?: () => number;
+  } = {},
 ): Promise<ContactPassResult> {
   const now = opts.now ?? new Date();
   const live = opts.deps ? null : makeLiveDeps({ gl: opts.gl });
@@ -614,6 +924,8 @@ export async function runContactPass(
     },
   };
   const limit = Math.max(1, Math.min(CONTACT_VENUES_PER_SCAN, opts.limit ?? CONTACT_VENUES_PER_SCAN));
+  const wallClock = opts.wallClock ?? Date.now;
+  const passStartedAt = wallClock();
 
   const commonWhere = {
     businessId,
@@ -673,7 +985,15 @@ export async function runContactPass(
     suppressed: [],
   };
 
+  let admittedVenues = 0;
   for (const venue of venues) {
+    // Never interrupt a claimed venue: admission is checked only between
+    // venues. Always admit one so a limit=1 backfill remains unaffected.
+    if (
+      admittedVenues > 0 &&
+      wallClock() - passStartedAt >= CONTACT_PASS_WALL_BUDGET_MS
+    ) break;
+    admittedVenues++;
     // A cron and a manual backfill may overlap. Claim against the exact queue
     // version we selected; only one worker may spend the external query.
     const claimState = contactClaimState(venue.contactAttemptCount, now);
@@ -722,17 +1042,20 @@ export async function runContactPass(
     }
 
     const email = hit.email.toLowerCase();
-    const existingDirect =
-      venue.contactState === "FOUND_DIRECT" ||
-      (!!venue.bookingEmail && emailRank(venue.bookingEmail) >= 3);
-    const foundDirect = hit.direct === true || emailRank(email) >= 3;
+    // contactState is the persisted proof. Re-inferring from role words would
+    // silently promote an explicitly-generic events@ address from a loosely
+    // matched publisher on its next retry.
+    const existingDirect = venue.contactState === "FOUND_DIRECT";
+    const foundDirect =
+      hit.direct === true || (hit.direct !== false && emailRank(email) >= 3);
     const existingRank = existingDirect
       ? 3
       : venue.bookingEmail
         ? emailRank(venue.bookingEmail)
         : -1;
     const foundRank = foundDirect ? 3 : emailRank(email);
-    const useFound = foundRank > existingRank;
+    const useFound =
+      foundRank > existingRank || (foundDirect && !existingDirect);
     const chosenEmail = useFound ? email : venue.bookingEmail ?? email;
     const chosenSource = useFound ? hit.source : venue.contactSource;
     const chosenDirect = useFound ? foundDirect : existingDirect;
