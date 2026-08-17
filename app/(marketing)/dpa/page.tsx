@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal-page";
+import {
+  COMPANY_REGISTRATION_NUMBER,
+  LEGAL_ENTITY_NAME,
+  REGISTERED_OFFICE_LINES,
+} from "@/lib/legal/company";
 
 export const metadata: Metadata = {
-  title: "Data Processing Addendum (draft) — Bright Ears",
+  title: "Data Processing Addendum — Bright Ears",
   description:
-    "Processor terms under GDPR Art 28(3) and Thailand PDPA s.40: how Bright Ears Co., Ltd. processes the personal data of a performer business's leads and end-clients, on that business's instructions. Draft, pending legal review.",
-  robots: { index: false, follow: true },
+    "Processor terms under GDPR Article 28(3) and Thailand PDPA section 40 for performer businesses using Bright Ears.",
+  robots: { index: true, follow: true },
 };
 
 const CONTACT = "info@brightears.io";
@@ -23,9 +28,10 @@ export default function DpaPage() {
         <p>
           This Data Processing Addendum (&ldquo;DPA&rdquo;) is between you, the performer business that
           subscribes to Bright Ears (the &ldquo;Controller&rdquo;), and{" "}
-          <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
+          <span className="font-semibold text-ink-stage">{LEGAL_ENTITY_NAME}</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659) (the &ldquo;Processor&rdquo;). It is incorporated
+          {COMPANY_REGISTRATION_NUMBER}), with its registered office at{" "}
+          {REGISTERED_OFFICE_LINES.slice(1).join(", ")} (the &ldquo;Processor&rdquo;). It is incorporated
           into the{" "}
           <Link href="/terms" className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             Terms of Service
@@ -214,8 +220,8 @@ export default function DpaPage() {
             Terms of Service
           </Link>
           . If there is a conflict between this DPA and the Terms of Service on the subject of data
-          protection, this DPA prevails. To request a countersigned copy once finalised in legal review,
-          or for any question about this addendum, email{" "}
+          protection, this DPA prevails. To request a countersigned copy, or for any question about this
+          addendum, email{" "}
           <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             {CONTACT}
           </a>

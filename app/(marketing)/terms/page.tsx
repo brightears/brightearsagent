@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
+import {
+  COMPANY_REGISTRATION_NUMBER,
+  LEGAL_ENTITY_NAME,
+  REGISTERED_OFFICE_LINES,
+} from "@/lib/legal/company";
 
 export const metadata: Metadata = {
-  title: "Terms of Service (draft) — Bright Ears",
-  description:
-    "The terms that govern your use of Bright Ears, the AI back office for performer businesses, contracted with Bright Ears Co., Ltd. (Thailand). Draft, pending legal review.",
-  robots: { index: false, follow: true },
+  title: "Terms of Service — Bright Ears",
+  description: `The terms governing use of Bright Ears, the AI back office for performer businesses, contracted with ${LEGAL_ENTITY_NAME} in Thailand.`,
+  robots: { index: true, follow: true },
 };
 
 const CONTACT = "info@brightears.io";
@@ -23,9 +27,19 @@ export default function TermsPage() {
       <LegalSection kicker="The agreement" title="Who you are contracting with, and acceptance">
         <p>
           Bright Ears is operated by{" "}
-          <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
+          <span className="font-semibold text-ink-stage">{LEGAL_ENTITY_NAME}</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659). By creating an account or using Bright Ears, you
+          {COMPANY_REGISTRATION_NUMBER}). Its registered office is:
+        </p>
+        <address className="not-italic">
+          {REGISTERED_OFFICE_LINES.map((line) => (
+            <span key={line} className="block">
+              {line}
+            </span>
+          ))}
+        </address>
+        <p>
+          By creating an account or using Bright Ears, you
           agree to these terms. If you are using the service on behalf of a business, you confirm you are
           authorised to bind that business. If you do not agree, do not use the service.
         </p>
@@ -92,7 +106,7 @@ export default function TermsPage() {
         </p>
         <p>
           You agree to <span className="font-semibold text-ink-stage">indemnify and hold harmless</span>{" "}
-          Bright Ears Co., Ltd. and its officers and contractors against any claims, penalties, fines,
+          {LEGAL_ENTITY_NAME} and its officers and contractors against any claims, penalties, fines,
           losses and reasonable costs arising out of messages you send (or cause to be sent) through the
           service, or out of your breach of the Acceptable Use Policy or applicable law. This indemnity
           survives termination.
@@ -160,7 +174,7 @@ export default function TermsPage() {
 
       <LegalSection kicker="Ownership" title="Intellectual property">
         <p>
-          Bright Ears and its software, design and content are owned by Bright Ears Co., Ltd. You retain
+          Bright Ears and its software, design and content are owned by {LEGAL_ENTITY_NAME}. You retain
           ownership of your business content (profile, packages, voice samples) and your leads&rsquo; data,
           and you grant us the rights needed to process that content to provide the service.
         </p>
@@ -226,7 +240,7 @@ export default function TermsPage() {
           <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             {CONTACT}
           </a>
-          .
+          . You can also write to our registered office at {REGISTERED_OFFICE_LINES.slice(1).join(", ")}.
         </p>
       </LegalSection>
     </LegalPage>

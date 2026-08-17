@@ -332,19 +332,18 @@ customer writes that would be lost.
   selected tester list for `BETA_COMP_EMAILS` only when those artists are being
   promised the automatic free first month and included in the measured cohort.
   Ordinary full-price checkout does not require this list.
-- Before accepting a first paying customer, the founder and qualified privacy
-  counsel must review and approve the Privacy Policy, Terms, Cookie Policy,
-  DPA and Acceptable Use Policy; set their effective date; and authorise removal
-  of the shared "not yet effective" banner. An agent must not do this on its
-  own.
-- Review, restrict as needed, and sign `docs/HUNT-LIA.md`. At minimum this means
-  resolving UK/EU targeting and recipient classification, making the indirect-
-  collection notice effective and available from the first outreach message,
-  and approving target countries before Hunt sends there.
-- Verify the legal documents against the live provider configuration and
-  contracts, including Cloudflare R2, OpenRouter/model-provider log retention,
-  international-transfer safeguards, company contact/address details and the
-  stated retention periods.
+- The founder approved the Privacy Policy, Terms, Cookie Policy, DPA, Acceptable
+  Use Policy and restricted Hunt LIA on 2026-08-17. Before accepting the first
+  customer, live-verify the effective-date notice, indexable metadata, registered
+  office and first-outreach privacy URL after this release deploys.
+- `docs/HUNT-LIA.md` permits a controlled launch only: automated sends remain
+  limited to current `STANDARD` jurisdictions, UK/EU active targeting remains
+  off, consent/manual-only countries remain fail-closed, and complaint/duplicate
+  contact signals must pause sending.
+- Confirm the live AI boundary uses OpenRouter `data_collection: "deny"` plus
+  `zdr: true`; provider failures must fail closed rather than weaken those
+  controls. Continue the manual monthly retention review until purge automation
+  ships.
 - The all-customer hard-stop is implemented in
   `GlobalOutreachSuppression` and consumed at discovery, draft, copy, follow-up
   and send boundaries. Its migration is applied in production and its boundary
@@ -358,8 +357,8 @@ The internal privacy procedures are documented in
 account closure, database/provider/R2 deletion, backup expiry, identity checks
 and incidents. They are deliberately manual because the current product has no
 self-serve export/deletion control. The Hunt assessment in `docs/HUNT-LIA.md`
-currently concludes **conditional fail / legal approval required**; neither
-document makes the public draft policies effective.
+concludes **conditional pass for a controlled launch** with explicit country,
+scale, transparency and monitoring restrictions.
 
 Performance video is optional as of 2026-07-31. It is available as an EPK
 enhancement but does not affect profile strength, onboarding readiness, weekly
@@ -373,8 +372,11 @@ Render account two-factor authentication was enabled and live-verified on
 2026-07-31.
 
 Google OAuth data-access verification for `gmail.send` was submitted on
-2026-07-31 and was last known to be under review. The current console state was
-not reverified on 2026-08-16 because Google required founder reauthentication;
-do not treat arbitrary-user Gmail onboarding as approved until that read-back
-is complete. The reviewer video is the unlisted Bright Ears YouTube upload at
-`https://youtu.be/RQUNmQg0vRc`.
+2026-07-31. Live console read-back on 2026-08-17 shows branding verified and data
+access under review. Google's latest reviewer message (2026-08-08) requires
+complete, auditable segregation proving Google API user data never reaches
+OpenRouter, plus a new demo video. This release adds that disclosure, Limited Use
+statement and code boundary; do not treat arbitrary-user Gmail onboarding as
+approved until the new evidence is sent and Google accepts it. The previous
+reviewer video at `https://youtu.be/RQUNmQg0vRc` is historical and does not answer
+the new segregation request.

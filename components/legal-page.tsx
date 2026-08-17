@@ -2,7 +2,8 @@
 // Design language v2.1 "Neon Collage" (docs/DESIGN.md, THE LAW): ink canvas,
 // a single cream prose card floating on the ink (NO tilt — these are read like
 // data, not posters), a mono ALL-CAPS kicker eyebrow, a display headline with
-// one gradient-painted word, a prominent DRAFT banner and a Last-updated line.
+// one gradient-painted word, a prominent effective-date notice and a
+// Last-updated line.
 //
 // Server-component friendly: no hooks, no client APIs. Decorative collage is
 // kept deliberately quiet here — legal copy must read at AA contrast, calm.
@@ -12,26 +13,24 @@ import { GradientBlob, StickerChip } from "@/components/collage";
 /** The v2 signature: one gradient-painted word in a warm-white headline. */
 const GRAD = "bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent";
 
-export const LAST_UPDATED = "June 14, 2026";
+export const LAST_UPDATED = "August 17, 2026";
 
 /**
- * DRAFT banner — required on EVERY legal page (task B6). Cyan = the interface
- * voice telling you a true fact about state; high-contrast on ink, not a
- * decorative show accent. Kept sober: this is a real disclaimer.
+ * Effective-date notice shared by every legal page. Cyan = the interface voice
+ * telling the reader a true fact about state; kept sober and high-contrast.
  */
-export function DraftBanner() {
+export function EffectiveBanner() {
   return (
     <div
       role="note"
       className="mb-8 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 px-5 py-4"
     >
       <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-cyan">
-        Draft — pending legal review
+        Effective August 17, 2026
       </p>
       <p className="mt-1.5 text-sm leading-relaxed text-cream/80">
-        This document is a working draft and is{" "}
-        <span className="font-semibold text-cream-bright">not yet effective</span>. It has not been
-        reviewed or approved by a lawyer and does not yet govern your use of Bright Ears.
+        This document is part of the terms and privacy framework that governs use of Bright Ears from
+        the effective date above.
       </p>
     </div>
   );
@@ -78,7 +77,7 @@ export function LegalSection({
 
 /**
  * Page frame: ink canvas + hero (kicker, gradient-word headline, lead-in),
- * then the cream prose card carrying the DRAFT banner, the Last-updated line
+ * then the cream prose card carrying the effective-date notice, the Last-updated line
  * and the page body.
  */
 export function LegalPage({
@@ -124,7 +123,7 @@ export function LegalPage({
         <div className="relative">
           <GradientBlob tone="cyan" className="-top-8 -left-10 h-36 w-56" />
           <article className="relative rounded-[2rem] bg-cream px-6 py-10 shadow-[0_36px_90px_rgba(0,0,0,0.5)] sm:px-10 sm:py-12">
-            <DraftBanner />
+            <EffectiveBanner />
             <p className="mb-10 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-stage/50">
               Last updated: {LAST_UPDATED}
             </p>

@@ -101,5 +101,12 @@ export function pitchFooter(opts: {
       ? `If this isn't relevant for ${opts.venueName}, just reply and tell me — I won't write again.`
       : `If this isn't relevant for ${opts.venueName}, tell me and that's the last you'll hear from me — promise.`;
   const address = opts.postalAddress.trim();
-  return ["", "—", identity, ...(address ? [address] : []), optOut].join("\n");
+  return [
+    "",
+    "—",
+    identity,
+    ...(address ? [address] : []),
+    optOut,
+    "Privacy: https://brightears.io/privacy",
+  ].join("\n");
 }

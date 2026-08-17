@@ -1,9 +1,10 @@
 # Hunt Legitimate Interest Assessment
 
-- Status: **internal draft — not approved for reliance**
-- Controller: Bright Ears Co., Ltd.
-- Assessment date: 2026-08-16
-Owner/reviewer: founder and qualified privacy counsel (approval outstanding)
+- Status: **approved for controlled launch, subject to the restrictions below**
+- Controller: Bright Ears Co., Ltd. (Head Office)
+- Assessment date: 2026-08-17
+- Owner/reviewer: Norbert Platzer, founder
+- Next scheduled review: 2027-08-17 (or earlier on a trigger below)
 
 This assessment covers Bright Ears' collection of public venue/business-contact
 data for Hunt and the use of that data to prepare and, where separately lawful,
@@ -77,7 +78,7 @@ The current implementation narrows the processing:
 The same purpose does not require personal phone numbers, home addresses,
 special-category data, inbox scraping, guessed addresses, long behavioural
 profiles or unlimited retention. Subject to those boundaries, the necessity
-test is provisionally met.
+test is met for the controlled-launch scope.
 
 ## 3. Balancing test
 
@@ -118,14 +119,14 @@ minor-related, sensitive or non-business context, the record must not be used.
 - The internal `docs/PRIVACY-OPERATIONS.md` defines access, correction,
   objection, deletion, retention and incident procedures.
 
-### Residual risks and required gates
+### Residual risks and operating restrictions
 
-The balance does **not** pass for unrestricted production use today:
+The balance passes only for the controlled-launch scope below, not unrestricted production use:
 
-1. The public Privacy Policy and Article 14/PDPA indirect-collection notice are
-   marked draft, noindex and not effective. The first outreach message also
-   lacks a link to that notice. Transparency must be effective and provided no
-   later than the legally required point before relying on this assessment.
+1. The 2026-08-17 release makes the public Privacy Policy and Article 14/PDPA
+   indirect-collection notice effective and appends its URL to every first
+   outreach footer. The release must be deployed and live-verified before Hunt
+   sends resume under this assessment.
 2. The 2026-08-16 release adds `GlobalOutreachSuppression`, a non-cascading
    product-wide hard stop for explicit opt-outs, cease-and-desist requests,
    spam complaints and definitive invalid recipients. All discovery, draft,
@@ -134,7 +135,8 @@ The balance does **not** pass for unrestricted production use today:
    2026-08-16. The safeguard does not yet deduplicate an otherwise-unsuppressed
    venue across several artists
    or impose a cross-tenant contact-frequency cap; the controlled beta must
-   monitor repeat-contact risk and counsel must approve the permitted scale.
+   monitor repeat-contact risk and sending must pause if duplication becomes
+   material.
 3. Official
    [ICO B2B guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/business-to-business-marketing/)
    distinguishes corporate subscribers from sole traders and some partnerships.
@@ -143,10 +145,10 @@ The balance does **not** pass for unrestricted production use today:
    requires the artist to confirm consent or another lawful basis. Manual
    transport is not itself a lawful basis. This is an engineering fail-closed
    control, not approval to target UK recipients.
-4. The draft Privacy Policy says Bright Ears does not actively direct the
-   service at the UK/EU, while the product has scanned UK cities and can prepare
-   GB handoff drafts. Founder/legal must resolve the targeting,
-   territorial-scope and any representative obligations before UK/EU use.
+4. Bright Ears does not actively target the UK or EU during controlled launch.
+   GB, DE and AT remain consent/manual-only in the rules engine, and no manual
+   handoff may be treated as permission to send. Any active UK/EU launch requires
+   a new territorial-scope and representative review first.
 5. The stated 12-month Hunt retention target has no automatic purge. The manual
    monthly review is required now; an automated and tested retention control is
    follow-up work.
@@ -156,33 +158,34 @@ The balance does **not** pass for unrestricted production use today:
 
 ## Outcome
 
-**Current decision: conditional fail / legal approval required.** The commercial
-purpose and minimised processing can support legitimate interests for carefully
-targeted, public business contacts, but Bright Ears must not cite this draft as
-an approved lawful-basis assessment yet.
+**Decision: conditional pass for a controlled launch.** The commercial purpose,
+data minimisation and layered safeguards support legitimate interests for
+carefully targeted, published business contacts under these restrictions:
 
-Founder and privacy counsel may approve a narrower result only after they:
+- automated Hunt sending is limited to the countries currently classified
+  `STANDARD` by `lib/outreach/jurisdiction.ts` (US, TH, NZ, IE, SG and AU);
+- GB, CA, DE, AT and unknown countries remain consent/manual-only; Bright Ears
+  does not actively target the UK or EU during this launch;
+- every first outreach includes the effective privacy-notice URL, sender
+  identity, physical mailing address and reply-to-stop language;
+- the selected beta remains low-volume and monitored for wrong contacts,
+  duplicate cross-tenant contact, complaints, bounces and opt-outs; sending is
+  paused and investigated if those indicators show unexpected harm;
+- the documented monthly manual retention review remains mandatory until an
+  automated purge is implemented and tested; and
+- provider privacy/data-transfer settings and product-wide suppression remain
+  part of each release read-back.
 
-- approve and publish the effective privacy/indirect-collection notice and its
-  first-message delivery mechanism;
-- approve the target countries and recipient classes, with UK/EU activity
-  disabled or corrected as above;
-- acknowledge the live-verified product-wide suppression migration and
-  send-boundary checks, approve any controlled-beta cross-tenant frequency
-  limit, and accept the documented manual retention operations with a deadline
-  for purge automation;
-- verify provider contracts, international-transfer mechanisms and actual log
-  retention; and
-- sign and date this assessment with any restrictions.
-
-If approved under those conditions, review at least annually and immediately
-after a new country/source/data category, materially higher send volume,
-automation change, security incident, regulator guidance change, sustained
-complaint/opt-out increase or evidence that contacts are surprised or harmed.
+This is a founder-approved operational assessment, not a representation that an
+independent law firm has issued an opinion. Review at least annually and
+immediately after a new country/source/data category, materially higher send
+volume, automation change, security incident, regulator guidance change,
+sustained complaint/opt-out increase or evidence that contacts are surprised or
+harmed.
 
 ## Approval record
 
 | Decision | Name/role | Date | Restrictions / review date |
 |---|---|---|---|
-| Founder | Pending | — | — |
-| Qualified privacy counsel | Pending | — | — |
+| Approved for controlled launch | Norbert Platzer, founder | 2026-08-17 | Restrictions above; review by 2027-08-17 |
+| Independent legal opinion | Not commissioned | — | Obtain before active UK/EU launch or materially broader automation |

@@ -54,14 +54,14 @@ describe("pitchFooter", () => {
     venueName: "The Vault",
   };
 
-  it("STANDARD: identity line + personal opt-out sentence, no unsubscribe link", () => {
+  it("STANDARD: identity, privacy notice and personal opt-out sentence", () => {
     const f = pitchFooter({ mode: "STANDARD", ...base });
     expect(f).toContain("Sapphire Sounds · Manchester");
     expect(f).toContain("12 Deansgate, Manchester M3 2BW, United Kingdom");
     expect(f).toContain("If this isn't relevant for The Vault");
     expect(f).toContain("I won't write again");
     expect(f.toLowerCase()).not.toContain("unsubscribe");
-    expect(f.toLowerCase()).not.toContain("http");
+    expect(f).toContain("Privacy: https://brightears.io/privacy");
   });
 
   it("CONSENT/STRICT: still identity + a human no-follow-up promise", () => {
@@ -70,6 +70,7 @@ describe("pitchFooter", () => {
       expect(f).toContain("Sapphire Sounds · Manchester");
       expect(f).toContain("The Vault");
       expect(f).toMatch(/last you'll hear/);
+      expect(f).toContain("https://brightears.io/privacy");
     }
   });
 

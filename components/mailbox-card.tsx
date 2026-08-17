@@ -12,6 +12,7 @@
 // The ?mailbox=connected|error|unavailable query flags become a one-line toast.
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { Badge, Card, Kicker, buttonStyles } from "@/components/ui";
 import { disconnectMailboxForm } from "@/app/actions/settings";
 import { sendTestEmail } from "@/app/actions/venues";
@@ -141,6 +142,27 @@ export function MailboxCard({
         Pitches send from your own inbox so venues hear from you, not a tool. We only ever ask to
         send — never to read your mail.
       </p>
+
+      {(state.kind === "disconnected" || state.kind === "error") && (
+        <div className="mb-4 rounded-xl border border-brand-cyan/30 bg-brand-cyan-soft/45 px-4 py-3 text-sm leading-relaxed text-ink-stage/75">
+          <p className="font-semibold text-ink-stage">What connecting Gmail allows</p>
+          <p className="mt-1.5">
+            Bright Ears requests only Google&rsquo;s send permission. We never read, list or import
+            your Gmail messages. We store your connected email address and encrypted OAuth tokens so
+            approved pitches can be sent from your mailbox.
+          </p>
+          <p className="mt-1.5">
+            Information received from Google APIs — including your email address, tokens and Google
+            message IDs — is never sent to OpenRouter or another AI provider, used to train AI, sold or
+            used for advertising. You can disconnect at any time. By choosing Connect Gmail, you ask us
+            to use this limited access as described in our{" "}
+            <Link href="/privacy" className="font-semibold underline underline-offset-2">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        </div>
+      )}
 
       {state.kind === "unconfigured" && (
         <p className="rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/55">

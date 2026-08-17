@@ -3,10 +3,10 @@ import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Acceptable Use & Anti-Spam Policy (draft) — Bright Ears",
+  title: "Acceptable Use & Anti-Spam Policy — Bright Ears",
   description:
-    "Your responsibilities as the legal sender of outbound email through Bright Ears: per-jurisdiction anti-spam duties (CAN-SPAM, CASL, UK PECR, Australia Spam Act, GDPR/ePrivacy), suppression and opt-out rules, and platform bans. Draft, pending legal review.",
-  robots: { index: false, follow: true },
+    "Your responsibilities as the legal sender of outbound email through Bright Ears, including jurisdiction rules, suppression and opt-out duties.",
+  robots: { index: true, follow: true },
 };
 
 const CONTACT = "info@brightears.io";

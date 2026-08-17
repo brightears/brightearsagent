@@ -1,8 +1,9 @@
 // Google OAuth (Phase 10.5) — minimal raw-fetch client for the gmail.send
 // flow. NO googleapis SDK (keeps deps light; package.json has none). We request
-// the MINIMAL restricted scope gmail.send ONLY — reply capture
-// (gmail.readonly/modify) is a deferred later phase. openid + email ride along
-// so the callback learns which address the artist connected.
+// the MINIMAL restricted scope gmail.send ONLY. No inbox-reading scope is
+// requested; reply capture uses Bright Ears' separate inbound-mail path.
+// openid + email ride along so the callback learns which address the artist
+// connected.
 //
 // Redirect URI is derived from APP_URL via the shared strict appUrl() helper
 // (lib/app-url.ts — throws in production when APP_URL is unset, because a
