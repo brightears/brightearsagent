@@ -3,10 +3,10 @@ import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy (draft) — Bright Ears",
+  title: "Cookie Policy — Bright Ears",
   description:
-    "How Bright Ears uses cookies. Strictly-necessary authentication and security cookies only — consent-exempt under ePrivacy/PECR. No advertising or cross-site tracking. Stripe sets its cookies on its own checkout domain, not ours. Draft, pending legal review.",
-  robots: { index: false, follow: true },
+    "How Bright Ears uses strictly necessary authentication and security cookies. No advertising or cross-site tracking cookies.",
+  robots: { index: true, follow: true },
 };
 
 const CONTACT = "info@brightears.io";

@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, LegalSection } from "@/components/legal-page";
+import {
+  COMPANY_REGISTRATION_NUMBER,
+  LEGAL_ENTITY_NAME,
+  REGISTERED_OFFICE_LINES,
+} from "@/lib/legal/company";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy (draft) — Bright Ears",
-  description:
-    "How Bright Ears Co., Ltd. (Thailand) handles personal data across the PDPA, GDPR, UK GDPR, CCPA/CPRA and other regimes. Draft, pending legal review. Three roles: controller for account data, processor for performers' leads, and controller for scraped venue contacts.",
-  robots: { index: false, follow: true },
+  title: "Privacy Policy — Bright Ears",
+  description: `How ${LEGAL_ENTITY_NAME} handles personal data as controller for account and venue-contact data and processor for performer businesses' leads.`,
+  robots: { index: true, follow: true },
 };
 
 const CONTACT = "info@brightears.io";
@@ -19,18 +23,25 @@ export default function PrivacyPage() {
       gradientWord="Policy"
       lead="This explains what personal data Bright Ears collects, why, the legal bases we rely on in each jurisdiction, who helps us process it, how long we keep it, and how you — or anyone whose data we hold — can see, correct, object to or delete it."
     >
-      <LegalSection kicker="Who we are" title="Bright Ears Co., Ltd., a Thailand-registered controller">
+      <LegalSection kicker="Who we are" title={`${LEGAL_ENTITY_NAME}, a Thailand-registered controller`}>
         <p>
           Bright Ears is an AI back office for wedding and event performer businesses. The contracting
           entity and data controller for this service is{" "}
-          <span className="font-semibold text-ink-stage">Bright Ears Co., Ltd.</span>, a company
+          <span className="font-semibold text-ink-stage">{LEGAL_ENTITY_NAME}</span>, a company
           registered in Thailand (registration number{" "}
-          0105550096659). References to &ldquo;Bright Ears&rdquo;,
+          {COMPANY_REGISTRATION_NUMBER}). References to &ldquo;Bright Ears&rdquo;,
           &ldquo;we&rdquo;, &ldquo;us&rdquo; and &ldquo;our&rdquo; mean that entity.
         </p>
+        <address className="not-italic">
+          {REGISTERED_OFFICE_LINES.map((line) => (
+            <span key={line} className="block">
+              {line}
+            </span>
+          ))}
+        </address>
         <p>
           Our <span className="font-semibold text-ink-stage">home data-protection regime is Thailand&rsquo;s
-          Personal Data Protection Act (PDPA)</span>. Because Bright Ears Co., Ltd. is established in
+          Personal Data Protection Act (PDPA)</span>. Because {LEGAL_ENTITY_NAME} is established in
           Thailand, the company is its own local presence under the PDPA. We also comply with the other
           regimes that apply to the people whose data we handle — the EU and UK GDPR, the California
           Consumer Privacy Act as amended by the CPRA, and equivalent laws in Canada, Australia and
@@ -112,9 +123,25 @@ export default function PrivacyPage() {
             <span className="font-semibold text-ink-stage">Mailbox-send authorisation (optional).</span>{" "}
             If you connect your own Google mailbox so the Hunt can send from it, we use a minimal-scope,
             send-only authorisation (<span className="font-mono text-[0.92em]">gmail.send</span>). We do
-            not read your inbox; the token is stored encrypted.
+            not read, list or import your Gmail messages. We store the connected email address and OAuth
+            tokens, with the tokens encrypted at rest, plus the Google message ID returned after a send.
           </li>
         </ul>
+      </LegalSection>
+
+      <LegalSection kicker="Google API data" title="Google Limited Use and separation from AI providers">
+        <p>
+          Bright Ears&rsquo; use of information received from Google APIs will adhere to the Google API
+          Services User Data Policy, including the Limited Use requirements.
+        </p>
+        <p>
+          Google API user data — including a connected Google email address, OAuth credentials and Gmail
+          message IDs — is used only to connect, maintain and operate the send-only mailbox feature. It is
+          never sent to OpenRouter or another AI provider, used to train generalized AI models, sold,
+          used for advertising, or disclosed for an unrelated purpose. AI drafting is completed from
+          information supplied directly to Bright Ears and public venue information before the separate
+          Gmail transport sends the owner-approved message.
+        </p>
       </LegalSection>
 
       <LegalSection kicker="Legal bases" title="The legal grounds we rely on, by regime">
@@ -174,8 +201,8 @@ export default function PrivacyPage() {
         </p>
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <span className="font-semibold text-ink-stage">Who holds your data:</span> Bright Ears Co.,
-            Ltd. (Thailand), as controller. Contact{" "}
+            <span className="font-semibold text-ink-stage">Who holds your data:</span>{" "}
+            {LEGAL_ENTITY_NAME} (Thailand), as controller. Contact{" "}
             <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
               {CONTACT}
             </a>
@@ -299,7 +326,8 @@ export default function PrivacyPage() {
       <LegalSection kicker="Who helps us" title="Sub-processors and service providers">
         <p>
           We use the following service providers to operate Bright Ears. Each handles personal data only
-          as needed to provide its service to us, under contract:
+          as needed for its stated role, subject to its service terms and the contractual or transfer
+          safeguards available for that service:
         </p>
         <ul className="list-disc space-y-2 pl-5">
           <li>
@@ -308,7 +336,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="font-semibold text-ink-stage">OpenRouter</span> — AI/LLM gateway that routes
-            prompts to language models for parsing, triage and drafting.
+            prompts to language models for parsing, triage and drafting. Every Bright Ears request
+            requires providers that deny data collection and support zero data retention. Google API user
+            data is never included in these prompts.
           </li>
           <li>
             <span className="font-semibold text-ink-stage">Render</span> — application hosting and managed
@@ -332,7 +362,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="font-semibold text-ink-stage">Google (Gmail API, OAuth)</span> — send-only
-            access to your own mailbox, where you connect one for the Hunt.
+            access to your own mailbox, where you connect one for the Hunt; this data is segregated from
+            the AI path described above.
           </li>
         </ul>
         <p>
@@ -350,11 +381,10 @@ export default function PrivacyPage() {
         <p>
           Several of our providers process data outside Thailand, including in the United States and the
           EU. Thailand&rsquo;s PDPC has not published an adequacy whitelist of approved destination
-          countries, so we do not rely on adequacy. Instead, every cross-border transfer is made under
-          appropriate safeguards — primarily the{" "}
-          <span className="font-semibold text-ink-stage">Standard Contractual Clauses</span> (with the UK
-          Addendum where UK data is involved) together with each provider&rsquo;s own transfer
-          mechanism. You can ask us for detail on the safeguards in place for a given provider.
+          countries, so we do not rely solely on adequacy. We assess each transfer and use the provider&rsquo;s
+          available transfer mechanism, such as contractual data-protection terms, the EU Standard
+          Contractual Clauses or the UK Addendum where applicable. You can ask us for detail on the
+          safeguards used for a given provider.
         </p>
       </LegalSection>
 
@@ -375,10 +405,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <span className="font-semibold text-ink-stage">AI/LLM prompt &amp; completion content:</span>{" "}
-            not stored in our database. It transits the gateway only to produce the result and is held
-            transiently; our gateway&rsquo;s logs are configured for a short retention window (target
-            ≤30 days) after which they are purged. Our own usage-cost table stores token counts only —
-            no message content.
+            not stored in our database. It transits OpenRouter only to produce the result. Bright Ears
+            enforces no-data-collection and zero-data-retention provider routing on every request;
+            OpenRouter states that it does not retain prompts unless prompt logging is explicitly enabled.
+            Our own usage-cost table stores token counts only — no message content. Google API user data
+            never enters this AI path.
           </li>
           <li>
             <span className="font-semibold text-ink-stage">Scraped venue/contact data:</span> retained
@@ -441,9 +472,18 @@ export default function PrivacyPage() {
           <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             {CONTACT}
           </a>
-          . EU and UK data subjects may also contact our
-          respective representatives named above. You also have the right to lodge a complaint with the
-          Thai PDPC or your local supervisory authority.
+          . Our registered office is:
+        </p>
+        <address className="not-italic">
+          {REGISTERED_OFFICE_LINES.map((line) => (
+            <span key={line} className="block">
+              {line}
+            </span>
+          ))}
+        </address>
+        <p>
+          EU and UK data subjects may also contact our representatives named above. You also have the
+          right to lodge a complaint with the Thai PDPC or your local supervisory authority.
         </p>
       </LegalSection>
     </LegalPage>

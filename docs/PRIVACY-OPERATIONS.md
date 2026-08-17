@@ -1,8 +1,8 @@
 # Privacy operations runbook
 
-Status: internal operating procedure, last reviewed 2026-08-16. This is not a
-substitute for legal advice and does not make the public draft legal documents
-effective.
+Status: internal operating procedure, last reviewed 2026-08-17. This is not a
+substitute for legal advice. The public legal documents are effective from
+2026-08-17; this runbook governs the manual operations needed to honour them.
 
 Bright Ears has no self-serve data export or account-deletion control in the
 current build. Until those exist, the founder must run the steps below for every
@@ -187,9 +187,9 @@ stops renewal; it does not delete the Bright Ears workspace.
    completes and must not be restored into live service except for disaster
    recovery.
 
-The draft public policy sets a maximum of 90 days after closure for account and
-lead data. The case register is the deadline source until closure timestamps and
-purge automation exist.
+The public policy sets a maximum of 90 days after closure for account and lead
+data. The case register is the deadline source until closure timestamps and purge
+automation exist.
 
 ## Retention review
 
@@ -200,8 +200,8 @@ On the first business day of each month, the privacy owner must review:
 - stale R2 objects no longer referenced by any `photoUrls` value;
 - expired access/export packages and local working copies;
 - provider retention settings, especially OpenRouter/model-provider logging;
-  the public draft's target of at most 30 days must not be represented as
-  configured until the live provider settings are verified; and
+  verify that code still sets `data_collection: "deny"` and `zdr: true`, and
+  reconcile a provider error rather than silently weakening those controls; and
 - global suppression enforcement logs/tests and any manual privacy objections
   not yet represented in `GlobalOutreachSuppression`.
 

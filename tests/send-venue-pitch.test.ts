@@ -142,6 +142,7 @@ describe("sendVenuePitch — happy path", () => {
     // Footer carries the identity + opt-out line for STANDARD.
     expect(sent.body).toContain("Sapphire Sounds · Manchester");
     expect(sent.body).toContain("just reply and tell me");
+    expect(sent.body).toContain("Privacy: https://brightears.io/privacy");
     expect(sent.toEmail).toBe("events@velvet.co");
     expect(sent.replyToEmail).toMatch(/^leads@.+\.in\.brightears\.io$/); // reply capture (P8.3): venue replies route into the pipeline
   });

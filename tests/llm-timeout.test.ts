@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-const mocks = vi.hoisted(() => ({
-  generateObject: vi.fn(),
-  generateText: vi.fn(),
-  createOpenRouter: vi.fn(() => vi.fn(() => ({ provider: "test" }))),
-  logUsage: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const openrouterModel = vi.fn(() => ({ provider: "test" }));
+  return {
+    generateObject: vi.fn(),
+    generateText: vi.fn(),
+    openrouterModel,
+    createOpenRouter: vi.fn(() => openrouterModel),
+    logUsage: vi.fn(),
+  };
+});
 
 vi.mock("ai", () => ({
   generateObject: mocks.generateObject,
@@ -44,7 +48,23 @@ beforeEach(() => {
     text: "hello",
     usage: { inputTokens: 2, outputTokens: 1 },
   });
+  mocks.openrouterModel.mockClear();
   mocks.logUsage.mockReset().mockResolvedValue({});
+});
+
+it("enforces no-data-collection and zero-retention routing on every OpenRouter model", async () => {
+  vi.spyOn(AbortSignal, "timeout").mockReturnValue(new AbortController().signal);
+
+  await llmText({
+    purpose: "draft",
+    businessId: null,
+    system: "system",
+    prompt: "prompt",
+  });
+
+  expect(mocks.openrouterModel).toHaveBeenCalledWith("deepseek/deepseek-v4-pro", {
+    provider: { data_collection: "deny", zdr: true },
+  });
 });
 
 describe.each(PURPOSE_TIMEOUTS)("LLM %s deadline", (purpose, totalMs) => {

@@ -65,7 +65,13 @@ function openrouter(model: string) {
   if (!_openrouter) {
     _openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY ?? "" });
   }
-  return _openrouter(model);
+  return _openrouter(model, {
+    // Customer and lead content may be needed to create a reply, but it must
+    // never be retained by a model host or used for generalized model
+    // training. Enforce both routing controls on every request instead of
+    // relying on an account-dashboard setting that can drift.
+    provider: { data_collection: "deny", zdr: true },
+  });
 }
 
 async function logUsage(

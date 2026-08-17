@@ -127,15 +127,20 @@ an empty evidence cohort, not a negative conversion result.
 
 - The controlled human beta has not validated the 14-day response/conversion
   target or first-customer experience.
-- Google OAuth data-access verification remains open. It was submitted on
-  2026-07-31 and was last known to be under review, but the current console
-  state still requires founder reauthentication and read-back. Arbitrary-user
-  Gmail onboarding must not be described as approved or verified yet.
-- Public legal pages and the internal Hunt LIA remain drafts, are not effective,
-  and still require founder and qualified-counsel approval.
-- The founder profile still has no real `postalAddress`. The field and migration
-  are live, but every launching artist—including the founder—must supply their
-  own real business mailing address; no value may be inferred.
+- Google OAuth data-access verification remains open. Live console read-back on
+  2026-08-17 confirms branding verified and data access under review. Google's
+  2026-08-08 reviewer message requires auditable segregation from OpenRouter and
+  a new demo video. The local release candidate adds the necessary pre-consent
+  disclosure, Limited Use statement and code boundary, but none is production
+  evidence until deployed and shown in the replacement video.
+- On 2026-08-17 the founder approved the public legal set and restricted Hunt
+  LIA for controlled launch, supplied the verified Bright Ears registered
+  office, and authorised the first-message privacy notice. The local release
+  candidate makes those documents effective and indexable; production read-back
+  is still required after deployment.
+- The live founder profile now stores the explicitly approved Bright Ears Co.,
+  Ltd. (Head Office) mailing address in Pathum Thani 12130, Thailand. Every
+  launching artist must still supply their own real business mailing address.
 - Real-world contact yield remains descriptive, and the scorecard still has no
   reviewed matches, pitches, replies or bookings from which to validate the
   first-customer experience.
