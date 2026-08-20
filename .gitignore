@@ -48,3 +48,21 @@ next-env.d.ts
 
 # Dev email transport output
 /.dev-outbox/
+
+# Tutorial-video factory: generated media, browser auth, caches, and secrets
+/tutorial/node_modules/
+/tutorial/.auth/
+/tutorial/**/.auth/
+/tutorial/.cache/
+/tutorial/.secrets/
+/tutorial/output/
+/tutorial/**/*.mp4
+/tutorial/**/*.webm
+/tutorial/**/*.wav
+/tutorial/**/*.aiff
+/tutorial/**/*.mp3
+/tutorial/**/*.m4a
+/tutorial/**/*storageState*.json
+/tutorial/**/client_secret*.json
+/tutorial/**/credentials*.json
+/tutorial/**/*token*.json
