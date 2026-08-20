@@ -3,6 +3,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {bundle} from "@remotion/bundler";
 import {renderMedia, renderStill, selectComposition} from "@remotion/renderer";
+import {configuredGoogleTtsApiKey, configuredGoogleTtsApiKeyFromFile, synthesizeGoogleTts} from "./google-tts.js";
 import type {TutorialManifest, TutorialScene} from "./manifest.js";
 import {loadManifest, totalDurationSeconds} from "./manifest.js";
 import {copyWithDirs, ensureDir, formatTimestamp, sha256File, sha256Text, writeJson} from "./lib/files.js";
@@ -161,16 +162,21 @@ async function prepareCaptureMedia(manifest: TutorialManifest, paths: Paths): Pr
 }
 
 async function narrate(manifest: TutorialManifest, paths: Paths, sayFallback: boolean): Promise<NarrationAsset[]> {
-  if (manifest.narration.provider !== "say" && !sayFallback) {
-    throw new Error("Google Cloud TTS is intentionally not activated in Sprint 0. Configure ADC and implement the reviewed provider adapter before publication narration.");
-  }
-  const voice = manifest.narration.provider === "say" ? manifest.narration.voice : "Samantha";
+  const useGoogleTts = manifest.narration.provider === "google-cloud-tts" && !sayFallback;
+  const voice = useGoogleTts ? manifest.narration.voice : manifest.narration.provider === "say" ? manifest.narration.voice : "Samantha";
+  const googleTtsApiKey = useGoogleTts
+    ? configuredGoogleTtsApiKey() ?? await configuredGoogleTtsApiKeyFromFile(path.join(tutorialDir, ".env.local"))
+    : undefined;
   const dir = path.join(paths.work, "scenes");
   await ensureDir(dir);
   const assets: NarrationAsset[] = [];
   for (const scene of manifest.scenes) {
-    const target = path.join(dir, `${scene.id}.aiff`);
-    await run("/usr/bin/say", ["-v", voice, "-r", String(manifest.narration.rate ?? 175), "-o", target, scene.narration], {quiet: true});
+    const target = narrationScenePath(manifest, paths, sayFallback, scene.id);
+    if (useGoogleTts) {
+      await synthesizeGoogleTts({text: scene.narration, voice, outputPath: target, apiKey: googleTtsApiKey});
+    } else {
+      await run("/usr/bin/say", ["-v", voice, "-r", String(manifest.narration.rate ?? 175), "-o", target, scene.narration], {quiet: true});
+    }
     const durationSeconds = await audioDuration(target);
     if (durationSeconds > scene.durationSeconds - 0.45) {
       throw new Error(`Narration for ${scene.id} is ${durationSeconds.toFixed(2)}s but the scene is ${scene.durationSeconds.toFixed(2)}s`);
@@ -178,6 +184,11 @@ async function narrate(manifest: TutorialManifest, paths: Paths, sayFallback: bo
     assets.push({path: target, durationSeconds});
   }
   return assets;
+}
+
+function narrationScenePath(manifest: TutorialManifest, paths: Paths, sayFallback: boolean, sceneId: string): string {
+  const extension = manifest.narration.provider === "google-cloud-tts" && !sayFallback ? "wav" : "aiff";
+  return path.join(paths.work, "scenes", `${sceneId}.${extension}`);
 }
 
 async function buildNarrationTrack(manifest: TutorialManifest, assets: NarrationAsset[], output: string): Promise<void> {
@@ -199,6 +210,7 @@ async function buildNarrationTrack(manifest: TutorialManifest, assets: Narration
 }
 
 async function renderVisuals(manifest: TutorialManifest, paths: Paths): Promise<void> {
+  await copyWithDirs(path.join(repoDir, "public", "brand", "logo.svg"), path.join(paths.work, "brand", "logo.svg"));
   const scenes: TutorialProps["scenes"] = [];
   let startFrame = 0;
   for (const scene of manifest.scenes) {
@@ -260,12 +272,17 @@ async function createMusic(manifest: TutorialManifest, paths: Paths): Promise<st
 async function mixPackage(manifest: TutorialManifest, paths: Paths, music: string | null): Promise<void> {
   const visual = path.join(paths.work, "visual.mp4");
   if (!music) {
-    await run("ffmpeg", ["-y", "-i", visual, "-i", paths.narration, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", paths.video], {quiet: true});
+    await run("ffmpeg", [
+      "-y", "-i", visual, "-i", paths.narration,
+      "-filter_complex", "[1:a]loudnorm=I=-16:LRA=11:TP=-1.5[audio]",
+      "-map", "0:v:0", "-map", "[audio]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+      "-movflags", "+faststart", "-shortest", paths.video,
+    ], {quiet: true});
     return;
   }
   await run("ffmpeg", [
     "-y", "-i", visual, "-i", paths.narration, "-i", music,
-    "-filter_complex", "[2:a]volume=0.07[music];[music][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=20:release=350[ducked];[1:a]volume=1.0[narr];[ducked][narr]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.95[audio]",
+    "-filter_complex", "[2:a]volume=0.07[music];[music][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=20:release=350[ducked];[1:a]volume=1.0[narr];[ducked][narr]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-16:LRA=11:TP=-1.5[audio]",
     "-map", "0:v:0", "-map", "[audio]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-shortest", paths.video,
   ], {quiet: true});
 }
@@ -354,12 +371,14 @@ export async function runPipeline(
   const implementationFiles = [
     "package-lock.json",
     "src/capture.ts",
+    "src/google-tts.ts",
     "src/manifest.ts",
     "src/pipeline.ts",
     "src/remotion/index.ts",
     "src/remotion/root.tsx",
     "src/remotion/tutorial.tsx",
   ].map((relativePath) => path.join(tutorialDir, relativePath));
+  implementationFiles.push(path.join(repoDir, "public", "brand", "logo.svg"));
   const implementationFingerprint = sha256Text((await Promise.all(implementationFiles.map(sha256File))).join("|"));
   const baseFingerprint = sha256Text(`${manifestSha256}|implementation=${implementationFingerprint}|captures=${captureInputFingerprint}|options=${JSON.stringify(options)}|node=${process.version}|remotion=4.0.512`);
   await stage(state, paths, "validate", baseFingerprint, [paths.state], async () => {
@@ -376,21 +395,22 @@ export async function runPipeline(
   }
 
   let assets: NarrationAsset[] = [];
-  await stage(state, paths, "narrate", sha256Text(`${baseFingerprint}|narration=${JSON.stringify(manifest.narration)}|sayFallback=${options.sayFallback}`), manifest.scenes.map((scene) => path.join(paths.work, "scenes", `${scene.id}.aiff`)), async () => {
+  const narrationOutputs = manifest.scenes.map((scene) => narrationScenePath(manifest, paths, options.sayFallback, scene.id));
+  await stage(state, paths, "narrate", sha256Text(`${baseFingerprint}|narration=v2:${JSON.stringify(manifest.narration)}|sayFallback=${options.sayFallback}`), narrationOutputs, async () => {
     assets = await narrate(manifest, paths, options.sayFallback);
   });
   if (assets.length === 0) {
     assets = await Promise.all(manifest.scenes.map(async (scene) => {
-      const audioPath = path.join(paths.work, "scenes", `${scene.id}.aiff`);
+      const audioPath = narrationScenePath(manifest, paths, options.sayFallback, scene.id);
       return {path: audioPath, durationSeconds: await audioDuration(audioPath)};
     }));
   }
 
-  await stage(state, paths, "compose", sha256Text(`${baseFingerprint}|visual=v2`), [path.join(paths.work, "visual.mp4"), paths.thumbnail], async () => {
+  await stage(state, paths, "compose", sha256Text(`${baseFingerprint}|visual=v3`), [path.join(paths.work, "visual.mp4"), paths.thumbnail], async () => {
     await renderVisuals(manifest, paths);
   });
 
-  await stage(state, paths, "package", sha256Text(`${baseFingerprint}|package=v2|music=${JSON.stringify(manifest.music)}`), [paths.video, paths.thumbnail, paths.subtitles, paths.chapters, paths.metadata], async () => {
+  await stage(state, paths, "package", sha256Text(`${baseFingerprint}|package=v3-loudnorm|music=${JSON.stringify(manifest.music)}`), [paths.video, paths.thumbnail, paths.subtitles, paths.chapters, paths.metadata], async () => {
     await buildNarrationTrack(manifest, assets, paths.narration);
     const music = await createMusic(manifest, paths);
     await mixPackage(manifest, paths, music);

@@ -7,13 +7,24 @@ This isolated Node 22 toolchain turns a reviewed tutorial manifest into a reprod
 `manifest -> validate -> narrate -> capture -> compose -> package -> QA -> human review`
 
 - `validate` checks the schema, privacy policy, action gates, and source provenance.
-- `narrate` uses macOS `say` for local development. Google Cloud TTS is the planned publication provider.
+- `narrate` uses Google Cloud TTS for publication manifests and keeps macOS `say` as an explicitly labelled development fallback.
 - `capture` uses Playwright with an explicit 1920x1080 viewport and recording size. Live capture is disabled unless the manifest allows it and the operator supplies the exact confirmation flag.
 - `compose` uses Remotion for deterministic frames, then ffmpeg adds narration and a ducked, provenance-tracked music bed.
 - `package` writes `tutorial.mp4`, `thumbnail.png`, `subtitles.srt`, `chapters.txt`, and `metadata.json`.
 - `qa` probes codecs, dimensions, duration, audio, chapters, subtitles, hashes, and secret-like text. Human frame review remains mandatory.
 
 Each stage records its input fingerprint in `state.json`; unchanged successful stages are reusable. Generated work stays in `tutorial/output/` by default and is ignored by Git.
+
+## Publication narration
+
+The Google adapter calls Cloud Text-to-Speech directly and writes each response into the ignored work directory. Put a restricted key in ignored `tutorial/.env.local` using the name `GOOGLE_CLOUD_TTS_API_KEY`; never put a key in a manifest, source file, shell command, issue, PR, or chat. The CLI loads that local file without logging the value.
+
+The publication voice is declared in the manifest (`en-US-Chirp3-HD-Aoede` for the OAuth demonstration). Chirp 3 HD receives plain text and LINEAR16 output; it does not use the `rate` field. Run the publication narration path by omitting the fallback flag:
+
+```sh
+npm run run:live -- manifests/google-oauth-verification.sprint1.json \
+  --sent-email=true
+```
 
 ## Safe placeholder
 
@@ -48,7 +59,7 @@ npm run capture -- manifests/google-oauth-verification.sprint1.json \
 
 To replace one reviewed scene without replaying unrelated external actions, add `--scene=<scene-id>`. Approval checks are calculated only from that selected scene; the live-recording confirmation is always required.
 
-After every live source has been frame-reviewed, build a local review cut with the explicitly labelled macOS narration fallback:
+After every live source has been frame-reviewed, a local development cut can still be built with the explicitly labelled macOS narration fallback:
 
 ```sh
 npm run run:live -- manifests/google-oauth-verification.sprint1.json \

@@ -49,6 +49,15 @@
     {
       "source": "app/(marketing)/privacy/page.tsx and components/mailbox-card.tsx at the recorded production commit",
       "license": "Repository-owned product UI"
+    },
+    {
+      "source": "public/brand/logo.svg",
+      "license": "Repository-owned Bright Ears brand asset",
+      "sha256": "48dd8c36e93690d2a26c58aaf22843f6945e307451b2fdc0143cf3dee301ce49"
+    },
+    {
+      "source": "app/globals.css Neon Collage v2 palette",
+      "license": "Repository-owned Bright Ears visual system"
     }
   ],
   "scenes": [

@@ -45,6 +45,11 @@
     {
       "source": "tutorial/src/remotion/tutorial.tsx synthetic Bright Ears visual system",
       "license": "Repository-owned original work"
+    },
+    {
+      "source": "public/brand/logo.svg",
+      "license": "Repository-owned Bright Ears brand asset",
+      "sha256": "48dd8c36e93690d2a26c58aaf22843f6945e307451b2fdc0143cf3dee301ce49"
     }
   ],
   "scenes": [

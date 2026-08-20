@@ -38,10 +38,10 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "run-live") {
-    if (!args[0]) throw new Error("Usage: run-live <manifest> --narration-fallback=say --sent-email=true");
+    if (!args[0]) throw new Error("Usage: run-live <manifest> [--narration-fallback=say] --sent-email=true");
     const fallback = option("narration-fallback");
-    if (fallback !== "say") throw new Error("Google Cloud TTS is not configured; this review cut requires --narration-fallback=say");
-    await runLivePipeline(args[0], option("output"), {sayFallback: true, sentEmail: option("sent-email") === "true"});
+    if (fallback && fallback !== "say") throw new Error("Only --narration-fallback=say is supported");
+    await runLivePipeline(args[0], option("output"), {sayFallback: fallback === "say", sentEmail: option("sent-email") === "true"});
     return;
   }
   if (command === "qa") {

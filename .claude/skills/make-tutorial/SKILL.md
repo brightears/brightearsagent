@@ -38,7 +38,7 @@ npm run run:placeholder -- --output ./output/<tutorial>
 
 The default run accepts only `synthetic-only` manifests. Stages are resumable through `state.json`. Treat generated media, `.auth/`, `.cache/`, `.env*`, storage state, credentials, tokens, and `node_modules/` as local ignored state.
 
-For approved publication narration, use the reviewed Google Cloud TTS adapter and Application Default Credentials; never add credential JSON to the repository. macOS `say` is development-only.
+For approved publication narration, use the reviewed Google Cloud TTS adapter with a dedicated API-restricted key stored only in ignored `tutorial/.env.local`. Never put a key in a manifest, source file, command, chat, issue, or PR, and never add credential JSON to the repository. macOS `say` is development-only.
 
 ## Review the package
 

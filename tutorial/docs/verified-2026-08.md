@@ -61,10 +61,10 @@ No matching source material was found. No stale or unaudited Beat Breeze code wa
 
 ### Narration
 
-- Development fallback: `/usr/bin/say` with the installed `Samantha` `en_US` voice. Empirically generated and probed every placeholder scene.
-- Publication target: Google Cloud Text-to-Speech. The synchronous REST method is `POST https://texttospeech.googleapis.com/v1/text:synthesize`, accepts text or SSML plus a voice/audio configuration, returns base64 audio, and requires the Cloud Platform OAuth scope: [text.synthesize reference](https://docs.cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize).
-- Google recommends Application Default Credentials (ADC). Local development can use `gcloud auth application-default login`; Google-hosted workloads should use an attached service account: [Cloud TTS authentication](https://docs.cloud.google.com/text-to-speech/docs/authentication).
-- Local discrepancy: `gcloud` is not installed and no ADC or credential material was inspected. The Google TTS adapter is intentionally not activated in Sprint 0. Do not add service-account JSON to the repo; prefer ADC/service-account attachment or impersonation after review.
+- Sprint 0 development fallback: `/usr/bin/say` with the installed `Samantha` `en_US` voice. It was used only to exercise and probe the synthetic placeholder pipeline.
+- Publication provider: Google Cloud Text-to-Speech. The synchronous REST method is `POST https://texttospeech.googleapis.com/v1/text:synthesize`, accepts text or SSML plus a voice/audio configuration, and returns base64 audio: [text.synthesize reference](https://docs.cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize).
+- Google recommends Application Default Credentials (ADC) for client-library workflows. The local factory instead uses a dedicated API key at the user's request, sends it only in the `x-goog-api-key` header, and reads it from the process environment or ignored `tutorial/.env.local`: [Cloud TTS authentication](https://docs.cloud.google.com/text-to-speech/docs/authentication), [API-key best practices](https://docs.cloud.google.com/docs/authentication/api-keys-best-practices).
+- The configured local key is restricted to Cloud Text-to-Speech and the current rendering Mac's IP addresses. Its ignored file is mode `0600`; the value was never printed or committed. Do not add service-account JSON or API-key values to the repository.
 
 ### YouTube upload
 
@@ -77,7 +77,7 @@ No matching source material was found. No stale or unaudited Beat Breeze code wa
 - Placeholder font: macOS system `Avenir Next` with `Arial` fallback. The font file is not copied or redistributed. The render is reproducible on this Mac, but cross-machine pixel identity is not guaranteed. Before a CI/cloud renderer is adopted, select and commit an approved redistributable font with its license and hash.
 - Placeholder music: a deterministic test-only 220 Hz + 330 Hz ffmpeg signal generated during the run. It is original procedural audio, explicitly marked not for publication. It exercises music ducking without importing a third-party track.
 - Sprint 1 Google verification plan has music disabled so narration and consent text remain unambiguous.
-- No external logo, stock image, video, or customer asset is bundled. The placeholder mark and graphic field are repository-owned CSS geometry. Live product footage, when approved, will show the production UI itself.
+- No external logo, stock image, video, or customer asset is bundled. The composition now uses repository-owned `public/brand/logo.svg` (SHA-256 `48dd8c36e93690d2a26c58aaf22843f6945e307451b2fdc0143cf3dee301ce49`) and the product's Neon Collage v2 palette from `app/globals.css`. Live product footage shows the production UI itself.
 - Long-term music requires a written commercial license/source URL, local source hash, attribution requirements, territory/platform terms, and proof that video/tutorial/YouTube use is covered before a manifest can validate.
 
 ## Google OAuth and Bright Ears data-boundary verification
@@ -215,7 +215,7 @@ These are separate decisions; none is implied by reviewing Sprint 0:
 
 ## Deferred decisions and known limitations
 
-- Install/configure Google Cloud CLI or another reviewed ADC method and implement the Google TTS adapter; select the exact voice through a listening review.
+- The Google TTS adapter and `en-US-Chirp3-HD-Aoede` review voice are implemented. Final voice acceptance remains part of the user's mandatory playback review; changing to ADC or service-account attachment is optional future hardening for a hosted renderer.
 - Confirm Remotion commercial licensing for Bright Ears' team/use model.
 - Select a redistributable brand font for deterministic CI/cloud rendering.
 - Select and license publication music for ordinary tutorials; verification video currently uses none.
@@ -296,7 +296,7 @@ Sprint 1 proceeded only after the user approved the reviewed Bright Ears workflo
 - The disclosure edit shows the full pre-consent explanation and Connect Gmail action. The Limited Use edit shows the full public section and the adjacent `gmail.send` description.
 - Final frame sampling found no password, one-time code, token, cookie, customer/venue record, developer console, Render/admin screen, or Identity/address frame.
 
-### Review package and QA
+### Superseded development-voice review package
 
 Local ignored package: `tutorial/output/google-oauth-verification/`.
 
@@ -309,7 +309,41 @@ Local ignored package: `tutorial/output/google-oauth-verification/`.
 - Final contact-sheet SHA-256: `aecac10cd8c4f81264b7d3a0236c7d47346dd2fa148296551d14936707facc4c`.
 - Black detection found no black interval of 0.5 seconds or more. EBU R128 measured -15.8 LUFS integrated, 8.2 LU loudness range, and -4.4 dBFS true peak. Expected reading-room silence remains after each voiceover sentence because the verification cut has no music.
 
-Publication narration is still deferred. This review cut uses macOS `Samantha`; metadata labels it as a fallback and retains Google Cloud TTS `en-US-Chirp3-HD-Aoede` as the intended publication provider. No Cloud TTS credentials were inspected or configured. The video remains blocked on the user's full playback, pronunciation, subtitle, and frame review, followed by a separate decision about Google Cloud TTS and any upload/submission.
+These hashes and audio measurements describe the first development-voice review cut and are retained as an execution record. That cut used macOS `Samantha` and has been superseded by the Google TTS cut below. No upload or submission occurred.
+
+### Review revision requested 2026-08-20
+
+The user rejected the development `Samantha` voice and requested Google Cloud TTS plus tighter Bright Ears branding. The revised implementation:
+
+- replaces the temporary CSS mark with the repository-owned cyan-ring `BE` logo;
+- uses the exact product ink, cream, cyan, magenta and orange values from `app/globals.css`;
+- synthesizes publication narration through `POST https://texttospeech.googleapis.com/v1/text:synthesize` with manifest voice `en-US-Chirp3-HD-Aoede` and LINEAR16 output;
+- provides a dedicated-key adapter that sends the key in the `x-goog-api-key` header, suppresses it from network errors, and reads it only from the process environment or ignored `tutorial/.env.local`;
+- keeps the key out of manifests, source, commands, metadata, child-process arguments, logs and generated provenance.
+
+Google's current API-key guidance recommends the `x-goog-api-key` header instead of a query parameter and recommends both API and application restrictions: [use API keys](https://docs.cloud.google.com/docs/authentication/api-keys-use), [manage and restrict API keys](https://docs.cloud.google.com/docs/authentication/api-keys), [API-key best practices](https://docs.cloud.google.com/docs/authentication/api-keys-best-practices). Cloud TTS's own authentication guide continues to recommend Application Default Credentials for client libraries: [Cloud TTS authentication](https://docs.cloud.google.com/text-to-speech/docs/authentication). The dedicated key path is used here at the user's request for this local rendering workflow.
+
+The first attempted dedicated Cloud TTS project had neither the API enabled nor billing attached. Its billing prompt was cancelled and no billing account was linked. After separate user confirmations, a dedicated key named for the Bright Ears Tutorial Factory was created in the already billed project `gen-lang-client-0359686621`, restricted to Cloud Text-to-Speech and the rendering Mac's current IPv4 and IPv6 addresses. The value is present only in ignored `tutorial/.env.local`, whose mode is `0600`; it was never printed, included in a command, written to metadata, or committed.
+
+An empirical live API probe produced 24 kHz mono LINEAR16 narration. The final render uses Google Cloud TTS voice `en-US-Chirp3-HD-Aoede`; Node 22 typecheck passes; 15/15 tutorial tests pass, including six credential/request tests; both manifests validate; and the synthetic brand-only render passes automated QA.
+
+### Current Google TTS review package
+
+The Google TTS rerender supersedes the development-voice hashes above.
+
+- `tutorial.mp4`: 125.000 seconds, 3,750 frames, 1920×1080, 30 fps, H.264 High, AAC-LC stereo 48 kHz.
+- Video SHA-256: `c69e0f5a3a50cd56fc5a4656f5d9a8aaf84e1f04c0c51a695c2cb1c409caa325`.
+- `thumbnail.png`: 1920×1080; SHA-256 `6f9fb7d7d7e018535ad88070d18be50b13252dabbe541d217f1f260578cfb85b`.
+- `contact-sheet.png`: twelve reviewed frames; SHA-256 `6f30d25d75a518f949c2ae41bedc5ae61e1ca987130405b5d019dc9a8e389c1e`.
+- `subtitles.srt`: six cues; SHA-256 `5043372b9e8e1058c98a3cb286616e8db69c059343c4206d9d5eb3294918fa2b`.
+- `chapters.txt`: six strictly monotonic chapters beginning at `00:00:00`; SHA-256 `8ade297c8bd9cf51c91afc5f9c518b52cee384a7fc8d05865d269fdae4a0e4f2`.
+- `metadata.json` records provider `google-cloud-tts`, voice `en-US-Chirp3-HD-Aoede`, the live-capture provenance, the one approved self-send, no upload, and mandatory human review.
+- `qa-report.json` passes every automated check: dimensions, frame rate, codecs, duration, thumbnail, subtitles, chapters, artifact hashes, secret-pattern scan, and the human-review gate.
+- EBU R128 measurement: -16.8 LUFS integrated, 7.8 LU loudness range, and -1.4 dBFS true peak. Black detection found no black interval of 0.5 seconds or more.
+
+The real repository-owned cyan-ring `BE` logo appears beside the Bright Ears name. The composition uses the product's Neon Collage v2 ink, cream, cyan, magenta, and orange values. Frame review found no password, one-time code, token, cookie, customer/venue record, developer console, Render/admin screen, or Identity/address frame. The founder email remains visible intentionally as part of the approved verification demonstration.
+
+The video remains blocked on the user's complete playback, pronunciation, subtitle, and frame review. Uploading, publishing, merging, or contacting Google requires a separate instruction.
 
 Review the package with:
 
