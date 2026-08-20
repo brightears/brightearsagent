@@ -332,14 +332,14 @@ An empirical live API probe produced 24 kHz mono LINEAR16 narration. The final r
 The Google TTS rerender supersedes the development-voice hashes above.
 
 - `tutorial.mp4`: 125.000 seconds, 3,750 frames, 1920×1080, 30 fps, H.264 High, AAC-LC stereo 48 kHz.
-- Video SHA-256: `c69e0f5a3a50cd56fc5a4656f5d9a8aaf84e1f04c0c51a695c2cb1c409caa325`.
+- Video SHA-256: `79c2779862c506cff242d42c0b67574c262c2322a42b9cf765c640a81e2a82ee`.
 - `thumbnail.png`: 1920×1080; SHA-256 `6f9fb7d7d7e018535ad88070d18be50b13252dabbe541d217f1f260578cfb85b`.
 - `contact-sheet.png`: twelve reviewed frames; SHA-256 `6f30d25d75a518f949c2ae41bedc5ae61e1ca987130405b5d019dc9a8e389c1e`.
-- `subtitles.srt`: six cues; SHA-256 `5043372b9e8e1058c98a3cb286616e8db69c059343c4206d9d5eb3294918fa2b`.
+- `subtitles.srt`: six cues; SHA-256 `d8a433aac5657da470b8d87ee01cac2a0c291ef6accb2ec98a40df7731eb14dd`.
 - `chapters.txt`: six strictly monotonic chapters beginning at `00:00:00`; SHA-256 `8ade297c8bd9cf51c91afc5f9c518b52cee384a7fc8d05865d269fdae4a0e4f2`.
 - `metadata.json` records provider `google-cloud-tts`, voice `en-US-Chirp3-HD-Aoede`, the live-capture provenance, the one approved self-send, no upload, and mandatory human review.
 - `qa-report.json` passes every automated check: dimensions, frame rate, codecs, duration, thumbnail, subtitles, chapters, artifact hashes, secret-pattern scan, and the human-review gate.
-- EBU R128 measurement: -16.8 LUFS integrated, 7.8 LU loudness range, and -1.4 dBFS true peak. Black detection found no black interval of 0.5 seconds or more.
+- EBU R128 measurement: -16.1 LUFS integrated, 8.0 LU loudness range, and -1.4 dBFS true peak. Black detection found no black interval of 0.5 seconds or more.
 
 The real repository-owned cyan-ring `BE` logo appears beside the Bright Ears name. The composition uses the product's Neon Collage v2 ink, cream, cyan, magenta, and orange values. Frame review found no password, one-time code, token, cookie, customer/venue record, developer console, Render/admin screen, or Identity/address frame. The founder email remains visible intentionally as part of the approved verification demonstration.
 
