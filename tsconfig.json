@@ -38,6 +38,7 @@
   ],
   "exclude": [
     "node_modules",
+    "tutorial",
     ".next/**/* 2.ts",
     ".next/**/* 3.ts",
     "app/generated/**/* 2.ts",

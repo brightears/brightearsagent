@@ -39,7 +39,24 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            tutorial/package-lock.json
       - run: npm ci
+      - name: Install tutorial tooling
+        working-directory: tutorial
+        run: npm ci
+      - name: Typecheck tutorial tooling
+        working-directory: tutorial
+        run: npm run build
+      - name: Test tutorial safety gates
+        working-directory: tutorial
+        run: npm test
+      - name: Validate tutorial manifests
+        working-directory: tutorial
+        run: |
+          npm run validate -- manifests/sprint0-placeholder.json
+          npm run validate -- manifests/google-oauth-verification.sprint1.json
       - run: npx prisma validate
       - run: npm run db:deploy
       - run: npx prisma migrate status
