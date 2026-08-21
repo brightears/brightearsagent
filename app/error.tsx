@@ -8,6 +8,7 @@
 // and the copy says so.
 import Link from "next/link";
 import { BrightEarsLogo, buttonStyles } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
 
 export default function RootError({
   reset,
@@ -15,34 +16,35 @@ export default function RootError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-ink-stage px-6 text-center">
       <BrightEarsLogo size={44} />
       <p className="mt-8 font-mono text-xs font-bold uppercase tracking-[0.2em] text-brand-cyan">
-        A skipped beat
+        {c("A skipped beat", "จังหวะสะดุด")}
       </p>
       <h1 className="mt-3 max-w-xl text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
-        This page hit a{" "}
+        {c("This page hit a", "หน้านี้มี")}{" "}
         <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-          wrong note.
+          {c("wrong note.", "ข้อผิดพลาด")}
         </span>
       </h1>
       <p className="mt-4 max-w-md text-sm leading-relaxed text-cream/60">
-        Something went sideways on our end — your account and your pipeline are untouched, and the
-        agent keeps working. Try again, or head somewhere solid.
+        {c("Something went sideways on our end — your account and your pipeline are untouched, and the agent keeps working. Try again, or head somewhere solid.", "ระบบขัดข้องชั่วคราว บัญชีและไปป์ไลน์ของคุณไม่ได้รับผลกระทบ และผู้ช่วยยังทำงานต่อ โปรดลองอีกครั้งหรือกลับไปหน้าอื่น")}
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
         <button type="button" onClick={reset} className={buttonStyles.primary}>
-          Try again
+          {c("Try again", "ลองอีกครั้ง")}
         </button>
         <Link href="/" className={buttonStyles.secondary}>
-          Front page
+          {c("Front page", "หน้าหลัก")}
         </Link>
         <Link
           href="/dashboard"
           className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-cream/60 hover:text-brand-cyan"
         >
-          Your dashboard →
+          {c("Your dashboard →", "แดชบอร์ดของคุณ →")}
         </Link>
       </div>
     </main>

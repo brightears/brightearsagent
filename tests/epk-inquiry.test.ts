@@ -74,6 +74,16 @@ describe("submitEpkInquiry", () => {
     expect(mockProcess).not.toHaveBeenCalled();
   });
 
+  it("returns Thai validation copy when the public artist page is Thai", async () => {
+    const result = await submitEpkInquiry(
+      "s",
+      null,
+      fd({ locale: "th", email: "a@b.co", message: "งานเลี้ยง" }),
+    );
+    expect(result).toEqual({ ok: false, error: "โปรดกรอกชื่อของคุณ" });
+    expect(mockProcess).not.toHaveBeenCalled();
+  });
+
   it("an unknown slug reports failure without leaking internals", async () => {
     mockProcess.mockResolvedValue({ outcome: "no_tenant" });
     const r = await submitEpkInquiry(

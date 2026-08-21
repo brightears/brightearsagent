@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { StickerChip } from "@/components/collage";
+import { useI18n } from "@/components/locale-provider";
 
 type DemoResult = { subject: string; body: string; remaining?: number };
 type Phase = "idle" | "loading" | "typing" | "done" | "error";
@@ -19,6 +20,8 @@ const SAMPLE_INQUIRY =
   "Hi! We're getting married on October 17 next year at the Grandview Barn — around 120 guests. We'd need a band for the ceremony, cocktail hour and reception, roughly 3pm to 10pm. Is that date open, and what would something like that cost? — Maya & Jordan";
 
 export function DemoWidget() {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [inquiry, setInquiry] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<DemoResult | null>(null);
@@ -70,8 +73,8 @@ export function DemoWidget() {
         setError(
           data?.error ??
             (res.status === 429
-              ? "The demo is taking a breather — try again in a little while."
-              : "Something went wrong — give it another try in a moment."),
+              ? c("The demo is taking a breather — try again in a little while.", "เดโมพักชั่วครู่ โปรดลองใหม่อีกครั้ง")
+              : c("Something went wrong — give it another try in a moment.", "เกิดข้อผิดพลาด โปรดลองอีกครั้ง")),
         );
         setPhase("error");
         return;
@@ -80,7 +83,7 @@ export function DemoWidget() {
       setResult({ subject: data.subject, body: data.body, remaining: data.remaining });
       setPhase("typing");
     } catch {
-      setError("Couldn't reach the demo — check your connection and try again.");
+      setError(c("Couldn't reach the demo — check your connection and try again.", "เชื่อมต่อเดโมไม่ได้ โปรดตรวจอินเทอร์เน็ตแล้วลองอีกครั้ง"));
       setPhase("error");
     }
   }
@@ -88,9 +91,9 @@ export function DemoWidget() {
   return (
     <div className="relative space-y-5 rounded-3xl bg-cream p-5 text-left text-ink-stage shadow-[0_24px_60px_rgba(0,0,0,0.45)] sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <StickerChip tone="ink">Live demo</StickerChip>
+        <StickerChip tone="ink">{c("Live demo", "เดโมสด")}</StickerChip>
         <StickerChip tone="magenta" rotate={3}>
-          No sign-up needed
+          {c("No sign-up needed", "ไม่ต้องสมัคร")}
         </StickerChip>
       </div>
 
@@ -99,7 +102,7 @@ export function DemoWidget() {
           htmlFor="demo-inquiry"
           className="block font-extrabold tracking-tight text-ink-stage"
         >
-          Paste a real inquiry you’ve received
+          {c("Paste a real inquiry you've received", "วางข้อความติดต่อจริงที่คุณได้รับ")}
         </label>
         <textarea
           id="demo-inquiry"
@@ -108,17 +111,19 @@ export function DemoWidget() {
           disabled={busy}
           rows={5}
           maxLength={MAX_CHARS}
-          placeholder="“Hi! Are you available October 17 for a wedding at the Grandview Barn? What do you charge?”"
+          placeholder={c("“Hi! Are you available October 17 for a wedding at the Grandview Barn? What do you charge?”", "“สวัสดีค่ะ วันที่ 17 ตุลาคมว่างรับงานแต่งที่ Grandview Barn ไหมคะ ค่าจ้างเท่าไร?”")}
           className="w-full rounded-xl border-[1.5px] border-ink-stage/15 bg-cream-bright p-3 text-sm leading-relaxed text-ink-stage placeholder:text-ink-stage/40 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/25 disabled:opacity-60"
         />
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-stage/55">
           <button
             type="button"
-            onClick={() => setInquiry(SAMPLE_INQUIRY)}
+            onClick={() => setInquiry(locale === "th"
+              ? "สวัสดีค่ะ เราจะแต่งงานวันที่ 17 ตุลาคมปีหน้าที่ Grandview Barn แขกประมาณ 120 คน อยากได้วงดนตรีสำหรับพิธี ค็อกเทล และงานเลี้ยง ตั้งแต่ประมาณบ่ายสามถึงสี่ทุ่ม วันที่นั้นว่างไหมคะ และราคาประมาณเท่าไร — เมย์และจอร์แดน"
+              : SAMPLE_INQUIRY)}
             disabled={busy}
             className="underline decoration-brand-cyan decoration-2 underline-offset-2 transition-colors hover:text-brand-cyan disabled:opacity-50"
           >
-            No inquiry handy? Use a sample
+            {c("No inquiry handy? Use a sample", "ยังไม่มีข้อความ? ใช้ตัวอย่าง")}
           </button>
           <span className="font-mono">
             {inquiry.length}/{MAX_CHARS}
@@ -132,12 +137,16 @@ export function DemoWidget() {
         disabled={busy || inquiry.trim().length < MIN_CHARS}
         className="w-full rounded-full bg-neon-magenta px-6 py-3 font-bold text-ink-stage shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90 disabled:opacity-40 sm:w-auto"
       >
-        {phase === "loading" ? "Drafting…" : phase === "typing" ? "Writing…" : "Watch the reply write itself"}
+        {phase === "loading"
+          ? c("Drafting…", "กำลังร่าง…")
+          : phase === "typing"
+            ? c("Writing…", "กำลังเขียน…")
+            : c("Watch the reply write itself", "ดูคำตอบเขียนขึ้นมาเอง")}
       </button>
 
       {phase === "loading" && (
         <p className="animate-pulse text-sm text-ink-stage/60">
-          Reading the inquiry, checking the calendar, writing in your voice…
+          {c("Reading the inquiry, checking the calendar, writing in your voice…", "กำลังอ่านข้อความ ตรวจปฏิทิน และเขียนด้วยสำนวนของคุณ…")}
         </p>
       )}
 
@@ -150,7 +159,7 @@ export function DemoWidget() {
               prefetch={false}
               className="mt-2 inline-block rounded-full bg-neon-magenta px-4 py-1.5 text-sm font-bold text-ink-stage shadow-[0_6px_20px_rgba(255,45,174,0.3)] transition-opacity hover:opacity-90"
             >
-              Get started
+              {c("Get started", "เริ่มใช้งาน")}
             </Link>
           )}
         </div>
@@ -161,23 +170,23 @@ export function DemoWidget() {
           {/* "Now playing — your reply" cream mail card */}
           <div className="overflow-hidden rounded-2xl bg-cream-bright shadow-[0_16px_40px_rgba(23,22,31,0.18)]">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-stage/10 px-4 py-3">
-              <StickerChip tone="outline">Now playing &mdash; your reply</StickerChip>
+              <StickerChip tone="outline">{c("Now playing — your reply", "กำลังเขียน — คำตอบของคุณ")}</StickerChip>
               {phase === "done" ? (
                 <StickerChip tone="magenta" rotate={4}>
-                  Drafted in {seconds}s
+                  {c(`Drafted in ${seconds}s`, `ร่างเสร็จใน ${seconds} วินาที`)}
                 </StickerChip>
               ) : (
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/50">
-                  Nothing sends until you tap
+                  {c("Nothing sends until you tap", "ไม่มีอะไรส่งจนกว่าคุณจะกด")}
                 </span>
               )}
             </div>
             <div className="space-y-0.5 border-b border-ink-stage/10 px-4 py-2 text-xs text-ink-stage/60">
               <p>
-                <span className="font-semibold">From:</span> Your Business
+                <span className="font-semibold">{c("From:", "จาก:")}</span> {c("Your Business", "ธุรกิจของคุณ")}
               </p>
               <p>
-                <span className="font-semibold">To:</span> Your lead
+                <span className="font-semibold">{c("To:", "ถึง:")}</span> {c("Your lead", "ลูกค้าของคุณ")}
               </p>
             </div>
             <p className="border-b border-ink-stage/10 px-4 py-2 text-sm font-bold text-ink-stage">
@@ -189,7 +198,7 @@ export function DemoWidget() {
               {phase === "typing" && typed > result.subject.length && <Caret />}
             </p>
             <p className="border-t border-ink-stage/10 px-4 py-2 text-[11px] italic text-ink-stage/55">
-              Sample reply — generated live, never sent.
+              {c("Sample reply — generated live, never sent.", "คำตอบตัวอย่าง สร้างสดและไม่มีการส่งจริง")}
             </p>
           </div>
 
@@ -197,23 +206,23 @@ export function DemoWidget() {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-ink-stage px-4 py-3 text-sm text-cream">
               <p>
                 <span className="font-bold text-cream-bright">
-                  This took {seconds} {seconds === 1 ? "second" : "seconds"}.
+                  {c(`This took ${seconds} ${seconds === 1 ? "second" : "seconds"}.`, `ใช้เวลา ${seconds} วินาที`)}
                 </span>{" "}
-                Imagine it happening for every lead —
+                {c("Imagine it happening for every lead —", "ลองนึกภาพว่าทำแบบนี้ให้ทุกข้อความ —")}
               </p>
               <Link
                 href="/onboarding"
                 prefetch={false}
                 className="rounded-full bg-neon-magenta px-4 py-2 font-bold text-ink-stage shadow-[0_6px_20px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
-                Get started
+                {c("Get started", "เริ่มใช้งาน")}
               </Link>
             </div>
           )}
 
           {phase === "done" && typeof result.remaining === "number" && result.remaining >= 0 && (
             <p className="text-xs text-ink-stage/55">
-              {result.remaining} of 5 free demo replies left today — the real thing has no daily limit.
+              {c(`${result.remaining} of 5 free demo replies left today — the real thing has no daily limit.`, `วันนี้เหลือเดโมฟรี ${result.remaining} จาก 5 ครั้ง ระบบจริงไม่มีขีดจำกัดรายวัน`)}
             </p>
           )}
         </div>

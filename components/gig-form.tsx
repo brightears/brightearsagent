@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { createGig } from "@/app/actions/gigs";
 import { buttonStyles } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
+import { useI18n } from "@/components/locale-provider";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
@@ -13,6 +14,7 @@ const inputStyles =
 const labelStyles = "block text-xs font-semibold text-ink-stage/60 uppercase tracking-wide mb-1";
 
 export function GigForm({ performers }: { performers: { id: string; name: string }[] }) {
+  const { locale, t } = useI18n();
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     (_prev, formData) => createGig(formData),
     null,
@@ -21,48 +23,48 @@ export function GigForm({ performers }: { performers: { id: string; name: string
   return (
     <form action={formAction} className="space-y-3">
       <div>
-        <label htmlFor="gig-date" className={labelStyles}>Date</label>
+        <label htmlFor="gig-date" className={labelStyles}>{t("dashboard.gig.date")}</label>
         <input id="gig-date" name="date" type="date" required className={inputStyles} />
       </div>
 
       <div>
-        <label htmlFor="gig-title" className={labelStyles}>Title</label>
+        <label htmlFor="gig-title" className={labelStyles}>{t("dashboard.gig.title")}</label>
         <input
           id="gig-title"
           name="title"
           type="text"
           required
-          placeholder="Nguyen wedding"
+          placeholder={locale === "th" ? "งานแต่งคุณณัฐ" : "Nguyen wedding"}
           className={inputStyles}
         />
       </div>
 
       <div>
-        <label htmlFor="gig-venue" className={labelStyles}>Venue (optional)</label>
+        <label htmlFor="gig-venue" className={labelStyles}>{t("dashboard.gig.venue")}</label>
         <input
           id="gig-venue"
           name="venue"
           type="text"
-          placeholder="Lakeside Manor"
+          placeholder={locale === "th" ? "โรงแรมริมแม่น้ำ" : "Lakeside Manor"}
           className={inputStyles}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="gig-start" className={labelStyles}>Start</label>
+          <label htmlFor="gig-start" className={labelStyles}>{t("dashboard.gig.start")}</label>
           <input id="gig-start" name="startTime" type="time" className={inputStyles} />
         </div>
         <div>
-          <label htmlFor="gig-end" className={labelStyles}>End</label>
+          <label htmlFor="gig-end" className={labelStyles}>{t("dashboard.gig.end")}</label>
           <input id="gig-end" name="endTime" type="time" className={inputStyles} />
         </div>
       </div>
 
       <div>
-        <label htmlFor="gig-performer" className={labelStyles}>Performer</label>
+        <label htmlFor="gig-performer" className={labelStyles}>{t("dashboard.gig.performer")}</label>
         <select id="gig-performer" name="performerId" defaultValue="" className={inputStyles}>
-          <option value="">Whole business (unassigned)</option>
+          <option value="">{t("dashboard.gig.unassigned")}</option>
           {performers.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -72,7 +74,7 @@ export function GigForm({ performers }: { performers: { id: string; name: string
       </div>
 
       <button type="submit" disabled={pending} className={`${buttonStyles.primary} w-full`}>
-        {pending ? "Adding…" : "Add gig"}
+        {pending ? t("dashboard.gig.adding") : t("dashboard.gig.add")}
       </button>
 
       {result && !result.ok && <p className="text-xs text-red-600">{result.error}</p>}
@@ -80,7 +82,7 @@ export function GigForm({ performers }: { performers: { id: string; name: string
         // Tiny show-voice celebration — the sanctioned sticker chip (docs/DESIGN.md).
         <p>
           <StickerChip tone="magenta" rotate={-2}>
-            Gig added
+            {t("dashboard.gig.added")}
           </StickerChip>
         </p>
       )}

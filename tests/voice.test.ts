@@ -33,6 +33,9 @@ describe("priceRange", () => {
 });
 
 describe("buildVoicePrompt", () => {
+  it("requires replies to follow the client's language", () => {
+    expect(buildVoicePrompt(base, [])).toMatch(/reply in the language used in the client's latest message/i);
+  });
   it("quotes packages in the business currency, not the old hardcoded USD", () => {
     const prompt = buildVoicePrompt(base, [pkg]);
     expect(prompt).toMatch(/฿|THB/);

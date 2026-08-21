@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getSetupStatus } from "@/lib/onboarding-status";
 import { buttonStyles, CheckMark } from "@/components/ui";
 import { GradientBlob, HaloRing, StickerChip } from "@/components/collage";
+import { getTranslations } from "@/lib/i18n/server";
 
 /**
  * ONE activation surface for the first-run dashboard (audit 2026-07: a fresh
@@ -31,6 +32,7 @@ export async function ActivationChecklist({
   };
   subscribed: boolean;
 }) {
+  const { t } = await getTranslations();
   const setup = getSetupStatus(business);
   // Any lead EVER (spam included) proves the forwarding pipe works — that's
   // the same signal the step-5 live verifier uses.
@@ -48,32 +50,32 @@ export async function ActivationChecklist({
     optional?: boolean;
   }[] = [
     {
-      label: "Tell us who you are & how you sound",
-      detail: "Your sound, one-liner, rate floor, mailing identity and voice — what every reply and pitch is built from.",
+      label: t("dashboard.activation.identity"),
+      detail: t("dashboard.activation.identityDetail"),
       done: !setup.incomplete,
       href: "/onboarding",
-      cta: "Resume setup",
+      cta: t("dashboard.activation.resume"),
     },
     {
-      label: "Set your home city",
-      detail: "Where your assistant hunts for venues first.",
+      label: t("dashboard.activation.city"),
+      detail: t("dashboard.activation.cityDetail"),
       done: business.serviceCities.length > 0,
       href: setup.incomplete ? "/onboarding" : "/dashboard/settings#hunt",
-      cta: "Set your city",
+      cta: t("dashboard.activation.setCity"),
     },
     {
-      label: "Choose your plan",
-      detail: "Subscribe to activate — your assistant starts hunting venues and drafting pitches in your voice from that moment.",
+      label: t("dashboard.activation.plan"),
+      detail: t("dashboard.activation.planDetail"),
       done: subscribed,
       href: "/dashboard/settings#billing",
-      cta: "Choose your plan",
+      cta: t("dashboard.activation.plan"),
     },
     {
-      label: "Forward your inquiries (optional)",
-      detail: "Already getting inquiries by email? Forward them to your assistant and it answers those in your voice too.",
+      label: t("dashboard.activation.forward"),
+      detail: t("dashboard.activation.forwardDetail"),
       done: leadCount > 0,
       href: "/onboarding",
-      cta: "Set up forwarding",
+      cta: t("dashboard.activation.forwardCta"),
       optional: true,
     },
   ];
@@ -92,7 +94,7 @@ export async function ActivationChecklist({
         <HaloRing width={150} height={54} tilt={-10} className="-right-9 -top-4" />
         <div className="relative flex flex-wrap items-center justify-between gap-3">
           <StickerChip tone="ink" rotate={-3} className="shrink-0">
-            Going live — {coreDone} of {core.length}
+            {t("dashboard.activation.live", { done: coreDone, total: core.length })}
           </StickerChip>
           <Link href={primary.href} className={`${buttonStyles.primary} text-sm`}>
             {primary.cta} →
@@ -125,7 +127,11 @@ export async function ActivationChecklist({
                       {item.label}
                     </Link>
                   )}
-                  <span className="sr-only">{item.done ? " — done" : " — to do"}</span>
+                  <span className="sr-only">
+                    {item.done
+                      ? ` — ${t("dashboard.activation.done")}`
+                      : ` — ${t("dashboard.activation.todo")}`}
+                  </span>
                 </p>
                 {!item.done && (
                   <p className="mt-0.5 text-xs leading-snug text-ink-stage/55">{item.detail}</p>

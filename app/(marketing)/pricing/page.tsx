@@ -9,6 +9,7 @@ import {
   VinylDisc,
 } from "@/components/collage";
 import { RISK_REVERSAL } from "@/lib/marketing/guarantee";
+import { getTranslations } from "@/lib/i18n/server";
 
 export const metadata: Metadata = pageMeta(
   "Pricing — Bright Ears",
@@ -173,7 +174,78 @@ function CheckIcon() {
   );
 }
 
-export default function PricingPage() {
+const THAI_PLANS: Plan[] = [
+  {
+    name: "Starter",
+    price: "$25",
+    blurb: "ผู้ช่วยครบระบบสำหรับศิลปินเดี่ยวในหนึ่งเมืองหลัก คุณอนุมัติทุกข้อความก่อนส่ง",
+    features: ["ค้นหาสถานที่และร่างข้อความแนะนำตัว", "ตอบข้อความติดต่อสูงสุด 15 รายการต่อเดือน", "ค้นหา 1 เมืองหลัก", "ติดตามอัตโนมัติจนจองสำเร็จหรือปิดงาน", "โหมดเดินทาง รายงานประจำสัปดาห์ และกรองสแปม"],
+  },
+  {
+    name: "Pro",
+    price: "$79",
+    blurb: "ระบบเดียวกัน แต่รับข้อความและค้นหาเมืองได้มากขึ้น พร้อมส่งอัตโนมัติจากแหล่งที่คุณเชื่อถือ",
+    features: ["ทุกอย่างใน Starter", "ตอบข้อความติดต่อสูงสุด 60 รายการต่อเดือน", "ค้นหาสูงสุด 3 เมือง", "เปิดส่งอัตโนมัติเป็นรายแหล่งได้"],
+    highlighted: true,
+  },
+  {
+    name: "Studio",
+    price: "$149",
+    blurb: "ระบบเต็มกำลังสำหรับฤดูกาลที่ยุ่ง ทีมผู้แสดง และทุกเมืองที่คุณรับงาน",
+    features: ["ทุกอย่างใน Pro", "ตอบข้อความติดต่อสูงสุด 150 รายการต่อเดือน", "ค้นหาทุกเมืองของคุณ", "รายชื่อผู้แสดงและตรวจวันว่างแยกรายคน"],
+  },
+];
+
+function ThaiPricingPage() {
+  return (
+    <div className="relative isolate overflow-hidden bg-ink-stage text-cream-bright">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[44rem]"><RingsBackdrop /></div>
+      <section className="relative mx-auto max-w-6xl px-6 pb-12 pt-16 text-center sm:pt-24">
+        <StickerChip tone="cream" rotate={-2}>ราคา</StickerChip>
+        <h1 className="mt-6 text-balance text-4xl font-black tracking-tight sm:text-6xl">
+          ผู้ช่วยครบระบบในทุกแผน เริ่มที่ <span className={GRAD}>$25 ต่อเดือน</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-cream/70">
+          Bright Ears ค้นหาสถานที่ ร่างข้อความด้วยสำนวนของคุณ ตอบลูกค้าที่ติดต่อเข้ามา และติดตามต่อให้ คุณเลือกเพียงจำนวนข้อความ เมือง และระดับการส่งอัตโนมัติ
+        </p>
+      </section>
+      <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-4">
+        <div className="grid gap-8 lg:grid-cols-3 lg:items-stretch">
+          {THAI_PLANS.map((plan) => (
+            <div key={plan.name} className="relative flex">
+              <div className={`relative flex w-full flex-col rounded-3xl bg-cream p-7 text-ink-stage shadow-[0_24px_60px_rgba(0,0,0,0.45)] ${plan.highlighted ? "ring-2 ring-neon-magenta" : ""}`}>
+                {plan.highlighted && <span className="absolute -top-4 left-1/2 -translate-x-1/2"><StickerChip tone="magenta" rotate={-3}>ยอดนิยม</StickerChip></span>}
+                <h2 className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-ink-stage/60">{plan.name}</h2>
+                <p className="mt-3 text-5xl font-black tracking-tight">{plan.price}<span className="text-base font-normal text-ink-stage/50">/เดือน</span></p>
+                <p className="mt-3 text-sm text-ink-stage/70">{plan.blurb}</p>
+                <ul className="mt-6 flex-1 space-y-3 text-sm text-ink-stage/80">
+                  {plan.features.map((feature) => <li key={feature} className="flex gap-2.5"><CheckIcon /><span>{feature}</span></li>)}
+                </ul>
+                <Link href={`/onboarding?plan=${plan.name.toLowerCase()}`} prefetch={false} className={`mt-8 block rounded-full px-4 py-3 text-center font-bold ${plan.highlighted ? "bg-neon-magenta" : "border-[1.5px] border-ink-stage/30"}`}>เริ่มใช้งาน</Link>
+                <p className="mt-3 text-center text-xs text-ink-stage/50">สมัครเพื่อเปิดใช้งาน · ยกเลิกได้ทุกเมื่อ</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="relative mx-auto max-w-3xl px-6 pb-24">
+        <div className="text-center"><StickerChip tone="cream">คำถามที่พบบ่อย</StickerChip><h2 className="mt-5 text-3xl font-black">ตอบตรง ๆ ก่อนเริ่มใช้งาน</h2></div>
+        <div className="mt-10 space-y-4">
+          {[
+            ["แต่ละแผนต่างกันอย่างไร?", "ต่างกันที่จำนวนข้อความ เมือง และการส่งอัตโนมัติ คุณภาพการค้นหาและฟีเจอร์หลักเหมือนกันทุกแผน"],
+            ["ต้องแชร์รหัสผ่านอีเมลไหม?", "ไม่ต้อง การรับข้อความใช้กฎส่งต่อที่คุณตั้งเอง ส่วน Gmail สำหรับส่งข้อความขอเฉพาะสิทธิ์ส่ง ไม่อ่านหรือนำเข้าอีเมล"],
+            ["ยกเลิกได้ทุกเมื่อไหม?", "ได้ ทุกแผนเป็นรายเดือน ไม่มีสัญญาระยะยาว และไม่มีการเรียกเก็บค่าใช้งานเกินโควตาโดยไม่แจ้ง"],
+            ["รองรับศิลปินประเภทไหน?", "รองรับ DJ วงดนตรี นักร้อง นักดนตรี นักเต้น นักมายากล พิธีกร และธุรกิจผู้แสดงประเภทอื่น"],
+          ].map(([q, a]) => <div key={q} className="rounded-2xl bg-cream p-6 text-ink-stage"><h3 className="font-bold">{q}</h3><p className="mt-2 text-sm leading-relaxed text-ink-stage/70">{a}</p></div>)}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default async function PricingPage() {
+  const { locale } = await getTranslations();
+  if (locale === "th") return <ThaiPricingPage />;
   return (
     <div className="relative isolate overflow-hidden bg-ink-stage text-cream-bright">
       <script

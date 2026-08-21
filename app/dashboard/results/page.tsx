@@ -9,6 +9,8 @@ import { computeResults, hasResults, formatReplyTime } from "@/lib/reports/resul
 import { formatMinor } from "@/lib/quote/fee";
 import { PageHeader, Kicker } from "@/components/ui";
 import type { ReactNode } from "react";
+import { getTranslations } from "@/lib/i18n/server";
+import { languageTag } from "@/lib/i18n/config";
 
 export const dynamic = "force-dynamic";
 
@@ -51,9 +53,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export default async function ResultsPage() {
+  const { locale, t } = await getTranslations();
   const business = await getCurrentBusiness();
   const results = await computeResults(business.id);
-  const monthLabel = results.monthStart.toLocaleDateString("en-US", {
+  const monthLabel = results.monthStart.toLocaleDateString(languageTag(locale), {
     month: "long",
     day: "numeric",
     timeZone: "UTC",
@@ -63,64 +66,63 @@ export default async function ResultsPage() {
     <main className="flex-1 bg-ink-stage">
       <div className="mx-auto w-full max-w-6xl px-6 py-8">
         <PageHeader
-          title="Results"
-          accent="Results"
-          subtitle="What your agent actually did — the Hunt and the inbox, in numbers. Nothing inflated, nothing invented."
+          title={t("dashboard.results.title")}
+          accent={t("dashboard.results.title")}
+          subtitle={t("dashboard.results.subtitle")}
         />
 
         {!hasResults(results) ? (
           <div className="rounded-3xl border border-cream/10 bg-ink-raised px-6 py-16 text-center">
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] text-cream/55">
-              Nothing to show yet
+              {t("dashboard.results.emptyTitle")}
             </p>
             <p className="mx-auto mt-4 max-w-md text-lg leading-relaxed text-cream/70">
-              The moment your agent starts hunting venues and answering inquiries, the proof lands
-              here — found, pitched, answered, booked.
+              {t("dashboard.results.emptyHint")}
             </p>
           </div>
         ) : (
           <div className="space-y-12">
-            <Section title={`The Hunt · since ${monthLabel}`}>
-              <Stat value={results.venuesFound} label="venues found for you" />
-              <Stat value={results.pitchesSent} label="pitches sent in your voice" />
-              <Stat value={results.conversationsActive} label="conversations in progress" />
-              <Stat value={results.gigsBookedThisMonth} label="gigs booked this month" show />
+            <Section title={t("dashboard.results.huntSince", { date: monthLabel })}>
+              <Stat value={results.venuesFound} label={t("dashboard.results.venuesFound")} />
+              <Stat value={results.pitchesSent} label={t("dashboard.results.pitchesSentVoice")} />
+              <Stat value={results.conversationsActive} label={t("dashboard.results.conversations")} />
+              <Stat value={results.gigsBookedThisMonth} label={t("dashboard.results.gigsMonth")} show />
               {results.bookedValueThisMonth > 0 && (
                 <Stat
                   value={formatMinor(results.bookedValueThisMonth, business.currency)}
-                  label="booked value this month"
+                  label={t("dashboard.results.valueMonth")}
                   show
                 />
               )}
             </Section>
 
-            <Section title={`Your inbox · since ${monthLabel}`}>
-              <Stat value={results.repliesSent} label="inquiries answered in your voice" />
+            <Section title={t("dashboard.results.inboxSince", { date: monthLabel })}>
+              <Stat value={results.repliesSent} label={t("dashboard.results.inquiriesAnswered")} />
               <Stat
-                value={formatReplyTime(results.medianFirstReplyMinutes)}
-                label="median first reply — the speed clients reward"
+                value={locale === "th" && results.medianFirstReplyMinutes !== null
+                  ? `${results.medianFirstReplyMinutes} นาที`
+                  : formatReplyTime(results.medianFirstReplyMinutes)}
+                label={t("dashboard.results.medianReply")}
               />
-              <Stat value={results.spamFiltered} label="spam & scams filtered before you saw them" />
-              <Stat value={results.newInquiries} label="real inquiries this month" />
+              <Stat value={results.spamFiltered} label={t("dashboard.results.spam")} />
+              <Stat value={results.newInquiries} label={t("dashboard.results.realInquiries")} />
             </Section>
 
-            <Section title="All time">
-              <Stat value={results.gigsBookedAllTime} label="gigs booked" show />
+            <Section title={t("dashboard.results.allTime")}>
+              <Stat value={results.gigsBookedAllTime} label={t("dashboard.results.gigsBooked")} show />
               {results.bookedValueAllTime > 0 && (
                 <Stat
                   value={formatMinor(results.bookedValueAllTime, business.currency)}
-                  label="booked value recorded"
+                  label={t("dashboard.results.valueRecorded")}
                   show
                 />
               )}
-              <Stat value={results.venuesFoundAllTime} label="venues found for you" />
-              <Stat value={results.pitchesSentAllTime} label="pitches sent" />
+              <Stat value={results.venuesFoundAllTime} label={t("dashboard.results.venuesFound")} />
+              <Stat value={results.pitchesSentAllTime} label={t("dashboard.results.pitchesSent")} />
             </Section>
 
             <p className="max-w-2xl text-xs leading-relaxed text-cream/45">
-              Every number here is something the agent did — venues surfaced, pitches sent in your
-              voice, inquiries answered, gigs you booked. Whether a room says yes is still down to
-              you and them; we only make sure you never miss the shot.
+              {t("dashboard.results.disclaimer")}
             </p>
           </div>
         )}

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
 import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 /**
  * EPK freshness monitor (P12.6). The one-pager is what every pitch links to
@@ -101,14 +102,17 @@ export async function runEpkFreshnessSweep(
       const report = await checkEpkFreshness(business, fetchFn);
       if (report.brokenLinks.length === 0) continue;
 
-      const problems = report.brokenLinks.map((u) => `Broken link (page not found): ${u}`);
+      const thai = normalizeLocale(business.locale) === "th";
+      const problems = report.brokenLinks.map((u) => thai ? `ลิงก์เสีย (ไม่พบหน้า): ${u}` : `Broken link (page not found): ${u}`);
       await notifyBusiness(business, {
-        title: "Your one-pager needs a touch-up",
-        body: `${report.brokenLinks.length} link${report.brokenLinks.length === 1 ? " is" : "s are"} dead on your page.`,
+        title: thai ? "เพรสคิตของคุณมีลิงก์ที่ต้องแก้ไข" : "Your one-pager needs a touch-up",
+        body: thai
+          ? `พบลิงก์เสีย ${report.brokenLinks.length} ลิงก์บนเพจของคุณ`
+          : `${report.brokenLinks.length} link${report.brokenLinks.length === 1 ? " is" : "s are"} dead on your page.`,
         url: "/dashboard/settings#profile",
-        emailBody: `Your one-pager is what every pitch links to — and this week's check found:\n\n${problems
-          .map((p) => `- ${p}`)
-          .join("\n")}\n\nTwo minutes in the Control room fixes it.`,
+        emailBody: thai
+          ? `ข้อความแนะนำตัวทุกฉบับลิงก์ไปยังเพรสคิตของคุณ และการตรวจสัปดาห์นี้พบ:\n\n${problems.map((p) => `- ${p}`).join("\n")}\n\nแก้ไขได้ในห้องควบคุม`
+          : `Your one-pager is what every pitch links to — and this week's check found:\n\n${problems.map((p) => `- ${p}`).join("\n")}\n\nTwo minutes in the Control room fixes it.`,
       });
       nagged++;
     } catch (err) {

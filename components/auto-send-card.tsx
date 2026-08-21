@@ -14,6 +14,7 @@ import { useActionState } from "react";
 import { updateAutoSendSources } from "@/app/actions/settings";
 import { Card, Kicker, buttonStyles } from "@/components/ui";
 import type { LeadSource } from "@/app/generated/prisma/enums";
+import { useI18n } from "@/components/locale-provider";
 
 // Eligible auto-send sources + labels (GigSalad intentionally absent — never
 // auto-sendable). Mirrors lib/inbound/auto-send.ts's eligibility. Only
@@ -37,6 +38,8 @@ export function AutoSendCard({
   /** Sources the owner has already trusted. */
   trusted: LeadSource[];
 }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
       updateAutoSendSources(formData),
@@ -47,26 +50,21 @@ export function AutoSendCard({
   return (
     <Card className="p-6">
       <h3 className="mb-2">
-        <Kicker onLight>Auto-send</Kicker>
+        <Kicker onLight>{c("Auto-send", "ส่งอัตโนมัติ")}</Kicker>
       </h3>
       {!enabled ? (
         <>
           <p className="text-sm text-ink-stage/60">
-            On your plan you approve every reply before it sends. Upgrade to let your assistant send
-            replies on its own — from the sources you trust, in your voice, with your real
-            availability — so you never miss the speed-to-reply race.
+            {c("On your plan you approve every reply before it sends. Upgrade to let your assistant send replies on its own — from the sources you trust, in your voice, with your real availability — so you never miss the speed-to-reply race.", "แผนของคุณกำหนดให้อนุมัติทุกข้อความก่อนส่ง อัปเกรดเพื่อให้ผู้ช่วยตอบอัตโนมัติจากแหล่งที่คุณไว้วางใจ ด้วยน้ำเสียงและตารางว่างจริงของคุณ")}
           </p>
           <a href="#billing" className={`${buttonStyles.secondaryOnLight} mt-4 inline-block`}>
-            See Plan &amp; billing
+            {c("See Plan & billing", "ดูแผนและการเรียกเก็บเงิน")}
           </a>
         </>
       ) : (
         <>
           <p className="mb-4 text-sm text-ink-stage/60">
-            Pick the sources you trust enough to reply <span className="font-semibold text-ink-stage/80">without</span>{" "}
-            your approval. Your assistant still drafts in your voice from your rate card — it just
-            sends
-            straight away for these. Everything else keeps waiting for your tap.
+            {locale === "th" ? "เลือกแหล่งที่คุณไว้วางใจให้ผู้ช่วยตอบได้โดยไม่ต้องรออนุมัติ ผู้ช่วยยังคงร่างตามน้ำเสียงและรายการราคาของคุณ ส่วนแหล่งอื่นยังรอให้คุณกดอนุมัติเสมอ" : <>Pick the sources you trust enough to reply <span className="font-semibold text-ink-stage/80">without</span>{" "}your approval. Your assistant still drafts in your voice from your rate card — it just sends straight away for these. Everything else keeps waiting for your tap.</>}
           </p>
           <form action={formAction} className="space-y-4">
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -79,21 +77,20 @@ export function AutoSendCard({
                     defaultChecked={trustedSet.has(s.value)}
                     className="size-4 accent-brand-cyan"
                   />
-                  {s.label}
+                  {s.value === "WEBSITE_FORM" ? c(s.label, "แบบฟอร์มบนเว็บไซต์") : s.value === "PLAIN_EMAIL" ? c(s.label, "อีเมลทั่วไป") : s.label}
                 </label>
               ))}
             </div>
             <p className="text-xs text-ink-stage/45">
-              GigSalad is never auto-sent — its rules require a personal reply, so those always wait
-              for you.
+              {c("GigSalad is never auto-sent — its rules require a personal reply, so those always wait for you.", "ระบบจะไม่ส่ง GigSalad อัตโนมัติ เพราะกติกากำหนดให้ตอบด้วยตนเอง จึงต้องรอคุณอนุมัติเสมอ")}
             </p>
             <div className="flex items-center gap-3">
               <button type="submit" disabled={pending} className={buttonStyles.primary}>
-                {pending ? "Saving…" : "Save auto-send"}
+                {pending ? c("Saving…", "กำลังบันทึก…") : c("Save auto-send", "บันทึกการส่งอัตโนมัติ")}
               </button>
               {state?.ok && (
                 <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-                  Saved
+                  {c("Saved", "บันทึกแล้ว")}
                 </span>
               )}
               {state && !state.ok && (

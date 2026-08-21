@@ -15,6 +15,7 @@ import { useActionState } from "react";
 import { updateVoice } from "@/app/actions/settings";
 import { Card, Kicker, buttonStyles } from "@/components/ui";
 import { stripToneNote } from "@/lib/voice/tone-note";
+import { useI18n } from "@/components/locale-provider";
 
 const inputCls =
   "w-full rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage placeholder:text-ink-stage/35 focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors";
@@ -30,6 +31,7 @@ export type VoiceFields = {
 };
 
 export function VoiceCard({ voice }: { voice: VoiceFields }) {
+  const { t } = useI18n();
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
       updateVoice(formData),
@@ -42,16 +44,14 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
   return (
     <Card className="p-6">
       <h3 className="mb-2">
-        <Kicker onLight>Your writing voice</Kicker>
+        <Kicker onLight>{t("settings.voice.title")}</Kicker>
       </h3>
       <p className="mb-4 text-sm text-ink-stage/60">
-        Paste 2-3 replies you&apos;ve actually sent, then answer a couple of quick questions. Your
-        assistant matches your tone in every reply and pitch — clients and venues never know it
-        wasn&apos;t you.
+        {t("settings.voice.intro")}
       </p>
       <form action={formAction} className="space-y-5">
         <div>
-          <label htmlFor="voiceSamples" className={labelCls}>Replies you&apos;ve sent</label>
+          <label htmlFor="voiceSamples" className={labelCls}>{t("settings.voice.samples")}</label>
           <textarea
             id="voiceSamples"
             name="voiceSamples"
@@ -60,12 +60,12 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
             defaultValue={stripToneNote(voice.voiceSamples)}
             className={`${inputCls} font-mono text-xs leading-relaxed`}
           />
-          <p className={hintCls}>Separate different replies with a blank line. More variety = a sharper match.</p>
+          <p className={hintCls}>{t("settings.voice.samplesHint")}</p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="voiceGreeting" className={labelCls}>How you open</label>
+            <label htmlFor="voiceGreeting" className={labelCls}>{t("onboarding.voice.greeting")}</label>
             <input
               id="voiceGreeting"
               name="voiceGreeting"
@@ -75,7 +75,7 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
             />
           </div>
           <div>
-            <label htmlFor="voiceSignoff" className={labelCls}>How you sign off</label>
+            <label htmlFor="voiceSignoff" className={labelCls}>{t("onboarding.voice.signoff")}</label>
             <input
               id="voiceSignoff"
               name="voiceSignoff"
@@ -85,20 +85,20 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
             />
           </div>
           <div>
-            <label htmlFor="voiceUsesEmoji" className={labelCls}>Emojis</label>
+            <label htmlFor="voiceUsesEmoji" className={labelCls}>{t("settings.voice.emojis")}</label>
             <select
               id="voiceUsesEmoji"
               name="voiceUsesEmoji"
               defaultValue={emojiDefault}
               className={inputCls}
             >
-              <option value="">No preference</option>
-              <option value="never">Never</option>
-              <option value="sometimes">Now &amp; then</option>
+              <option value="">{t("settings.voice.noPreference")}</option>
+              <option value="never">{t("onboarding.voice.never")}</option>
+              <option value="sometimes">{t("onboarding.voice.sometimes")}</option>
             </select>
           </div>
           <div>
-            <label htmlFor="voicePhrases" className={labelCls}>Words you lean on</label>
+            <label htmlFor="voicePhrases" className={labelCls}>{t("settings.voice.phrases")}</label>
             <input
               id="voicePhrases"
               name="voicePhrases"
@@ -111,11 +111,11 @@ export function VoiceCard({ voice }: { voice: VoiceFields }) {
 
         <div className="flex items-center gap-3">
           <button type="submit" disabled={pending} className={buttonStyles.primary}>
-            {pending ? "Saving…" : "Save voice"}
+            {pending ? t("common.saving") : t("settings.voice.save")}
           </button>
           {state?.ok && (
             <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-              Saved
+              {t("settings.saved")}
             </span>
           )}
           {state && !state.ok && (

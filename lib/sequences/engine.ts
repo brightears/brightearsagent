@@ -4,6 +4,8 @@ import { runScheduledSends, scheduleAutonomousSend } from "@/lib/agent/schedule-
 import { canAutoSend } from "@/lib/inbound/auto-send";
 import { meterState, isAgentPaused } from "@/lib/billing/metering";
 import { notifyBusiness } from "@/lib/notify";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translator } from "@/lib/i18n/messages";
 import { reportError } from "@/lib/report-error";
 import { nextRunAtAfterStep } from "@/lib/sequences/timing";
 import { surfaceStuckVenuePitchClaims } from "@/lib/ops/sending-recovery";
@@ -76,18 +78,22 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
   const AGING_MS = 4 * 3600 * 1000;
   const aging = await db.draft.findMany({
     where: { status: "PENDING", agingPingAt: null, createdAt: { lt: new Date(now.getTime() - AGING_MS) } },
-    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true } } } } },
+    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true, locale: true } } } } },
     take: 50,
   });
   for (const draft of aging) {
     await db.draft.update({ where: { id: draft.id }, data: { agingPingAt: now } });
     if (isAgentPaused(draft.lead.business.plan)) continue;
+    const t = translator(normalizeLocale(draft.lead.business.locale));
+    const leadName = draft.lead.clientName ?? t("notification.newLead");
     const hours = Math.round((now.getTime() - draft.createdAt.getTime()) / 3600_000);
     void notifyBusiness(draft.lead.business, {
-      title: `Still waiting: ${draft.lead.clientName ?? "a lead"}`,
-      body: `A reply has been ready for ${hours}h — one tap sends it.`,
+      title: t("notification.stillWaiting", { name: leadName }),
+      body: t("notification.stillWaitingBody", { hours }),
       url: `/dashboard/leads/${draft.leadId}`,
-      emailBody: `A drafted reply for ${draft.lead.clientName ?? "a lead"} has been waiting ${hours} hours for your approval.\n\nSpeed wins these — one tap and it goes out in your voice.`,
+      emailBody: normalizeLocale(draft.lead.business.locale) === "th"
+        ? `ร่างคำตอบสำหรับ ${leadName} รอการอนุมัติมา ${hours} ชั่วโมง\n\nตอบเร็วช่วยเพิ่มโอกาสได้งาน กดครั้งเดียวเพื่อส่งด้วยสำนวนของคุณ`
+        : `A drafted reply for ${leadName} has been waiting ${hours} hours for your approval.\n\nSpeed wins these — one tap and it goes out in your voice.`,
     }).catch(() => null);
     result.agingPings++;
   }
@@ -212,7 +218,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
           drafts: { where: { status: { in: ["PENDING", "SENDING"] } } },
           // Autopilot (P8.5): plan + trusted sources decide whether this
           // step SENDS or waits for approval.
-          business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true } },
+          business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true, locale: true } },
         },
       },
     },
@@ -295,9 +301,14 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       if (autopilot && draftId) {
         const at = await scheduleAutonomousSend(draftId, now);
         if (at) {
+          const t = translator(normalizeLocale(lead.business.locale));
           void notifyBusiness(lead.business, {
-            title: `Follow-up sending soon: ${lead.clientName ?? "a lead"}`,
-            body: `Step ${nextStep} goes out in 15 minutes — open it to read, hold, or send now.`,
+            title: t("notification.sendingSoon", {
+              name: lead.clientName ?? t("notification.newLead"),
+            }),
+            body: normalizeLocale(lead.business.locale) === "th"
+              ? `ข้อความติดตามครั้งที่ ${nextStep} จะส่งใน 15 นาที เปิดเพื่อตรวจ พักไว้ หรือส่งตอนนี้`
+              : `Step ${nextStep} goes out in 15 minutes — open it to read, hold, or send now.`,
             url: `/dashboard/leads/${lead.id}`,
             pushOnly: true, // holding-state ping; the send gets its own receipt
           }).catch(() => null);

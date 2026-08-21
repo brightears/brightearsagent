@@ -45,6 +45,23 @@ describe("scoreVenue", () => {
     expect(a).toEqual(b);
   });
 
+  it("returns owner-facing Thai explanations for a Thai business", () => {
+    const s = scoreVenue(rooftop, [freshOpening], { ...profile, locale: "th" }, NOW);
+    expect(s.fitScore).toBe(90);
+    expect(s.reasons.some((reason) => reason.includes("เมืองที่คุณรับงาน"))).toBe(true);
+    expect(s.reasons.some((reason) => reason.includes("รูฟท็อป"))).toBe(true);
+    expect(s.reasons.some((reason) => reason.includes("กำลังจัดโปรแกรมบันเทิง"))).toBe(true);
+    expect(s.reasons.join(" ")).not.toContain("booking entertainment now");
+  });
+
+  it("returns Thai cautions without changing the score", () => {
+    const away = { ...rooftop, city: "Bristol" };
+    const english = scoreVenue(away, [freshOpening], profile, NOW);
+    const thai = scoreVenue(away, [freshOpening], { ...profile, locale: "th" }, NOW);
+    expect(thai.fitScore).toBe(english.fitScore);
+    expect(thai.caution).toBe("Bristol อยู่นอกเมืองที่คุณรับงาน");
+  });
+
   it("zeroes geo and adds a caution outside the service cities", () => {
     const away = { ...rooftop, city: "Bristol" };
     const s = scoreVenue(away, [freshOpening], profile, NOW);

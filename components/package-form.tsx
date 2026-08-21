@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { createPackage, updatePackage } from "@/app/actions/packages";
 import { buttonStyles } from "@/components/ui";
 import { StickerChip } from "@/components/collage";
+import { useI18n } from "@/components/locale-provider";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
@@ -36,6 +37,8 @@ export function PackageForm({
   // so the labels must never hardcode "$".
   currency?: string;
 }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [open, setOpen] = useState(!initial);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, formData) => {
@@ -50,7 +53,7 @@ export function PackageForm({
   if (initial && !open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className={`${buttonStyles.secondaryOnLight} text-sm px-3 py-1.5`}>
-        Edit
+        {c("Edit", "แก้ไข")}
       </button>
     );
   }
@@ -62,33 +65,33 @@ export function PackageForm({
       {initial && <input type="hidden" name="id" value={initial.id} />}
 
       <div>
-        <label htmlFor={`pkg-name-${uid}`} className={labelStyles}>Name</label>
+        <label htmlFor={`pkg-name-${uid}`} className={labelStyles}>{c("Name", "ชื่อแพ็กเกจ")}</label>
         <input
           id={`pkg-name-${uid}`}
           name="name"
           type="text"
           required
           defaultValue={initial?.name}
-          placeholder="6-hour wedding package"
+          placeholder={c("6-hour wedding package", "แพ็กเกจงานแต่ง 6 ชั่วโมง")}
           className={inputStyles}
         />
       </div>
 
       <div>
-        <label htmlFor={`pkg-desc-${uid}`} className={labelStyles}>Description</label>
+        <label htmlFor={`pkg-desc-${uid}`} className={labelStyles}>{c("Description", "รายละเอียด")}</label>
         <textarea
           id={`pkg-desc-${uid}`}
           name="description"
           rows={3}
           defaultValue={initial?.description}
-          placeholder="What's included — hours, gear, extras. The AI quotes from this."
+          placeholder={c("What's included — hours, gear, extras. The AI quotes from this.", "ระบุสิ่งที่รวมอยู่ เช่น จำนวนชั่วโมง อุปกรณ์ และบริการเสริม ผู้ช่วยจะใช้อ้างอิงราคา")}
           className={inputStyles}
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor={`pkg-min-${uid}`} className={labelStyles}>Price from ({currency})</label>
+          <label htmlFor={`pkg-min-${uid}`} className={labelStyles}>{c("Price from", "ราคาเริ่มต้น")} ({currency})</label>
           <input
             id={`pkg-min-${uid}`}
             name="priceMin"
@@ -102,7 +105,7 @@ export function PackageForm({
           />
         </div>
         <div>
-          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>To ({currency})</label>
+          <label htmlFor={`pkg-max-${uid}`} className={labelStyles}>{c("To", "ถึง")} ({currency})</label>
           <input
             id={`pkg-max-${uid}`}
             name="priceMax"
@@ -117,16 +120,16 @@ export function PackageForm({
       </div>
       {/* One hint line under the row (founder preview: the long label wrapped
           and knocked the inputs out of line). */}
-      <p className="-mt-2 text-xs text-ink-stage/50">Leave “To” blank for a fixed price.</p>
+      <p className="-mt-2 text-xs text-ink-stage/50">{c("Leave “To” blank for a fixed price.", "หากเป็นราคาเดียว ให้เว้นช่อง “ถึง” ว่างไว้")}</p>
 
       <div>
-        <label htmlFor={`pkg-types-${uid}`} className={labelStyles}>Event types (comma-separated)</label>
+        <label htmlFor={`pkg-types-${uid}`} className={labelStyles}>{c("Event types (comma-separated)", "ประเภทงาน (คั่นด้วยจุลภาค)")}</label>
         <input
           id={`pkg-types-${uid}`}
           name="eventTypes"
           type="text"
           defaultValue={initial?.eventTypes.join(", ")}
-          placeholder="wedding, corporate, birthday"
+          placeholder={c("wedding, corporate, birthday", "งานแต่ง, งานบริษัท, วันเกิด")}
           className={inputStyles}
         />
       </div>
@@ -139,17 +142,17 @@ export function PackageForm({
             defaultChecked={initial.active}
             className="size-4 accent-brand-cyan"
           />
-          Active (the AI can quote this package)
+          {c("Active (the AI can quote this package)", "เปิดใช้งาน (ผู้ช่วยเสนอราคาแพ็กเกจนี้ได้)")}
         </label>
       )}
 
       <div className="flex gap-2">
         <button type="submit" disabled={pending} className={`${buttonStyles.primary} flex-1`}>
-          {pending ? "Saving…" : initial ? "Save changes" : "Add package"}
+          {pending ? c("Saving…", "กำลังบันทึก…") : initial ? c("Save changes", "บันทึกการแก้ไข") : c("Add package", "เพิ่มแพ็กเกจ")}
         </button>
         {initial && (
           <button type="button" onClick={() => setOpen(false)} className={buttonStyles.secondaryOnLight}>
-            Cancel
+            {c("Cancel", "ยกเลิก")}
           </button>
         )}
       </div>
@@ -159,7 +162,7 @@ export function PackageForm({
         // Tiny show-voice celebration — the sanctioned sticker chip (docs/DESIGN.md).
         <p>
           <StickerChip tone="magenta" rotate={-2}>
-            Package added
+            {c("Package added", "เพิ่มแพ็กเกจแล้ว")}
           </StickerChip>
         </p>
       )}

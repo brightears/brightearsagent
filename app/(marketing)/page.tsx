@@ -19,6 +19,7 @@ import { BookingSignalStage } from "@/components/booking-signal-stage";
 import { KineticHeadline, Marquee, RevealOnScroll } from "@/components/motion";
 import { Kicker } from "@/components/ui";
 import { pageMeta, organizationJsonLd, softwareApplicationJsonLd } from "@/lib/marketing/site";
+import { getTranslations } from "@/lib/i18n/server";
 
 export const metadata: Metadata = pageMeta(
   "Bright Ears — your booking assistant for more gigs and less chasing",
@@ -33,7 +34,7 @@ const MARQUEE_ITEMS = [
   "YOU STAY IN CONTROL",
 ];
 
-const SETUP_STEPS = [
+const EN_SETUP_STEPS = [
   {
     number: "01",
     title: "Build one artist profile",
@@ -93,15 +94,33 @@ const PLANS = [
   },
 ];
 
-function GradWord({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-      {children}
-    </span>
-  );
-}
-
-export default function HomePage() {
+export default async function HomePage() {
+  const { locale, t } = await getTranslations();
+  const SETUP_STEPS = locale === "th" ? [
+    { number: "01", title: t("marketing.home.step1Title"), body: t("marketing.home.step1Body"), note: t("marketing.home.step1Note") },
+    { number: "02", title: t("marketing.home.step2Title"), body: t("marketing.home.step2Body"), note: t("marketing.home.step2Note") },
+    { number: "03", title: t("marketing.home.step3Title"), body: t("marketing.home.step3Body"), note: t("marketing.home.step3Note") },
+  ] : EN_SETUP_STEPS;
+  const marqueeItems = locale === "th"
+    ? ["ได้งานมากขึ้น", "ไล่ตามน้อยลง", "ข้อความด้วยสำนวนของคุณ", "คำตอบพร้อมตรวจ", "คุณควบคุมเสมอ"]
+    : MARQUEE_ITEMS;
+  const smallWins = locale === "th"
+    ? [
+        { label: "โหมดเดินทาง", title: "พาการค้นหาไปกับคุณ", body: "เพิ่มเมืองและวันที่ แล้ว Bright Ears จะค้นหางานรับเชิญระหว่างที่คุณอยู่ที่นั่น" },
+        { label: "ช่วยแบบเงียบ ๆ", title: "กันมิจฉาชีพออกไป", body: "ข้อความน่าสงสัยจะถูกกรองก่อนกลายเป็นอีกเรื่องในโทรศัพท์ของคุณ" },
+        { label: "ยังทำงานต่อ", title: "ติดตามอัตโนมัติ", body: "ระบบติดตามอย่างสุภาพจนได้รับคำตอบ จองสำเร็จ หรือยกเลิกการรับข้อความ" },
+      ]
+    : SMALL_WINS;
+  const matchSteps = locale === "th"
+    ? ["อธิบายเหตุผลที่เหมาะ", "ค้นหาช่องทางติดต่อ", "ร่างข้อความแนะนำตัว", "คุณเป็นคนอนุมัติ"]
+    : ["Fit explained", "Contact researched", "Pitch drafted", "You approve"];
+  const plans = locale === "th"
+    ? [
+        { ...PLANS[0], body: "หนึ่งเมืองหลัก · สูงสุด 15 ข้อความต่อเดือน · คุณอนุมัติทุกครั้ง" },
+        { ...PLANS[1], body: "สูงสุด 3 เมือง · 60 ข้อความต่อเดือน · ส่งอัตโนมัติจากแหล่งที่เชื่อถือ" },
+        { ...PLANS[2], body: "ทุกเมืองของคุณ · 150 ข้อความต่อเดือน · ระบบอัตโนมัติเต็มรูปแบบ" },
+      ]
+    : PLANS;
   return (
     <div className="overflow-x-clip">
       <script
@@ -124,19 +143,18 @@ export default function HomePage() {
               "radial-gradient(700px circle at 82% 180px, rgba(255,45,174,0.13), transparent 68%), radial-gradient(540px circle at 8% 80px, rgba(0,187,228,0.09), transparent 70%)",
           }}
         />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-16 px-6 pb-20 pt-16 lg:grid-cols-[1.02fr_0.98fr] lg:pb-24 lg:pt-24">
-          <div>
+        <div className="relative mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] items-center gap-16 px-6 pb-20 pt-16 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:pb-24 lg:pt-24">
+          <div className="min-w-0">
             <span className="inline-flex items-center gap-2 rounded-full border-[1.5px] border-cream/25 bg-cream/5 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/75">
               <span className="size-1.5 rounded-full bg-brand-cyan" />
-              A booking assistant built for performers
+              {t("marketing.home.badge")}
             </span>
             <h1 className="mt-7 text-6xl font-black leading-[0.93] tracking-tighter text-cream-bright sm:text-7xl lg:text-[5.7rem]">
-              <KineticHeadline accentWord="gigs.">More gigs. Less chasing.</KineticHeadline>
+              <KineticHeadline accentWord={t("marketing.home.accent")}>{t("marketing.home.headline")}</KineticHeadline>
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-cream/72 sm:text-xl">
-              Tell Bright Ears who you are and where you play. It finds venues that fit, writes the
-              pitch and every reply in your voice, then keeps following up.{" "}
-              <strong className="font-bold text-cream-bright">You approve. It handles the rest.</strong>
+              {t("marketing.home.hero")}{" "}
+              <strong className="font-bold text-cream-bright">{t("marketing.home.heroStrong")}</strong>
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -145,44 +163,43 @@ export default function HomePage() {
                 prefetch={false}
                 className="rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
               >
-                Build my profile
+                {t("marketing.home.build")}
               </Link>
               <a
                 href="#how-it-works"
                 className="rounded-full border-[1.5px] border-cream/35 px-7 py-3.5 text-lg font-semibold text-cream transition-colors hover:border-brand-cyan hover:text-brand-cyan"
               >
-                See how it works
+                {t("marketing.home.see")}
               </a>
             </div>
 
             <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/55">
-              <span>No video required</span>
+              <span>{t("marketing.home.noVideo")}</span>
               <span aria-hidden className="text-neon-magenta">/</span>
-              <span>Saves as you go</span>
+              <span>{t("marketing.home.saves")}</span>
               <span aria-hidden className="text-neon-magenta">/</span>
-              <span>Month to month</span>
+              <span>{t("marketing.home.monthly")}</span>
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <BookingSignalStage />
           </div>
         </div>
       </section>
 
-      <Marquee items={MARQUEE_ITEMS} className="border-y border-cream/10 py-4" />
+      <Marquee items={marqueeItems} className="border-y border-cream/10 py-4" />
 
       {/* Setup story */}
       <section id="how-it-works" className="scroll-mt-24">
         <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
           <RevealOnScroll className="max-w-3xl">
-            <Kicker>One profile. Then it works.</Kicker>
+            <Kicker>{t("marketing.home.setupKicker")}</Kicker>
             <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
-              Set up the <GradWord>essentials.</GradWord> Add the polish later.
+              {t("marketing.home.setupTitle")}
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-cream/68">
-              Bright Ears needs enough to represent you well, not your life story. The setup is
-              broken into small steps, saves as you go, and tells you why each answer matters.
+              {t("marketing.home.setupBody")}
             </p>
           </RevealOnScroll>
 
@@ -218,9 +235,9 @@ export default function HomePage() {
       {/* The two halves, explained in the simplest possible language. */}
       <section className="mx-auto max-w-6xl px-6 pb-12 pt-4 sm:pb-20">
         <RevealOnScroll className="max-w-2xl lg:ml-auto lg:text-right">
-          <Kicker>Two ways it keeps you booked</Kicker>
+          <Kicker>{t("marketing.home.twoKicker")}</Kicker>
           <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
-            New rooms found. Incoming leads <GradWord>handled.</GradWord>
+            {t("marketing.home.twoTitle")}
           </h2>
         </RevealOnScroll>
 
@@ -228,17 +245,15 @@ export default function HomePage() {
           <RevealOnScroll>
             <div className="relative h-full overflow-hidden rounded-[2rem] bg-cream p-8 text-ink-stage shadow-[0_28px_80px_rgba(0,0,0,0.42)] sm:p-10">
               <HaloRing width={250} height={92} tilt={-10} className="-right-8 top-12" />
-              <StickerChip tone="magenta" rotate={-4}>Find new work</StickerChip>
+              <StickerChip tone="magenta" rotate={-4}>{t("marketing.home.findSticker")}</StickerChip>
               <h3 className="relative mt-6 max-w-md text-4xl font-black leading-[0.98] tracking-tight sm:text-5xl">
-                Rooms you would never have known to call.
+                {t("marketing.home.findTitle")}
               </h3>
               <p className="relative mt-5 max-w-lg text-base leading-relaxed text-ink-stage/65">
-                Bright Ears watches for venue openings, entertainment programmes, hiring signals
-                and rooms already booking acts like yours. Every match comes with the reason it
-                fits—then a pitch is drafted for you.
+                {t("marketing.home.findBody")}
               </p>
               <div className="relative mt-8 grid gap-2 sm:grid-cols-2">
-                {["Fit explained", "Contact researched", "Pitch drafted", "You approve"].map(
+                {matchSteps.map(
                   (item) => (
                     <div
                       key={item}
@@ -257,25 +272,28 @@ export default function HomePage() {
           <RevealOnScroll delayMs={120}>
             <div className="relative h-full overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised p-8 sm:p-10">
               <GradientBlob tone="cyan" className="-right-16 -top-16 h-52 w-72" />
-              <StickerChip tone="cream" rotate={4}>Handle inquiries</StickerChip>
+              <StickerChip tone="cream" rotate={4}>{t("marketing.home.handleSticker")}</StickerChip>
               <h3 className="relative mt-6 text-4xl font-black leading-[0.98] tracking-tight text-cream-bright">
-                The lead is answered while you’re still on stage.
+                {t("marketing.home.handleTitle")}
               </h3>
               <p className="relative mt-5 text-base leading-relaxed text-cream/65">
-                Forward inquiries from email, your website or booking platforms. Bright Ears reads
-                them, filters the scams, checks your availability and writes the reply in your voice.
+                {t("marketing.home.handleBody")}
               </p>
               <div className="relative mt-8 rounded-2xl bg-white p-4 text-ink-stage shadow-xl">
                 <p className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-ink-stage/40">
-                  Reply ready
+                  {t("marketing.home.replyReady")}
                 </p>
                 <p className="mt-2 text-sm font-extrabold">
-                  “Hi Maya — October 17 is open, and I’d love to play the Grandview…”
+                  {locale === "th"
+                    ? "“สวัสดีคุณเมย์ วันที่ 17 ตุลาคมยังว่างอยู่ และยินดีมากที่จะได้แสดงที่ Grandview…”"
+                    : "“Hi Maya — October 17 is open, and I’d love to play the Grandview…”"}
                 </p>
                 <div className="mt-4 flex items-center justify-between gap-4">
-                  <span className="text-xs text-ink-stage/45">Your voice · availability checked</span>
+                  <span className="text-xs text-ink-stage/45">
+                    {locale === "th" ? "สำนวนของคุณ · ตรวจวันว่างแล้ว" : "Your voice · availability checked"}
+                  </span>
                   <span className="rounded-full bg-brand-cyan px-3 py-1.5 text-xs font-black">
-                    Approve
+                    {t("marketing.home.approve")}
                   </span>
                 </div>
               </div>
@@ -285,7 +303,7 @@ export default function HomePage() {
 
         <RevealOnScroll delayMs={100}>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {SMALL_WINS.map((win) => (
+            {smallWins.map((win) => (
               <div key={win.title} className="rounded-3xl border border-cream/10 bg-ink-raised p-5">
                 <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-brand-cyan">
                   {win.label}
@@ -301,13 +319,12 @@ export default function HomePage() {
       {/* Demo */}
       <section id="demo" className="scroll-mt-20 border-y border-cream/10">
         <RevealOnScroll className="mx-auto max-w-3xl px-6 py-20 sm:py-28">
-          <Kicker>Hear your voice come back</Kicker>
+          <Kicker>{t("marketing.home.demoKicker")}</Kicker>
           <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
-            Paste an inquiry. Watch the reply <GradWord>write itself.</GradWord>
+            {t("marketing.home.demoTitle")}
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-cream/68">
-            No sign-up needed. Use a real inquiry or the sample, then see what your artist assistant
-            would send back.
+            {t("marketing.home.demoBody")}
           </p>
           <div className="relative mt-10">
             <GradientBlob tone="show" className="-bottom-10 -left-8 h-44 w-72" />
@@ -330,22 +347,19 @@ export default function HomePage() {
             />
             <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
               <div className="max-w-3xl">
-                <Kicker>Built inside a real entertainment business</Kicker>
+                <Kicker>{t("marketing.home.storyKicker")}</Kicker>
                 <blockquote className="mt-4 text-3xl font-black leading-tight tracking-tight text-cream-bright sm:text-5xl">
-                  Twenty years around venues taught us one thing:{" "}
-                  <GradWord>talent is rarely the bottleneck.</GradWord> Time is.
+                  {t("marketing.home.storyTitle")}
                 </blockquote>
                 <p className="mt-5 max-w-2xl text-base leading-relaxed text-cream/65">
-                  Bright Ears began as the back office for our own agency in Bangkok. It now does
-                  the same unglamorous chasing for independent performers—without pretending it can
-                  guarantee the booking.
+                  {t("marketing.home.storyBody")}
                 </p>
               </div>
               <Link
                 href="/story"
                 className="relative font-semibold text-brand-cyan transition-opacity hover:opacity-80"
               >
-                Read our story →
+                {t("marketing.home.readStory")}
               </Link>
             </div>
           </div>
@@ -355,18 +369,17 @@ export default function HomePage() {
       {/* Pricing */}
       <section className="mx-auto max-w-6xl px-6 py-12 sm:py-20">
         <RevealOnScroll className="max-w-3xl">
-          <Kicker>Start with one city</Kicker>
+          <Kicker>{t("marketing.home.priceKicker")}</Kicker>
           <h2 className="mt-4 text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
-            The whole assistant starts at <GradWord>$25 a month.</GradWord>
+            {t("marketing.home.priceTitle")}
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-cream/68">
-            Every plan finds venues and handles inquiries. The only differences are how many cities,
-            how many inquiries and how much you want it to send automatically.
+            {t("marketing.home.priceBody")}
           </p>
         </RevealOnScroll>
 
         <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {PLANS.map((plan, index) => (
+          {plans.map((plan, index) => (
             <RevealOnScroll key={plan.name} delayMs={index * 100}>
               <div
                 className={`relative h-full rounded-3xl p-6 ${
@@ -377,7 +390,7 @@ export default function HomePage() {
               >
                 {plan.featured && (
                   <StickerChip tone="magenta" rotate={-3} className="absolute -right-2 -top-3">
-                    Start here
+                    {locale === "th" ? "เริ่มที่นี่" : "Start here"}
                   </StickerChip>
                 )}
                 <p
@@ -403,9 +416,9 @@ export default function HomePage() {
         <RevealOnScroll>
           <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
             <Link href="/pricing" className="font-semibold text-brand-cyan hover:opacity-80">
-              Compare every plan →
+              {t("marketing.home.comparePlans")}
             </Link>
-            <span className="text-sm text-cream/50">Month to month · cancel anytime · no surprise usage bills</span>
+            <span className="text-sm text-cream/50">{t("marketing.home.priceFine")}</span>
           </div>
         </RevealOnScroll>
       </section>
@@ -423,23 +436,22 @@ export default function HomePage() {
               }}
             />
             <div className="relative">
-              <Kicker>Your next room is not going to find itself</Kicker>
+              <Kicker>{t("marketing.home.finalKicker")}</Kicker>
               <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black tracking-tight text-cream-bright sm:text-6xl">
-                Build the profile once. Let your assistant do the <GradWord>chasing.</GradWord>
+                {t("marketing.home.finalTitle")}
               </h2>
               <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-cream/68">
-                Start with the essentials. No video, no technical setup, and no need to finish every
-                detail before you see your dashboard.
+                {t("marketing.home.finalBody")}
               </p>
               <Link
                 href="/onboarding"
                 prefetch={false}
                 className="mt-8 inline-block rounded-full bg-neon-magenta px-8 py-3.5 text-lg font-bold text-ink-stage shadow-[0_10px_36px_rgba(255,45,174,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_44px_rgba(255,45,174,0.55)] active:translate-y-0"
               >
-                Build my profile
+                {t("marketing.home.build")}
               </Link>
               <p className="mt-4 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/50">
-                From $25/month · cancel anytime
+                {t("marketing.home.from")}
               </p>
             </div>
           </div>

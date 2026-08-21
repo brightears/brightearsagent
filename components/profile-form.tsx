@@ -7,6 +7,7 @@ import { useActionState, useState } from "react";
 import { updateArtistProfile } from "@/app/actions/profile";
 import { Card, Kicker, buttonStyles } from "@/components/ui";
 import { PhotoUploader } from "@/components/photo-uploader";
+import { useI18n } from "@/components/locale-provider";
 
 export type ArtistProfile = {
   headline: string | null;
@@ -47,6 +48,8 @@ export function ProfileForm({
   profile: ArtistProfile;
   uploadsEnabled: boolean;
 }) {
+  const { locale, t } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
       updateArtistProfile(formData),
@@ -60,12 +63,12 @@ export function ProfileForm({
     <form action={formAction} className="space-y-6">
       <Card className="p-6">
         <h3 className="mb-5">
-          <Kicker onLight>The basics</Kicker>
+          <Kicker onLight>{t("onboarding.step.basics")}</Kicker>
         </h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="headline" className={labelCls}>
-              Headline
+              {c("Headline", "คำแนะนำตัว")}
             </label>
             <input
               id="headline"
@@ -75,11 +78,11 @@ export function ProfileForm({
               defaultValue={profile.headline ?? ""}
               className={inputCls}
             />
-            <p className={hintCls}>One line, under 80 characters — it&apos;s what a venue reads first.</p>
+            <p className={hintCls}>{c("One line, under 80 characters — it's what a venue reads first.", "หนึ่งประโยคไม่เกิน 80 ตัวอักษร เป็นข้อความแรกที่สถานที่จะเห็น")}</p>
           </div>
           <div>
             <label htmlFor="bio" className={labelCls}>
-              Bio
+              {t("onboarding.profile.bio")}
             </label>
             <textarea
               id="bio"
@@ -95,12 +98,12 @@ export function ProfileForm({
 
       <Card className="p-6">
         <h3 className="mb-5">
-          <Kicker onLight>Your act</Kicker>
+          <Kicker onLight>{c("Your act", "งานแสดงของคุณ")}</Kicker>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="genres" className={labelCls}>
-              Genres &amp; vibe
+              {c("Genres & vibe", "แนวเพลงและบรรยากาศ")}
             </label>
             <input
               id="genres"
@@ -109,11 +112,11 @@ export function ProfileForm({
               defaultValue={profile.genres.join(", ")}
               className={inputCls}
             />
-            <p className={hintCls}>Comma-separated, 5-10 tags. How the agent matches you to venues.</p>
+            <p className={hintCls}>{c("Comma-separated, 5–10 tags. How the agent matches you to venues.", "ใส่ 5–10 คำ คั่นด้วยเครื่องหมายจุลภาค เพื่อช่วยจับคู่คุณกับสถานที่")}</p>
           </div>
           <div>
             <label htmlFor="eventTypes" className={labelCls}>
-              Event types
+              {c("Event types", "ประเภทงาน")}
             </label>
             <input
               id="eventTypes"
@@ -125,7 +128,7 @@ export function ProfileForm({
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="pitchLanguages" className={labelCls}>
-              Pitch languages
+              {c("Pitch languages", "ภาษาสำหรับติดต่อสถานที่")}
             </label>
             <input
               id="pitchLanguages"
@@ -134,19 +137,19 @@ export function ProfileForm({
               defaultValue={profile.pitchLanguages.join(", ")}
               className={inputCls}
             />
-            <p className={hintCls}>Language codes the agent may pitch in. Defaults to en.</p>
+            <p className={hintCls}>{c("Language codes the agent may pitch in. Defaults to en.", "รหัสภาษาที่ผู้ช่วยใช้ได้ เช่น th, en")}</p>
           </div>
         </div>
       </Card>
 
       <Card className="p-6">
         <h3 className="mb-5">
-          <Kicker onLight>Proof</Kicker>
+          <Kicker onLight>{c("Proof", "หลักฐานผลงาน")}</Kicker>
         </h3>
         <div className="space-y-4">
           <div>
             <label htmlFor="videoLinks" className={labelCls}>
-              Performance videos (optional)
+              {c("Performance videos (optional)", "วิดีโอการแสดง (ไม่บังคับ)")}
             </label>
             <textarea
               id="videoLinks"
@@ -157,12 +160,12 @@ export function ProfileForm({
               className={`${inputCls} font-mono text-xs leading-relaxed`}
             />
             <p className={hintCls}>
-              Add a YouTube or Vimeo link if you have one. The first one headlines your press kit.
+              {c("Add a YouTube or Vimeo link if you have one. The first one headlines your press kit.", "เพิ่มลิงก์ YouTube หรือ Vimeo หากมี ลิงก์แรกจะแสดงเด่นในเพรสคิต")}
             </p>
           </div>
           <div>
             <label htmlFor="photoUrls" className={labelCls}>
-              Photos
+              {c("Photos", "รูปภาพ")}
             </label>
             {uploadsEnabled ? (
               <>
@@ -172,7 +175,7 @@ export function ProfileForm({
                   onRemove={(u) => setPhotoUrls((p) => p.filter((x) => x !== u))}
                 />
                 <input type="hidden" name="photoUrls" value={photoUrls.join("\n")} />
-                <p className={hintCls}>A great action shot wins bookings — add a few, your best first.</p>
+                <p className={hintCls}>{c("A great action shot wins bookings — add a few, your best first.", "รูปขณะแสดงงานช่วยให้ได้งาน เพิ่มหลายรูปและวางรูปที่ดีที่สุดไว้ก่อน")}</p>
               </>
             ) : (
               <>
@@ -192,7 +195,7 @@ export function ProfileForm({
           </div>
           <div>
             <label htmlFor="socialLinks" className={labelCls}>
-              Social &amp; streaming links
+              {t("onboarding.profile.socialLinks")}
             </label>
             <textarea
               id="socialLinks"
@@ -203,13 +206,13 @@ export function ProfileForm({
               className={`${inputCls} font-mono text-xs leading-relaxed`}
             />
             <p className={hintCls}>
-              Instagram, TikTok, X, SoundCloud, Mixcloud, Spotify, YouTube — one link per line. They show on your press kit.
+              {c("Instagram, TikTok, X, SoundCloud, Mixcloud, Spotify, YouTube — one link per line. They show on your press kit.", "Instagram, TikTok, X, SoundCloud, Mixcloud, Spotify หรือ YouTube หนึ่งลิงก์ต่อบรรทัด และจะแสดงในเพรสคิต")}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="reviewQuotes" className={labelCls}>
-                Client quotes
+                {c("Client quotes", "คำรีวิวจากลูกค้า")}
               </label>
               <textarea
                 id="reviewQuotes"
@@ -219,11 +222,11 @@ export function ProfileForm({
                 defaultValue={profile.reviewQuotes.join("\n")}
                 className={inputCls}
               />
-              <p className={hintCls}>1-3 short quotes, one per line.</p>
+              <p className={hintCls}>{c("1–3 short quotes, one per line.", "คำรีวิวสั้น ๆ 1–3 ข้อความ หนึ่งข้อความต่อบรรทัด")}</p>
             </div>
             <div>
               <label htmlFor="notableVenues" className={labelCls}>
-                Notable venues
+                {c("Notable venues", "สถานที่เด่นที่เคยแสดง")}
               </label>
               <input
                 id="notableVenues"
@@ -232,7 +235,7 @@ export function ProfileForm({
                 defaultValue={profile.notableVenues.join(", ")}
                 className={inputCls}
               />
-              <p className={hintCls}>Bookers recognize rooms, not bios.</p>
+              <p className={hintCls}>{c("Bookers recognize rooms, not bios.", "ชื่อสถานที่ช่วยให้ผู้จ้างเห็นประสบการณ์ของคุณได้เร็ว")}</p>
             </div>
           </div>
         </div>
@@ -240,18 +243,18 @@ export function ProfileForm({
 
       <Card className="p-6">
         <h3 className="mb-2">
-          <Kicker onLight>Rate &amp; reach</Kicker>
+          <Kicker onLight>{c("Rate & reach", "เรตและพื้นที่รับงาน")}</Kicker>
         </h3>
         <p className={`${hintCls} mb-5`}>
-          The cities you&apos;re based in live in{" "}
+          {c("The cities you're based in are set in ", "เมืองหลักของคุณตั้งค่าได้ใน ")}
           <a href="#hunt" className="font-semibold text-brand-cyan hover:opacity-80">
-            Where you hunt
+            {t("settings.control.hunt")}
           </a>
           .
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
-            <span className={labelCls}>What you take on</span>
+            <span className={labelCls}>{t("onboarding.profile.workTypes")}</span>
             <div className="flex flex-wrap gap-2.5">
               <label className="flex items-center gap-2 rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage/80">
                 <input
@@ -261,7 +264,7 @@ export function ProfileForm({
                   defaultChecked={profile.gigTypes.includes("one-off")}
                   className="size-4 accent-brand-cyan"
                 />
-                One-off gigs
+                {t("onboarding.profile.oneOff")}
               </label>
               <label className="flex items-center gap-2 rounded-xl border border-cream bg-cream/40 px-3 py-2 text-sm text-ink-stage/80">
                 <input
@@ -271,16 +274,16 @@ export function ProfileForm({
                   defaultChecked={profile.gigTypes.includes("residency")}
                   className="size-4 accent-brand-cyan"
                 />
-                Residencies (regular slots)
+                {t("onboarding.profile.residencies")}
               </label>
             </div>
             <p className={hintCls}>
-              Most artists do both — a one-off party and a regular weekly slot price differently.
+              {c("Most artists do both — a one-off party and a regular weekly slot price differently.", "ศิลปินส่วนใหญ่รับทั้งสองแบบ โดยงานครั้งเดียวและงานประจำมักใช้เรตต่างกัน")}
             </p>
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="travelPolicy" className={labelCls}>
-              Travel policy
+              {c("Travel policy", "เงื่อนไขการเดินทาง")}
             </label>
             <input
               id="travelPolicy"
@@ -296,15 +299,15 @@ export function ProfileForm({
                 defaultChecked={profile.acceptsTravel}
                 className="size-4 accent-brand-cyan"
               />
-              Open to travel beyond my home cities
+              {t("onboarding.profile.acceptsTravel")}
             </label>
             <p className={hintCls}>
-              When on, the agent surfaces strong rooms outside your service cities too.
+              {c("When on, the agent surfaces strong rooms outside your service cities too.", "เมื่อเปิด ผู้ช่วยจะแนะนำสถานที่ที่เหมาะนอกเมืองหลักด้วย")}
             </p>
           </div>
           <div>
             <label htmlFor="feeFloor" className={labelCls}>
-              One-off floor ({profile.currency})
+              {c(`One-off floor (${profile.currency})`, `ค่าจ้างขั้นต่ำสำหรับงานครั้งเดียว (${profile.currency})`)}
             </label>
             <input
               id="feeFloor"
@@ -314,10 +317,10 @@ export function ProfileForm({
               defaultValue={cents(profile.feeFloor)}
               className={inputCls}
             />
-            <p className={hintCls}>The agent never pitches a one-off below this. Whole {profile.currency}.</p>
+            <p className={hintCls}>{c(`The agent never pitches a one-off below this. Whole ${profile.currency}.`, `ผู้ช่วยจะไม่เสนอค่าจ้างต่ำกว่านี้ ระบุเป็นหน่วย ${profile.currency}`)}</p>
             <div className="mt-2">
               <label htmlFor="oneOffHours" className={labelCls}>
-                Covers up to (hours)
+                {c("Covers up to (hours)", "ครอบคลุมไม่เกิน (ชั่วโมง)")}
               </label>
               <input
                 id="oneOffHours"
@@ -328,13 +331,13 @@ export function ProfileForm({
                 className={inputCls}
               />
               <p className={hintCls}>
-                What the one-off price includes, e.g. 4 hours — quotes say it, so nobody argues later.
+                {c("What the one-off price includes, e.g. 4 hours — quotes say it clearly.", "ระบุว่าราคางานครั้งเดียวครอบคลุมกี่ชั่วโมง เพื่อให้ใบเสนอราคาชัดเจน")}
               </p>
             </div>
           </div>
           <div>
             <label htmlFor="feeSweetSpot" className={labelCls}>
-              Sweet spot ({profile.currency})
+              {c(`Sweet spot (${profile.currency})`, `เรตเป้าหมาย (${profile.currency})`)}
             </label>
             <input
               id="feeSweetSpot"
@@ -344,11 +347,11 @@ export function ProfileForm({
               defaultValue={cents(profile.feeSweetSpot)}
               className={inputCls}
             />
-            <p className={hintCls}>The fee the agent aims for.</p>
+            <p className={hintCls}>{c("The fee the agent aims for.", "ค่าจ้างที่ผู้ช่วยจะพยายามเสนอ")}</p>
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="residencyRate" className={labelCls}>
-              Residency rate ({profile.currency})
+              {t("onboarding.profile.residencyRate", { currency: profile.currency })}
             </label>
             <div className="flex gap-2">
               <input
@@ -361,22 +364,21 @@ export function ProfileForm({
               />
               <select
                 name="residencyRateUnit"
-                aria-label="Residency rate unit"
+                aria-label={t("onboarding.profile.rateUnit")}
                 defaultValue={profile.residencyRateUnit ?? "night"}
                 className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
               >
-                <option value="night">per night</option>
-                <option value="hour">per hour</option>
+                <option value="night">{t("onboarding.profile.perNight")}</option>
+                <option value="hour">{t("onboarding.profile.perHour")}</option>
               </select>
             </div>
             <p className={hintCls}>
-              Your going rate for a regular slot — kept separate from the one-off floor. Pick the
-              unit so a quote can never be read two ways.
+              {t("onboarding.profile.residencyHint")}
             </p>
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="riderNotes" className={labelCls}>
-              How you perform &amp; what you need
+              {c("How you perform & what you need", "รูปแบบการแสดงและสิ่งที่ต้องเตรียม")}
             </label>
             <textarea
               id="riderNotes"
@@ -387,7 +389,7 @@ export function ProfileForm({
               className={inputCls}
             />
             <p className={hintCls}>
-              Your rider, in plain words. The agent uses it to answer setup questions in replies — and never invents one.
+              {t("onboarding.profile.riderHint")}
             </p>
           </div>
           <div className="sm:col-span-2">
@@ -398,10 +400,10 @@ export function ProfileForm({
                 defaultChecked={profile.epkEnabled}
                 className="size-4 accent-brand-cyan"
               />
-              Keep my press kit page live
+              {c("Keep my press kit page live", "เปิดหน้าเพรสคิตของฉันไว้")}
             </label>
             <p className={hintCls}>
-              Your hosted one-page press kit — every pitch the agent sends links to it.
+              {c("Your hosted one-page press kit — every pitch the agent sends links to it.", "เพรสคิตออนไลน์หนึ่งหน้าของคุณ ทุกข้อความแนะนำตัวจะมีลิงก์ไปที่หน้านี้")}
             </p>
           </div>
         </div>
@@ -409,11 +411,11 @@ export function ProfileForm({
 
       <div className="flex items-center gap-3">
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Save profile"}
+          {pending ? t("common.saving") : c("Save profile", "บันทึกโปรไฟล์")}
         </button>
         {state?.ok && (
           <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-            Saved
+            {t("settings.saved")}
           </span>
         )}
         {state && !state.ok && (

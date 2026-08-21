@@ -59,6 +59,8 @@ export type MatchProfile = {
    * lib/venues/rescore.ts::downweightedKinds).
    */
   downweightKinds?: VenueKind[];
+  /** Owner-facing language for the persisted explanation strings. */
+  locale?: string;
 };
 
 export type VenueScore = {
@@ -170,6 +172,10 @@ export function scoreVenue(
   profile: MatchProfile,
   now: Date,
 ): VenueScore {
+  const th = profile.locale === "th";
+  const kindLabel = th
+    ? ({ BAR: "บาร์", ROOFTOP: "รูฟท็อป", HOTEL: "โรงแรม", RESTAURANT: "ร้านอาหาร", EVENT_SPACE: "สถานที่จัดงาน", CLUB: "คลับ", OTHER: "สถานที่" } as const)[venue.kind]
+    : KIND_LABEL[venue.kind];
   const reasons: string[] = [];
   let caution: string | undefined;
   let score = 0;
@@ -183,15 +189,15 @@ export function scoreVenue(
   const inServiceArea = profile.serviceCities.map(norm).includes(norm(venue.city));
   if (venue.travelWindowId) {
     score += W_GEO;
-    reasons.push(`In ${venue.city} — found for your trip`);
+    reasons.push(th ? `อยู่ใน ${venue.city} — พบสำหรับทริปของคุณ` : `In ${venue.city} — found for your trip`);
   } else if (inServiceArea) {
     score += W_GEO;
-    reasons.push(`In ${venue.city} — one of your service cities`);
+    reasons.push(th ? `อยู่ใน ${venue.city} — หนึ่งในเมืองที่คุณรับงาน` : `In ${venue.city} — one of your service cities`);
   } else if (profile.acceptsTravel) {
     score += W_GEO / 2;
-    reasons.push(`${venue.city} is outside your usual area — but you're open to travel`);
+    reasons.push(th ? `${venue.city} อยู่นอกพื้นที่ปกติ แต่คุณเปิดรับงานเดินทาง` : `${venue.city} is outside your usual area — but you're open to travel`);
   } else {
-    caution = `${venue.city} is outside your service cities`;
+    caution = th ? `${venue.city} อยู่นอกเมืองที่คุณรับงาน` : `${venue.city} is outside your service cities`;
   }
 
   // --- Kind vs genres/event types (25): full credit on genre fit, half on
@@ -205,18 +211,18 @@ export function scoreVenue(
   const downweighted = profile.downweightKinds?.includes(venue.kind) ?? false;
   const kindCredit = downweighted ? 0.5 : 1;
   if (downweighted) {
-    reasons.push(`You've skipped ${KIND_LABEL[venue.kind].toLowerCase()}s before — showing fewer`);
+    reasons.push(th ? `คุณเคยข้าม${kindLabel}หลายครั้ง ระบบจึงแสดงประเภทนี้น้อยลง` : `You've skipped ${KIND_LABEL[venue.kind].toLowerCase()}s before — showing fewer`);
   }
   if (genreFit) {
     score += W_KIND * kindCredit;
-    reasons.push(`${KIND_LABEL[venue.kind]} — your act fits the room`);
+    reasons.push(th ? `${kindLabel} — งานแสดงของคุณเหมาะกับสถานที่` : `${KIND_LABEL[venue.kind]} — your act fits the room`);
   } else if (eventFit) {
     score += (W_KIND / 2) * kindCredit;
-    reasons.push(`${KIND_LABEL[venue.kind]} — books the event types you perform at`);
+    reasons.push(th ? `${kindLabel} — รับจองประเภทงานที่คุณแสดง` : `${KIND_LABEL[venue.kind]} — books the event types you perform at`);
   } else if (venue.kind === "OTHER") {
-    caution ??= "Venue type unclear — may not host live acts";
+    caution ??= th ? "ประเภทสถานที่ไม่ชัดเจน อาจไม่ได้รับการแสดงสด" : "Venue type unclear — may not host live acts";
   } else {
-    caution ??= `${KIND_LABEL[venue.kind]} — not an obvious match for your act`;
+    caution ??= th ? `${kindLabel} — ยังไม่เห็นความเหมาะสมกับงานของคุณชัดเจน` : `${KIND_LABEL[venue.kind]} — not an obvious match for your act`;
   }
 
   // --- Signal heat (25): a venue opening NOW is deciding its entertainment
@@ -246,7 +252,17 @@ export function scoreVenue(
   score += W_HEAT * bestHeat;
   if (bestSignal && bestHeat >= 0.5) {
     const when = weeksAgo(bestSignal.observedAt, now);
-    const SIGNAL_PHRASE: Record<SignalType, string> = {
+    const SIGNAL_PHRASE: Record<SignalType, string> = th ? {
+      NEW_OPENING: "เพิ่งเปิดและกำลังจัดโปรแกรมบันเทิง",
+      OPENING_SOON: "กำลังจะเปิดและกำลังวางแผนโปรแกรมบันเทิง",
+      HIRING: "กำลังรับทีมงานเพื่อเตรียมจัดอีเวนต์",
+      NEW_SOCIAL: "เพิ่งเปิดช่องทางโซเชียลและกำลังสร้างโปรแกรม",
+      PRESS: "มีข่าวหรือสื่อกล่าวถึงล่าสุด",
+      MANUAL: "คุณทำเครื่องหมายสถานที่นี้ไว้",
+      HOSTS_ENTERTAINMENT: "มีการจอง DJ หรือการแสดงสด",
+      EVENT_PROGRAM: "มีโปรแกรมอีเวนต์สาธารณะ",
+      TEAM_CONTACT: "เผยแพร่ผู้ติดต่อด้านอีเวนต์ไว้",
+    } : {
       NEW_OPENING: `Opened ${when} — booking entertainment now`,
       OPENING_SOON: `Opening soon (announced ${when}) — planning entertainment now`,
       HIRING: `Hiring staff ${when} — gearing up for events`,
@@ -260,7 +276,7 @@ export function scoreVenue(
     reasons.push(SIGNAL_PHRASE[bestSignal.type]);
   }
   if (signals.length === 0) {
-    caution ??= "No recent activity found — may not host live acts";
+    caution ??= th ? "ไม่พบความเคลื่อนไหวล่าสุด อาจไม่ได้รับการแสดงสด" : "No recent activity found — may not host live acts";
   }
 
   // --- Signal volume (10): corroboration. 2nd..4th signal each add a third.
@@ -269,9 +285,9 @@ export function scoreVenue(
   // --- Pitchability (10): a published booking email = actually actionable.
   if (venue.bookingEmail) {
     score += W_PITCHABLE;
-    if (reasons.length < 3) reasons.push("Booking contact published — ready to pitch");
+    if (reasons.length < 3) reasons.push(th ? "มีช่องทางติดต่อรับจอง พร้อมร่างข้อความแนะนำตัว" : "Booking contact published — ready to pitch");
   } else {
-    caution ??= "No booking email found yet";
+    caution ??= th ? "ยังไม่พบอีเมลสำหรับรับจอง" : "No booking email found yet";
   }
 
   return {

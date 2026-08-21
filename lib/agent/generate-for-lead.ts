@@ -3,6 +3,8 @@ import { notifyBusiness } from "@/lib/notify";
 import { generateDraft } from "@/lib/agent/drafter";
 import { checkAvailability, isoDay } from "@/lib/agent/availability";
 import type { DraftRequest } from "@/lib/agent/types";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translator } from "@/lib/i18n/messages";
 
 /**
  * Load everything the drafter needs for a lead, generate, persist as PENDING
@@ -130,17 +132,23 @@ export async function generateDraftForLead(
   // speed-to-lead promise alive for every artist. Suppressed when the caller
   // is about to auto-send (it sends its own "auto-replied" note instead).
   if (!opts.suppressPush) {
+    const t = translator(normalizeLocale(lead.business.locale));
+    const leadName = lead.clientName ?? t("notification.newLead");
     // Flag intent so the owner knows to attach before approving.
     const asked = result.wantsQuote
-      ? " · they asked about pricing"
+      ? ` · ${t("notification.pricingAsked")}`
       : result.wantsProfile
-        ? " · they asked for your profile"
+        ? ` · ${t("notification.profileAsked")}`
         : "";
     void notifyBusiness(lead.business, {
-      title: `Reply ready: ${lead.clientName ?? "new lead"}`,
-      body: `${result.subject}${asked}`,
+      title: t("notification.replyReady", { name: leadName }),
+      body: t("notification.replyReadyBody", { subject: result.subject, asked }),
       url: `/dashboard/leads/${lead.id}`,
-      emailBody: `A reply is drafted and waiting for your approval.\n\nFrom: ${lead.clientName ?? "new lead"}\nSubject: ${result.subject}${asked}\n\nOne tap and it goes out in your voice.`,
+      emailBody: t("notification.replyReadyEmail", {
+        name: leadName,
+        subject: result.subject,
+        asked,
+      }),
     }).catch(() => null);
   }
   return draft.id;

@@ -6,6 +6,7 @@ import {
   tenantSuppressionUpsertArgs,
   type GlobalSuppressionReason,
 } from "@/lib/outreach/suppression";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 export interface PostmarkBouncePayload {
   RecordType?: string;
@@ -162,7 +163,7 @@ export async function applyPostmarkDeliveryEvent(
       draft: true,
       lead: {
         include: {
-          business: { select: { id: true, ownerEmail: true } },
+          business: { select: { id: true, ownerEmail: true, locale: true } },
         },
       },
     },
@@ -280,18 +281,19 @@ export async function applyPostmarkDeliveryEvent(
         : []),
     ]);
 
+    const thai = normalizeLocale(message.lead.business.locale) === "th";
     const pushOnly =
       sameAddress(event.Email, message.lead.business.ownerEmail) ||
       sameAddress(event.Email, process.env.OPS_ALERT_EMAIL);
     await notifyBusiness(message.lead.business, {
       title:
         eventClass === "complaint"
-          ? "A recipient marked a message as spam"
-          : `Reply did not reach ${message.lead.clientName ?? "this lead"}`,
+          ? (thai ? "ผู้รับทำเครื่องหมายข้อความเป็นสแปม" : "A recipient marked a message as spam")
+          : (thai ? `ส่งข้อความถึง ${message.lead.clientName ?? "ลูกค้ารายนี้"} ไม่สำเร็จ` : `Reply did not reach ${message.lead.clientName ?? "this lead"}`),
       body:
         eventClass === "complaint"
-          ? "All follow-up is stopped permanently for this address."
-          : "Follow-up is paused. Correct the email address on the lead to prepare the reply again.",
+          ? (thai ? "หยุดการติดตามทั้งหมดสำหรับอีเมลนี้อย่างถาวรแล้ว" : "All follow-up is stopped permanently for this address.")
+          : (thai ? "พักการติดตามไว้ โปรดแก้ไขอีเมลของลูกค้าเพื่อเตรียมข้อความตอบอีกครั้ง" : "Follow-up is paused. Correct the email address on the lead to prepare the reply again."),
       url: `/dashboard/leads/${message.leadId}`,
       pushOnly,
     });
@@ -303,9 +305,12 @@ export async function applyPostmarkDeliveryEvent(
   if (eventClass === "sender_fault") {
     // Emailing an alert about a sender-level email failure can create an alert
     // loop. Push is independent of Postmark and points to the affected thread.
+    const thai = normalizeLocale(message.lead.business.locale) === "th";
     await notifyBusiness(message.lead.business, {
-      title: "Email delivery needs attention",
-      body: `${type}: the recipient address was not marked bad. Check the sending configuration before retrying.`,
+      title: thai ? "โปรดตรวจสอบการส่งอีเมล" : "Email delivery needs attention",
+      body: thai
+        ? `${type}: ระบบไม่ได้ระบุว่าอีเมลผู้รับผิด โปรดตรวจการตั้งค่าการส่งก่อนลองอีกครั้ง`
+        : `${type}: the recipient address was not marked bad. Check the sending configuration before retrying.`,
       url: `/dashboard/leads/${message.leadId}`,
       pushOnly: true,
     });

@@ -6,6 +6,7 @@
 // so two photos finishing in the same tick never clobber each other.
 import { useId, useRef, useState } from "react";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_PHOTOS } from "@/lib/uploads/limits";
+import { useI18n } from "@/components/locale-provider";
 
 type InFlight = { id: string; progress: number; error?: string };
 
@@ -20,6 +21,8 @@ export function PhotoUploader({
   onRemove: (url: string) => void;
   max?: number;
 }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [inflight, setInflight] = useState<InFlight[]>([]);
@@ -44,7 +47,7 @@ export function PhotoUploader({
         body: JSON.stringify({ contentType: file.type, size: file.size }),
       });
       if (!res.ok) {
-        patch(id, { error: res.status === 503 ? "Uploads aren't switched on yet" : "Couldn't start upload" });
+        patch(id, { error: res.status === 503 ? c("Uploads aren't switched on yet", "ยังไม่เปิดใช้งานการอัปโหลด") : c("Couldn't start upload", "เริ่มอัปโหลดไม่ได้") });
         setTimeout(() => drop(id), 4000);
         return;
       }
@@ -66,7 +69,7 @@ export function PhotoUploader({
       onAdd(publicUrl); // functional update in parent → safe under concurrency
       drop(id);
     } catch {
-      patch(id, { error: "Upload failed — try again" });
+      patch(id, { error: c("Upload failed — try again", "อัปโหลดไม่สำเร็จ โปรดลองอีกครั้ง") });
       setTimeout(() => drop(id), 4000);
     }
   }
@@ -77,15 +80,15 @@ export function PhotoUploader({
     let accepted = 0;
     for (const file of Array.from(files)) {
       if (accepted >= slotsLeft) {
-        setNotice(`That's the max of ${max} photos — remove one to add more.`);
+        setNotice(c(`That's the max of ${max} photos — remove one to add more.`, `เพิ่มได้สูงสุด ${max} รูป โปรดลบหนึ่งรูปก่อนเพิ่มใหม่`));
         break;
       }
       if (!ALLOWED_IMAGE_TYPES[file.type]) {
-        setNotice("Images only — JPG, PNG, WebP or GIF.");
+        setNotice(c("Images only — JPG, PNG, WebP or GIF.", "รองรับเฉพาะรูป JPG, PNG, WebP หรือ GIF"));
         continue;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        setNotice("Each photo needs to be under 8 MB.");
+        setNotice(c("Each photo needs to be under 8 MB.", "แต่ละรูปต้องมีขนาดไม่เกิน 8 MB"));
         continue;
       }
       accepted++;
@@ -108,7 +111,7 @@ export function PhotoUploader({
             <button
               type="button"
               onClick={() => onRemove(url)}
-              aria-label="Remove photo"
+              aria-label={c("Remove photo", "ลบรูป")}
               className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-ink-stage/70 text-sm font-bold text-white transition-colors hover:bg-ink-stage"
             >
               ×
@@ -132,7 +135,7 @@ export function PhotoUploader({
             className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-ink-stage/30 bg-white text-ink-stage/55 transition-colors hover:border-brand-cyan hover:text-brand-cyan"
           >
             <span aria-hidden className="text-2xl leading-none">+</span>
-            <span className="text-[11px] font-semibold">Add photos</span>
+            <span className="text-[11px] font-semibold">{c("Add photos", "เพิ่มรูป")}</span>
           </label>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import type { PointerEvent } from "react";
 import { BrightEarsLogo } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
 
 const SIGNALS = [
   {
@@ -51,6 +52,15 @@ const SIGNALS = [
  * and reduced-motion visitors get the same product story.
  */
 export function BookingSignalStage() {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
+  const signals = locale === "th"
+    ? SIGNALS.map((signal, index) => ({
+        ...signal,
+        label: ["สถานที่ใหม่", "คืนดนตรีสด", "งานรับเชิญ", "งานส่วนตัว", "ไกลเกินไป", "ค่าจ้างไม่เหมาะ"][index],
+        detail: ["กำลังเปิด", "จองสไตล์ของคุณ", "เมืองถูกต้อง", "ไม่มีช่องทางสาธารณะ", "นอกพื้นที่ของคุณ", "ต่ำกว่าค่าจ้างขั้นต่ำ"][index],
+      }))
+    : SIGNALS;
   function moveStage(event: PointerEvent<HTMLDivElement>) {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width - 0.5;
@@ -66,11 +76,11 @@ export function BookingSignalStage() {
 
   return (
     <div
-      className="be-signal-stage relative mx-auto min-h-[470px] w-full max-w-[600px] overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised shadow-[0_36px_110px_rgba(0,0,0,0.52)] sm:min-h-[540px]"
+      className="be-signal-stage relative mx-auto min-h-[470px] min-w-0 w-full max-w-full overflow-hidden rounded-[2rem] border border-cream/10 bg-ink-raised shadow-[0_36px_110px_rgba(0,0,0,0.52)] sm:min-h-[540px] lg:max-w-[600px]"
       onPointerMove={moveStage}
       onPointerLeave={resetStage}
       role="img"
-      aria-label="Venue signals are scanned against an artist profile. Three good matches are selected and turned into a pitch ready for approval."
+      aria-label={c("Venue signals are scanned against an artist profile. Three good matches are selected and turned into a pitch ready for approval.", "ระบบตรวจสัญญาณจากสถานที่เทียบกับโปรไฟล์ศิลปิน แล้วเลือกสถานที่ที่เหมาะสามแห่งมาร่างข้อความให้อนุมัติ")}
     >
       <div aria-hidden className="be-signal-aurora" />
       <div aria-hidden className="be-signal-grid" />
@@ -79,15 +89,15 @@ export function BookingSignalStage() {
       <div aria-hidden className="absolute left-5 top-5 z-30 flex items-center gap-2">
         <span className="be-live-dot size-2 rounded-full bg-brand-cyan" />
         <span className="font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-cream/65">
-          <span className="hidden sm:inline">Booking </span>signals live
+          <span className="hidden sm:inline">{c("Booking ", "สัญญาณ ")}</span>{c("signals live", "กำลังทำงาน")}
         </span>
       </div>
       <div
         aria-hidden
         className="absolute right-5 top-5 z-30 rounded-full border border-cream/10 bg-ink-stage/70 px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-cream/55 backdrop-blur"
       >
-        <span className="sm:hidden">18 → 3 fit</span>
-        <span className="hidden sm:inline">18 checked · 3 fit</span>
+        <span className="sm:hidden">{c("18 → 3 fit", "18 → เหมาะ 3")}</span>
+        <span className="hidden sm:inline">{c("18 checked · 3 fit", "ตรวจ 18 · เหมาะ 3")}</span>
       </div>
 
       <div aria-hidden className="be-signal-field absolute inset-0">
@@ -110,15 +120,15 @@ export function BookingSignalStage() {
           <div className="relative flex size-32 flex-col items-center justify-center rounded-full border border-cream/20 bg-ink-stage shadow-[0_0_60px_rgba(0,187,228,0.2)] sm:size-40">
             <BrightEarsLogo size={44} />
             <p className="mt-2 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-brand-cyan">
-              Your profile
+              {c("Your profile", "โปรไฟล์ของคุณ")}
             </p>
             <p className="mt-1 text-center text-[10px] leading-tight text-cream/45">
-              Style · city · fee
+              {c("Style · city · fee", "สไตล์ · เมือง · ค่าจ้าง")}
             </p>
           </div>
         </div>
 
-        {SIGNALS.map((signal) => (
+        {signals.map((signal) => (
           <div
             key={signal.label}
             className={`be-signal-node ${signal.position} ${
@@ -148,16 +158,16 @@ export function BookingSignalStage() {
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-mono text-[8px] font-bold uppercase tracking-[0.18em] text-ink-stage/40">
-              Best match · pitch ready
+              {c("Best match · pitch ready", "เหมาะที่สุด · ข้อความพร้อม")}
             </p>
-            <p className="truncate text-sm font-black">Rooftop opening · your city</p>
+            <p className="truncate text-sm font-black">{c("Rooftop opening · your city", "รูฟท็อปเปิดใหม่ · เมืองของคุณ")}</p>
           </div>
           <span className="rounded-full bg-brand-cyan px-3 py-1.5 text-[10px] font-black">
-            Review
+            {c("Review", "ตรวจ")}
           </span>
         </div>
         <p className="mt-3 border-t border-ink-stage/10 pt-3 text-xs leading-relaxed text-ink-stage/60">
-          Fit explained. Contact found. Written in your voice. Nothing sends without your say-so.
+          {c("Fit explained. Contact found. Written in your voice. Nothing sends without your say-so.", "อธิบายเหตุผล ค้นหาช่องทางติดต่อ และเขียนด้วยสำนวนของคุณ ไม่มีอะไรส่งโดยไม่ได้รับอนุมัติ")}
         </p>
       </div>
     </div>

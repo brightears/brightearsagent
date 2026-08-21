@@ -80,6 +80,7 @@ model Business {
   ownerName               String
   performerKind           PerformerKind @default(DJ)
   country                 String        @default("US") // drives compliance footer (CAN-SPAM/PECR/CASL/Spam Act)
+  locale                  String        @default("en") // owner-facing UI/notifications; validated by lib/i18n, extensible without enum migrations
   postalAddress           String? // physical business mailing address; editable in onboarding/settings, appended to outreach, never public EPK
   timezone                String        @default("America/New_York")
   currency                String        @default("USD")

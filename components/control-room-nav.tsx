@@ -22,10 +22,12 @@
 // No emoji ever.
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/components/locale-provider";
 
 export type ControlRoomSection = { id: string; label: string };
 
 export function ControlRoomNav({ sections }: { sections: ControlRoomSection[] }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(sections[0]?.id ?? "");
   // Stable dependency: the section ids, not the array identity.
   const ids = sections.map((s) => s.id).join(",");
@@ -129,7 +131,7 @@ export function ControlRoomNav({ sections }: { sections: ControlRoomSection[] })
       {/* Mobile: sticky horizontal chip bar. The dashboard top nav isn't sticky,
           so this rides the very top once you scroll. */}
       <nav
-        aria-label="Control room sections"
+        aria-label={t("dashboard.controlSections")}
         className="lg:hidden sticky top-0 z-20 -mx-6 mb-6 border-b border-cream/10 bg-ink-stage/80 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-ink-stage/65"
       >
         <div ref={scrollerRef} className="flex gap-2 overflow-x-auto">
@@ -157,7 +159,7 @@ export function ControlRoomNav({ sections }: { sections: ControlRoomSection[] })
       {/* Desktop: sticky vertical rail — a lit cyan segment marks the section
           in view, like a channel strip. */}
       <nav
-        aria-label="Control room sections"
+        aria-label={t("dashboard.controlSections")}
         className="hidden lg:block lg:sticky lg:top-8 lg:self-start"
       >
         <ul className="space-y-0.5">

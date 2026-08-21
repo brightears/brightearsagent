@@ -23,6 +23,9 @@ import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
 import { meterState, monthStart } from "@/lib/billing/metering";
 import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
 import type { LeadSource, LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
+import { getTranslations } from "@/lib/i18n/server";
+import { languageTag, type Locale } from "@/lib/i18n/config";
+import type { MessageKey, Translator } from "@/lib/i18n/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -51,19 +54,29 @@ const ACCENT_TEXT: Record<string, string> = {
 
 // Friendly per-column empty copy (docs/DESIGN.md: never a bare dash) —
 // rendered as compact mono sticker-speak lines (v2.1: typography, no icons).
-const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], string> = {
-  NEW: "Quiet right now",
-  DRAFTED: "No drafts waiting",
-  REPLIED: "Nothing in flight",
-  IN_SEQUENCE: "No nudges running",
-  ENGAGED: "No one talking yet",
-  BOOKED: "Your next yes lands here",
-  DEAD: "Nobody's gone quiet",
+const COLUMN_EMPTY: Record<(typeof COLUMN_STATUSES)[number], MessageKey> = {
+  NEW: "dashboard.empty.new",
+  DRAFTED: "dashboard.empty.drafted",
+  REPLIED: "dashboard.empty.replied",
+  IN_SEQUENCE: "dashboard.empty.sequence",
+  ENGAGED: "dashboard.empty.engaged",
+  BOOKED: "dashboard.empty.booked",
+  DEAD: "dashboard.empty.dead",
 };
 
-function fmtDate(d: Date | null) {
-  if (!d) return "date TBD";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const STATUS_KEYS: Record<(typeof COLUMN_STATUSES)[number], MessageKey> = {
+  NEW: "dashboard.column.new",
+  DRAFTED: "dashboard.column.drafted",
+  REPLIED: "dashboard.column.replied",
+  IN_SEQUENCE: "dashboard.column.sequence",
+  ENGAGED: "dashboard.column.engaged",
+  BOOKED: "dashboard.column.booked",
+  DEAD: "dashboard.column.dead",
+};
+
+function fmtDate(d: Date | null, locale: Locale, t: Translator) {
+  if (!d) return t("dashboard.home.dateTbd");
+  return d.toLocaleDateString(languageTag(locale), { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** Whole hours between a timestamp and the page's render clock. */
@@ -84,6 +97,7 @@ export default async function Dashboard({
 }: {
   searchParams: Promise<{ hunt?: string | string[]; tuned?: string | string[]; skips?: string | string[] }>;
 }) {
+  const { locale, t } = await getTranslations();
   const sp = await searchParams;
   const huntExpanded = sp.hunt === "all";
   // Tuning ack (P10.2): skipVenueForm redirects here after a WRONG_VIBE skip.
@@ -301,26 +315,30 @@ export default async function Dashboard({
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
       <PageHeader
-        title="Your pipeline"
-        accent="pipeline"
+        title={t("dashboard.home.title")}
+        accent={t("nav.pipeline")}
         subtitle={business.name}
         rings
         stats={
           <>
-            <StatPill tone="teal">{business.leads.length} active</StatPill>
+            <StatPill tone="teal">{t("dashboard.home.active", { count: business.leads.length })}</StatPill>
             {/* The stopwatch (P10.7): speed-to-lead is the product's core
                 promise — show the receipt, but only when data exists. */}
             {medianReply !== null && (
-              <StatPill>median first reply {formatReplyTime(medianReply)}</StatPill>
+              <StatPill>
+                {t("dashboard.home.median", {
+                  time: locale === "th" ? `${medianReply} นาที` : formatReplyTime(medianReply),
+                })}
+              </StatPill>
             )}
             {/* The pill is a door (P10.6): the filter earns trust by being
                 inspectable — tap through to see what it caught and why. */}
             <Link href="/dashboard/spam" className="transition-opacity hover:opacity-80">
-              <StatPill>{spamCount} spam filtered for you →</StatPill>
+              <StatPill>{t("dashboard.home.spam", { count: spamCount })}</StatPill>
             </Link>
             {bookedThisMonth > 0 && (
               <StickerChip tone="magenta" rotate={-2}>
-                {bookedThisMonth} booked this month
+                {t("dashboard.home.bookedMonth", { count: bookedThisMonth })}
               </StickerChip>
             )}
           </>
@@ -338,6 +356,7 @@ export default async function Dashboard({
           source={graduation.source}
           count={graduation.count}
           trusted={tenant.autoSendSources}
+          locale={locale}
         />
       )}
 
@@ -361,6 +380,7 @@ export default async function Dashboard({
           cap={meter.cap}
           overCap={meter.overCap}
           subscribed={subscribed}
+          locale={locale}
         />
       )}
 
@@ -369,16 +389,16 @@ export default async function Dashboard({
       {tunedKind && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-4 py-3">
           <p className="text-sm text-cream/85">
-            <span className="font-bold text-cream-bright">Got it — not your kind of room.</span>{" "}
+            <span className="font-bold text-cream-bright">{t("dashboard.home.tuned")}</span>{" "}
             {tunedSkips >= 2
-              ? `${KIND_LABEL[tunedKind]}s now rank lower in your hunt.`
-              : `Skip one more ${KIND_LABEL[tunedKind].toLowerCase()} and the hunt ranks them lower.`}
+              ? t("dashboard.home.tunedLower")
+              : t("dashboard.home.tunedOneMore")}
           </p>
           <Link
             href="/dashboard"
             className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-cream/45 transition-colors hover:text-cream/70"
           >
-            Dismiss
+            {t("dashboard.home.dismiss")}
           </Link>
         </div>
       )}
@@ -405,6 +425,7 @@ export default async function Dashboard({
           hand. Only shown once at least one pitch has gone out. */}
       {inPlayVenues.length > 0 && (
         <InPlaySection
+          locale={locale}
           venues={inPlayVenues.map(({ travelWindow, ...v }) => ({
             ...v,
             travelCity: travelWindow?.city ?? null,
@@ -418,27 +439,24 @@ export default async function Dashboard({
         // framed as "the agent answers those too" — never the opening ask.
         <section>
           <div className="mb-4">
-            <Kicker>The other half</Kicker>
+            <Kicker>{t("dashboard.home.otherHalf")}</Kicker>
             <h2 className="mt-1.5 text-xl font-black tracking-tight text-cream-bright">
-              Already getting inquiries?
+              {t("dashboard.home.inquiries")}
             </h2>
           </div>
           {/* No overflow-hidden here — the sticker hangs above the card edge by design. */}
           <div className="relative rounded-3xl border border-cream/10 bg-ink-raised px-6 py-6">
             <StickerChip tone="magenta" rotate={4} className="absolute -top-2.5 right-6">
-              You&apos;ll hear the ping
+              {t("dashboard.home.ping")}
             </StickerChip>
             <p className="max-w-2xl text-sm leading-relaxed text-cream/70">
-              Clients emailing you, your website form, booking platforms — forward those inquiries
-              to your assistant and it answers each one in your voice, follows up until
-              booked-or-dead, and lands it in the pipeline here. One forwarding rule, then it runs
-              itself.
+              {t("dashboard.home.inquiriesBody")}
             </p>
             <Link
               href="/onboarding"
               className="mt-4 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
             >
-              Set up forwarding →
+              {t("dashboard.home.forwarding")}
             </Link>
           </div>
         </section>
@@ -458,7 +476,7 @@ export default async function Dashboard({
                     status === "BOOKED" ? "font-extrabold" : "font-semibold"
                   } ${meta.accent} ${ACCENT_TEXT[meta.accent] ?? "text-ink-stage"}`}
                 >
-                  <span>{meta.label}</span>
+                  <span>{t(STATUS_KEYS[status])}</span>
                   <span className="text-xs font-bold opacity-75">{columnLeads.length}</span>
                 </h2>
                 <ul className="p-3 space-y-2.5 min-h-16">
@@ -469,10 +487,10 @@ export default async function Dashboard({
                         className="block rounded-2xl border border-ink-stage/10 bg-white p-3 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-cyan hover:shadow-[0_10px_24px_rgba(0,187,228,0.2)]"
                       >
                         <p className="text-sm font-semibold text-ink-stage">
-                          {lead.clientName ?? "Unknown"}
+                          {lead.clientName ?? t("dashboard.home.unknown")}
                         </p>
                         <p className="mt-0.5 text-xs text-ink-stage/60">
-                          {lead.eventType ?? "event"} · {fmtDate(lead.eventDate)}
+                          {lead.eventType ?? t("dashboard.home.event")} · {fmtDate(lead.eventDate, locale, t)}
                         </p>
                         {lead.venue && (
                           <p className="mt-0.5 text-xs text-ink-stage/45">{lead.venue}</p>
@@ -482,7 +500,7 @@ export default async function Dashboard({
                             report sells depends on these getting tapped. */}
                         {status === "DRAFTED" && hoursSince(lead.updatedAt, now) >= 4 && (
                           <p className="mt-1 inline-block rounded-full bg-[#ffdfba] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-[#7a4100]">
-                            waiting {hoursSince(lead.updatedAt, now)}h
+                            {t("dashboard.home.waitingHours", { count: hoursSince(lead.updatedAt, now) })}
                           </p>
                         )}
                       </Link>
@@ -490,7 +508,7 @@ export default async function Dashboard({
                   ))}
                   {columnLeads.length === 0 && (
                     <li>
-                      <EmptyState compact title={COLUMN_EMPTY[status]} />
+                      <EmptyState compact title={t(COLUMN_EMPTY[status])} />
                     </li>
                   )}
                 </ul>

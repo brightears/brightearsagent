@@ -17,6 +17,7 @@ import { scheduleActivationScan } from "@/lib/discovery/activation";
 import { isAllowedCountry, currencyForCountry } from "@/lib/geo/countries";
 import { residencyDates, WEEKDAY_NAMES } from "@/lib/calendar/residency";
 import { PerformerKind } from "@/app/generated/prisma/enums";
+import { pitchLanguagesForCountry } from "@/lib/i18n/business-language";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -76,6 +77,7 @@ const basicsSchema = z.object({
         return false;
       }
     }, "That website address doesn't look right"),
+  locale: z.enum(["en", "th"]).default("en"),
 });
 
 export async function saveBusinessBasics(input: {
@@ -87,6 +89,7 @@ export async function saveBusinessBasics(input: {
   homeCity: string;
   timezone: string;
   websiteUrl: string;
+  locale?: string;
 }): Promise<ActionResult> {
   const business = await getCurrentBusiness();
 
@@ -110,6 +113,12 @@ export async function saveBusinessBasics(input: {
       ...basics,
       currency: currencyForCountry(basics.country),
       serviceCities: [homeCity, ...extraCities],
+      // A Thai business should receive Thai venue-pitch drafts from day one.
+      // Preserve any languages already configured when onboarding is revisited.
+      pitchLanguages: pitchLanguagesForCountry(basics.country, business.pitchLanguages),
+      // Persist the UI choice while the tenant is being set up, even when the
+      // language came from Accept-Language rather than an explicit switch tap.
+      locale: basics.locale,
     },
   });
 

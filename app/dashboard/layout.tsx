@@ -6,20 +6,22 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { BrightEarsLogo } from "@/components/ui";
 import { DashboardNavLinks } from "@/components/dashboard-nav";
 import { BottomTabs } from "@/components/bottom-tabs";
-
-const NAV = [
-  { href: "/dashboard", label: "Pipeline" },
-  { href: "/dashboard/results", label: "Results" },
-  { href: "/dashboard/calendar", label: "Calendar" },
-  { href: "/dashboard/packages", label: "Packages" },
-  // Profile + Settings collapsed into one Control Room (Phase 2b); the old
-  // /dashboard/profile route redirects to /dashboard/settings#profile.
-  { href: "/dashboard/settings", label: "Control room" },
-];
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getTranslations } from "@/lib/i18n/server";
 
 const clerkEnabled = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { t } = await getTranslations();
+  const nav = [
+    { href: "/dashboard", label: t("nav.pipeline") },
+    { href: "/dashboard/results", label: t("nav.results") },
+    { href: "/dashboard/calendar", label: t("nav.calendar") },
+    { href: "/dashboard/packages", label: t("nav.packages") },
+    // Profile + Settings collapsed into one Control Room (Phase 2b); the old
+    // /dashboard/profile route redirects to /dashboard/settings#profile.
+    { href: "/dashboard/settings", label: t("nav.controlRoom") },
+  ];
   // Badge for the Today tab (P9.3): everything waiting on the artist's tap.
   // Best-effort — a shell must render even if tenant resolution hiccups.
   let pendingCount = 0;
@@ -57,9 +59,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
               navigation (P9.3 — the scroll-row hid 3 of 5 sections), so the top
               bar keeps just brand + account. */}
           <div className="min-w-0 flex-1 overflow-x-auto max-lg:hidden">
-            <DashboardNavLinks links={NAV} />
+            <DashboardNavLinks links={nav} />
           </div>
           <div className="min-w-0 flex-1 lg:hidden" />
+          <LanguageSwitcher compact />
           {clerkEnabled && (
             <div className="shrink-0">
               <UserButton />

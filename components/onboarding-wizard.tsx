@@ -35,6 +35,8 @@ import { PhotoUploader } from "@/components/photo-uploader";
 import { COUNTRIES, currencyForCountry } from "@/lib/geo/countries";
 import { stripToneNote } from "@/lib/voice/tone-note";
 import type { PerformerKind } from "@/app/generated/prisma/enums";
+import { useI18n } from "@/components/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 type ActionResult = { ok: boolean; error?: string } | null;
 
@@ -75,11 +77,36 @@ const KINDS: { kind: PerformerKind; label: string }[] = [
   { kind: "OTHER", label: "Other" },
 ];
 
+const STEP_KEYS: MessageKey[] = [
+  "onboarding.step.basics",
+  "onboarding.step.profile",
+  "onboarding.step.voice",
+  "onboarding.step.availability",
+  "onboarding.step.live",
+];
+
+const KIND_KEYS: Partial<Record<PerformerKind, MessageKey>> = {
+  BAND: "onboarding.kind.band",
+  SINGER: "onboarding.kind.singer",
+  MAGICIAN: "onboarding.kind.magician",
+  DANCER: "onboarding.kind.dancer",
+  MC: "onboarding.kind.mc",
+  PHOTO_BOOTH: "onboarding.kind.photoBooth",
+  MUSICIAN: "onboarding.kind.musician",
+  COMEDIAN: "onboarding.kind.comedian",
+  OTHER: "onboarding.kind.other",
+};
+
 // Country list = the shared ISO-3166-1 source (lib/geo/countries.ts), already
 // sorted and with sanctioned jurisdictions filtered out.
 
 const TONES = ["Fun & casual", "Warm & professional", "High-energy"] as const;
 type Tone = (typeof TONES)[number];
+const TONE_KEYS: Record<Tone, MessageKey> = {
+  "Fun & casual": "onboarding.voice.tone.fun",
+  "Warm & professional": "onboarding.voice.tone.warm",
+  "High-energy": "onboarding.voice.tone.energy",
+};
 
 // Weekday chips for the residency logger (value = getUTCDay: 0=Sun..6=Sat).
 const WEEKDAYS: { label: string; value: number }[] = [
@@ -91,6 +118,15 @@ const WEEKDAYS: { label: string; value: number }[] = [
   { label: "Sat", value: 6 },
   { label: "Sun", value: 0 },
 ];
+const WEEKDAY_KEYS: Record<number, MessageKey> = {
+  1: "onboarding.calendar.weekday.mon",
+  2: "onboarding.calendar.weekday.tue",
+  3: "onboarding.calendar.weekday.wed",
+  4: "onboarding.calendar.weekday.thu",
+  5: "onboarding.calendar.weekday.fri",
+  6: "onboarding.calendar.weekday.sat",
+  0: "onboarding.calendar.weekday.sun",
+};
 
 /** today / today + n months as YYYY-MM-DD, for the residency date defaults. */
 function isoToday(offsetMonths = 0): string {
@@ -320,6 +356,22 @@ const PERFORMER_KIND_COPY: Record<PerformerKind, KindCopy> = {
   },
 };
 
+// Thai uses one clear, craft-neutral set of prompts. The saved answers remain
+// identical to English, so matching and profile generation do not fork by UI
+// locale. We can add per-craft Thai refinements without changing the schema.
+const THAI_KIND_COPY: KindCopy = {
+  styleLabel: "แนวเพลง / สไตล์ / ความถนัด",
+  stylePlaceholder: "เช่น house, disco, งานแต่งงาน, งานบริษัท",
+  styleHint: "ใส่คำสั้น ๆ คั่นด้วยเครื่องหมายจุลภาค เพื่อช่วยให้สถานที่และผู้จัดงานค้นพบคุณ",
+  oneLinerPlaceholder: "อธิบายบรรยากาศและประสบการณ์ที่ผู้ชมจะได้รับในหนึ่งประโยค",
+  bioPlaceholder: "เล่าประสบการณ์ จุดเด่น ประเภทงานที่ถนัด และสิ่งที่ทำให้คุณแตกต่าง",
+  showcaseNote: "เพิ่มลิงก์ที่แสดงผลงานจริงของคุณ วิดีโอสั้นและรูปจากงานจริงช่วยให้ผู้จัดงานตัดสินใจได้ง่ายขึ้น",
+  socialPlaceholder: "https://instagram.com/you\nhttps://youtube.com/@you\nhttps://tiktok.com/@you",
+  riderLabel: "รูปแบบการแสดงและสิ่งที่ต้องเตรียมหน้างาน",
+  riderPlaceholder: "ระบุพื้นที่ อุปกรณ์ ระบบเสียง ไฟฟ้า เวลาเตรียมงาน และข้อกำหนดสำคัญด้วยคำของคุณเอง",
+  gigTypeHint: "เลือกประเภทงานที่คุณรับ เพื่อให้ระบบแนะนำโอกาสที่เหมาะสม",
+};
+
 // Local stroked-SVG check (mirrors pricing's CheckIcon) — replaces the "✓"
 // glyph everywhere it was used as UI chrome (docs/DESIGN.md v2.1 rule 1: NO
 // EMOJI IN UI). Inherits color via currentColor; size with className per spot.
@@ -344,28 +396,30 @@ export type LicenseFlags = {
  * press kit, and video remains an optional EPK enhancement.
  */
 function LicenseMeter({ license }: { license: LicenseFlags }) {
+  const { t } = useI18n();
   const items: { label: string; done: boolean }[] = [
     {
-      label: license.photos ? "A clear photo" : "A clear photo (still needed)",
+      label: license.photos
+        ? t("onboarding.profile.check.photo")
+        : t("onboarding.profile.check.photoNeeded"),
       done: license.photos,
     },
-    { label: "A short bio", done: license.bio },
-    { label: "Your one-liner", done: license.headline },
-    { label: "Your sound / style", done: license.genres },
-    { label: "Home city", done: license.city },
-    { label: "Business mailing address", done: license.address },
-    { label: "Your fee floor", done: license.floor },
-    { label: "A gig on your calendar (step 4)", done: license.gig },
+    { label: t("onboarding.profile.check.bio"), done: license.bio },
+    { label: t("onboarding.profile.check.headline"), done: license.headline },
+    { label: t("onboarding.profile.check.style"), done: license.genres },
+    { label: t("onboarding.profile.check.city"), done: license.city },
+    { label: t("onboarding.profile.check.address"), done: license.address },
+    { label: t("onboarding.profile.check.floor"), done: license.floor },
+    { label: t("onboarding.profile.check.gig"), done: license.gig },
   ];
   const doneCount = items.filter((i) => i.done).length;
   return (
     <div className="rounded-2xl border border-cream bg-cream/20 p-4">
       <SectionLabel>
-        Pitch-ready profile — {doneCount}/{items.length}
+        {t("onboarding.profile.pitchReady", { done: doneCount, total: items.length })}
       </SectionLabel>
       <p className="mb-3 mt-1 text-xs leading-relaxed text-ink-stage/60">
-        These are the essentials your assistant needs before it pitches a venue in your name. We ask
-        for one booked date next. One clear photo is enough; extra photos and video are optional.
+        {t("onboarding.profile.pitchReadyHint")}
       </p>
       <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
         {items.map((item) => (
@@ -381,7 +435,9 @@ function LicenseMeter({ license }: { license: LicenseFlags }) {
             <span className={item.done ? "text-ink-stage/80" : "text-ink-stage/55"}>
               {item.label}
             </span>
-            <span className="sr-only">{item.done ? "— done" : "— still to add"}</span>
+            <span className="sr-only">
+              {item.done ? t("onboarding.profile.done") : t("onboarding.profile.missing")}
+            </span>
           </li>
         ))}
       </ul>
@@ -395,10 +451,11 @@ function CheckMark({ className = "" }: { className?: string }) {
 }
 
 function StepHeading({ step, title, blurb }: { step: number; title: string; blurb: string }) {
+  const { t } = useI18n();
   return (
     <header className="mb-5">
       <p className="font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-        Step {step + 1} of {STEPS.length}
+        {t("onboarding.progress", { current: step + 1, total: STEPS.length })}
       </p>
       <h2 className="mt-1 text-xl font-extrabold tracking-tight text-ink-stage">{title}</h2>
       <p className="mt-1 text-sm text-ink-stage/60">{blurb}</p>
@@ -407,10 +464,11 @@ function StepHeading({ step, title, blurb }: { step: number; title: string; blur
 }
 
 function BackButton({ onBack }: { onBack: () => void }) {
+  const { t } = useI18n();
   return (
     // Lives inside the white step card — ink-outline ghost (v2).
     <button type="button" onClick={onBack} className={buttonStyles.secondaryOnLight}>
-      ← Back
+      {t("onboarding.back")}
     </button>
   );
 }
@@ -431,6 +489,7 @@ function StepBusiness({
     postalAddress: string,
   ) => void;
 }) {
+  const { locale, t } = useI18n();
   const [kind, setKind] = useState<PerformerKind>(initial.performerKind);
   const [result, formAction, pending] = useActionState<ActionResult, FormData>(
     async (_prev, fd) => {
@@ -446,6 +505,7 @@ function StepBusiness({
         homeCity,
         timezone: String(fd.get("timezone") ?? ""),
         websiteUrl: String(fd.get("websiteUrl") ?? ""),
+        locale,
       });
       // Hand the chosen country, craft AND home city up so step 2 can label
       // fees in the right currency, adapt its copy to the performer kind, and
@@ -504,18 +564,22 @@ function StepBusiness({
   const countries = COUNTRIES.some((c) => c.code === initial.country)
     ? COUNTRIES
     : [{ code: initial.country, name: initial.country }, ...COUNTRIES];
+  const countryNames = useMemo(
+    () => new Intl.DisplayNames([locale === "th" ? "th-TH" : "en"], { type: "region" }),
+    [locale],
+  );
 
   return (
     <form action={formAction} className="space-y-4">
       <StepHeading
         step={0}
-        title="First, tell us about your act"
-        blurb="Just the basics: who you perform as and where your assistant should start looking."
+        title={t("onboarding.business.title")}
+        blurb={t("onboarding.business.blurb")}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="ob-name" className={labelStyles}>Stage / artist name</label>
+          <label htmlFor="ob-name" className={labelStyles}>{t("onboarding.business.stageName")}</label>
           <input
             id="ob-name"
             name="name"
@@ -524,10 +588,10 @@ function StepBusiness({
             placeholder="DJ Midnight (or Midnight Groove)"
             className={inputStyles}
           />
-          <p className="mt-1 text-xs text-ink-stage/50">The name clients and venues see — use what you perform under.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("onboarding.business.stageHint")}</p>
         </div>
         <div>
-          <label htmlFor="ob-owner" className={labelStyles}>Your name</label>
+          <label htmlFor="ob-owner" className={labelStyles}>{t("onboarding.business.yourName")}</label>
           <input
             id="ob-owner"
             name="ownerName"
@@ -540,7 +604,7 @@ function StepBusiness({
       </div>
 
       <div>
-        <span className={labelStyles}>What do you perform?</span>
+        <span className={labelStyles}>{t("onboarding.business.performerKind")}</span>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {KINDS.map((k) => (
             <button
@@ -554,7 +618,7 @@ function StepBusiness({
                   : "border-cream bg-white text-ink-stage/70 hover:-translate-y-0.5 hover:border-brand-cyan/40 hover:shadow-md"
               }`}
             >
-              {k.label}
+              {KIND_KEYS[k.kind] ? t(KIND_KEYS[k.kind]!) : k.label}
             </button>
           ))}
         </div>
@@ -562,16 +626,16 @@ function StepBusiness({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="ob-country" className={labelStyles}>Country</label>
+          <label htmlFor="ob-country" className={labelStyles}>{t("onboarding.business.country")}</label>
           <select id="ob-country" name="country" defaultValue={initial.country} className={inputStyles}>
             {countries.map((c) => (
-              <option key={c.code} value={c.code}>{c.name}</option>
+              <option key={c.code} value={c.code}>{countryNames.of(c.code) ?? c.name}</option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink-stage/50">Sets the right email rules for your region.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("onboarding.business.countryHint")}</p>
         </div>
         <div>
-          <label htmlFor="ob-tz" className={labelStyles}>Timezone</label>
+          <label htmlFor="ob-tz" className={labelStyles}>{t("onboarding.business.timezone")}</label>
           <select
             id="ob-tz"
             name="timezone"
@@ -590,14 +654,13 @@ function StepBusiness({
             ))}
           </select>
           <p className="mt-1 text-xs text-ink-stage/50">
-            We detected yours — change it only if it&apos;s wrong. So “are you free June 14th?” means
-            your June 14th.
+            {t("onboarding.business.timezoneHint")}
           </p>
         </div>
       </div>
 
       <div>
-        <label htmlFor="ob-city" className={labelStyles}>Where are you based?</label>
+        <label htmlFor="ob-city" className={labelStyles}>{t("onboarding.business.homeCity")}</label>
         <input
           id="ob-city"
           name="homeCity"
@@ -607,13 +670,12 @@ function StepBusiness({
           className={inputStyles}
         />
         <p className="mt-1 text-xs text-ink-stage/50">
-          Your home city — the first place your assistant hunts for venues and gigs. You can add more
-          cities (and travel plans) later in the Control room.
+          {t("onboarding.business.homeCityHint")}
         </p>
       </div>
 
       <div>
-        <label htmlFor="ob-postal" className={labelStyles}>Business mailing address</label>
+        <label htmlFor="ob-postal" className={labelStyles}>{t("onboarding.business.address")}</label>
         <textarea
           id="ob-postal"
           name="postalAddress"
@@ -621,17 +683,16 @@ function StepBusiness({
           rows={2}
           autoComplete="street-address"
           defaultValue={initial.postalAddress ?? ""}
-          placeholder="Street, city, region, postal code, country"
+          placeholder={t("onboarding.business.addressPlaceholder")}
           className={`${inputStyles} resize-y`}
         />
         <p className="mt-1 text-xs text-ink-stage/50">
-          Required in venue outreach so every email identifies a real sender. It is never shown on
-          your public press kit.
+          {t("onboarding.business.addressHint")}
         </p>
       </div>
 
       <div>
-        <label htmlFor="ob-site" className={labelStyles}>Website (optional)</label>
+        <label htmlFor="ob-site" className={labelStyles}>{t("onboarding.business.website")}</label>
         <input
           id="ob-site"
           name="websiteUrl"
@@ -646,7 +707,7 @@ function StepBusiness({
       <div className="flex items-center justify-end gap-3 pt-2">
         {result && !result.ok && <p className="text-sm text-red-600">{result.error}</p>}
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Next: build your profile →"}
+          {pending ? t("common.saving") : t("onboarding.business.next")}
         </button>
       </div>
     </form>
@@ -692,7 +753,10 @@ function StepProfile({
   onDone: () => void;
   onBack: () => void;
 }) {
-  const copy = PERFORMER_KIND_COPY[performerKind] ?? PERFORMER_KIND_COPY.OTHER;
+  const { locale, t } = useI18n();
+  const copy = locale === "th"
+    ? THAI_KIND_COPY
+    : (PERFORMER_KIND_COPY[performerKind] ?? PERFORMER_KIND_COPY.OTHER);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -752,8 +816,8 @@ function StepProfile({
     <div className="space-y-6">
       <StepHeading
         step={1}
-        title="Build the profile venues will see"
-        blurb="Add the essentials now. Links, equipment notes and other polish can wait until later."
+        title={t("onboarding.profile.title")}
+        blurb={t("onboarding.profile.blurb")}
       />
 
       {/* A — IDENTITY (the matching + press-kit basics) */}
@@ -771,7 +835,7 @@ function StepProfile({
         </div>
 
         <div>
-          <label htmlFor="ob-headline" className={labelStyles}>Describe your act in one line</label>
+          <label htmlFor="ob-headline" className={labelStyles}>{t("onboarding.profile.oneLine")}</label>
           <input
             id="ob-headline"
             value={profile.headline}
@@ -781,14 +845,14 @@ function StepProfile({
             className={inputStyles}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
-            The first line a venue reads. {Math.max(0, 80 - profile.headline.length)} characters left.
+            {t("onboarding.profile.characters", { count: Math.max(0, 80 - profile.headline.length) })}
           </p>
         </div>
 
         <div>
           <label htmlFor="ob-bio" className={labelStyles}>
-            Short bio{" "}
-            <span className="font-normal normal-case text-ink-stage/40">(needed for venue pitches)</span>
+            {t("onboarding.profile.bio")}{" "}
+            <span className="font-normal normal-case text-ink-stage/40">{t("onboarding.profile.bioNeeded")}</span>
           </label>
           <textarea
             id="ob-bio"
@@ -804,9 +868,9 @@ function StepProfile({
       {/* B — THE VISUAL PROOF THE PITCH ACTUALLY NEEDS */}
       <div className="space-y-4 rounded-2xl border border-cream bg-cream/20 p-4">
         <div>
-          <SectionLabel>One clear photo for your pitch</SectionLabel>
+          <SectionLabel>{t("onboarding.profile.photoTitle")}</SectionLabel>
           <p className="-mt-1 text-xs text-ink-stage/55">
-            An action shot is best. Add more later for a fuller press kit; video is never required.
+            {t("onboarding.profile.photoHint")}
           </p>
         </div>
         {uploadsEnabled && (
@@ -815,16 +879,15 @@ function StepProfile({
             <p className="mt-1 text-xs text-ink-stage/50">
               {profile.photoUrls.length >= 1
                 ? profile.photoUrls.length >= 3
-                  ? "Your gallery is in great shape. Put your strongest image first."
-                  : "That’s enough to pitch. Two more photos are recommended, but you can move on."
-                : "Add one photo to make your profile pitch-ready."}
+                  ? t("onboarding.profile.photoGreat")
+                  : t("onboarding.profile.photoEnough")
+                : t("onboarding.profile.photoNeeded")}
             </p>
           </div>
         )}
         {!uploadsEnabled && (
           <p className="text-xs text-ink-stage/50">
-            Photo uploads are unavailable in this environment. You can add them later from your
-            profile.
+            {t("onboarding.profile.photoUnavailable")}
           </p>
         )}
       </div>
@@ -832,7 +895,7 @@ function StepProfile({
       {/* C — THE ONE COMMERCIAL BOUNDARY THE AGENT MUST NEVER GUESS */}
       <div>
         <label htmlFor="ob-floor" className={labelStyles}>
-          Lowest fee you&apos;ll accept ({currency})
+          {t("onboarding.profile.feeFloor", { currency })}
         </label>
         <input
           id="ob-floor"
@@ -843,23 +906,23 @@ function StepProfile({
           className={inputStyles}
         />
         <p className="mt-1 text-xs text-ink-stage/50">
-          For a one-off gig. Your assistant will never pitch or quote below this.
+          {t("onboarding.profile.feeHint")}
         </p>
       </div>
 
       {/* Everything that improves the profile but is not needed to continue is
           deliberately tucked away. Non-technical artists see one short path;
           power users can still give the drafter the full picture. */}
-      <Walkthrough title="Add links, rates and setup details (optional)">
+      <Walkthrough title={t("onboarding.profile.details")}>
         <div className="space-y-5">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-stage/60">
-              Show them more
+              {t("onboarding.profile.showcase")}
             </p>
             <p className="mb-3 text-xs text-ink-stage/50">{copy.showcaseNote}</p>
           </div>
         <div>
-          <label htmlFor="ob-video" className={labelStyles}>Video links (optional)</label>
+          <label htmlFor="ob-video" className={labelStyles}>{t("onboarding.profile.videoLinks")}</label>
           <textarea
             id="ob-video"
             value={profile.videoLinks}
@@ -868,10 +931,10 @@ function StepProfile({
             placeholder={"https://youtube.com/watch?v=...\nhttps://vimeo.com/..."}
             className={`${inputStyles} font-mono text-xs leading-relaxed`}
           />
-          <p className="mt-1 text-xs text-ink-stage/50">YouTube or Vimeo, one per line. The first one headlines your press kit.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("onboarding.profile.videoHint")}</p>
         </div>
         <div>
-          <label htmlFor="ob-social" className={labelStyles}>Social &amp; streaming links</label>
+          <label htmlFor="ob-social" className={labelStyles}>{t("onboarding.profile.socialLinks")}</label>
           <textarea
             id="ob-social"
             value={profile.socialLinks}
@@ -880,16 +943,16 @@ function StepProfile({
             placeholder={copy.socialPlaceholder}
             className={`${inputStyles} font-mono text-xs leading-relaxed`}
           />
-          <p className="mt-1 text-xs text-ink-stage/50">One link per line — they appear on your press kit page.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("onboarding.profile.socialHint")}</p>
         </div>
 
         <div className="border-t border-cream pt-5">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-stage/60">
-            How you work
+            {t("onboarding.profile.work")}
           </p>
         </div>
         <div>
-          <span className={labelStyles}>What you take on</span>
+          <span className={labelStyles}>{t("onboarding.profile.workTypes")}</span>
           <div className="flex flex-wrap gap-2">
             {GIG_TYPE_OPTIONS.map((g) => (
               <button
@@ -903,7 +966,7 @@ function StepProfile({
                     : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
                 }`}
               >
-                {g.label}
+                {g.v === "one-off" ? t("onboarding.profile.oneOff") : t("onboarding.profile.residencies")}
               </button>
             ))}
           </div>
@@ -912,7 +975,7 @@ function StepProfile({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="ob-hours" className={labelStyles}>One-off price covers up to (hours)</label>
+            <label htmlFor="ob-hours" className={labelStyles}>{t("onboarding.profile.hours")}</label>
             <input
               id="ob-hours"
               inputMode="numeric"
@@ -922,12 +985,12 @@ function StepProfile({
               className={inputStyles}
             />
             <p className="mt-1 text-xs text-ink-stage/50">
-              Quotes state what your minimum fee includes.
+              {t("onboarding.profile.hoursHint")}
             </p>
           </div>
           {doesResidency && (
             <div>
-              <label htmlFor="ob-res" className={labelStyles}>Residency rate ({currency})</label>
+              <label htmlFor="ob-res" className={labelStyles}>{t("onboarding.profile.residencyRate", { currency })}</label>
               <div className="flex gap-2">
                 <input
                   id="ob-res"
@@ -938,19 +1001,19 @@ function StepProfile({
                   className={`${inputStyles} min-w-0 flex-1`}
                 />
                 <select
-                  aria-label="Residency rate unit"
+                  aria-label={t("onboarding.profile.rateUnit")}
                   value={profile.residencyRateUnit}
                   onChange={(e) => set("residencyRateUnit", e.target.value as "night" | "hour")}
                   // inputStyles carries w-full — on a flex row that crushes the
                   // rate field to a sliver (founder preview catch). Own class.
                   className="flex-none rounded-xl border border-cream bg-cream/40 px-3 py-2 text-base sm:text-sm text-ink-stage focus:outline-none focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan/30 transition-colors"
                 >
-                  <option value="night">per night</option>
-                  <option value="hour">per hour</option>
+                  <option value="night">{t("onboarding.profile.perNight")}</option>
+                  <option value="hour">{t("onboarding.profile.perHour")}</option>
                 </select>
               </div>
               <p className="mt-1 text-xs text-ink-stage/50">
-                Your going rate for a regular slot — pick the unit so it can&apos;t be read two ways.
+                {t("onboarding.profile.residencyHint")}
               </p>
             </div>
           )}
@@ -963,13 +1026,13 @@ function StepProfile({
             onChange={(e) => set("acceptsTravel", e.target.checked)}
             className="size-4 accent-brand-cyan"
           />
-          I&apos;m open to travel beyond my home cities
+          {t("onboarding.profile.acceptsTravel")}
         </label>
 
         <div>
           <label htmlFor="ob-rider" className={labelStyles}>
             {copy.riderLabel}{" "}
-            <span className="font-normal normal-case text-ink-stage/40">(optional)</span>
+            <span className="font-normal normal-case text-ink-stage/40">{t("onboarding.profile.optional")}</span>
           </label>
           <textarea
             id="ob-rider"
@@ -980,12 +1043,11 @@ function StepProfile({
             className={`${inputStyles} resize-y`}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
-            Your assistant uses this to answer setup questions in your replies — and never makes one
-            up.
+            {t("onboarding.profile.riderHint")}
           </p>
         </div>
           <p className="text-xs text-ink-stage/45">
-            You can change all of these details later in your Control room.
+            {t("onboarding.profile.laterHint")}
           </p>
         </div>
       </Walkthrough>
@@ -1000,14 +1062,13 @@ function StepProfile({
           disabled={pending || !canAdvance}
           className={buttonStyles.primary}
         >
-          {pending ? "Saving…" : "Next: your voice →"}
+          {pending ? t("common.saving") : t("onboarding.profile.next")}
         </button>
       </div>
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
       {!canAdvance && !error && (
         <p className="text-right text-xs text-ink-stage/50">
-          To make the profile pitch-ready, add your style, one-line description, short bio,
-          minimum fee and one photo.
+          {t("onboarding.profile.requiredHint")}
         </p>
       )}
     </div>
@@ -1023,6 +1084,11 @@ const SAMPLE_PLACEHOLDERS = [
   "Hi Tom, thanks for thinking of me! I'm actually booked that Saturday, but here's what I'd suggest…",
   "Hi again Jess — just circling back on the 14th in case my note slipped through…",
 ];
+const THAI_SAMPLE_PLACEHOLDERS = [
+  "สวัสดีคุณเมย์ ขอบคุณที่ติดต่อมานะครับ วันที่ 14 มิถุนายนผมยังว่างและยินดีเป็นส่วนหนึ่งของงานครับ…",
+  "สวัสดีคุณต้น ขอบคุณที่นึกถึงกันครับ เสาร์นั้นผมมีงานแล้ว แต่มีทางเลือกที่อยากแนะนำครับ…",
+  "สวัสดีคุณเจส ขออนุญาตติดตามเรื่องวันที่ 14 อีกครั้ง เผื่อข้อความก่อนหน้านี้ตกหล่นไปครับ…",
+];
 
 function StepVoice({
   voice,
@@ -1035,6 +1101,7 @@ function StepVoice({
   onDone: () => void;
   onBack: () => void;
 }) {
+  const { locale, t } = useI18n();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1099,15 +1166,14 @@ function StepVoice({
     <div className="space-y-5">
       <StepHeading
         step={2}
-        title="Show us how you sound"
-        blurb="Paste one real reply if you have it. If not, start with a clean professional voice and teach your assistant later."
+        title={t("onboarding.voice.title")}
+        blurb={t("onboarding.voice.blurb")}
       />
 
       <div>
-        <span className={labelStyles}>Replies you&apos;ve sent (the real ones, typos and all)</span>
+        <span className={labelStyles}>{t("onboarding.voice.replies")}</span>
         <p className="mb-2 mt-1 text-xs text-ink-stage/50">
-          One is enough to start. Two or three gives your assistant more range — a quick yes, a
-          follow-up or a tricky date.
+          {t("onboarding.voice.repliesHint")}
         </p>
         <div className="space-y-2">
           {voice.samples.map((s, i) => (
@@ -1116,9 +1182,10 @@ function StepVoice({
                 value={s}
                 onChange={(e) => setSample(i, e.target.value)}
                 rows={4}
-                placeholder={SAMPLE_PLACEHOLDERS[i] ?? "Another reply you've sent…"}
+                placeholder={(locale === "th" ? THAI_SAMPLE_PLACEHOLDERS : SAMPLE_PLACEHOLDERS)[i]
+                  ?? t("onboarding.voice.samplePlaceholder")}
                 className={`${inputStyles} font-mono text-xs leading-relaxed`}
-                aria-label={`Sample reply ${i + 1}`}
+                aria-label={t("onboarding.voice.sampleLabel", { count: i + 1 })}
               />
               {voice.samples.length > 1 && (
                 <button
@@ -1126,7 +1193,7 @@ function StepVoice({
                   onClick={() => removeSample(i)}
                   className="absolute right-2 top-2 rounded-md bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-ink-stage/45 hover:text-ink-stage"
                 >
-                  Remove
+                  {t("onboarding.voice.remove")}
                 </button>
               )}
             </div>
@@ -1138,27 +1205,27 @@ function StepVoice({
             onClick={addSample}
             className="mt-2 text-sm font-semibold text-brand-cyan hover:opacity-80"
           >
-            + Add another reply
+            {t("onboarding.voice.addReply")}
           </button>
         )}
       </div>
 
       <div>
-        <span className={labelStyles}>And the vibe is… (pick any)</span>
+        <span className={labelStyles}>{t("onboarding.voice.vibe")}</span>
         <div className="flex flex-wrap gap-2">
-          {TONES.map((t) => (
+          {TONES.map((tone) => (
             <button
               type="button"
-              key={t}
-              onClick={() => toggleTone(t)}
-              aria-pressed={voice.tones.includes(t)}
+              key={tone}
+              onClick={() => toggleTone(tone)}
+              aria-pressed={voice.tones.includes(tone)}
               className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                voice.tones.includes(t)
+                voice.tones.includes(tone)
                   ? "bg-brand-cyan text-ink-stage shadow-sm"
                   : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
               }`}
             >
-              {t}
+              {t(TONE_KEYS[tone])}
             </button>
           ))}
         </div>
@@ -1166,10 +1233,10 @@ function StepVoice({
 
       {/* Quick voice check — explicit signals a single sample may not pin down. */}
       <div className="space-y-4 rounded-2xl border border-cream bg-cream/20 p-4">
-        <SectionLabel>A few quick things (optional — they sharpen the match)</SectionLabel>
+        <SectionLabel>{t("onboarding.voice.quick")}</SectionLabel>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="ob-greeting" className={labelStyles}>How you open</label>
+            <label htmlFor="ob-greeting" className={labelStyles}>{t("onboarding.voice.greeting")}</label>
             <input
               id="ob-greeting"
               value={voice.greeting}
@@ -1179,7 +1246,7 @@ function StepVoice({
             />
           </div>
           <div>
-            <label htmlFor="ob-signoff" className={labelStyles}>How you sign off</label>
+            <label htmlFor="ob-signoff" className={labelStyles}>{t("onboarding.voice.signoff")}</label>
             <input
               id="ob-signoff"
               value={voice.signoff}
@@ -1190,9 +1257,9 @@ function StepVoice({
           </div>
         </div>
         <div>
-          <span className={labelStyles}>Emojis?</span>
+          <span className={labelStyles}>{t("onboarding.voice.emojis")}</span>
           <div className="flex flex-wrap gap-2">
-            {[{ v: false, label: "Never" }, { v: true, label: "Now & then" }].map((o) => (
+            {[{ v: false, label: t("onboarding.voice.never") }, { v: true, label: t("onboarding.voice.sometimes") }].map((o) => (
               <button
                 type="button"
                 key={o.label}
@@ -1210,7 +1277,7 @@ function StepVoice({
           </div>
         </div>
         <div>
-          <label htmlFor="ob-phrases" className={labelStyles}>Any words or phrases you lean on?</label>
+          <label htmlFor="ob-phrases" className={labelStyles}>{t("onboarding.voice.phrases")}</label>
           <input
             id="ob-phrases"
             value={voice.phrases}
@@ -1230,16 +1297,15 @@ function StepVoice({
             disabled={pending}
             className="text-sm font-semibold text-ink-stage/45 underline-offset-2 hover:text-ink-stage/70 hover:underline"
           >
-            Use a clean professional voice
+            {t("onboarding.voice.skipProfessional")}
           </button>
           <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
-            {pending ? "Saving…" : "Next: your calendar →"}
+            {pending ? t("common.saving") : t("onboarding.voice.next")}
           </button>
         </div>
       </div>
       <p className="text-right text-xs text-ink-stage/40">
-        No old replies at hand? That’s fine — your drafts start clear and professional, and you can
-        teach the assistant your voice later in the Control room.
+        {t("onboarding.voice.skipHint")}
       </p>
       {error && <p className="text-right text-xs text-red-600">{error}</p>}
     </div>
@@ -1267,6 +1333,7 @@ function StepCalendar({
   onDone: () => void;
   onBack: () => void;
 }) {
+  const { locale, t } = useI18n();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1288,9 +1355,9 @@ function StepCalendar({
 
   async function addResidencyNights() {
     setResNote(null);
-    if (res.weekday === null) return setResNote({ ok: false, text: "Pick the day of the week." });
-    if (!res.title.trim()) return setResNote({ ok: false, text: "Add the venue or a name." });
-    if (!res.from || !res.to) return setResNote({ ok: false, text: "Pick a start and end date." });
+    if (res.weekday === null) return setResNote({ ok: false, text: locale === "th" ? "เลือกวันในสัปดาห์" : "Pick the day of the week." });
+    if (!res.title.trim()) return setResNote({ ok: false, text: locale === "th" ? "เพิ่มชื่อสถานที่หรือชื่องาน" : "Add the venue or a name." });
+    if (!res.from || !res.to) return setResNote({ ok: false, text: locale === "th" ? "เลือกวันที่เริ่มต้นและสิ้นสุด" : "Pick a start and end date." });
     setResPending(true);
     try {
       const r = await addResidency({
@@ -1303,11 +1370,13 @@ function StepCalendar({
       });
       if (!r.ok) return setResNote({ ok: false, text: r.error });
       onSaved(r.added); // bump the "N dates saved" banner
-      const day = WEEKDAYS.find((d) => d.value === res.weekday)?.label ?? "";
+      const day = t(WEEKDAY_KEYS[res.weekday]);
       const when = res.startTime ? ` ${res.startTime}${res.endTime ? `–${res.endTime}` : ""}` : "";
       setResNote({
         ok: true,
-        text: `Added ${r.added} ${day} night${r.added === 1 ? "" : "s"}${when} — ${res.title.trim()}.`,
+        text: locale === "th"
+          ? `เพิ่มงานประจำวัน${day} ${r.added} คืน${when} — ${res.title.trim()}`
+          : `Added ${r.added} ${day} night${r.added === 1 ? "" : "s"}${when} — ${res.title.trim()}.`,
       });
       setRes((prev) => ({ ...prev, weekday: null, title: "" })); // ready for the next residency; keep dates+time
     } finally {
@@ -1341,14 +1410,14 @@ function StepCalendar({
     <div className="space-y-4">
       <StepHeading
         step={3}
-        title="Add one date you’re already booked"
-        blurb="This keeps us from offering a date you can’t play and completes your pitch-ready profile. A rough title is fine."
+        title={t("onboarding.calendar.title")}
+        blurb={t("onboarding.calendar.blurb")}
       />
 
       {savedCount > 0 && (
         <p className="flex items-center gap-2 rounded-2xl bg-brand-cyan-soft/60 px-4 py-2 text-sm font-medium text-ink-stage">
           <CheckMark className="size-4 flex-none text-brand-cyan" />
-          {savedCount} {savedCount === 1 ? "date" : "dates"} already saved to your calendar
+          {t("onboarding.calendar.saved", { count: savedCount })}
         </p>
       )}
 
@@ -1360,14 +1429,14 @@ function StepCalendar({
               value={row.date}
               onChange={(e) => updateRow(i, { date: e.target.value })}
               className={`${inputStyles} sm:w-40 sm:flex-none`}
-              aria-label={`Booked date ${i + 1}`}
+              aria-label={t("onboarding.calendar.dateLabel", { count: i + 1 })}
             />
             <input
               value={row.title}
               onChange={(e) => updateRow(i, { title: e.target.value })}
               placeholder="Nguyen wedding"
               className={inputStyles}
-              aria-label={`Title for booked date ${i + 1}`}
+              aria-label={t("onboarding.calendar.titleLabel", { count: i + 1 })}
             />
             {/* Remove only shows once a row has content — an empty default row
                 has nothing to remove, so the control would just read as a
@@ -1375,7 +1444,7 @@ function StepCalendar({
             <button
               type="button"
               onClick={() => setRows(rows.filter((_, idx) => idx !== i))}
-              aria-label={`Remove booked date ${i + 1}`}
+              aria-label={t("onboarding.calendar.removeLabel", { count: i + 1 })}
               className={`flex-none rounded-lg px-2 py-1.5 text-lg leading-none text-ink-stage/35 transition-colors hover:bg-red-50 hover:text-red-600 ${
                 row.date || row.title.trim() ? "" : "invisible"
               }`}
@@ -1391,23 +1460,21 @@ function StepCalendar({
         onClick={() => setRows([...rows, { date: "", title: "" }])}
         className={`${buttonStyles.secondaryOnLight} w-full border-dashed`}
       >
-        + Add another date
+        {t("onboarding.calendar.addDate")}
       </button>
 
       {/* Residency is useful but uncommon. Keep the main path to one date and
           reveal the bulk editor only to artists who need it. */}
-      <Walkthrough title="I have a regular weekly slot">
+      <Walkthrough title={t("onboarding.calendar.regular")}>
         <div className="space-y-3">
         <div>
-          <SectionLabel>Log the whole residency at once</SectionLabel>
+          <SectionLabel>{t("onboarding.calendar.residency")}</SectionLabel>
           <p className="-mt-1 text-xs text-ink-stage/55">
-            Playing a regular weekly slot? Pick the day and the run of dates — we&apos;ll block every one, so
-            you&apos;re never shown as free that night. Add each residency separately (e.g. Wednesdays at one
-            venue, Fridays at another).
+            {t("onboarding.calendar.residencyHint")}
           </p>
         </div>
         <div>
-          <span className={labelStyles}>Which day?</span>
+          <span className={labelStyles}>{t("onboarding.calendar.day")}</span>
           <div className="flex flex-wrap gap-2">
             {WEEKDAYS.map((d) => (
               <button
@@ -1421,13 +1488,13 @@ function StepCalendar({
                     : "border border-cream bg-white text-ink-stage/60 hover:border-brand-cyan/50"
                 }`}
               >
-                {d.label}
+                {t(WEEKDAY_KEYS[d.value])}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <label htmlFor="res-title" className={labelStyles}>Venue / name</label>
+          <label htmlFor="res-title" className={labelStyles}>{t("onboarding.calendar.venue")}</label>
           <input
             id="res-title"
             value={res.title}
@@ -1438,7 +1505,7 @@ function StepCalendar({
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="res-from" className={labelStyles}>From</label>
+            <label htmlFor="res-from" className={labelStyles}>{t("onboarding.calendar.from")}</label>
             <input
               id="res-from"
               type="date"
@@ -1448,7 +1515,7 @@ function StepCalendar({
             />
           </div>
           <div>
-            <label htmlFor="res-to" className={labelStyles}>Until</label>
+            <label htmlFor="res-to" className={labelStyles}>{t("onboarding.calendar.until")}</label>
             <input
               id="res-to"
               type="date"
@@ -1460,7 +1527,7 @@ function StepCalendar({
         </div>
         <div>
           <span className={labelStyles}>
-            Time <span className="font-normal normal-case text-ink-stage/40">(optional — keeps you free around the slot)</span>
+            {t("onboarding.calendar.time")} <span className="font-normal normal-case text-ink-stage/40">{t("onboarding.calendar.timeOptional")}</span>
           </span>
           <div className="grid grid-cols-2 gap-3">
             <input
@@ -1479,7 +1546,7 @@ function StepCalendar({
             />
           </div>
           <p className="mt-1 text-xs text-ink-stage/50">
-            Add a time (e.g. 7:00pm–9:00pm) and we&apos;ll only block that window — so a late gig elsewhere that night still counts you as free. Leave blank to block the whole day.
+            {t("onboarding.calendar.timeHint")}
           </p>
         </div>
         <button
@@ -1488,7 +1555,7 @@ function StepCalendar({
           disabled={resPending}
           className={`${buttonStyles.secondaryOnLight} w-full`}
         >
-          {resPending ? "Adding…" : "Add residency nights"}
+          {resPending ? t("onboarding.calendar.adding") : t("onboarding.calendar.addResidency")}
         </button>
         {resNote && (
           <p className={`text-xs ${resNote.ok ? "font-semibold text-brand-cyan" : "text-red-600"}`}>
@@ -1508,10 +1575,10 @@ function StepCalendar({
             onClick={onDone}
             className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 hover:text-brand-cyan transition-colors"
           >
-            I don’t have a date handy
+            {t("onboarding.calendar.skip")}
           </button>
           <button type="button" onClick={handleNext} disabled={pending} className={buttonStyles.primary}>
-            {pending ? "Saving…" : "Next: go live →"}
+            {pending ? t("common.saving") : t("onboarding.calendar.next")}
           </button>
         </div>
       </div>
@@ -1582,6 +1649,7 @@ function StepConnect({
   chosenPlan: "STARTER" | "PRO" | "STUDIO" | null;
   onBack: () => void;
 }) {
+  const { locale, t } = useI18n();
   const [provider, setProvider] = useState<"gmail" | "outlook">("gmail");
   const [checkoutPending, setCheckoutPending] = useState(false);
   const [checkoutError, setCheckoutError] = useState(false);
@@ -1605,8 +1673,8 @@ function StepConnect({
     <div className="space-y-4">
       <StepHeading
         step={4}
-        title="You’re ready to go live"
-        blurb="Turn on venue matching now. If you also want Bright Ears to draft replies to incoming inquiries, connect your inbox today or whenever you’re ready."
+        title={t("onboarding.live.title")}
+        blurb={t("onboarding.live.blurb")}
       />
 
       {/* Activation is the main finish line. Inbox forwarding is a separate,
@@ -1618,14 +1686,14 @@ function StepConnect({
         />
         <div className="relative">
           <StickerChip tone="cream" rotate={-3}>
-            Profile saved
+            {t("onboarding.live.sticker")}
           </StickerChip>
-          <h3 className="mt-4 text-2xl font-black tracking-tight">Turn on your venue hunt</h3>
+          <h3 className="mt-4 text-2xl font-black tracking-tight">{t("onboarding.live.huntTitle")}</h3>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-stage/75">
-            Bright Ears starts scanning for rooms that fit your act as soon as you activate.
+            {t("onboarding.live.huntBody")}{" "}
             {licenseReady
-              ? " Your profile is ready for pitches."
-              : " Add one booked date later to make your profile ready for venue pitches."}
+              ? t("onboarding.live.profileReady")
+              : t("onboarding.live.profileNotReady")}
           </p>
           {chosenPlan ? (
             <button
@@ -1634,23 +1702,25 @@ function StepConnect({
               onClick={beginCheckout}
               className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright transition-opacity hover:opacity-90 disabled:opacity-60"
             >
-              {checkoutPending ? "Opening checkout…" : `Activate ${planLabel} →`}
+              {checkoutPending
+                ? t("onboarding.live.openingCheckout")
+                : t("onboarding.live.activate", { plan: planLabel ?? "" })}
             </button>
           ) : (
             <Link
               href="/dashboard/settings#billing"
               className="mt-5 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright transition-opacity hover:opacity-90"
             >
-              Choose a plan →
+              {t("onboarding.live.choosePlan")}
             </Link>
           )}
           {checkoutError && (
             <p className="mt-3 max-w-md text-sm font-medium">
-              Couldn&apos;t open checkout — please try again, or choose your plan from the dashboard.
+              {t("onboarding.live.checkoutError")}
             </p>
           )}
           <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-stage/60">
-            Month to month · cancel anytime
+            {t("onboarding.live.monthly")}
           </p>
         </div>
       </div>
@@ -1665,13 +1735,13 @@ function StepConnect({
           <span>
             <span className="block text-sm font-bold text-ink-stage">
               {forwardingConfirm
-                ? "Action needed: approve Gmail forwarding"
+                ? t("onboarding.live.forwardingAction")
                 : leadDetected
-                  ? "Incoming inquiry automation is working"
-                  : "Also automate incoming inquiries"}
+                  ? t("onboarding.live.incomingWorking")
+                  : t("onboarding.live.incomingOptional")}
             </span>
             <span className="block text-xs font-normal text-ink-stage/55">
-              Optional — connect Gmail or Outlook now or later
+              {t("onboarding.live.connectLater")}
             </span>
           </span>
           <span
@@ -1685,28 +1755,26 @@ function StepConnect({
         <div className="space-y-4 border-t border-cream bg-cream/15 p-4">
           <div className="rounded-2xl bg-cream/40 p-4">
             <p className="mb-2 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55">
-              How it works
+              {t("onboarding.live.how")}
             </p>
             <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-stage/75">
-              <li>A client emails you — nothing changes for them.</li>
-              <li>Your inbox sends a private copy to Bright Ears.</li>
-              <li>Bright Ears drafts the reply in your voice. You approve it before it sends.</li>
+              <li>{t("onboarding.live.how1")}</li>
+              <li>{t("onboarding.live.how2")}</li>
+              <li>{t("onboarding.live.how3")}</li>
             </ol>
             <p className="mt-2.5 text-xs leading-relaxed text-ink-stage/55">
-              Clients never see the assistant&apos;s address. Their answers stay in your normal inbox,
-              and each inquiry appears in your Pipeline.
+              {t("onboarding.live.howHint")}
             </p>
           </div>
 
           {forwardingConfirm && (
             <div className="rounded-2xl border-2 border-brand-cyan bg-white p-5">
               <StickerChip tone="ink" rotate={-2}>
-                Gmail confirmation caught
+                {t("onboarding.live.gmailCaught")}
               </StickerChip>
-              <p className="mt-3 font-bold text-ink-stage">One click left — approve forwarding</p>
+              <p className="mt-3 font-bold text-ink-stage">{t("onboarding.live.approveTitle")}</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
-                Gmail sent a verification to your assistant and we caught it. Approve it, then send
-                yourself a test below.
+                {t("onboarding.live.approveHint")}
               </p>
               {forwardingConfirm.url ? (
                 <a
@@ -1715,17 +1783,20 @@ function StepConnect({
                   rel="noopener noreferrer"
                   className={`mt-3 inline-block ${buttonStyles.primary} text-sm`}
                 >
-                  Approve forwarding in Gmail →
+                  {t("onboarding.live.approveButton")}
                 </a>
               ) : (
                 <p className="mt-3 text-sm text-ink-stage/70">
-                  Open the &quot;Gmail Forwarding Confirmation&quot; email Gmail sent to your inbox
-                  and click its link.
+                  {locale === "th"
+                    ? "เปิดอีเมล “Gmail Forwarding Confirmation” ที่ Gmail ส่งมา แล้วกดลิงก์ในอีเมล"
+                    : "Open the “Gmail Forwarding Confirmation” email Gmail sent to your inbox and click its link."}
                 </p>
               )}
               {forwardingConfirm.code && (
                 <p className="mt-3 text-sm text-ink-stage/70">
-                  Or paste this code into Gmail&apos;s forwarding settings:{" "}
+                  {locale === "th"
+                    ? "หรือวางรหัสนี้ในการตั้งค่าการส่งต่อของ Gmail: "
+                    : "Or paste this code into Gmail's forwarding settings: "}
                   <span className="rounded-md bg-cream/60 px-2 py-0.5 font-mono text-xs font-bold text-ink-stage">
                     {forwardingConfirm.code}
                   </span>
@@ -1737,20 +1808,20 @@ function StepConnect({
           {leadDetected ? (
             <div className="rounded-2xl bg-brand-cyan-soft p-5 text-center">
               <StickerChip tone="ink" rotate={-2}>
-                First inquiry caught
+                {t("onboarding.live.firstCaught")}
               </StickerChip>
               <p className="mt-3 text-lg font-extrabold tracking-tight text-ink-stage">
-                It works. Your first inquiry just landed.
+                {t("onboarding.live.itWorks")}
               </p>
               <p className="mt-1 text-sm text-ink-stage/70">
-                Bright Ears read it and is ready to draft the reply in your voice.
+                {t("onboarding.live.readyDraft")}
               </p>
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-brand-cyan/60 bg-white p-5">
-              <p className="font-bold text-ink-stage">Try it with one email</p>
+              <p className="font-bold text-ink-stage">{t("onboarding.live.testTitle")}</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-stage/70">
-                Forward any inquiry — or send a quick test from your phone — to:
+                {t("onboarding.live.testHint")}
               </p>
               <div className="mt-3">
                 <LeadAddressPill address={leadAddress} />
@@ -1760,21 +1831,20 @@ function StepConnect({
                   className="inline-block size-2 animate-pulse rounded-full bg-brand-cyan"
                   aria-hidden
                 />
-                Listening for a test… (we check every 5 seconds)
+                {t("onboarding.live.listening")}
               </p>
               {tookTooLong && (
                 <p className="mt-3 rounded-xl bg-cream/60 px-3 py-2 text-sm text-ink-stage/70">
-                  Taking longer than expected? Check the address above, or leave this for later.
+                  {t("onboarding.live.slow")}
                 </p>
               )}
             </div>
           )}
 
           <div className="space-y-2">
-            <Walkthrough title="Make it automatic">
+            <Walkthrough title={t("onboarding.live.automatic")}>
               <p className="mb-3">
-                Set a one-time rule so inquiry emails copy themselves to Bright Ears. The originals
-                still land in your normal inbox. You&apos;ll paste this address:
+                {t("onboarding.live.automaticHint")}
               </p>
               <div className="mb-3">
                 <LeadAddressPill address={leadAddress} />
@@ -1797,42 +1867,45 @@ function StepConnect({
               </div>
               {provider === "gmail" ? (
                 <ol className="list-decimal space-y-1.5 pl-5">
-                  <li>
-                    Gmail → the gear → <strong>See all settings</strong> →{" "}
-                    <strong>Forwarding and POP/IMAP</strong>.
-                  </li>
-                  <li>
-                    <strong>Add a forwarding address</strong> → paste the address above. Gmail sends
-                    a confirmation; its approval card appears here within a minute.
-                  </li>
-                  <li>
-                    Choose <strong>Forward a copy of incoming mail to</strong> → keep Gmail&apos;s
-                    copy in the Inbox → <strong>Save</strong>.
-                  </li>
+                  {locale === "th" ? (
+                    <>
+                      <li>Gmail → ไอคอนเฟือง → <strong>ดูการตั้งค่าทั้งหมด</strong> → <strong>การส่งต่อและ POP/IMAP</strong></li>
+                      <li><strong>เพิ่มที่อยู่สำหรับส่งต่อ</strong> → วางที่อยู่ด้านบน Gmail จะส่งข้อความยืนยัน และการ์ดอนุมัติจะแสดงที่นี่ภายในประมาณหนึ่งนาที</li>
+                      <li>เลือก <strong>ส่งต่อสำเนาจดหมายขาเข้าไปยัง</strong> → เก็บสำเนาไว้ในกล่องจดหมาย Gmail → <strong>บันทึกการเปลี่ยนแปลง</strong></li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Gmail → the gear → <strong>See all settings</strong> → <strong>Forwarding and POP/IMAP</strong>.</li>
+                      <li><strong>Add a forwarding address</strong> → paste the address above. Gmail sends a confirmation; its approval card appears here within a minute.</li>
+                      <li>Choose <strong>Forward a copy of incoming mail to</strong> → keep Gmail&apos;s copy in the Inbox → <strong>Save</strong>.</li>
+                    </>
+                  )}
                 </ol>
               ) : (
                 <ol className="list-decimal space-y-1.5 pl-5">
-                  <li>
-                    Outlook on the web → the gear → <strong>Mail</strong> → <strong>Rules</strong> →{" "}
-                    <strong>Add new rule</strong>.
-                  </li>
-                  <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
-                  <li>
-                    Action: <strong>Forward to</strong> → paste the address above →{" "}
-                    <strong>Save</strong>.
-                  </li>
+                  {locale === "th" ? (
+                    <>
+                      <li>Outlook บนเว็บ → ไอคอนเฟือง → <strong>จดหมาย</strong> → <strong>กฎ</strong> → <strong>เพิ่มกฎใหม่</strong></li>
+                      <li>ตั้งชื่อ “Bright Ears” และเลือกเงื่อนไข <strong>ใช้กับข้อความทั้งหมด</strong></li>
+                      <li>การดำเนินการ: <strong>ส่งต่อไปยัง</strong> → วางที่อยู่ด้านบน → <strong>บันทึก</strong></li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Outlook on the web → the gear → <strong>Mail</strong> → <strong>Rules</strong> → <strong>Add new rule</strong>.</li>
+                      <li>Name it “Bright Ears”; condition <strong>Apply to all messages</strong>.</li>
+                      <li>Action: <strong>Forward to</strong> → paste the address above → <strong>Save</strong>.</li>
+                    </>
+                  )}
                 </ol>
               )}
             </Walkthrough>
 
-            <Walkthrough title="I get inquiries somewhere else">
+            <Walkthrough title={t("onboarding.live.otherSource")}>
               <p>
-                The Knot, WeddingWire and most website forms already email you when an inquiry
-                arrives, so the same forwarding rule catches them too.
+                {t("onboarding.live.otherSourceHint")}
               </p>
               <p className="mb-2 mt-2">
-                You can also paste your assistant&apos;s address directly into your website
-                form&apos;s notification settings:
+                {t("onboarding.live.otherSourceForm")}
               </p>
               <LeadAddressPill address={leadAddress} />
             </Walkthrough>
@@ -1846,7 +1919,7 @@ function StepConnect({
           href="/dashboard"
           className="text-sm text-ink-stage/50 underline decoration-dotted underline-offset-4 transition-colors hover:text-brand-cyan"
         >
-          Open my dashboard
+          {t("onboarding.live.openDashboard")}
         </Link>
       </div>
     </div>
@@ -1871,6 +1944,7 @@ export function OnboardingWizard({
   /** Plan picked on the pricing page — the finale opens checkout for it (P5.5). */
   chosenPlan?: "STARTER" | "PRO" | "STUDIO" | null;
 }) {
+  const { t } = useI18n();
   const [step, setStep] = useState(() =>
     Math.min(Math.max(initialStep, 0), STEPS.length - 1),
   );
@@ -1987,16 +2061,16 @@ export function OnboardingWizard({
             <BrightEarsLogo size={56} />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-cream-bright">
-            Build your{" "}
+            {t("onboarding.headerPrefix")}{" "}
             <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-              artist assistant
+              {t("onboarding.headerAccent")}
             </span>
           </h1>
           <p className="mt-1 text-sm text-cream/60">
-            Start with the essentials. Everything saves as you go, and you can polish it later.
+            {t("onboarding.headerBody")}
           </p>
           <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-cream/45">
-            About 8 minutes · no video required
+            {t("onboarding.headerTime")}
           </p>
         </header>
 
@@ -2004,8 +2078,9 @@ export function OnboardingWizard({
           {STEPS.map((s, i) => {
             const done = i < step;
             const current = i === step;
+            const label = t(STEP_KEYS[i]);
             return (
-              <li key={s.label}>
+              <li key={STEP_KEYS[i]}>
                 <button
                   type="button"
                   onClick={() => done && goTo(i)}
@@ -2027,8 +2102,8 @@ export function OnboardingWizard({
                       {i + 1}
                     </span>
                   )}
-                  <span className="hidden sm:inline">{s.label}</span>
-                  <span className="sr-only sm:hidden">{s.label}</span>
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="sr-only sm:hidden">{label}</span>
                 </button>
               </li>
             );

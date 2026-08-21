@@ -9,6 +9,7 @@
 // kept deliberately quiet here — legal copy must read at AA contrast, calm.
 import type { ReactNode } from "react";
 import { GradientBlob, StickerChip } from "@/components/collage";
+import { LegalLanguageNotice } from "@/components/legal-language-notice";
 
 /** The v2 signature: one gradient-painted word in a warm-white headline. */
 const GRAD = "bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent";
@@ -123,6 +124,7 @@ export function LegalPage({
         <div className="relative">
           <GradientBlob tone="cyan" className="-top-8 -left-10 h-36 w-56" />
           <article className="relative rounded-[2rem] bg-cream px-6 py-10 shadow-[0_36px_90px_rgba(0,0,0,0.5)] sm:px-10 sm:py-12">
+            <LegalLanguageNotice />
             <EffectiveBanner />
             <p className="mb-10 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-stage/50">
               Last updated: {LAST_UPDATED}

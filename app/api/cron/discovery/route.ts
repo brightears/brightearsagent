@@ -8,6 +8,8 @@ import { notifyBusiness } from "@/lib/notify";
 import { checkSharedSecret, providedSecret } from "@/lib/auth-secret";
 import { stampCronCompletion } from "@/lib/ops-stamp";
 import { reportError } from "@/lib/report-error";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translator } from "@/lib/i18n/messages";
 
 export const maxDuration = 300;
 
@@ -89,22 +91,26 @@ export async function GET(req: NextRequest) {
         const bumps = await draftHotFollowUps(business);
         pitchesDrafted = drafted.created + bumps.drafted;
         if (pitchesDrafted > 0 || venuesCreated > 0) {
+          const locale = normalizeLocale(business.locale);
+          const t = translator(locale);
           const pendingPitches = await db.venuePitch.count({
             where: { businessId: b.id, status: "PENDING" },
           });
           const parts = [
             pendingPitches > 0
-              ? `${pendingPitches} pitch${pendingPitches === 1 ? "" : "es"} ready to approve`
+              ? t("notification.pitchesReady", { count: pendingPitches })
               : null,
             venuesCreated > 0
-              ? `${venuesCreated} new venue${venuesCreated === 1 ? "" : "s"} found`
+              ? t("notification.venuesFound", { count: venuesCreated })
               : null,
           ].filter(Boolean);
           void notifyBusiness(business, {
-            title: "Your agent worked overnight",
+            title: t("notification.overnight"),
             body: parts.join(" · "),
             url: "/dashboard",
-            emailBody: `While you were away, the Hunt ran your cities.\n\n${parts.join("\n")}\n\nEach pitch is drafted in your voice and waiting for one tap.`,
+            emailBody: locale === "th"
+              ? `ระหว่างที่คุณพัก ผู้ช่วยค้นหาสถานที่ในเมืองของคุณ\n\n${parts.join("\n")}\n\nแต่ละข้อความเขียนด้วยสำนวนของคุณและรอการอนุมัติ`
+              : `While you were away, the Hunt ran your cities.\n\n${parts.join("\n")}\n\nEach pitch is drafted in your voice and waiting for one tap.`,
           }).catch(() => null);
         }
       }
