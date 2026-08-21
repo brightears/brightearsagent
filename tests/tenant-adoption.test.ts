@@ -37,6 +37,7 @@ const openRow = { id: "mem_2", email: EMAIL, clerkUserId: null, business: realBu
 
 beforeEach(() => {
   vi.clearAllMocks();
+  delete process.env.BETA_COMP_EMAILS;
   mockAuth.mockResolvedValue({ userId: NEW_ID });
   mockCurrentUser.mockResolvedValue({
     primaryEmailAddress: { emailAddress: EMAIL },
@@ -93,6 +94,27 @@ describe("getCurrentBusiness — adoption ladder", () => {
     await expect(getCurrentBusiness({ provision: true })).resolves.toEqual({ id: "biz_new", slug: "owner" });
     expect(mockDb.business.create).toHaveBeenCalledOnce();
     expect(mockDb.member.update).not.toHaveBeenCalled();
+  });
+
+  it("grants an approved verified email one fixed beta window without changing its stored plan", async () => {
+    process.env.BETA_COMP_EMAILS = " other@example.com, OWNER@EXAMPLE.COM ";
+    mockDb.member.findFirst.mockResolvedValue(null);
+    mockDb.business.findUnique.mockResolvedValue(null);
+    mockDb.business.create.mockImplementation(async ({ data }) => ({ id: "biz_beta", slug: "owner", ...data }));
+
+    await getCurrentBusiness({ provision: true });
+
+    const data = mockDb.business.create.mock.calls[0]?.[0]?.data;
+    expect(data).toEqual(
+      expect.objectContaining({
+        plan: "TRIAL",
+        betaStartedAt: expect.any(Date),
+        trialEndsAt: expect.any(Date),
+      }),
+    );
+    expect(data.trialEndsAt.getTime() - data.betaStartedAt.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(data).not.toHaveProperty("stripeCustomerId");
+    expect(data).not.toHaveProperty("stripeSubscriptionId");
   });
 
   // The regression that produced three tenants for one person.

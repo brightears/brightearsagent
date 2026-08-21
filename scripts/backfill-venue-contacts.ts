@@ -44,13 +44,15 @@ async function main() {
       id: true,
       name: true,
       plan: true,
+      betaStartedAt: true,
+      trialEndsAt: true,
       country: true,
       lastDiscoveryScanAt: true,
       _count: { select: { venuePitches: true } },
     },
   });
   if (!business) throw new Error(`Tenant "${slug}" was not found`);
-  if (isAgentPaused(business.plan)) {
+  if (isAgentPaused(business)) {
     throw new Error(`Tenant "${slug}" is paused; contact spend is disabled without an active subscription`);
   }
 

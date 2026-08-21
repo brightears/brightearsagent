@@ -78,11 +78,23 @@ describe("computeMonthlyRoi + renderRoiEmail", () => {
 });
 
 describe("sendMonthlyRoiReceipts", () => {
-  it("emails paying tenants with activity", async () => {
-    const r = await sendMonthlyRoiReceipts(new Date("2026-07-01T02:00:00Z"));
+  it("emails paid and active-beta tenants with activity", async () => {
+    const now = new Date("2026-07-01T02:00:00Z");
+    const r = await sendMonthlyRoiReceipts(now);
     expect(r).toEqual({ sent: 1, skipped: 0, failed: 0 });
     expect(mockDb.business.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { plan: { not: "TRIAL" } } }),
+      expect.objectContaining({
+        where: {
+          OR: [
+            { plan: { not: "TRIAL" } },
+            {
+              plan: "TRIAL",
+              betaStartedAt: { not: null, lte: now },
+              trialEndsAt: { gt: now },
+            },
+          ],
+        },
+      }),
     );
     expect(mockSend).toHaveBeenCalledTimes(1);
   });

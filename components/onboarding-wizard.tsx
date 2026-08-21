@@ -1635,6 +1635,7 @@ function StepConnect({
   licenseReady,
   forwardingConfirm,
   chosenPlan,
+  betaEndsAt,
   onBack,
 }: {
   leadAddress: string;
@@ -1647,6 +1648,8 @@ function StepConnect({
   forwardingConfirm: { url: string | null; code: string | null } | null;
   /** Plan picked on the pricing page — the finale opens checkout for it. */
   chosenPlan: "STARTER" | "PRO" | "STUDIO" | null;
+  /** Active invited beta window; null for ordinary signups and expired betas. */
+  betaEndsAt: string | null;
   onBack: () => void;
 }) {
   const { locale, t } = useI18n();
@@ -1668,6 +1671,14 @@ function StepConnect({
   const planLabel = chosenPlan
     ? chosenPlan.charAt(0) + chosenPlan.slice(1).toLowerCase()
     : null;
+  const betaEndLabel = betaEndsAt
+    ? new Date(betaEndsAt).toLocaleDateString(locale === "th" ? "th-TH" : "en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
 
   return (
     <div className="space-y-4">
@@ -1695,7 +1706,22 @@ function StepConnect({
               ? t("onboarding.live.profileReady")
               : t("onboarding.live.profileNotReady")}
           </p>
-          {chosenPlan ? (
+          {betaEndLabel ? (
+            <>
+              <p className="mt-5 max-w-lg rounded-2xl bg-cream/85 px-4 py-3 text-sm font-semibold leading-relaxed text-ink-stage">
+                {c(
+                  `Your 30-day Starter beta is already active through ${betaEndLabel}. No payment method is needed and nothing renews automatically.`,
+                  `เบต้าแผน Starter 30 วันของคุณเปิดใช้งานแล้วถึง ${betaEndLabel} โดยไม่ต้องเพิ่มวิธีชำระเงินและไม่มีการต่ออายุอัตโนมัติ`,
+                )}
+              </p>
+              <Link
+                href="/dashboard"
+                className="mt-4 inline-block rounded-full bg-ink-stage px-5 py-2.5 font-bold text-cream-bright transition-opacity hover:opacity-90"
+              >
+                {c("Open your dashboard", "เปิดแดชบอร์ด")}
+              </Link>
+            </>
+          ) : chosenPlan ? (
             <button
               type="button"
               disabled={checkoutPending}
@@ -1719,9 +1745,11 @@ function StepConnect({
               {t("onboarding.live.checkoutError")}
             </p>
           )}
-          <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-stage/60">
-            {t("onboarding.live.monthly")}
-          </p>
+          {!betaEndLabel && (
+            <p className="mt-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-ink-stage/60">
+              {t("onboarding.live.monthly")}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1936,6 +1964,7 @@ export function OnboardingWizard({
   initialProfile,
   uploadsEnabled,
   chosenPlan = null,
+  betaEndsAt = null,
 }: {
   initialStep: number;
   business: WizardBusiness;
@@ -1943,6 +1972,7 @@ export function OnboardingWizard({
   uploadsEnabled: boolean;
   /** Plan picked on the pricing page — the finale opens checkout for it (P5.5). */
   chosenPlan?: "STARTER" | "PRO" | "STUDIO" | null;
+  betaEndsAt?: string | null;
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState(() =>
@@ -2164,6 +2194,7 @@ export function OnboardingWizard({
               licenseReady={licenseReady}
               forwardingConfirm={forwardingConfirm}
               chosenPlan={chosenPlan}
+              betaEndsAt={betaEndsAt}
               onBack={() => goTo(3)}
             />
           )}

@@ -135,15 +135,26 @@ export function priorMonthWindow(now: Date): { start: Date; end: Date } {
 }
 
 /**
- * Send the receipts — paying tenants only (an ROI email for a $0 plan is
- * noise), nothing-happened months skipped, per-tenant failures isolated.
+ * Send receipts to paid tenants and currently active invited betas. A beta is
+ * explicitly testing whether the product creates value, so hiding its outcome
+ * would remove the most useful feedback artifact. Nothing-happened months are
+ * still skipped and per-tenant failures stay isolated.
  */
 export async function sendMonthlyRoiReceipts(
   now = new Date(),
 ): Promise<{ sent: number; skipped: number; failed: number }> {
   const { start, end } = priorMonthWindow(now);
   const businesses = await db.business.findMany({
-    where: { plan: { not: "TRIAL" } },
+    where: {
+      OR: [
+        { plan: { not: "TRIAL" } },
+        {
+          plan: "TRIAL",
+          betaStartedAt: { not: null, lte: now },
+          trialEndsAt: { gt: now },
+        },
+      ],
+    },
     select: { id: true, ownerEmail: true },
   });
 

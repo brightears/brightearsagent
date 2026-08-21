@@ -53,13 +53,9 @@ async function findTenantVenue(businessId: string, venueId: string) {
   return db.venue.findFirst({ where: { id: venueId, businessId } });
 }
 
-// Subscription gate copy (founder decision 2026-06-16: NO automatic free trial;
-// a Stripe promotion code gives selected artists a free first month, but the
-// agent only runs on an active subscription). isAgentPaused() is a pure check
-// (no DB): plan=TRIAL = unsubscribed → agent paused. The SAME gate guards the
-// reactive lead path AND the discovery scan, so drafting, proactive pitches and
-// scanning gate identically — an unsubscribed tenant is blocked everywhere but
-// may still browse the feed.
+// The SAME entitlement gate guards the reactive lead path and discovery scan:
+// paid plans and an active invited beta may work; ordinary/expired TRIAL is
+// blocked everywhere but may still browse the feed.
 const TRIAL_ENDED = "Your agent is paused — subscribe to switch it on";
 
 /**
@@ -200,7 +196,7 @@ export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
 
   // Only a paid plan may send. TRIAL is the unsubscribed/paused state, using
   // the same fail-closed gate as the reactive lead path.
-  if (isAgentPaused(business.plan)) {
+  if (isAgentPaused(business)) {
     return { ok: false, error: TRIAL_ENDED };
   }
   const postalAddress = business.postalAddress?.trim();

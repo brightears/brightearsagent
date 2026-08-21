@@ -29,7 +29,7 @@ export type DraftPitchResult =
  * own fetch) and any revalidatePath.
  */
 export async function draftPitchForVenue(business: Business, venueId: string): Promise<DraftPitchResult> {
-  if (isAgentPaused(business.plan)) {
+  if (isAgentPaused(business)) {
     return { ok: false, error: "Your agent is paused — subscribe to switch it on", reason: "paused" };
   }
 

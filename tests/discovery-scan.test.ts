@@ -65,6 +65,22 @@ describe("runDiscoveryScan subscription gate", () => {
     expect(provider.queriesUsed).toBe(0);
     expect(mockDb.business.update).not.toHaveBeenCalled(); // never stamps / spends
   });
+
+  it("runs for a founder-approved TRIAL tenant only inside its beta window", async () => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue(
+      business({
+        plan: "TRIAL",
+        betaStartedAt: new Date(NOW.getTime() - 24 * 3600 * 1000),
+        trialEndsAt: new Date(NOW.getTime() + 29 * 24 * 3600 * 1000),
+      }),
+    );
+    const provider = fakeProvider();
+
+    const result = await runDiscoveryScan("biz1", { now: NOW, provider });
+
+    expect(result.ran).toBe(true);
+    expect(provider.queriesUsed).toBeGreaterThan(0);
+  });
 });
 
 describe("runDiscoveryScan budget guard", () => {

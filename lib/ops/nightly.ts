@@ -148,7 +148,7 @@ export type SilentTenant = { slug: string; plan: string; daysSubscribed: number 
 const SILENCE_WINDOW_DAYS = 7;
 
 /**
- * Paying tenants the agent has done NOTHING for.
+ * Active paid/beta tenants the agent has done NOTHING for.
  *
  * The heartbeat above is a global total, which is exactly why this was needed:
  * with a handful of tenants, one account producing nothing disappears into the
@@ -169,7 +169,16 @@ const SILENCE_WINDOW_DAYS = 7;
 export async function findSilentTenants(now = new Date()): Promise<SilentTenant[]> {
   const since = new Date(now.getTime() - SILENCE_WINDOW_DAYS * 24 * 3600 * 1000);
   const paying = await db.business.findMany({
-    where: { plan: { not: "TRIAL" } },
+    where: {
+      OR: [
+        { plan: { not: "TRIAL" } },
+        {
+          plan: "TRIAL",
+          betaStartedAt: { not: null, lte: now },
+          trialEndsAt: { gt: now },
+        },
+      ],
+    },
     select: { id: true, slug: true, plan: true, createdAt: true },
   });
 

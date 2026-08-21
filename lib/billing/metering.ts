@@ -2,6 +2,11 @@ import { db } from "@/lib/db";
 import type { PlanTier } from "@/app/generated/prisma/enums";
 import { PLAN_FEATURES } from "@/lib/billing/plan-features";
 import { startOfTenantDay } from "@/lib/outreach/caps";
+import {
+  effectivePlan,
+  isActiveBeta,
+  type BetaEntitlement,
+} from "@/lib/billing/beta";
 
 /**
  * Customers are metered in LEADS (they understand leads, not tokens).
@@ -13,10 +18,9 @@ import { startOfTenantDay } from "@/lib/outreach/caps";
  *
  * The caps live in lib/billing/plan-features.ts (THE single source of truth for
  * tier capabilities); this is a derived view kept for the existing importers.
- * TRIAL = unsubscribed: `PLAN_FEATURES.TRIAL` has a zero allowance and
- * `isAgentPaused` keeps the agent off unconditionally. A selected comp artist
- * receives a real $0 Stripe subscription and therefore a paid plan; the
- * vestigial `trialEndsAt` value never enables work.
+ * TRIAL normally means unsubscribed and paused. A founder-approved email may
+ * carry a server-authored 30-day beta window; only that exact combination gets
+ * Starter allowance, without becoming a paid plan or Stripe subscription.
  */
 export const PLAN_LEAD_CAPS: Record<PlanTier, number> = Object.fromEntries(
   (Object.entries(PLAN_FEATURES) as [PlanTier, { leadCap: number }][]).map(
@@ -74,34 +78,26 @@ export interface MeterState {
 }
 
 /**
- * Pure "is the agent paused?" check (no DB) — the subscription gate.
- * NO automatic free trial (founder decision 2026-06-16): an UNSUBSCRIBED tenant
- * (still on the free `plan=TRIAL` default, no paid Stripe subscription) is
- * paused — the agent does nothing until they subscribe. Subscribing flips
- * `plan` to a paid tier (Stripe webhook); a Stripe promotion code just makes
- * the first invoice free, so a comped artist is a normal paid subscriber to us.
- * Cancelling flips `plan` back to TRIAL → paused again. (TRIAL is now "free /
- * not subscribed", not "14-day trial"; `trialEndsAt` is vestigial.)
+ * Pure "is the agent paused?" check (no DB). Paid tiers are active; TRIAL is
+ * paused unless it carries a currently active, founder-approved beta window.
+ * Expiry is checked at every work boundary, so a beta stops exactly at its
+ * timestamp without relying on a cron mutation.
  * Used by meterState (drafting), the venue-pitch actions, and the discovery
  * scan so reactive drafting, proactive pitches, and scanning gate identically.
  */
-export function isAgentPaused(plan: PlanTier): boolean {
-  return plan === "TRIAL";
+export function isAgentPaused(entitlement: BetaEntitlement, now = new Date()): boolean {
+  return entitlement.plan === "TRIAL" && !isActiveBeta(entitlement, now);
 }
 
 export async function meterState(
   businessId: string,
-  plan: PlanTier,
+  entitlement: BetaEntitlement,
   now = new Date(),
-  trialEndsAt?: Date | null,
   timezone?: string,
 ): Promise<MeterState> {
   const used = await leadsUsedThisMonth(businessId, now, timezone);
-  const cap = PLAN_LEAD_CAPS[plan];
-  // Unsubscribed (TRIAL) → agent paused entirely (leads still ingest, nothing is
-  // lost, subscribing resumes immediately). On a paid plan, only used > cap
-  // pauses drafting. (trialEndsAt is kept in the signature for callers but no
-  // longer affects the gate — there's no time-based trial anymore.)
-  void trialEndsAt;
-  return { used, cap, overCap: isAgentPaused(plan) || used > cap };
+  const cap = PLAN_LEAD_CAPS[effectivePlan(entitlement, now)];
+  // Leads always ingest. Work pauses for an inactive entitlement or after the
+  // active plan/beta cap is crossed; there is never usage-based billing.
+  return { used, cap, overCap: isAgentPaused(entitlement, now) || used > cap };
 }

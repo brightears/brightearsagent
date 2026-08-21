@@ -4,6 +4,7 @@ import { getCurrentBusiness } from "@/lib/tenant";
 import { isProvisionedBusinessName } from "@/lib/business-name";
 import { uploadsEnabled } from "@/lib/uploads/r2";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
+import { isActiveBeta } from "@/lib/billing/beta";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,7 @@ export default async function OnboardingPage({
         oneOffHours: business.oneOffHours != null ? String(business.oneOffHours) : "",
       }}
       uploadsEnabled={uploadsEnabled}
+      betaEndsAt={isActiveBeta(business) ? business.trialEndsAt?.toISOString() ?? null : null}
     />
   );
 }

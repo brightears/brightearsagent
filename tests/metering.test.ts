@@ -43,13 +43,21 @@ describe("metering", () => {
 
   describe("isAgentPaused (subscription gate — no auto trial)", () => {
     it("an unsubscribed tenant (plan=TRIAL) is paused until they subscribe", () => {
-      expect(isAgentPaused("TRIAL")).toBe(true);
+      expect(isAgentPaused({ plan: "TRIAL" })).toBe(true);
     });
 
     it("a paid plan is never paused — subscribing switches the agent on", () => {
-      expect(isAgentPaused("STARTER")).toBe(false);
-      expect(isAgentPaused("PRO")).toBe(false);
-      expect(isAgentPaused("STUDIO")).toBe(false);
+      expect(isAgentPaused({ plan: "STARTER" })).toBe(false);
+      expect(isAgentPaused({ plan: "PRO" })).toBe(false);
+      expect(isAgentPaused({ plan: "STUDIO" })).toBe(false);
+    });
+
+    it("an invited beta is active only inside its 30-day window", () => {
+      const start = new Date("2026-08-21T00:00:00Z");
+      const end = new Date("2026-09-20T00:00:00Z");
+      const beta = { plan: "TRIAL" as const, betaStartedAt: start, trialEndsAt: end };
+      expect(isAgentPaused(beta, start)).toBe(false);
+      expect(isAgentPaused(beta, end)).toBe(true);
     });
   });
 

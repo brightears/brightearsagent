@@ -58,7 +58,7 @@ export async function approveDraft(
   // sending its drafted replies — only runs on an active subscription. Same
   // gate as the sequence engine and venue pitches; the draft stays PENDING so
   // subscribing lets it send.
-  if (isAgentPaused(business.plan)) {
+  if (isAgentPaused(business)) {
     return { ok: false, error: "Your agent is paused — subscribe to activate it and send this reply" };
   }
   const result = await sendDraftReply({

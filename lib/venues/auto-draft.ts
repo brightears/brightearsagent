@@ -27,7 +27,7 @@ export async function autoDraftPitches(
   opts: { max?: number } = {},
 ): Promise<AutoDraftResult> {
   const result: AutoDraftResult = { attempted: 0, created: 0, stoppedBy: null };
-  if (isAgentPaused(business.plan)) return { ...result, stoppedBy: "paused" };
+  if (isAgentPaused(business)) return { ...result, stoppedBy: "paused" };
 
   // Candidates: contactable, not yet pitched, no live pitch waiting. Enum
   // declaration order makes temperature asc = HOT → WARM → SEED.

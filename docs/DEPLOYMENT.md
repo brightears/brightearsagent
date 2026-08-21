@@ -244,9 +244,10 @@ secrets, while a misconfigured production process remains unready.
 | Push | `VAPID_PUBLIC_KEY`, matching `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, and `VAPID_PRIVATE_KEY` |
 | Operations | `CRON_SECRET`; `OPS_ALERT_EMAIL` |
 
-`BETA_PROMO_CODE` is allowed without `BETA_COMP_EMAILS`: that is a safe,
-inert promotion until the founder supplies the allowlist. The reverse is
-invalid because an invited artist could not receive the promised comp.
+`BETA_COMP_EMAILS` is an optional comma-separated exact-email allowlist for the
+controlled 30-day Starter beta. It is not a secret, but it is customer data and
+belongs only in masked Render configuration—not Git. `BETA_PROMO_CODE` is
+retired and ignored; the beta never enters Stripe Checkout.
 `STRIPE_PORTAL_CONFIG`, `VAPID_SUBJECT`, Clerk fallback redirects and model
 overrides are optional. `EMAIL_TRANSPORT=dev` and `DISCOVERY_PROVIDER=stub` are
 forbidden in production.
@@ -328,10 +329,11 @@ customer writes that would be lost.
 
 ## Remaining founder launch gates
 
-- **Controlled comp-beta setup, not a full-price runtime gate:** provide the
-  selected tester list for `BETA_COMP_EMAILS` only when those artists are being
-  promised the automatic free first month and included in the measured cohort.
-  Ordinary full-price checkout does not require this list.
+- **Controlled beta setup, not a full-price runtime gate:** add only confirmed
+  tester emails to `BETA_COMP_EMAILS` before their first `/onboarding` sign-in.
+  That verified email receives one non-renewing 30-day Starter entitlement and
+  joins the measured cohort without Stripe or a payment method. Ordinary
+  full-price checkout does not require this list.
 - The founder approved the Privacy Policy, Terms, Cookie Policy, DPA, Acceptable
   Use Policy and restricted Hunt LIA on 2026-08-17. Before accepting the first
   customer, live-verify the effective-date notice, indexable metadata, registered

@@ -8,7 +8,7 @@ async function main() {
   const biz = await db.business.findUniqueOrThrow({ where: { slug: "norbert" } });
 
   // 1. Metering now reflects PRO
-  const meter = await meterState(biz.id, biz.plan, new Date(), biz.trialEndsAt);
+  const meter = await meterState(biz.id, biz);
   console.log(`Lead cap for ${biz.plan}: ${meter.cap} (expected ${PLAN_LEAD_CAPS.PRO}) — ${meter.cap === PLAN_LEAD_CAPS.PRO ? "OK" : "MISMATCH"}`);
 
   // 2. Customer portal session creation (non-destructive — just builds the URL)

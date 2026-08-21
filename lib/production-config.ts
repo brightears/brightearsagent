@@ -219,14 +219,15 @@ export function validateProductionRuntimeConfig(env: RuntimeEnv): ProductionConf
     });
   }
 
-  // A configured promotion with no invite list is safely inert. The reverse
-  // is not: an invited artist was promised a comp and checkout deliberately
-  // fails closed when the promotion is unavailable.
-  if (value(env, "BETA_COMP_EMAILS") && !value(env, "BETA_PROMO_CODE")) {
+  const betaEmails = value(env, "BETA_COMP_EMAILS")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+  if (betaEmails.some((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
     issues.push({
-      key: "BETA_COMP_EMAILS,BETA_PROMO_CODE",
-      code: "pair_incomplete",
-      message: "BETA_PROMO_CODE is required when BETA_COMP_EMAILS is configured",
+      key: "BETA_COMP_EMAILS",
+      code: "invalid",
+      message: "BETA_COMP_EMAILS must contain only comma-separated email addresses",
     });
   }
 

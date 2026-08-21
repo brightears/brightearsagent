@@ -124,7 +124,7 @@ export async function saveBusinessBasics(input: {
 
   // First city ever: hunt NOW, not at tomorrow's 05:00 UTC cron — day one is
   // the trial. Bounded: only fires when serviceCities was empty, and the
-  // scan's own guards refuse unsubscribed tenants (no spend on free users).
+  // scan's own guards refuse inactive tenants (only paid/approved beta spends).
   if (hadNoCities) scheduleActivationScan(business.id, { force: true });
 
   revalidatePath("/onboarding");

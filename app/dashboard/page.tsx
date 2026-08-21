@@ -21,6 +21,7 @@ import { InPlaySection } from "@/components/in-play";
 import { profileStrength } from "@/lib/profile/strength";
 import { IN_PLAY_STATUSES } from "@/lib/venues/feed";
 import { meterState, monthStart } from "@/lib/billing/metering";
+import { isActiveBeta } from "@/lib/billing/beta";
 import { formatReplyTime, medianReplyMinutes } from "@/lib/reports/results";
 import type { LeadSource, LeadStatus, VenueKind, VenueStatus } from "@/app/generated/prisma/enums";
 import { getTranslations } from "@/lib/i18n/server";
@@ -281,8 +282,9 @@ export default async function Dashboard({
   // Agent-paused surface (audit C3): show it in-app, not just via push.
   // meterState reads an UNSUBSCRIBED tenant as overCap (isAgentPaused); a paid
   // plan is overCap only when used > cap. Subscribed & under-cap → no banner.
-  const meter = await meterState(tenant.id, tenant.plan, now, tenant.trialEndsAt, tenant.timezone);
+  const meter = await meterState(tenant.id, tenant, now, tenant.timezone);
   const subscribed = !!tenant.stripeSubscriptionId;
+  const agentActive = subscribed || isActiveBeta(tenant, now);
   const medianReply = medianReplyMinutes(repliedThisMonth);
 
   // Autonomy graduation (P10.3): offer auto-send for the source with the most
@@ -369,17 +371,17 @@ export default async function Dashboard({
 
       {/* ONE activation surface (audit C4, recut 2026-07): profile+voice, home
           city, leads, plan — in order, one primary CTA. Hidden once live. */}
-      <ActivationChecklist business={tenant} subscribed={subscribed} />
+      <ActivationChecklist business={tenant} agentActive={agentActive} />
 
-      {/* Agent paused (audit C3) — for SUBSCRIBED tenants over their cap. The
-          unsubscribed case is the checklist's "Choose your plan" item; showing
-          both would rebuild the banner pile the checklist replaced. */}
-      {subscribed && (
+      {/* Agent paused (audit C3) — for active paid/beta tenants over their cap.
+          Inactive entitlement is the checklist's plan item; showing both would
+          rebuild the banner pile the checklist replaced. */}
+      {agentActive && (
         <AtCapBanner
           used={meter.used}
           cap={meter.cap}
           overCap={meter.overCap}
-          subscribed={subscribed}
+          subscribed={agentActive}
           locale={locale}
         />
       )}
@@ -417,7 +419,7 @@ export default async function Dashboard({
         homeCity={homeCity}
         postalAddress={tenant.postalAddress ?? ""}
         mailboxConnected={mailboxConnected}
-        subscribed={subscribed}
+        subscribed={agentActive}
       />
 
       {/* In play (audit C2): venues a pitch was sent to leave the Hunt feed —

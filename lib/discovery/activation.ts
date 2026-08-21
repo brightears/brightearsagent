@@ -11,9 +11,9 @@ import { reportError } from "@/lib/report-error";
  * Runs via next/server `after` so the response (wizard step, webhook 2xx)
  * never waits on Serper. `force` bypasses the 20h budget stamp — reserve it
  * for genuine activation moments (both call sites are once-per-tenant-ish and
- * cost real money to repeat). The scan's own guards still apply: unsubscribed
- * tenants and tenants with no cities are refused inside runDiscoveryScan, so
- * this can never spend on free users.
+ * cost real money to repeat). The scan's own guards still apply: inactive
+ * entitlements and tenants with no cities are refused inside runDiscoveryScan.
+ * Only paid or explicitly invited active-beta tenants spend discovery budget.
  *
  * Outside a request scope (unit tests, scripts) `after` throws — we skip
  * quietly there; tests and scripts invoke runDiscoveryScan directly when they
