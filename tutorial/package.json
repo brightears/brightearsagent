@@ -1,0 +1,38 @@
+{
+  "name": "@brightears/tutorial-video-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest run --config ./vitest.config.ts",
+    "validate": "tsx src/cli.ts validate",
+    "run:placeholder": "tsx src/cli.ts run manifests/sprint0-placeholder.json",
+    "run:live": "tsx src/cli.ts run-live",
+    "qa:placeholder": "tsx src/cli.ts qa manifests/sprint0-placeholder.json",
+    "auth:headed": "tsx src/cli.ts auth",
+    "capture": "tsx src/cli.ts capture",
+    "studio": "remotion studio src/remotion/index.ts"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.512",
+    "@remotion/cli": "4.0.512",
+    "@remotion/renderer": "4.0.512",
+    "playwright": "1.62.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.512",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.7",
+    "@types/react": "19.2.9",
+    "@types/react-dom": "19.2.3",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "id": "google-oauth-verification",
+  "title": "How Bright Ears Uses Gmail Send-Only Access",
+  "description": "Reviewed Sprint 1 plan for Google's OAuth verification demonstration. This manifest must not be captured without fresh action-time approval.",
+  "locale": "en-US",
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "narration": {
+    "provider": "google-cloud-tts",
+    "voice": "en-US-Chirp3-HD-Aoede"
+  },
+  "music": {
+    "enabled": false
+  },
+  "capturePolicy": {
+    "mode": "live-approved-only",
+    "requireActionTimeConfirmation": true,
+    "allowedHosts": ["brightears.io", "accounts.google.com"],
+    "recordCredentials": false,
+    "allowMailboxChange": "approval-required",
+    "allowSend": "approval-required",
+    "allowUpload": false
+  },
+  "privacy": {
+    "allowedEmails": ["norbert@brightears.io"],
+    "forbiddenTextPatterns": [
+      "sk-[A-Za-z0-9_-]{16,}",
+      "ya29\\.[A-Za-z0-9_-]+",
+      "Bearer\\s+[A-Za-z0-9._-]{12,}",
+      "BEGIN (?:RSA |EC )?PRIVATE KEY",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+      "OPENROUTER_API_KEY"
+    ],
+    "requireHumanFrameReview": true
+  },
+  "sources": [
+    {
+      "source": "https://support.google.com/cloud/answer/13464321",
+      "license": "Google documentation; facts paraphrased"
+    },
+    {
+      "source": "https://developers.google.com/workspace/gmail/api/auth/scopes",
+      "license": "Google documentation; facts paraphrased"
+    },
+    {
+      "source": "app/(marketing)/privacy/page.tsx and components/mailbox-card.tsx at the recorded production commit",
+      "license": "Repository-owned product UI"
+    },
+    {
+      "source": "public/brand/logo.svg",
+      "license": "Repository-owned Bright Ears brand asset",
+      "sha256": "48dd8c36e93690d2a26c58aaf22843f6945e307451b2fdc0143cf3dee301ce49"
+    },
+    {
+      "source": "app/globals.css Neon Collage v2 palette",
+      "license": "Repository-owned Bright Ears visual system"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "purpose",
+      "kind": "synthetic",
+      "durationSeconds": 12,
+      "chapter": "Purpose",
+      "eyebrow": "GOOGLE OAUTH VERIFICATION",
+      "title": "Gmail acts only as the delivery transport.",
+      "bullets": [
+        "Bright Ears requests gmail.send plus openid and email",
+        "No Gmail reading, listing or importing"
+      ],
+      "narration": "This demonstration shows the complete Bright Ears OAuth grant and how Gmail is used only to send an owner-approved message."
+    },
+    {
+      "id": "pre-consent-disclosure",
+      "kind": "capture",
+      "durationSeconds": 20,
+      "chapter": "Pre-consent disclosure",
+      "eyebrow": "BEFORE CONSENT",
+      "title": "The product explains the boundary first.",
+      "bullets": [],
+      "narration": "Before connecting, Bright Ears explains that it can send but never read Gmail, and that Google API data never goes to an AI provider.",
+      "authProfile": "bright-ears-google-demo",
+      "maskSelectors": [".cl-userButtonTrigger", "[data-sensitive]"],
+      "editSegments": [{"startSeconds": 5, "durationSeconds": 15}],
+      "actions": [
+        {"type": "goto", "url": "https://brightears.io/dashboard/settings#connections"},
+        {"type": "waitFor", "selector": "text=What connecting Gmail allows", "timeoutMs": 15000},
+        {"type": "scrollIntoView", "selector": "text=What connecting Gmail allows"},
+        {"type": "manual", "instruction": "Hold on the complete Bright Ears pre-consent disclosure long enough to read it.", "forbiddenWhileRecording": false, "externalAction": "none"}
+      ]
+    },
+    {
+      "id": "consent",
+      "kind": "capture",
+      "durationSeconds": 35,
+      "chapter": "Google consent",
+      "eyebrow": "COMPLETE ENGLISH CONSENT SCREEN",
+      "title": "Google shows the exact requested permission.",
+      "bullets": [],
+      "narration": "The complete English Google consent screen identifies Bright Ears and shows the send-email permission. No mailbox-reading permission is requested.",
+      "authProfile": "bright-ears-google-demo",
+      "maskSelectors": ["img[alt*='profile']"],
+      "editSegments": [
+        {"startSeconds": 10, "durationSeconds": 8},
+        {"startSeconds": 65, "durationSeconds": 8},
+        {"startSeconds": 110, "durationSeconds": 19}
+      ],
+      "actions": [
+        {"type": "goto", "url": "https://brightears.io/dashboard/settings#connections"},
+        {"type": "click", "selector": "a[href='/api/oauth/google/start']", "externalAction": "mailbox-change"},
+        {"type": "waitForUrl", "pattern": "https://accounts.google.com/**", "timeoutMs": 30000},
+        {"type": "manual", "instruction": "Verify the bottom-left language is English; show the full consent screen and the send-email scope; choose the already authenticated founder account and grant consent. Do not enter credentials while recording.", "forbiddenWhileRecording": false, "externalAction": "mailbox-change"},
+        {"type": "waitForUrl", "pattern": "https://brightears.io/dashboard/settings**", "timeoutMs": 60000}
+      ]
+    },
+    {
+      "id": "scope-in-use",
+      "kind": "capture",
+      "durationSeconds": 20,
+      "chapter": "Scope in use",
+      "eyebrow": "CONTROLLED SELF-SEND",
+      "title": "One test message proves send-only transport.",
+      "bullets": [],
+      "narration": "With separate explicit approval for this test, Bright Ears sends a sample only to the connected founder address. No venue or customer is contacted.",
+      "authProfile": "bright-ears-google-demo",
+      "maskSelectors": [".cl-userButtonTrigger", "[data-sensitive]"],
+      "editSegments": [
+        {"startSeconds": 5, "durationSeconds": 10},
+        {"startSeconds": 23, "durationSeconds": 1.4}
+      ],
+      "actions": [
+        {"type": "goto", "url": "https://brightears.io/dashboard/settings#connections"},
+        {"type": "waitFor", "selector": "text=Send test email", "timeoutMs": 15000},
+        {"type": "click", "selector": "button:has-text('Send test email')", "externalAction": "send-email"},
+        {"type": "waitFor", "selector": "text=/test sent to|Mailbox delivery worked/", "timeoutMs": 60000}
+      ]
+    },
+    {
+      "id": "data-isolation",
+      "kind": "synthetic",
+      "durationSeconds": 18,
+      "chapter": "Data isolation",
+      "eyebrow": "SEPARATE DATA PATHS",
+      "title": "Draft first. Transport second.",
+      "bullets": [
+        "Drafts use Bright Ears profile, Postmark inbound and public venue data",
+        "Connected email, OAuth tokens and Gmail message IDs stay out of OpenRouter",
+        "OpenRouter routing requires data collection denied and zero retention"
+      ],
+      "narration": "AI drafts use data supplied to Bright Ears, Postmark inbound messages, and public venue information. Google account data stays in the separate Gmail transport path."
+    },
+    {
+      "id": "limited-use",
+      "kind": "capture",
+      "durationSeconds": 20,
+      "chapter": "Limited Use",
+      "eyebrow": "PUBLIC PRIVACY POLICY",
+      "title": "The Limited Use disclosure is public.",
+      "bullets": [],
+      "narration": "The public privacy policy states the Google Limited Use commitment and the separation of Google API data from AI providers.",
+      "authProfile": "bright-ears-google-demo",
+      "maskSelectors": [],
+      "editSegments": [{"startSeconds": 5, "durationSeconds": 15}],
+      "actions": [
+        {"type": "goto", "url": "https://brightears.io/privacy"},
+        {"type": "waitFor", "selector": "text=Google Limited Use and separation from AI providers", "timeoutMs": 15000},
+        {"type": "scrollIntoView", "selector": "text=Google Limited Use and separation from AI providers"},
+        {"type": "manual", "instruction": "Hold on the full Google Limited Use section long enough to read it.", "forbiddenWhileRecording": false, "externalAction": "none"}
+      ]
+    }
+  ],
+  "metadata": {
+    "audience": "Google OAuth verification reviewers",
+    "tags": ["Bright Ears", "Google OAuth", "Gmail send-only", "Limited Use", "data isolation"]
+  }
+}

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Private nested Node package — checked by its own TypeScript and Vitest config.
+    "tutorial/**",
     // Prisma-generated client — never our code to lint.
     "app/generated/**",
   ]),
