@@ -69,6 +69,23 @@ describe("draftBookingConfirmation", () => {
     expect(mockDb.draft.create.mock.calls[0][0].data.wantsQuote).toBe(true);
   });
 
+  it("uses deterministic Thai confirmation copy for a Thai-language inquiry", async () => {
+    mockDb.lead.findUnique.mockResolvedValue({
+      ...bookedLead,
+      rawSubject: "สอบถามงานแต่ง",
+      rawBody: "อยากจองดีเจวันที่ 14 กันยายน",
+      business: { ...business, locale: "th", voiceGreeting: null, voiceSignoff: null },
+    });
+    await draftBookingConfirmation("l1", 1500000);
+    const data = mockDb.draft.create.mock.calls[0][0].data;
+    expect(data.subject).toContain("ยืนยันการจอง");
+    expect(data.body).toContain("ยืนยันวันจัดงานเรียบร้อยแล้ว");
+    expect(data.body).toContain("THB 15,000");
+    expect(data.body).not.toContain("Wonderful news");
+    const notifyArgs = mockNotify.mock.calls[0] as unknown as [unknown, { title: string }];
+    expect(notifyArgs[1].title).toContain("ร่างยืนยันการจองพร้อมแล้ว");
+  });
+
   it("omits the fee and booking-link lines when there's nothing to ground them", async () => {
     mockDb.lead.findUnique.mockResolvedValue({
       ...bookedLead,

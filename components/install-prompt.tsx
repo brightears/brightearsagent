@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Kicker } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
 
 const DISMISS_KEY = "be-a2hs-dismissed";
 
@@ -17,6 +18,8 @@ type BipEvent = Event & { prompt: () => Promise<void> };
  * real install button off beforeinstallprompt. "Not now" is honored forever.
  */
 export function InstallPrompt({ eligible }: { eligible: boolean }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [mode, setMode] = useState<"hidden" | "ios" | "chrome">("hidden");
   const [bip, setBip] = useState<BipEvent | null>(null);
 
@@ -69,12 +72,12 @@ export function InstallPrompt({ eligible }: { eligible: boolean }) {
 
   return (
     <section className="mb-6 rounded-2xl border border-cream/15 bg-ink-raised px-5 py-4">
-      <Kicker>Put it on your phone</Kicker>
+      <Kicker>{c("Put it on your phone", "เพิ่มไว้บนโทรศัพท์")}</Kicker>
       <p className="mt-1.5 text-sm text-cream/80">
-        <span className="font-bold text-cream-bright">Make this one tap.</span>{" "}
+        <span className="font-bold text-cream-bright">{c("Make this one tap.", "เปิดใช้งานได้ในคลิกเดียว")}</span>{" "}
         {mode === "ios"
-          ? "Add Bright Ears to your Home Screen: tap the Share button, then “Add to Home Screen”. The ping lands, you approve, done."
-          : "Install Bright Ears on your Home Screen — the ping lands, you approve, done."}
+          ? c("Add Bright Ears to your Home Screen: tap the Share button, then “Add to Home Screen”. The ping lands, you approve, done.", "เพิ่ม Bright Ears ไปยังหน้าจอโฮม: แตะปุ่มแชร์ แล้วเลือก ‘เพิ่มไปยังหน้าจอโฮม’ เมื่อมีแจ้งเตือนก็เปิดมาอนุมัติได้ทันที")
+          : c("Install Bright Ears on your Home Screen — the ping lands, you approve, done.", "ติดตั้ง Bright Ears บนหน้าจอโฮม เมื่อมีแจ้งเตือนก็เปิดมาอนุมัติได้ทันที")}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {mode === "chrome" && (
@@ -88,7 +91,7 @@ export function InstallPrompt({ eligible }: { eligible: boolean }) {
             }}
             className="rounded-full bg-brand-cyan px-5 py-2 text-sm font-bold text-ink-stage transition-opacity hover:opacity-90"
           >
-            Add to Home Screen
+            {c("Add to Home Screen", "เพิ่มไปยังหน้าจอโฮม")}
           </button>
         )}
         <button
@@ -96,7 +99,7 @@ export function InstallPrompt({ eligible }: { eligible: boolean }) {
           onClick={dismiss}
           className="text-sm font-semibold text-cream/45 transition-colors hover:text-cream/70"
         >
-          {mode === "ios" ? "Got it" : "Not now"}
+          {mode === "ios" ? c("Got it", "เข้าใจแล้ว") : c("Not now", "ไว้ทีหลัง")}
         </button>
       </div>
     </section>

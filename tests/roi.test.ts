@@ -64,6 +64,17 @@ describe("computeMonthlyRoi + renderRoiEmail", () => {
     expect(body).not.toContain("THB");
     expect(body).toContain("2 gigs booked");
   });
+
+  it("renders the monthly receipt in Thai for a Thai business", async () => {
+    mockDb.business.findUniqueOrThrow.mockResolvedValue({ ...biz, locale: "th" });
+    const { start, end } = priorMonthWindow(new Date("2026-07-01T02:00:00Z"));
+    const roi = await computeMonthlyRoi("biz1", start, end);
+    const { subject, body } = renderRoiEmail(roi);
+    expect(subject).toContain("ตอบ 14");
+    expect(body).toContain("สิ่งที่ผู้ช่วยทำ");
+    expect(body).toContain("THB 45,000");
+    expect(body).not.toContain("nothing projected");
+  });
 });
 
 describe("sendMonthlyRoiReceipts", () => {

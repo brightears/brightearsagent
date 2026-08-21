@@ -11,6 +11,9 @@ import { holdScheduledSend } from "@/app/actions/drafts";
 import { computeQuote } from "@/lib/quote/compute";
 import { isoDay } from "@/lib/agent/availability";
 import type { LeadSource } from "@/app/generated/prisma/enums";
+import { getTranslations } from "@/lib/i18n/server";
+import { languageTag, type Locale } from "@/lib/i18n/config";
+import type { MessageKey, Translator } from "@/lib/i18n/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +37,9 @@ const PLATFORM_INBOXES: Partial<Record<LeadSource, string>> = {
 };
 
 // All dates render in the business timezone (CLAUDE.md rule 9).
-function fmtEventDate(d: Date | null, tz: string) {
-  if (!d) return "date TBD";
-  return d.toLocaleDateString("en-US", {
+function fmtEventDate(d: Date | null, tz: string, locale: Locale, t: Translator) {
+  if (!d) return t("dashboard.lead.dateTbd");
+  return d.toLocaleDateString(languageTag(locale), {
     timeZone: tz,
     weekday: "short",
     month: "short",
@@ -45,8 +48,8 @@ function fmtEventDate(d: Date | null, tz: string) {
   });
 }
 
-function fmtTimestamp(d: Date, tz: string) {
-  return d.toLocaleString("en-US", {
+function fmtTimestamp(d: Date, tz: string, locale: Locale) {
+  return d.toLocaleString(languageTag(locale), {
     timeZone: tz,
     month: "short",
     day: "numeric",
@@ -61,6 +64,7 @@ export default async function LeadDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { locale, t } = await getTranslations();
   const { id } = await params;
   const business = await getCurrentBusiness();
 
@@ -103,7 +107,11 @@ export default async function LeadDetailPage({
   // booked/dead controls so the outcome is always recordable (audit C1).
   const terminal = lead.status === "BOOKED" || lead.status === "DEAD" || lead.status === "SPAM";
 
-  const subtitle = [lead.eventType ?? "event", fmtEventDate(lead.eventDate, tz), lead.venue]
+  const subtitle = [
+    lead.eventType ?? t("dashboard.lead.event"),
+    fmtEventDate(lead.eventDate, tz, locale, t),
+    lead.venue,
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -157,20 +165,40 @@ export default async function LeadDetailPage({
         href="/dashboard"
         className="mb-4 inline-block text-sm font-semibold text-cream/60 hover:text-brand-cyan transition-colors"
       >
-        ← Back to pipeline
+        {t("dashboard.lead.back")}
       </Link>
 
       <PageHeader
         rings
-        title={lead.clientName ?? "Unknown lead"}
+        title={lead.clientName ?? t("dashboard.lead.unknown")}
         subtitle={subtitle}
         stats={
           <>
-            <StatPill>{SOURCE_LABELS[lead.source]}</StatPill>
-            <Badge tone={status.badgeTone}>{status.label}</Badge>
-            {lead.guestCount != null && <StatPill>{lead.guestCount} guests</StatPill>}
+            <StatPill>
+              {locale === "th"
+                ? ({
+                    WEBSITE_FORM: t("dashboard.lead.source.website"),
+                    PLAIN_EMAIL: t("dashboard.lead.source.email"),
+                    VENUE_OUTREACH: t("dashboard.lead.source.venue"),
+                    OTHER: t("dashboard.lead.source.other"),
+                  } as Partial<Record<LeadSource, string>>)[lead.source] ?? SOURCE_LABELS[lead.source]
+                : SOURCE_LABELS[lead.source]}
+            </StatPill>
+            <Badge tone={status.badgeTone}>
+              {t(({
+                NEW: "dashboard.column.new",
+                DRAFTED: "dashboard.column.drafted",
+                REPLIED: "dashboard.column.replied",
+                IN_SEQUENCE: "dashboard.column.sequence",
+                ENGAGED: "dashboard.column.engaged",
+                BOOKED: "dashboard.column.booked",
+                DEAD: "dashboard.column.dead",
+                SPAM: "dashboard.column.spam",
+              } as Record<typeof lead.status, MessageKey>)[lead.status])}
+            </Badge>
+            {lead.guestCount != null && <StatPill>{t("dashboard.lead.guests", { count: lead.guestCount })}</StatPill>}
             {lead.clientEmail && <StatPill>{lead.clientEmail}</StatPill>}
-            {verifyAddress && <StatPill>Verify this address before sending</StatPill>}
+            {verifyAddress && <StatPill>{t("dashboard.lead.verifyAddress")}</StatPill>}
             {lead.clientPhone && <StatPill>{lead.clientPhone}</StatPill>}
           </>
         }
@@ -192,7 +220,7 @@ export default async function LeadDetailPage({
         {/* Documents — generate the artist's PDF quote / press kit for this lead. */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-cream/10 bg-ink-raised px-4 py-3">
           <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/50">
-            Documents
+            {t("dashboard.lead.documents")}
           </span>
           <a
             href={`/api/quote/${lead.id}`}
@@ -200,7 +228,7 @@ export default async function LeadDetailPage({
             rel="noopener noreferrer"
             className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
           >
-            Generate quote (PDF)
+            {t("dashboard.lead.quotePdf")}
           </a>
           <a
             href={`/epk/${business.slug}/pdf`}
@@ -208,7 +236,7 @@ export default async function LeadDetailPage({
             rel="noopener noreferrer"
             className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
           >
-            Press kit (PDF)
+            {t("dashboard.lead.pressKitPdf")}
           </a>
           {/* Gig brief (P11.3): booked leads only — the one-pager for the day. */}
           {lead.status === "BOOKED" && (
@@ -218,7 +246,7 @@ export default async function LeadDetailPage({
               rel="noopener noreferrer"
               className="text-sm font-semibold text-brand-cyan hover:opacity-80 transition-opacity"
             >
-              Gig brief (PDF)
+              {t("dashboard.lead.briefPdf")}
             </a>
           )}
         </div>
@@ -228,16 +256,16 @@ export default async function LeadDetailPage({
         {rosterDay.length > 0 && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-2xl border border-cream/10 bg-ink-raised px-4 py-3">
             <span className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/50">
-              Roster · {fmtEventDate(lead.eventDate, tz)}
+              {t("dashboard.lead.roster", { date: fmtEventDate(lead.eventDate, tz, locale, t) })}
             </span>
             {rosterDay.map((r) => (
               <span key={r.name} className="text-sm text-cream/80">
                 <span className="font-semibold text-cream-bright">{r.name}</span>
                 {r.gigTitle
-                  ? ` — booked (${r.gigTitle})`
+                  ? ` — ${t("dashboard.lead.booked", { title: r.gigTitle })}`
                   : unassignedGigThatDay > 0
-                    ? " — free, but check below"
-                    : " — free"}
+                    ? ` — ${t("dashboard.lead.freeCheck")}`
+                    : ` — ${t("dashboard.lead.free")}`}
               </span>
             ))}
             {unassignedGigThatDay > 0 && (
@@ -262,7 +290,7 @@ export default async function LeadDetailPage({
              deep-amber #7a4100 lead-in on #ffdfba (~7:1, the checked pairing). */
           <div className="rounded-2xl bg-[#ffdfba] px-4 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.35)]">
             <p className="text-sm leading-relaxed text-ink-stage/80">
-              <span className="font-semibold text-[#7a4100]">Filtered as spam for you</span> —{" "}
+              <span className="font-semibold text-[#7a4100]">{t("dashboard.lead.spam")}</span> —{" "}
               {lead.spamReason.replace(/^[a-z_]+:\s*/i, "")}
             </p>
           </div>
@@ -270,14 +298,14 @@ export default async function LeadDetailPage({
 
         <section className="space-y-3">
           <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-cream/60">
-            Conversation
+            {t("dashboard.lead.conversation")}
           </h2>
           {lead.messages.length === 0 ? (
             <Card>
               <EmptyState
                 compact
-                title="No messages yet"
-                hint="The conversation with this lead will live here."
+                title={t("dashboard.lead.noMessages")}
+                hint={t("dashboard.lead.noMessagesHint")}
               />
             </Card>
           ) : (
@@ -326,18 +354,18 @@ export default async function LeadDetailPage({
                         </p>
                         {m.bouncedAt && (
                           <p className="mt-3 border-t border-neon-orange/30 pt-2 text-xs font-semibold text-neon-orange">
-                            Delivery failed{m.bounceType ? ` · ${m.bounceType}` : ""}
+                            {t("dashboard.lead.deliveryFailed")}{m.bounceType ? ` · ${m.bounceType}` : ""}
                           </p>
                         )}
                       </div>
                       <p className="mt-1 px-1 text-[11px] text-cream/65">
                         {automatic
-                          ? "Automatic reply"
+                          ? t("dashboard.lead.automatic")
                           : outbound
-                            ? "You"
-                            : (lead.clientName ?? "Them")}{" "}
+                            ? t("dashboard.lead.you")
+                            : (lead.clientName ?? t("dashboard.lead.them"))}{" "}
                         ·{" "}
-                        {fmtTimestamp(m.createdAt, tz)}
+                        {fmtTimestamp(m.createdAt, tz, locale)}
                       </p>
                     </div>
                   </li>
@@ -355,9 +383,10 @@ export default async function LeadDetailPage({
             {pendingDraft.scheduledSendAt && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-4 py-3">
                 <p className="text-sm text-cream/85">
-                  <span className="font-bold text-cream-bright">Sending soon.</span> This reply
-                  goes out on its own around {fmtTimestamp(pendingDraft.scheduledSendAt, tz)} —
-                  approve it to send now, or hold it to review later.
+                  <span className="font-bold text-cream-bright">{t("dashboard.lead.sendingSoon")}</span>{" "}
+                  {t("dashboard.lead.sendingSoonHint", {
+                    date: fmtTimestamp(pendingDraft.scheduledSendAt, tz, locale),
+                  })}
                 </p>
                 <form
                   action={async () => {
@@ -369,7 +398,7 @@ export default async function LeadDetailPage({
                     type="submit"
                     className="rounded-full border-[1.5px] border-cream/30 px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-cream/80 transition-colors hover:border-brand-cyan hover:text-brand-cyan"
                   >
-                    Hold it
+                    {t("dashboard.lead.hold")}
                   </button>
                 </form>
               </div>

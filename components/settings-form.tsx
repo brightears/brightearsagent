@@ -6,6 +6,7 @@ import { isProvisionedBusinessName } from "@/lib/business-name";
 import { buttonStyles } from "@/components/ui";
 import { COUNTRIES } from "@/lib/geo/countries";
 import { PerformerKind } from "@/app/generated/prisma/enums";
+import { useI18n } from "@/components/locale-provider";
 
 const PERFORMER_LABELS: Record<PerformerKind, string> = {
   DJ: "DJ",
@@ -41,6 +42,7 @@ const inputCls =
 const labelCls = "block text-xs font-semibold uppercase tracking-wide text-ink-stage/60 mb-1";
 
 export function SettingsForm({ business }: { business: BusinessProfile }) {
+  const { locale, t } = useI18n();
   const [state, formAction, pending] = useActionState(
     async (_prev: { ok: boolean; error?: string } | null, formData: FormData) =>
       updateBusiness(formData),
@@ -61,13 +63,17 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
   const countries = COUNTRIES.some((c) => c.code === business.country)
     ? COUNTRIES
     : [{ code: business.country, name: business.country }, ...COUNTRIES];
+  const countryNames = useMemo(
+    () => new Intl.DisplayNames([locale === "th" ? "th-TH" : "en"], { type: "region" }),
+    [locale],
+  );
 
   return (
     <form action={formAction} className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="name" className={labelCls}>
-            Stage / artist name
+            {t("onboarding.business.stageName")}
           </label>
           <input
             id="name"
@@ -81,12 +87,12 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             className={inputCls}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
-            The name clients and venues see — on every reply, your press kit, and every pitch.
+            {t("settings.identity.nameHint")}
           </p>
         </div>
         <div>
           <label htmlFor="ownerName" className={labelCls}>
-            Your name
+            {t("onboarding.business.yourName")}
           </label>
           <input
             id="ownerName"
@@ -98,7 +104,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
         </div>
         <div>
           <label htmlFor="performerKind" className={labelCls}>
-            What do you perform?
+            {t("onboarding.business.performerKind")}
           </label>
           <select
             id="performerKind"
@@ -108,28 +114,41 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
           >
             {Object.values(PerformerKind).map((kind) => (
               <option key={kind} value={kind}>
-                {PERFORMER_LABELS[kind]}
+                {locale === "th"
+                  ? ({
+                      DJ: "DJ",
+                      BAND: "วงดนตรี",
+                      SINGER: "นักร้อง",
+                      MAGICIAN: "นักมายากล",
+                      DANCER: "นักเต้น",
+                      MC: "พิธีกร / MC",
+                      PHOTO_BOOTH: "โฟโต้บูธ",
+                      MUSICIAN: "นักดนตรี",
+                      COMEDIAN: "นักแสดงตลก",
+                      OTHER: "อื่น ๆ",
+                    } as Record<PerformerKind, string>)[kind]
+                  : PERFORMER_LABELS[kind]}
               </option>
             ))}
           </select>
         </div>
         <div>
           <label htmlFor="replyToEmail" className={labelCls}>
-            Reply-to email
+            {t("settings.identity.replyEmail")}
           </label>
           <input
             id="replyToEmail"
             name="replyToEmail"
             type="email"
-            placeholder="Defaults to your login email"
+            placeholder={t("settings.identity.replyPlaceholder")}
             defaultValue={business.replyToEmail ?? ""}
             className={inputCls}
           />
-          <p className="mt-1 text-xs text-ink-stage/50">When a client hits reply, it lands here.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("settings.identity.replyHint")}</p>
         </div>
         <div>
           <label htmlFor="timezone" className={labelCls}>
-            Timezone
+            {t("onboarding.business.timezone")}
           </label>
           <select id="timezone" name="timezone" defaultValue={business.timezone} className={inputCls}>
             {timezones.map((tz) => (
@@ -141,20 +160,20 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
         </div>
         <div>
           <label htmlFor="country" className={labelCls}>
-            Country
+            {t("onboarding.business.country")}
           </label>
           <select id="country" name="country" defaultValue={business.country} className={inputCls}>
             {countries.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.name}
+                {countryNames.of(c.code) ?? c.name}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-ink-stage/50">Sets the right email compliance footer for you.</p>
+          <p className="mt-1 text-xs text-ink-stage/50">{t("settings.identity.countryHint")}</p>
         </div>
         <div id="business-mailing-address" className="scroll-mt-24 sm:col-span-2">
           <label htmlFor="postalAddress" className={labelCls}>
-            Business mailing address
+            {t("onboarding.business.address")}
           </label>
           <textarea
             id="postalAddress"
@@ -167,12 +186,12 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             className={`${inputCls} resize-y`}
           />
           <p className="mt-1 text-xs text-ink-stage/50">
-            Included in venue outreach to identify the sender. Never shown on your public press kit.
+            {t("settings.identity.addressHint")}
           </p>
         </div>
         <div className="sm:col-span-2">
           <label htmlFor="websiteUrl" className={labelCls}>
-            Website
+            {t("settings.identity.website")}
           </label>
           <input
             id="websiteUrl"
@@ -186,7 +205,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
 
         <div className="sm:col-span-2">
           <label htmlFor="bookingLinkUrl" className={labelCls}>
-            Booking / deposit link
+            {t("settings.identity.booking")}
           </label>
           <input
             id="bookingLinkUrl"
@@ -197,18 +216,18 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
             className={inputCls}
           />
           <p className="mt-1 text-xs text-ink-stage/45">
-            When a couple is ready, the AI includes this link so they can lock in their date — your existing booking page, contract, or deposit link.
+            {t("settings.identity.bookingHint")}
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <button type="submit" disabled={pending} className={buttonStyles.primary}>
-          {pending ? "Saving…" : "Save changes"}
+          {pending ? t("common.saving") : t("settings.saveChanges")}
         </button>
         {state?.ok && (
           <span className="rounded-full bg-brand-cyan-soft px-3 py-1 text-sm font-semibold text-ink-stage">
-            Saved
+            {t("settings.saved")}
           </span>
         )}
         {state && !state.ok && (
@@ -221,6 +240,7 @@ export function SettingsForm({ business }: { business: BusinessProfile }) {
 
 /** Small clipboard button — used by the lead-address card on the settings page. */
 export function CopyButton({ text }: { text: string }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -237,7 +257,7 @@ export function CopyButton({ text }: { text: string }) {
         }
       }}
     >
-      {copied ? "Copied ✓" : "Copy"}
+      {copied ? t("settings.copied") : t("settings.copy")}
     </button>
   );
 }

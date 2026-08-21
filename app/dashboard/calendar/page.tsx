@@ -6,12 +6,13 @@ import { deleteGig } from "@/app/actions/gigs";
 import { GigForm } from "@/components/gig-form";
 import { ResidencyLogger } from "@/components/residency-logger";
 import { Card, EmptyState, Kicker, PageHeader, StatPill, buttonStyles } from "@/components/ui";
+import { getTranslations } from "@/lib/i18n/server";
+import { languageTag } from "@/lib/i18n/config";
+import type { Translator } from "@/lib/i18n/messages";
 
 export const dynamic = "force-dynamic";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 /** Current "YYYY-MM" / "YYYY-MM-DD" as seen on the business's wall clock. */
 function nowInTimezone(timezone: string, withDay: boolean): string {
   // en-CA formats as YYYY-MM-DD — slice off the day for a month key.
@@ -35,6 +36,7 @@ function shiftMonth(year: number, month: number, delta: number): string {
  */
 function GigChip({
   gig,
+  t,
 }: {
   gig: {
     id: string;
@@ -44,6 +46,7 @@ function GigChip({
     endTime: string | null;
     performer: { name: string } | null;
   };
+  t: Translator;
 }) {
   return (
     <div className="rounded-lg bg-ink-raised px-2 py-1.5 shadow-sm">
@@ -65,8 +68,8 @@ function GigChip({
         >
           <button
             type="submit"
-            aria-label={`Remove ${gig.title}`}
-            title="Remove gig"
+            aria-label={t("dashboard.calendar.remove", { title: gig.title })}
+            title={t("dashboard.calendar.removeTitle")}
             className="text-cream/65 hover:text-red-300 leading-none transition-colors"
           >
             ×
@@ -84,7 +87,9 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const { locale, t } = await getTranslations();
   const business = await getCurrentBusiness();
+  const displayLocale = languageTag(locale);
 
   const rawMonth = (await searchParams).month;
   const month =
@@ -128,24 +133,30 @@ export default async function CalendarPage({
   while (cells.length % 7 !== 0) cells.push(null);
 
   const today = nowInTimezone(business.timezone, true);
-  const monthLabel = monthStart.toLocaleDateString("en-US", {
+  const monthLabel = monthStart.toLocaleDateString(displayLocale, {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
   });
   // Month-nav pills live INSIDE the white grid card — ink-outline ghost (v2).
   const navButton = `${buttonStyles.secondaryOnLight} text-sm`;
+  const weekdays = Array.from({ length: 7 }, (_, day) =>
+    new Date(Date.UTC(2026, 7, 2 + day)).toLocaleDateString(displayLocale, {
+      weekday: "short",
+      timeZone: "UTC",
+    }),
+  );
 
   return (
     <main className="flex-1 bg-ink-stage">
       <div className="mx-auto w-full max-w-7xl px-6 py-8">
       <PageHeader
-        title="Calendar"
-        subtitle={`${monthLabel} — the AI checks these dates before it promises anything.`}
+        title={t("dashboard.calendar.title")}
+        subtitle={t("dashboard.calendar.subtitle", { month: monthLabel })}
         stats={
           gigs.length > 0 ? (
             <StatPill tone="teal">
-              {gigs.length} {gigs.length === 1 ? "gig" : "gigs"} this month
+              {t("dashboard.calendar.gigsMonth", { count: gigs.length })}
             </StatPill>
           ) : undefined
         }
@@ -155,7 +166,7 @@ export default async function CalendarPage({
         <Card className="p-6">
           <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
             <div>
-              <Kicker onLight>The books</Kicker>
+              <Kicker onLight>{t("dashboard.calendar.books")}</Kicker>
               <h2 className="mt-1 text-3xl font-black tracking-tighter text-ink-stage">
                 {monthLabel}
               </h2>
@@ -163,17 +174,17 @@ export default async function CalendarPage({
             <div className="flex items-center gap-2">
               <Link
                 href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, -1)}`}
-                aria-label="Previous month"
+                aria-label={t("dashboard.calendar.previous")}
                 className={navButton}
               >
                 ←
               </Link>
               <Link href="/dashboard/calendar" className={navButton}>
-                Today
+                {t("dashboard.calendar.today")}
               </Link>
               <Link
                 href={`/dashboard/calendar?month=${shiftMonth(year, monthNum, 1)}`}
-                aria-label="Next month"
+                aria-label={t("dashboard.calendar.next")}
                 className={navButton}
               >
                 →
@@ -190,7 +201,7 @@ export default async function CalendarPage({
               const dayNum = Number(dayKey.slice(-2));
               const isToday = dayKey === today;
               const weekday = new Date(Date.UTC(year, monthNum - 1, dayNum)).toLocaleDateString(
-                "en-US",
+                displayLocale,
                 { weekday: "short", timeZone: "UTC" },
               );
               return (
@@ -204,7 +215,7 @@ export default async function CalendarPage({
                   </p>
                   <div className="min-w-0 flex-1 space-y-1.5">
                     {dayGigs.map((gig) => (
-                      <GigChip key={gig.id} gig={gig} />
+                      <GigChip key={gig.id} gig={gig} t={t} />
                     ))}
                   </div>
                 </div>
@@ -213,7 +224,7 @@ export default async function CalendarPage({
           </div>
 
           <div className="max-sm:hidden grid grid-cols-7 gap-2 mb-2">
-            {WEEKDAYS.map((d, i) => (
+            {weekdays.map((d, i) => (
               <p
                 key={d}
                 className={`text-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] py-1 ${
@@ -266,7 +277,7 @@ export default async function CalendarPage({
                     )}
                   </p>
                   {dayGigs.map((gig) => (
-                    <GigChip key={gig.id} gig={gig} />
+                    <GigChip key={gig.id} gig={gig} t={t} />
                   ))}
                 </div>
               );
@@ -277,8 +288,8 @@ export default async function CalendarPage({
             <div className="mt-3">
               <EmptyState
                 compact
-                title="Nothing booked this month — yet"
-                hint="Add a gig and the AI treats that date as taken."
+                title={t("dashboard.calendar.empty")}
+                hint={t("dashboard.calendar.emptyHint")}
               />
             </div>
           )}
@@ -287,9 +298,9 @@ export default async function CalendarPage({
         <div className="space-y-6">
           <Card className="overflow-hidden">
             <div className="bg-cream/60 px-6 py-4">
-              <Kicker onLight>New booking</Kicker>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Add a gig</h2>
-              <p className="text-xs text-ink-stage/60 mt-0.5">Booked dates show as conflicts in AI replies.</p>
+              <Kicker onLight>{t("dashboard.calendar.newBooking")}</Kicker>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">{t("dashboard.calendar.addGig")}</h2>
+              <p className="text-xs text-ink-stage/60 mt-0.5">{t("dashboard.calendar.addHint")}</p>
             </div>
             <div className="p-6">
               <GigForm performers={performers} />
@@ -300,8 +311,8 @@ export default async function CalendarPage({
               slot AFTER onboarding shouldn't mean typing 12 Wednesdays. */}
           <Card className="overflow-hidden">
             <div className="bg-cream/60 px-6 py-4">
-              <Kicker onLight>Got a residency?</Kicker>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">Log it once</h2>
+              <Kicker onLight>{t("dashboard.calendar.residency")}</Kicker>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-ink-stage">{t("dashboard.calendar.logOnce")}</h2>
             </div>
             <div className="p-6">
               <ResidencyLogger />

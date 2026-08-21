@@ -7,6 +7,7 @@ import { formatMinor } from "@/lib/quote/fee";
 // throw than mail out a localhost/staging results link.
 import { appUrl } from "@/lib/app-url";
 import type { PlanTier } from "@/app/generated/prisma/enums";
+import { languageTag, normalizeLocale } from "@/lib/i18n/config";
 
 /**
  * Monthly ROI receipt (P11.4): on the 1st, each PAYING tenant gets one email
@@ -30,6 +31,7 @@ export interface MonthlyRoi {
   currency: string;
   plan: PlanTier;
   planUsd: number;
+  locale?: string;
 }
 
 export async function computeMonthlyRoi(
@@ -56,7 +58,7 @@ export async function computeMonthlyRoi(
   return {
     businessId,
     businessName: business.name,
-    monthLabel: monthStart.toLocaleDateString("en-US", {
+    monthLabel: monthStart.toLocaleDateString(languageTag(normalizeLocale(business.locale)), {
       month: "long",
       year: "numeric",
       timeZone: "UTC",
@@ -69,10 +71,35 @@ export async function computeMonthlyRoi(
     currency: business.currency,
     plan: business.plan,
     planUsd: PLAN_PRICES_USD[business.plan],
+    locale: business.locale,
   };
 }
 
 export function renderRoiEmail(r: MonthlyRoi): { subject: string; body: string } {
+  const thai = normalizeLocale(r.locale) === "th";
+  if (thai) {
+    const wonLine = r.won > 0
+      ? `จองงานแล้ว      ${r.won} งาน${r.bookedValueMinor > 0 ? ` — บันทึกมูลค่า ${formatMinor(r.bookedValueMinor, r.currency)}` : ""}`
+      : "จองงานแล้ว      ยังไม่มีรายการในเดือนนี้ — งานใหม่จะมาจากไปป์ไลน์ด้านบน";
+    return {
+      subject: `${r.monthLabel} ของ ${r.businessName}: ตอบ ${r.answered}, แนะนำตัว ${r.pitched}, จองงาน ${r.won}`,
+      body: [
+        `สรุปประจำเดือน ${r.monthLabel} — สิ่งที่ผู้ช่วยทำเทียบกับค่าใช้จ่าย:`,
+        "",
+        `ตอบลูกค้า       ส่งอีเมล ${r.answered} ฉบับด้วยสำนวนของคุณ`,
+        `การค้นหา        พบสถานที่ ${r.venuesFound} แห่ง · ส่งข้อความแนะนำตัว ${r.pitched} ฉบับจากอีเมลของคุณ`,
+        wonLine,
+        "",
+        `แผนของคุณ       ${r.plan.charAt(0)}${r.plan.slice(1).toLowerCase()} — $${r.planUsd}/เดือน`,
+        "",
+        "ตัวเลขทุกตัวคือสิ่งที่เกิดขึ้นจริง ไม่มีการคาดการณ์หรือเพิ่มยอด มูลค่าค่าจ้างจะแสดงเมื่อคุณบันทึกตอนกด ‘จองงานแล้ว’ เท่านั้น",
+        "",
+        `${appUrl()}/dashboard/results`,
+        "",
+        "— Bright Ears",
+      ].join("\n"),
+    };
+  }
   const wonLine =
     r.won > 0
       ? `WON         ${r.won} gig${r.won === 1 ? "" : "s"} booked${

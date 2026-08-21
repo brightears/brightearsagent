@@ -7,8 +7,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rescueFromSpam } from "@/app/actions/drafts";
 import { buttonStyles } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
 
 export function SpamRescueButton({ leadId }: { leadId: string }) {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +21,7 @@ export function SpamRescueButton({ leadId }: { leadId: string }) {
       setError(null);
       const result = await rescueFromSpam(leadId);
       if (!result.ok) {
-        setError(result.error ?? "Something went wrong — try again.");
+        setError(result.error ?? c("Something went wrong — try again.", "เกิดข้อผิดพลาด โปรดลองอีกครั้ง"));
         return;
       }
       router.push(`/dashboard/leads/${result.leadId}`);
@@ -32,7 +35,7 @@ export function SpamRescueButton({ leadId }: { leadId: string }) {
         disabled={isPending}
         className={`${buttonStyles.secondaryOnLight} text-sm whitespace-nowrap`}
       >
-        {isPending ? "Rescuing…" : "Not spam — draft reply"}
+        {isPending ? c("Rescuing…", "กำลังกู้คืน…") : c("Not spam — draft reply", "ไม่ใช่สแปม — ร่างข้อความตอบ")}
       </button>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>

@@ -34,7 +34,7 @@ export async function rescoreVenues(businessId: string, now = new Date()): Promi
 
   const business = await db.business.findUnique({
     where: { id: businessId },
-    select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true },
+    select: { genres: true, eventTypes: true, serviceCities: true, acceptsTravel: true, locale: true },
   });
   if (!business) return result;
 

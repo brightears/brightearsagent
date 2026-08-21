@@ -1,6 +1,7 @@
 import { declineAutoSendGraduation, updateAutoSendSources } from "@/app/actions/settings";
 import { Kicker } from "@/components/ui";
 import type { LeadSource } from "@/app/generated/prisma/enums";
+import type { Locale } from "@/lib/i18n/config";
 
 const SOURCE_PHRASE: Partial<Record<LeadSource, string>> = {
   WEBSITE_FORM: "website-form",
@@ -28,22 +29,30 @@ export function GraduationPrompt({
   source,
   count,
   trusted,
+  locale = "en",
 }: {
   source: LeadSource;
   count: number;
   trusted: LeadSource[];
+  locale?: Locale;
 }) {
   const phrase = SOURCE_PHRASE[source] ?? "these";
+  const thaiPhrase: Partial<Record<LeadSource, string>> = {
+    WEBSITE_FORM: "จากแบบฟอร์มเว็บไซต์",
+    PLAIN_EMAIL: "ทางอีเมล",
+    THE_KNOT: "จาก The Knot",
+    WEDDINGWIRE: "จาก WeddingWire",
+    BARK: "จาก Bark",
+  };
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   return (
     <section className="mb-6 rounded-2xl border border-brand-cyan/40 bg-ink-raised px-5 py-4">
-      <Kicker>Earned autonomy</Kicker>
+      <Kicker>{c("Earned autonomy", "พร้อมใช้งานอัตโนมัติ")}</Kicker>
       <p className="mt-1.5 text-sm text-cream/85">
         <span className="font-bold text-cream-bright">
-          You approved {count} {phrase} replies without changing a word.
+          {locale === "th" ? `คุณอนุมัติข้อความตอบ ${count} ข้อความ${thaiPhrase[source] ?? "จากแหล่งนี้"}โดยไม่แก้ไขเลย` : `You approved ${count} ${phrase} replies without changing a word.`}
         </span>{" "}
-        Want your assistant to send these on its own? Same drafts, same voice, real availability — it
-        just stops waiting for your tap. Every send still shows up here, and you can switch it off
-        any time in the Control room.
+        {c("Want your assistant to send these on its own? Same drafts, same voice, real availability — it just stops waiting for your tap. Every send still shows up here, and you can switch it off any time in the Control room.", "ต้องการให้ผู้ช่วยส่งข้อความประเภทนี้อัตโนมัติไหม ร่าง น้ำเสียง และตารางว่างยังเหมือนเดิม เพียงไม่ต้องรอคุณกดอนุมัติ ทุกข้อความที่ส่งยังแสดงที่นี่และปิดได้ทุกเมื่อในห้องควบคุม")}
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-4">
         <form
@@ -59,7 +68,7 @@ export function GraduationPrompt({
             type="submit"
             className="rounded-full bg-brand-cyan px-5 py-2 text-sm font-bold text-ink-stage transition-opacity hover:opacity-90"
           >
-            Yes — auto-send these
+            {c("Yes — auto-send these", "ตกลง — ส่งประเภทนี้อัตโนมัติ")}
           </button>
         </form>
         <form
@@ -72,7 +81,7 @@ export function GraduationPrompt({
             type="submit"
             className="text-sm font-semibold text-cream/45 transition-colors hover:text-cream/70"
           >
-            Keep reviewing
+            {c("Keep reviewing", "ตรวจทุกข้อความต่อไป")}
           </button>
         </form>
       </div>

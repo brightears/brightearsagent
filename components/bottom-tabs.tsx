@@ -7,20 +7,22 @@
 // Ink bar, cyan active (interface voice), mono labels, safe-area padding.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/components/locale-provider";
 
 const TABS = [
-  { href: "/dashboard", label: "Pipeline" },
-  { href: "/dashboard/calendar", label: "Calendar" },
-  { href: "/dashboard/results", label: "Results" },
-  { href: "/dashboard/packages", label: "Packages" },
-  { href: "/dashboard/settings", label: "Control" },
-];
+  { href: "/dashboard", key: "nav.pipeline" },
+  { href: "/dashboard/calendar", key: "nav.calendar" },
+  { href: "/dashboard/results", key: "nav.results" },
+  { href: "/dashboard/packages", key: "nav.packages" },
+  { href: "/dashboard/settings", key: "nav.controlRoom" },
+] as const;
 
 export function BottomTabs({ pendingCount = 0 }: { pendingCount?: number }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   return (
     <nav
-      aria-label="Dashboard sections"
+      aria-label={t("dashboard.sections")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-cream/10 bg-ink-stage/95 backdrop-blur lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
@@ -46,7 +48,7 @@ export function BottomTabs({ pendingCount = 0 }: { pendingCount?: number }) {
                 className={`h-0.5 w-6 rounded-full ${active ? "bg-brand-cyan" : "bg-transparent"}`}
               />
               <span className="relative">
-                {tab.label}
+                {t(tab.key)}
                 {badge && (
                   <span className="absolute -right-4 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon-magenta px-1 font-mono text-[9px] font-bold text-ink-stage">
                     {pendingCount > 9 ? "9+" : pendingCount}

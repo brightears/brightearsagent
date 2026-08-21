@@ -24,6 +24,9 @@ import type {
   VenueStatus,
   VenueTemperature,
 } from "@/app/generated/prisma/enums";
+import { getTranslations } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/config";
+import type { MessageKey, Translator } from "@/lib/i18n/messages";
 
 /** The slice of a Venue row the feed card renders. */
 export type HuntVenue = {
@@ -78,6 +81,33 @@ export const KIND_LABEL: Record<VenueKind, string> = {
   CLUB: "Club",
   OTHER: "Venue",
 };
+const KIND_KEYS: Record<VenueKind, MessageKey> = {
+  BAR: "dashboard.hunt.kind.bar",
+  ROOFTOP: "dashboard.hunt.kind.rooftop",
+  HOTEL: "dashboard.hunt.kind.hotel",
+  RESTAURANT: "dashboard.hunt.kind.restaurant",
+  EVENT_SPACE: "dashboard.hunt.kind.eventSpace",
+  CLUB: "dashboard.hunt.kind.club",
+  OTHER: "dashboard.hunt.kind.other",
+};
+
+const THAI_SKIP_REASONS: Record<SkipReason, string> = {
+  WRONG_VIBE: "บรรยากาศไม่เหมาะ",
+  TOO_FAR: "ไกลเกินไป",
+  BELOW_FEE: "ค่าจ้างต่ำกว่าเรตของฉัน",
+  NO_ENTERTAINMENT: "ไม่รับการแสดงประเภทของฉัน",
+  STALE_OR_CLOSED: "ปิดแล้วหรือข้อมูลเก่า",
+  NOT_INTERESTED: "ไม่สนใจ",
+};
+
+function relativeSignalAge(date: Date, now: Date, locale: Locale): string {
+  if (locale === "en") return signalAgeLabel(date, now);
+  const days = Math.max(0, Math.round((now.getTime() - date.getTime()) / 86_400_000));
+  if (days === 0) return "วันนี้";
+  if (days < 30) return `${days} วันที่แล้ว`;
+  const months = Math.round(days / 30);
+  return `${months} เดือนที่แล้ว`;
+}
 
 /** Hostname label for a source chip — "www." stripped; raw string on bad URLs. */
 function hostLabel(url: string): string {
@@ -108,6 +138,8 @@ function VenueCard({
   postalAddress,
   mailboxConnected,
   now,
+  locale,
+  t,
 }: {
   venue: HuntVenue;
   canPitch: boolean;
@@ -118,6 +150,8 @@ function VenueCard({
   /** 10.5: a sending mailbox is connected — gates the "Send now" button. */
   mailboxConnected: boolean;
   now: Date;
+  locale: Locale;
+  t: Translator;
 }) {
   const score = venue.fitScore ?? 0;
   // Jurisdiction is recipient-side (the venue's country, ADR-004 D4). The mode
@@ -136,24 +170,26 @@ function VenueCard({
           <span
             className={`mt-1.5 inline-block rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${TEMPERATURE_CHIP[venue.temperature].className}`}
           >
-            {TEMPERATURE_CHIP[venue.temperature].label}
+            {locale === "th"
+              ? ({ HOT: "โอกาสเร่งด่วน", WARM: "น่าสนใจ", SEED: "ระยะยาว" } as const)[venue.temperature]
+              : TEMPERATURE_CHIP[venue.temperature].label}
           </span>
           {/* Warm again (P12.4): the re-touch arc brought this one back after
               180 silent days — fair to knock twice, and the card says so. */}
           {venue.retouchedAt && (
             <span className="ml-1.5 mt-1.5 inline-block rounded-full bg-cream px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
-              Warm again — pitched 6+ months ago
+              {t("dashboard.hunt.warmAgain")}
             </span>
           )}
           {/* Travel Mode tag (no emoji, mono, cyan interface accent): marks a
               find from a travel window so travel finds are distinguishable. */}
           {venue.travelCity && (
             <span className="ml-1.5 mt-1.5 inline-block rounded-full bg-brand-cyan-soft px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage">
-              Travel · {venue.travelCity}
+              {t("dashboard.hunt.travel", { city: venue.travelCity })}
             </span>
           )}
           <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
-            {KIND_LABEL[venue.kind]}
+            {t(KIND_KEYS[venue.kind])}
           </p>
           <p className="mt-0.5 text-xs text-ink-stage/60">
             {venue.city}, {venue.country}
@@ -161,7 +197,7 @@ function VenueCard({
         </div>
         <span
           className={`flex-none rounded-full px-2.5 py-1 font-mono text-sm font-bold ${FIT_CHIP[fitScoreTone(score)]}`}
-          title={`Fit score ${score} of 100`}
+          title={t("dashboard.hunt.fitScore", { score })}
         >
           {score}
         </span>
@@ -173,7 +209,7 @@ function VenueCard({
       {venue.temperature !== "HOT" && venue.entertainmentEvidence.length > 0 && (
         <p className="mt-3 flex items-start gap-2 text-xs font-semibold text-ink-stage/80">
           <span aria-hidden className="mt-1.5 size-1 flex-none bg-brand-cyan" />
-          Not currently looking — {venue.entertainmentEvidence[0]}
+          {t("dashboard.hunt.notLooking", { evidence: venue.entertainmentEvidence[0] })}
         </p>
       )}
 
@@ -199,7 +235,7 @@ function VenueCard({
       {venue.signals.length > 0 && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/40">
-            Sources
+            {t("dashboard.hunt.sources")}
           </span>
           {dedupeByHost(venue.signals).map((s) => (
             <a
@@ -219,9 +255,9 @@ function VenueCard({
       <div className="mt-3 space-y-0.5">
         {(venue.lastSignalAt || venue.timingScore != null) && (
           <p className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-            {venue.timingScore != null && <>{venue.timingScore}% short-term</>}
+            {venue.timingScore != null && <>{t("dashboard.hunt.shortTerm", { score: venue.timingScore })}</>}
             {venue.timingScore != null && venue.lastSignalAt && " · "}
-            {venue.lastSignalAt && <>Signal: {signalAgeLabel(venue.lastSignalAt, now)}</>}
+            {venue.lastSignalAt && <>{t("dashboard.hunt.signal", { age: relativeSignalAge(venue.lastSignalAt, now, locale) })}</>}
           </p>
         )}
         {venue.bookingEmail && (
@@ -230,7 +266,9 @@ function VenueCard({
           // won't auto-draft to it, and the owner should check it reaches
           // the booker before sending.
           <p className="text-[11px] text-ink-stage/45">
-            Contact: {venue.contactSource ?? "published booking contact"}
+            {t("dashboard.hunt.contact", {
+              source: venue.contactSource ?? t("dashboard.hunt.publishedContact"),
+            })}
             {contactConfidence(
               venue.bookingEmail,
               venue.bookingContactName,
@@ -239,7 +277,7 @@ function VenueCard({
               <>
                 {" · "}
                 <span aria-hidden className="mb-px mr-1 inline-block size-1 bg-neon-orange align-middle" />
-                <span className="font-semibold text-ink-stage/70">verify before sending</span>
+                <span className="font-semibold text-ink-stage/70">{t("dashboard.hunt.verify")}</span>
               </>
             )}
           </p>
@@ -248,7 +286,7 @@ function VenueCard({
           // LinkedIn is find-only (ADR-004): the handoff card gets the link,
           // never a name scraped from it. The artist takes over personally.
           <p className="text-[11px] text-ink-stage/45">
-            Events contact on{" "}
+            {locale === "th" ? "มีผู้ติดต่อด้านอีเวนต์บน " : "Events contact on "}
             <a
               href={venue.linkedinUrl}
               target="_blank"
@@ -257,7 +295,7 @@ function VenueCard({
             >
               LinkedIn
             </a>{" "}
-            — you take over
+            {locale === "th" ? " — คุณดำเนินการต่อเอง" : " — you take over"}
           </p>
         )}
       </div>
@@ -290,9 +328,9 @@ function VenueCard({
               disabled
               aria-disabled
               className={`${buttonStyles.primary} px-3.5 py-1.5 text-sm`}
-              title="Finish your profile to unlock pitching"
+              title={t("dashboard.hunt.pitchLockedTitle")}
             >
-              Pitch locked
+              {t("dashboard.hunt.pitchLocked")}
             </button>
           )}
 
@@ -301,11 +339,11 @@ function VenueCard({
             <summary
               className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
             >
-              Not a fit
+              {t("dashboard.hunt.notFit")}
             </summary>
             <div className="absolute left-0 top-full z-10 mt-2 w-44 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
               <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
-                What missed?
+                {t("dashboard.hunt.whatMissed")}
               </p>
               {(Object.keys(SKIP_REASONS) as SkipReason[]).map((reason) => (
                 <form key={reason} action={skipVenueForm.bind(null, venue.id, reason)}>
@@ -313,7 +351,7 @@ function VenueCard({
                     type="submit"
                     className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream"
                   >
-                    {SKIP_REASONS[reason]}
+                    {locale === "th" ? THAI_SKIP_REASONS[reason] : SKIP_REASONS[reason]}
                   </button>
                 </form>
               ))}
@@ -328,9 +366,9 @@ function VenueCard({
       {!canPitch && venue.status !== "PITCH_DRAFTED" && (
         <p className="mt-2 text-[11px] text-ink-stage/55">
           <Link href="/dashboard/settings#profile" className="font-semibold text-brand-cyan hover:opacity-80">
-            Finish your profile
+            {t("dashboard.hunt.finishProfile")}
           </Link>{" "}
-          to unlock pitching — {profilePercent}%
+          {t("dashboard.hunt.unlock", { percent: profilePercent })}
         </p>
       )}
     </Card>
@@ -340,7 +378,7 @@ function VenueCard({
 /** How many cards show before "view all" (?hunt=all) expands the rail. */
 export const HUNT_CAP = 8;
 
-export function HuntSection({
+export async function HuntSection({
   venues,
   totalCount,
   expanded,
@@ -369,21 +407,22 @@ export function HuntSection({
   /** Subscribe-to-activate: unsubscribed tenants' scans never run. */
   subscribed?: boolean;
 }) {
+  const { locale, t } = await getTranslations();
   const now = new Date();
   return (
     <section className="mb-10">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <Kicker>The hunt</Kicker>
+          <Kicker>{t("dashboard.hunt.kicker")}</Kicker>
           <h2 className="mt-1.5 text-xl font-black tracking-tight text-cream-bright">
-            Venues your assistant found
+            {t("dashboard.hunt.title")}
           </h2>
         </div>
-        {totalCount > 0 && <StatPill tone="teal">{totalCount} found</StatPill>}
+        {totalCount > 0 && <StatPill tone="teal">{t("dashboard.hunt.found", { count: totalCount })}</StatPill>}
       </div>
       {totalCount > 0 && (
         <p className="-mt-1 mb-4 max-w-2xl text-sm leading-relaxed text-cream/55">
-          Approve what fits. Mark a miss with “Not a fit” — the reason is saved for quality tuning.
+          {t("dashboard.hunt.reviewHint")}
         </p>
       )}
 
@@ -397,43 +436,43 @@ export function HuntSection({
             "font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80";
           const state = !subscribed
             ? {
-                hint: "Your assistant is paused. Pick a plan and the hunt switches on — new openings and rooms for your act land here, scored, with the outreach drafted in your voice for you to approve.",
+                hint: t("dashboard.hunt.paused"),
                 cta: (
                   <Link href="/dashboard/settings#billing" className={linkCls}>
-                    Choose your plan →
+                    {t("dashboard.hunt.choosePlan")}
                   </Link>
                 ),
               }
             : !homeCity
               ? {
-                  hint: "Your assistant is on — it just doesn't know where to hunt yet. Set your home city and every scan combs it for new openings and rooms that fit your act.",
+                  hint: t("dashboard.hunt.noCity"),
                   cta: (
                     <Link href="/dashboard/settings#hunt" className={linkCls}>
-                      Set your home city →
+                      {t("dashboard.hunt.setCity")}
                     </Link>
                   ),
                 }
               : !canPitch
                 ? {
-                    hint: "Venues from your city land here after each scan. To unlock pitching, finish your pitch-ready profile: one clear photo, a short bio, and one calendar gig. Video is optional.",
+                    hint: t("dashboard.hunt.noProfile"),
                     cta: (
                       <Link href="/dashboard/settings#profile" className={linkCls}>
-                        Finish your profile ({profilePercent}%) →
+                        {t("dashboard.hunt.finishCta", { percent: profilePercent })}
                       </Link>
                     ),
                   }
                 : {
-                    hint: "You're set. Your assistant combs your city on every scan — new openings and rooms that fit your act land here scored, with the reasons spelled out and the outreach drafted for you to approve, usually by morning.",
+                    hint: t("dashboard.hunt.ready"),
                     cta: (
                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
-                        First scan queued — check back tomorrow
+                        {t("dashboard.hunt.queued")}
                       </span>
                     ),
                   };
           return (
             <EmptyState
-              kicker="The hunt"
-              title="The hunt begins here."
+              kicker={t("dashboard.hunt.kicker")}
+              title={t("dashboard.hunt.emptyTitle")}
               accent="here."
               hint={state.hint}
               cta={state.cta}
@@ -445,13 +484,12 @@ export function HuntSection({
         // (or past the cap), so the default HOT/WARM feed is empty. Say so and
         // hand over the expansion instead of rendering a blank grid under "N found".
         <p className="text-sm text-cream/70">
-          {totalCount} {totalCount === 1 ? "venue is" : "venues are"} on file as longer-term
-          introductions — nothing hot right now.{" "}
+          {t("dashboard.hunt.longTerm", { count: totalCount })}{" "}
           <Link
             href="/dashboard?hunt=all"
             className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
           >
-            View all →
+            {t("dashboard.hunt.viewAll")}
           </Link>
         </p>
       ) : (
@@ -468,6 +506,8 @@ export function HuntSection({
                 postalAddress={postalAddress}
                 mailboxConnected={mailboxConnected}
                 now={now}
+                locale={locale}
+                t={t}
               />
             ))}
           </div>
@@ -477,7 +517,7 @@ export function HuntSection({
                 href="/dashboard?hunt=all"
                 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-brand-cyan hover:opacity-80"
               >
-                View all {totalCount} venues
+                {t("dashboard.hunt.viewAllCount", { count: totalCount })}
               </Link>
             </p>
           )}

@@ -21,6 +21,8 @@ import {
   normalizeOutreachEmail,
   tenantSuppressionUpsertArgs,
 } from "@/lib/outreach/suppression";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translator } from "@/lib/i18n/messages";
 
 export type PipelineResult =
   | { outcome: "duplicate" }
@@ -121,6 +123,8 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     await noteUnroutedRecipient(email.to, slug);
     return { outcome: "no_tenant" };
   }
+  const locale = normalizeLocale(business.locale);
+  const t = translator(locale);
 
   // Idempotency: providers redeliver webhooks.
   if (email.providerMessageId) {
@@ -149,11 +153,12 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     // Redeliveries of the same confirmation don't re-ping.
     if (isNew) {
       await notifyBusiness(business, {
-        title: "One click left — approve Gmail forwarding",
-        body: "Gmail sent its confirmation. Approve it and every inquiry starts flowing to your assistant.",
+        title: t("notification.forwardTitle"),
+        body: t("notification.forwardBody"),
         url: "/onboarding",
-        emailBody:
-          "Gmail just sent the forwarding confirmation for your lead address.\n\nOpen your setup and click the approval link (it's waiting on the 'Connect your leads' step) — that's the last step before every inquiry starts answering itself.",
+        emailBody: locale === "th"
+          ? "Gmail ส่งข้อความยืนยันการส่งต่อสำหรับอีเมลรับข้อความติดต่อของคุณแล้ว\n\nเปิดหน้าตั้งค่าและกดลิงก์อนุมัติในขั้นตอนเชื่อมต่อข้อความติดต่อ ซึ่งเป็นขั้นตอนสุดท้ายก่อนให้ทุกข้อความไหลเข้าผู้ช่วยโดยอัตโนมัติ"
+          : "Gmail just sent the forwarding confirmation for your lead address.\n\nOpen your setup and click the approval link (it's waiting on the 'Connect your leads' step) — that's the last step before every inquiry starts answering itself.",
       });
     }
     return { outcome: "forwarding_confirmation", provider: confirmation.provider };
@@ -386,8 +391,8 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         throw err;
       }
       void notifyBusiness(business, {
-        title: `Do-not-contact saved: ${existing.clientName ?? email.from}`,
-        body: "Their request is on your suppression list. Nothing was drafted or sent.",
+        title: locale === "th" ? `บันทึกห้ามติดต่อแล้ว: ${existing.clientName ?? email.from}` : `Do-not-contact saved: ${existing.clientName ?? email.from}`,
+        body: locale === "th" ? "บันทึกคำขอไว้ในรายการห้ามติดต่อแล้ว และไม่มีการร่างหรือส่งข้อความ" : "Their request is on your suppression list. Nothing was drafted or sent.",
         url: `/dashboard/leads/${existing.id}`,
       }).catch(() => null);
       return {
@@ -464,10 +469,14 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     // A prospect writing back is the closest thing to money in the pipeline —
     // that moment used to be silent (audit 2026-07). Dual-channel, always.
     void notifyBusiness(business, {
-      title: `They wrote back: ${existing.clientName ?? "a lead"}`,
-      body: email.subject || "Open the thread to reply while it's hot.",
+      title: t("notification.wroteBack", {
+        name: existing.clientName ?? t("notification.newLead"),
+      }),
+      body: email.subject || t("notification.wroteBackFallback"),
       url: `/dashboard/leads/${existing.id}`,
-      emailBody: `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered).${drafting ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and reply while it's hot.`,
+      emailBody: locale === "th"
+        ? `${existing.clientName ?? t("notification.newLead")} ตอบกลับคุณแล้ว${email.subject ? ` — “${email.subject}”` : ""}\n\nระบบหยุดการติดตามรายการนี้แล้ว${drafting ? " ผู้ช่วยกำลังร่างคำตอบด้วยสำนวนของคุณ" : ""} เปิดบทสนทนาเพื่อตอบกลับได้เลย`
+        : `${existing.clientName ?? "A lead"} just replied to you${email.subject ? ` — "${email.subject}"` : ""}.\n\nFollow-ups are paused for this one (they answered).${drafting ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and reply while it's hot.`,
     }).catch(() => null);
     return { outcome: "reply_attached", leadId: existing.id };
   }
@@ -609,8 +618,8 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
         throw err;
       }
       void notifyBusiness(business, {
-        title: `Do-not-contact saved: ${venue.name}`,
-        body: "Their request is on your suppression list. Nothing was drafted or sent.",
+        title: locale === "th" ? `บันทึกห้ามติดต่อแล้ว: ${venue.name}` : `Do-not-contact saved: ${venue.name}`,
+        body: locale === "th" ? "บันทึกคำขอไว้ในรายการห้ามติดต่อแล้ว และไม่มีการร่างหรือส่งข้อความ" : "Their request is on your suppression list. Nothing was drafted or sent.",
         url: `/dashboard/leads/${optedOutLead.id}`,
       }).catch(() => null);
       return { outcome: "opted_out", leadId: optedOutLead.id, venueId: venue.id };
@@ -685,10 +694,12 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     }
     // The money moment of the whole Hunt — a venue is talking. Dual-channel.
     void notifyBusiness(business, {
-      title: `A venue wrote back: ${venue.name}`,
-      body: email.subject || "Open the thread and keep it warm.",
+      title: t("notification.venueBack", { name: venue.name }),
+      body: email.subject || t("notification.venueBackFallback"),
       url: `/dashboard/leads/${venueLead.id}`,
-      emailBody: `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for.${draftingVenueReply ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and answer while it's hot.`,
+      emailBody: locale === "th"
+        ? `${venue.name} ตอบข้อความแนะนำตัวของคุณแล้ว${email.subject ? ` — “${email.subject}”` : ""}\n\nนี่คือโอกาสที่ระบบค้นหามาให้คุณ${draftingVenueReply ? " ผู้ช่วยกำลังร่างคำตอบด้วยสำนวนของคุณ" : ""} เปิดบทสนทนาเพื่อตอบกลับได้เลย`
+        : `${venue.name} just replied to your pitch${email.subject ? ` — "${email.subject}"` : ""}.\n\nThis is the moment the Hunt exists for.${draftingVenueReply ? " Your assistant is drafting the answer in your voice — it'll be waiting in the thread." : ""} Open the thread and answer while it's hot.`,
     }).catch(() => null);
     return { outcome: "venue_reply", leadId: venueLead.id, venueId: venue.id };
   }
@@ -827,14 +838,18 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
       const justCrossed = subscribed ? meter.used === meter.cap + 1 : meter.used === 1;
       if (justCrossed) {
         void notifyBusiness(business, {
-          title: subscribed ? "Your agent hit this month's cap" : "A new inquiry is waiting",
+          title: subscribed ? t("notification.capTitle") : t("notification.inquiryWaiting"),
           body: subscribed
-            ? `It answered ${meter.cap} inquiries this month — new ones are waiting. Upgrade to keep replies flowing.`
-            : "Subscribe and your agent answers it in your voice — usually within minutes.",
+            ? t("notification.capBody", { count: meter.cap })
+            : t("notification.inquiryWaitingBody"),
           url: "/dashboard/settings#billing",
           emailBody: subscribed
-            ? `Your agent answered ${meter.cap} inquiries this month — and more are arriving. Drafting is paused (never a surprise bill); one tap and the next tier keeps replies flowing.`
-            : "An inquiry just arrived at your lead address. Your agent is set up and paused — subscribe and it answers this one, and every one after, in your voice.",
+            ? (locale === "th"
+                ? `ผู้ช่วยตอบข้อความสอบถามครบ ${meter.cap} รายการในเดือนนี้และยังมีข้อความใหม่เข้ามา ระบบพักการร่างไว้โดยไม่มีค่าใช้จ่ายเกินคาด อัปเกรดเพื่อให้ตอบต่อเนื่อง`
+                : `Your agent answered ${meter.cap} inquiries this month — and more are arriving. Drafting is paused (never a surprise bill); one tap and the next tier keeps replies flowing.`)
+            : (locale === "th"
+                ? "มีข้อความใหม่เข้ามาที่อีเมลรับข้อความติดต่อ ผู้ช่วยตั้งค่าพร้อมแล้วแต่ยังพักอยู่ สมัครแผนเพื่อให้ผู้ช่วยตอบข้อความนี้และข้อความถัดไปด้วยสำนวนของคุณ"
+                : "An inquiry just arrived at your lead address. Your agent is set up and paused — subscribe and it answers this one, and every one after, in your voice."),
         }).catch(() => null);
       }
     } else if (
@@ -870,8 +885,10 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           const at = await scheduleAutonomousSend(draftId);
           if (!at) return; // draft already moved — its own flow notified
           await notifyBusiness(business, {
-            title: `Sending soon: ${clientName ?? "new lead"}`,
-            body: "The reply goes out in 15 minutes — open it to read, hold, or send now.",
+            title: t("notification.sendingSoon", {
+              name: clientName ?? t("notification.newLead"),
+            }),
+            body: t("notification.sendingSoonBody"),
             url: `/dashboard/leads/${leadId}`,
             pushOnly: true,
           }).catch(() => null);
@@ -882,8 +899,10 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
           // created, is sitting in PENDING either way.
           void reportError(err, { kind: "auto-send", businessId: business.id, leadId });
           await notifyBusiness(business, {
-            title: `New inquiry needs you: ${clientName ?? "new lead"}`,
-            body: "The automatic reply didn't go out — tap to review.",
+            title: t("notification.needsYou", {
+              name: clientName ?? t("notification.newLead"),
+            }),
+            body: t("notification.autoFailed"),
             url: `/dashboard/leads/${leadId}`,
           }).catch(() => null);
         }

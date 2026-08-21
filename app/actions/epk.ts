@@ -26,12 +26,13 @@ export async function submitEpkInquiry(
   _prev: EpkInquiryState,
   formData: FormData,
 ): Promise<EpkInquiryState> {
-  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return { ok: false, error: "Something went wrong." };
-
   const field = (name: string, cap = 300) => {
     const v = formData.get(name);
     return typeof v === "string" ? v.trim().slice(0, cap) : "";
   };
+  const thai = field("locale", 2) === "th";
+  const c = (english: string, translated: string) => thai ? translated : english;
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) return { ok: false, error: c("Something went wrong.", "เกิดข้อผิดพลาด") };
 
   // Honeypot: real people never fill a field they can't see.
   if (field("website")) return { ok: true };
@@ -40,7 +41,7 @@ export async function submitEpkInquiry(
   const ip = clientIp({ headers: await headers() });
   const rl = rateLimit(`epk-inquiry:${slug}:${ip}`, 5, 10 * 60 * 1000);
   if (!rl.ok) {
-    return { ok: false, error: "Too many messages just now — try again in a few minutes." };
+    return { ok: false, error: c("Too many messages just now — try again in a few minutes.", "ส่งข้อความถี่เกินไป โปรดลองอีกครั้งในอีกไม่กี่นาที") };
   }
 
   const name = field("name", 120);
@@ -49,10 +50,10 @@ export async function submitEpkInquiry(
   const eventDate = field("eventDate", 20);
   const message = field("message", 2000);
 
-  if (!name) return { ok: false, error: "Please add your name." };
-  if (!EMAIL_RE.test(email)) return { ok: false, error: "Please add a valid email address." };
+  if (!name) return { ok: false, error: c("Please add your name.", "โปรดกรอกชื่อของคุณ") };
+  if (!EMAIL_RE.test(email)) return { ok: false, error: c("Please add a valid email address.", "โปรดกรอกอีเมลที่ถูกต้อง") };
   if (!message && !eventDate) {
-    return { ok: false, error: "Tell us a little about your event — a date or a few words." };
+    return { ok: false, error: c("Tell us a little about your event — a date or a few words.", "โปรดระบุวันที่หรือรายละเอียดเกี่ยวกับงานของคุณสักเล็กน้อย") };
   }
 
   const textBody = [
@@ -79,10 +80,10 @@ export async function submitEpkInquiry(
       textBody,
       receivedAt: new Date().toISOString(),
     });
-    if (result.outcome === "no_tenant") return { ok: false, error: "Something went wrong." };
+    if (result.outcome === "no_tenant") return { ok: false, error: c("Something went wrong.", "เกิดข้อผิดพลาด") };
     return { ok: true };
   } catch (err) {
     void reportError(err, { kind: "epk-inquiry", slug });
-    return { ok: false, error: "Something went wrong — please try again." };
+    return { ok: false, error: c("Something went wrong — please try again.", "เกิดข้อผิดพลาด โปรดลองอีกครั้ง") };
   }
 }

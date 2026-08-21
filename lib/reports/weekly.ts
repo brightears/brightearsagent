@@ -5,10 +5,12 @@ import { formatMinor } from "@/lib/quote/fee";
 // Strict tier on purpose: these links land in customer emails — better to
 // throw than mail out a localhost/staging dashboard link.
 import { appUrl } from "@/lib/app-url";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 export interface WeeklyNumbers {
   businessId: string;
   businessName: string;
+  locale?: string;
   leadsIn: number;
   spamFiltered: number;
   medianFirstReplyMinutes: number | null;
@@ -86,6 +88,7 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
   return {
     businessId,
     businessName: business.name,
+    locale: business.locale,
     leadsIn,
     spamFiltered,
     medianFirstReplyMinutes,
@@ -103,6 +106,29 @@ export async function computeWeekly(businessId: string, now = new Date()): Promi
 }
 
 export function renderWeeklyEmail(n: WeeklyNumbers): { subject: string; body: string } {
+  if (normalizeLocale(n.locale) === "th") {
+    const replyLine = n.medianFirstReplyMinutes === null
+      ? "สัปดาห์นี้ยังไม่มีข้อความติดต่อที่ต้องตอบครั้งแรก"
+      : `เวลามัธยฐานในการตอบครั้งแรก ${n.medianFirstReplyMinutes} นาที`;
+    return {
+      subject: `สรุปสัปดาห์: ข้อความติดต่อ ${n.leadsIn} รายการ${n.pitchesSent > 0 ? ` · ส่งแนะนำตัว ${n.pitchesSent} รายการ` : ""} · จองสำเร็จ ${n.booked} งาน`,
+      body: [
+        `ผลงานที่ผู้ช่วยทำให้ ${n.businessName} ในสัปดาห์นี้:`,
+        "",
+        `ข้อความติดต่อ   เข้าใหม่ ${n.leadsIn} · ส่งคำตอบ ${n.repliesSent} · กรองสแปม ${n.spamFiltered}`,
+        `                 ${replyLine}`,
+        `ค้นหาสถานที่    พบ ${n.venuesFound} แห่ง · ส่งแนะนำตัว ${n.pitchesSent} · สถานที่ตอบกลับ ${n.venueReplies}`,
+        `กำลังดำเนินการ  สนทนาอยู่ ${n.engaged} · ติดตามอัตโนมัติ ${n.inSequence}`,
+        `จองสำเร็จ       ${n.booked}${n.bookedValue > 0 ? ` — มูลค่า ${formatMinor(n.bookedValue, n.currency)}` : ""}`,
+        "",
+        n.draftsWaiting > 0
+          ? `มีร่าง ${n.draftsWaiting} รายการรอให้คุณอนุมัติ: ${appUrl()}/dashboard`
+          : `ไม่มีรายการรอคุณตรวจ ระบบเป็นปัจจุบันแล้ว ${appUrl()}/dashboard`,
+        "",
+        "— Bright Ears",
+      ].join("\n"),
+    };
+  }
   const replyLine =
     n.medianFirstReplyMinutes === null
       ? "No new inquiries needed a first reply this week."

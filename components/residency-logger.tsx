@@ -9,8 +9,19 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addResidency } from "@/app/actions/onboarding";
 import { buttonStyles } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_KEYS: MessageKey[] = [
+  "onboarding.calendar.weekday.sun",
+  "onboarding.calendar.weekday.mon",
+  "onboarding.calendar.weekday.tue",
+  "onboarding.calendar.weekday.wed",
+  "onboarding.calendar.weekday.thu",
+  "onboarding.calendar.weekday.fri",
+  "onboarding.calendar.weekday.sat",
+];
 
 const labelCls =
   "mb-1 block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55";
@@ -18,6 +29,7 @@ const inputCls =
   "w-full rounded-xl border border-ink-stage/15 bg-white px-3 py-2 text-base sm:text-sm text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40";
 
 export function ResidencyLogger() {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [weekday, setWeekday] = useState<number | null>(null);
@@ -32,7 +44,7 @@ export function ResidencyLogger() {
     startTransition(async () => {
       setNote(null);
       if (weekday === null) {
-        setNote({ kind: "error", text: "Pick which day of the week the residency runs." });
+        setNote({ kind: "error", text: t("dashboard.residency.pickError") });
         return;
       }
       const result = await addResidency({ weekday, title, from, to, startTime, endTime });
@@ -42,7 +54,10 @@ export function ResidencyLogger() {
       }
       setNote({
         kind: "success",
-        text: `Locked in — ${result.added} ${WEEKDAYS[weekday]} night${result.added === 1 ? "" : "s"} on the books.`,
+        text: t("dashboard.residency.success", {
+          count: result.added,
+          day: t(WEEKDAY_KEYS[weekday]),
+        }),
       });
       setTitle("");
       setFrom("");
@@ -56,11 +71,10 @@ export function ResidencyLogger() {
   return (
     <div className="space-y-3">
       <p className="text-xs text-ink-stage/60">
-        Playing a regular weekly slot? Log it once — every night in the run lands on the calendar,
-        so you&apos;re never shown as free when you&apos;re not.
+        {t("dashboard.residency.hint")}
       </p>
       <div>
-        <span className={labelCls}>Which day?</span>
+        <span className={labelCls}>{t("onboarding.calendar.day")}</span>
         <div className="flex flex-wrap gap-1.5">
           {WEEKDAYS.map((d, i) => (
             <button
@@ -73,33 +87,33 @@ export function ResidencyLogger() {
                   : "border-ink-stage/20 text-ink-stage/70 hover:border-brand-cyan"
               }`}
             >
-              {d}
+              {t(WEEKDAY_KEYS[i])}
             </button>
           ))}
         </div>
       </div>
       <div>
         <label htmlFor="res-title" className={labelCls}>
-          Venue / name
+          {t("onboarding.calendar.venue")}
         </label>
         <input
           id="res-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Sing Sing (Wed residency)"
+          placeholder={locale === "th" ? "Sing Sing (ประจำวันพุธ)" : "Sing Sing (Wed residency)"}
           className={inputCls}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label htmlFor="res-from" className={labelCls}>
-            From
+            {t("onboarding.calendar.from")}
           </label>
           <input id="res-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
         </div>
         <div>
           <label htmlFor="res-to" className={labelCls}>
-            Until
+            {t("onboarding.calendar.until")}
           </label>
           <input id="res-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
         </div>
@@ -110,20 +124,19 @@ export function ResidencyLogger() {
               sidebar column and knocked the two time inputs out of line; the
               hint below already says the window is optional. */}
           <label htmlFor="res-start" className={labelCls}>
-            Time
+            {t("onboarding.calendar.time")}
           </label>
           <input id="res-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputCls} />
         </div>
         <div>
           <label htmlFor="res-end" className={labelCls}>
-            Until
+            {t("onboarding.calendar.until")}
           </label>
           <input id="res-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className={inputCls} />
         </div>
       </div>
       <p className="text-[11px] text-ink-stage/50">
-        Time is optional: with one (e.g. 7:00pm–9:00pm) only that window is blocked — a late gig
-        elsewhere that night still counts you as free. Blank blocks the whole day.
+        {t("onboarding.calendar.timeHint")}
       </p>
       {note && (
         <p
@@ -140,7 +153,7 @@ export function ResidencyLogger() {
         disabled={isPending}
         className={`${buttonStyles.secondaryOnLight} w-full`}
       >
-        {isPending ? "Adding…" : "Add residency nights"}
+        {isPending ? t("onboarding.calendar.adding") : t("onboarding.calendar.addResidency")}
       </button>
     </div>
   );

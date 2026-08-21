@@ -7,16 +7,19 @@
 // + CTA. Shown only below sm; the desktop nav stays `hidden sm:flex`.
 import { useState } from "react";
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useI18n } from "@/components/locale-provider";
 
 export function MarketingMobileMenu({ links }: { links: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   return (
     <div className="sm:hidden">
       <button
         type="button"
         aria-expanded={open}
         aria-controls="marketing-mobile-nav"
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
         onClick={() => setOpen((v) => !v)}
         className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-cream/25 text-cream-bright transition-colors hover:border-cream/50"
       >
@@ -54,7 +57,7 @@ export function MarketingMobileMenu({ links }: { links: { href: string; label: s
               onClick={() => setOpen(false)}
               className="rounded-lg px-2 py-2 text-cream/80 transition-colors hover:text-brand-cyan"
             >
-              Sign in
+              {t("nav.signIn")}
             </Link>
             <Link
               href="/onboarding"
@@ -62,8 +65,11 @@ export function MarketingMobileMenu({ links }: { links: { href: string; label: s
               onClick={() => setOpen(false)}
               className="mt-2 rounded-full bg-neon-magenta px-5 py-2.5 text-center font-bold text-ink-stage shadow-[0_6px_24px_rgba(255,45,174,0.35)]"
             >
-              Build my profile
+              {t("nav.buildProfile")}
             </Link>
+            <div className="px-2 pt-2">
+              <LanguageSwitcher />
+            </div>
           </nav>
         </div>
       )}

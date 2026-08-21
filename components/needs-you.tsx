@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { holdScheduledSend } from "@/app/actions/drafts";
 import { Kicker } from "@/components/ui";
+import { getTranslations } from "@/lib/i18n/server";
 
 /**
  * The Today queue (P9.4): the 30-seconds-a-day habit is "open app, approve
@@ -11,6 +12,7 @@ import { Kicker } from "@/components/ui";
  * (anchored to their card in the feed below). Hidden when nothing needs you.
  */
 export async function NeedsYou({ businessId, now }: { businessId: string; now: Date }) {
+  const { locale, t } = await getTranslations();
   const [drafts, pitches] = await Promise.all([
     db.draft.findMany({
       where: { status: "PENDING", lead: { businessId } },
@@ -41,17 +43,17 @@ export async function NeedsYou({ businessId, now }: { businessId: string; now: D
 
   const age = (d: Date) => {
     const h = Math.floor((now.getTime() - d.getTime()) / 3600_000);
-    if (h < 1) return "just now";
-    if (h < 24) return `${h}h`;
-    return `${Math.floor(h / 24)}d`;
+    if (h < 1) return t("dashboard.queue.justNow");
+    if (h < 24) return locale === "th" ? `${h} ชม.` : `${h}h`;
+    return locale === "th" ? `${Math.floor(h / 24)} วัน` : `${Math.floor(h / 24)}d`;
   };
 
   return (
     <section className="mb-6 rounded-3xl bg-cream px-5 py-4 shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <Kicker>Needs you</Kicker>
+        <Kicker>{t("dashboard.queue.title")}</Kicker>
         <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-          {total} waiting · ~30 seconds
+          {t("dashboard.queue.waiting", { count: total })}
         </span>
       </div>
       <ul className="divide-y divide-ink-stage/10">
@@ -69,14 +71,16 @@ export async function NeedsYou({ businessId, now }: { businessId: string; now: D
                 className="group flex min-w-0 flex-1 items-center justify-between gap-3 py-2"
               >
                 <span className="min-w-0 truncate text-sm font-semibold text-ink-stage group-hover:text-brand-cyan transition-colors">
-                  Reply to {d.lead.clientName ?? "a new inquiry"}
+                  {t("dashboard.queue.reply", {
+                    name: d.lead.clientName ?? t("dashboard.queue.newInquiry"),
+                  })}
                 </span>
                 <span className="flex flex-none items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-ink-stage/45">
                   {holdMinutes === null
-                    ? `draft · ${age(d.createdAt)}`
+                    ? t("dashboard.queue.draft", { age: age(d.createdAt) })
                     : holdMinutes > 0
-                      ? `auto-sends in ${holdMinutes}m`
-                      : "sending now"}
+                      ? t("dashboard.queue.autoSend", { minutes: holdMinutes })
+                      : t("dashboard.queue.sending")}
                   <span aria-hidden className="text-brand-cyan">→</span>
                 </span>
               </Link>
@@ -91,7 +95,7 @@ export async function NeedsYou({ businessId, now }: { businessId: string; now: D
                     type="submit"
                     className="rounded-full border-[1.5px] border-ink-stage/25 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-ink-stage/70 transition-colors hover:border-brand-cyan hover:text-brand-cyan"
                   >
-                    Hold
+                    {t("dashboard.queue.hold")}
                   </button>
                 </form>
               )}
@@ -108,7 +112,7 @@ export async function NeedsYou({ businessId, now }: { businessId: string; now: D
               className="flex min-h-11 items-center justify-between gap-3 py-2 group"
             >
               <span className="min-w-0 truncate text-sm font-semibold text-ink-stage group-hover:text-brand-cyan transition-colors">
-                {p.followUpOfId ? "Follow-up to" : "Pitch"} {p.venue.name}
+                {p.followUpOfId ? t("dashboard.queue.followUp") : t("dashboard.queue.pitch")} {p.venue.name}
               </span>
               <span className="flex flex-none items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-ink-stage/45">
                 pitch · {age(p.createdAt)}

@@ -11,6 +11,7 @@ import { videoEmbedUrl } from "@/lib/profile/video";
 import { GradientBlob, RingsBackdrop, StickerChip, VinylDisc } from "@/components/collage";
 import { EpkInquiryForm } from "@/components/epk-inquiry-form";
 import { medianReplyMinutes } from "@/lib/reports/results";
+import { languageTag, normalizeLocale } from "@/lib/i18n/config";
 
 // 14.2: the EPK is fully public and read-only — 5-minute ISR IS the cache
 // (and the rate limit: repeat hits serve statically, no DB/render cost).
@@ -54,11 +55,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const business = await getEpkBusiness(slug);
   if (!business) return {};
+  const thai = normalizeLocale(business.locale) === "th";
   const title = business.headline || business.name;
   const description =
     business.bio && business.bio.length > 160
       ? `${business.bio.slice(0, 157).trimEnd()}…`
-      : business.bio || `Booking and availability — ${business.name}.`;
+      : business.bio || (thai ? `ข้อมูลการจองและวันว่าง — ${business.name}` : `Booking and availability — ${business.name}.`);
   return {
     title: `${title} — ${business.name}`,
     description,
@@ -128,8 +130,10 @@ export default async function EpkPage({ params }: Props) {
   const { slug } = await params;
   const business = await getEpkBusiness(slug);
   if (!business) notFound();
+  const locale = normalizeLocale(business.locale);
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
 
-  const money = new Intl.NumberFormat("en-US", {
+  const money = new Intl.NumberFormat(languageTag(locale), {
     style: "currency",
     currency: business.currency,
     maximumFractionDigits: 0,
@@ -211,11 +215,11 @@ export default async function EpkPage({ params }: Props) {
                 href="#inquire"
                 className="inline-block rounded-full bg-neon-magenta px-7 py-3 font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.35)] transition-opacity hover:opacity-90"
               >
-                Check availability
+                {c("Check availability", "เช็กวันว่าง")}
               </a>
               {respondsFast && (
                 <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-cream/65">
-                  Usually replies within the hour
+                  {c("Usually replies within the hour", "โดยปกติตอบภายในหนึ่งชั่วโมง")}
                 </span>
               )}
             </div>
@@ -229,20 +233,20 @@ export default async function EpkPage({ params }: Props) {
             href="#inquire"
             className="pointer-events-auto rounded-full bg-neon-magenta px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_28px_rgba(255,45,174,0.45)] transition-opacity hover:opacity-90"
           >
-            Check availability
+            {c("Check availability", "เช็กวันว่าง")}
           </a>
         </div>
 
         {/* VIDEO — the first recognizable YouTube/Vimeo link, lazy iframe. */}
         {embedUrl && (
           <section className="mt-14">
-            <EpkKicker>See it live</EpkKicker>
+            <EpkKicker>{c("See it live", "ชมการแสดง")}</EpkKicker>
             <div className="relative mt-4">
               <GradientBlob tone="show" className="-bottom-8 -left-8 h-40 w-56" />
               <div className="relative aspect-video overflow-hidden rounded-3xl bg-ink-raised shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
                 <iframe
                   src={embedUrl}
-                  title={`${business.name} — performance video`}
+                  title={c(`${business.name} — performance video`, `${business.name} — วิดีโอการแสดง`)}
                   loading="lazy"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -256,7 +260,7 @@ export default async function EpkPage({ params }: Props) {
         {/* PHOTOS — asymmetric grid of external images. */}
         {business.photoUrls.length > 0 && (
           <section className="mt-14">
-            <EpkKicker>The room, mid-set</EpkKicker>
+            <EpkKicker>{c("The room, mid-set", "บรรยากาศการแสดง")}</EpkKicker>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {/* 12.5 booker-first: three strong photos beat nine — the page
                   stays fast and the media stays above the packages. */}
@@ -266,7 +270,7 @@ export default async function EpkPage({ params }: Props) {
                 <img
                   key={url}
                   src={url}
-                  alt={`${business.name} — photo ${i + 1}`}
+                  alt={c(`${business.name} — photo ${i + 1}`, `${business.name} — รูปที่ ${i + 1}`)}
                   loading="lazy"
                   className={`h-52 w-full rounded-2xl object-cover sm:h-60 ${
                     i % 5 === 0 ? "col-span-2 sm:col-span-1" : ""
@@ -290,7 +294,7 @@ export default async function EpkPage({ params }: Props) {
                   </p>
                 ))}
                 <p className="mt-6 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/45">
-                  What clients say
+                  {c("What clients say", "เสียงจากลูกค้า")}
                 </p>
               </div>
             </div>
@@ -300,7 +304,7 @@ export default async function EpkPage({ params }: Props) {
         {/* NOTABLE VENUES — a single mono statement line. */}
         {business.notableVenues.length > 0 && (
           <section className="mt-14">
-            <EpkKicker>Rooms played</EpkKicker>
+            <EpkKicker>{c("Rooms played", "สถานที่ที่เคยแสดง")}</EpkKicker>
             <p className="mt-3 font-mono text-sm font-bold uppercase tracking-[0.18em] leading-loose text-cream/75">
               {business.notableVenues.join("  ·  ")}
             </p>
@@ -310,7 +314,7 @@ export default async function EpkPage({ params }: Props) {
         {/* PACKAGES — names + price ranges on a cream poster panel. */}
         {business.packages.length > 0 && (
           <section className="mt-14">
-            <EpkKicker>Packages</EpkKicker>
+            <EpkKicker>{c("Packages", "แพ็กเกจ")}</EpkKicker>
             <div className="mt-4 overflow-hidden rounded-3xl bg-cream">
               <ul className="divide-y divide-ink-stage/10">
                 {business.packages.map((pkg) => (
@@ -339,11 +343,11 @@ export default async function EpkPage({ params }: Props) {
         {/* SERVICE AREA + travel policy + practicals. */}
         {(business.serviceCities.length > 0 || business.travelPolicy) && (
           <section className="mt-14">
-            <EpkKicker>Where I play</EpkKicker>
+            <EpkKicker>{c("Where I play", "พื้นที่รับงาน")}</EpkKicker>
             <div className="mt-3 max-w-2xl space-y-2 text-base text-cream/70">
               {business.serviceCities.length > 0 && (
                 <p>
-                  Based around{" "}
+                  {c("Based around", "ประจำอยู่แถว")}{" "}
                   <span className="font-semibold text-cream-bright">
                     {business.serviceCities.join(", ")}
                   </span>
@@ -358,7 +362,7 @@ export default async function EpkPage({ params }: Props) {
         {/* RIDER — how the act performs and what it needs on the day. */}
         {business.riderNotes && (
           <section className="mt-14">
-            <EpkKicker>What I bring &amp; need</EpkKicker>
+            <EpkKicker>{c("What I bring & need", "อุปกรณ์ที่นำมาและสิ่งที่ต้องการ")}</EpkKicker>
             <p className="mt-3 max-w-2xl whitespace-pre-line text-base leading-relaxed text-cream/70">
               {business.riderNotes}
             </p>
@@ -369,7 +373,7 @@ export default async function EpkPage({ params }: Props) {
             artist's own links. */}
         {business.socialLinks.length > 0 && (
           <section className="mt-14">
-            <EpkKicker>Find me</EpkKicker>
+            <EpkKicker>{c("Find me", "ติดตามผลงาน")}</EpkKicker>
             <div className="mt-3 flex flex-wrap gap-2.5">
               {business.socialLinks.map((url) => (
                 <a
@@ -393,13 +397,13 @@ export default async function EpkPage({ params }: Props) {
             <GradientBlob tone="show" className="-top-12 left-1/2 h-32 w-64 -translate-x-1/2" />
             <div className="relative">
               <p className="text-3xl sm:text-5xl font-black tracking-tighter leading-[0.95]">
-                Got a date in{" "}
+                {c("Got a date in", "มีวันจัดงานใน")}{" "}
                 <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
-                  mind?
+                  {c("mind?", "ใจแล้วหรือยัง?")}
                 </span>
               </p>
               <div className="mt-8">
-                <EpkInquiryForm slug={business.slug} artistName={business.name} />
+                <EpkInquiryForm slug={business.slug} artistName={business.name} locale={locale} />
               </div>
               <p className="mt-6">
                 <a
@@ -408,7 +412,7 @@ export default async function EpkPage({ params }: Props) {
                   rel="noopener noreferrer"
                   className="text-sm font-semibold text-cream/55 underline-offset-4 hover:text-cream-bright hover:underline"
                 >
-                  Download one-pager (PDF)
+                  {c("Download one-pager (PDF)", "ดาวน์โหลดข้อมูลหนึ่งหน้า (PDF)")}
                 </a>
               </p>
             </div>

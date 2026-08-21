@@ -23,6 +23,24 @@ import {
   type VenuePitchDiscardReason,
 } from "@/lib/feedback/owner-controls";
 import { SKIP_REASONS, type SkipReason } from "@/lib/venues/feed";
+import { useI18n } from "@/components/locale-provider";
+import { languageTag } from "@/lib/i18n/config";
+
+const THAI_DISCARD_REASONS: Record<VenuePitchDiscardReason, string> = {
+  WRONG_DETAILS: "รายละเอียดไม่ถูกต้อง",
+  WRONG_TONE: "สำนวนไม่เหมือนฉัน",
+  TOO_GENERIC: "ข้อความกว้างเกินไป",
+  WRONG_APPROACH: "ลองใช้มุมอื่น",
+  HANDLE_MYSELF: "ฉันจะเขียนเอง",
+};
+const THAI_SKIP_REASONS: Record<SkipReason, string> = {
+  WRONG_VIBE: "บรรยากาศไม่เหมาะ",
+  TOO_FAR: "ไกลเกินไป",
+  BELOW_FEE: "ค่าจ้างต่ำกว่าเรตของฉัน",
+  NO_ENTERTAINMENT: "ไม่รับการแสดงประเภทของฉัน",
+  STALE_OR_CLOSED: "ปิดแล้วหรือข้อมูลเก่า",
+  NOT_INTERESTED: "ไม่สนใจ",
+};
 
 /** The slice of a VenuePitch row the review card renders. */
 export type HuntPitch = {
@@ -41,6 +59,7 @@ export type HuntPitch = {
 
 /** "Draft pitch" with an inline error line (LLM hiccups deserve words, not silence). */
 export function DraftPitchButton({ venueId }: { venueId: string }) {
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +77,7 @@ export function DraftPitchButton({ venueId }: { venueId: string }) {
           })
         }
       >
-        {pending ? "Writing your pitch…" : "Draft pitch"}
+        {pending ? t("dashboard.pitch.writing") : t("dashboard.pitch.draft")}
       </button>
       {error && <p className="mt-1.5 text-xs font-semibold text-red-600">{error}</p>}
     </div>
@@ -82,6 +101,7 @@ export function VenuePitchReview({
   mailboxConnected?: boolean;
   postalAddressReady?: boolean;
 }) {
+  const { locale, t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -107,7 +127,7 @@ export function VenuePitchReview({
   const handoff = consentFirst || manualReviewLanguage;
   const canSend = !handoff && pitch.status === "APPROVED" && mailboxConnected && !sentAt;
   const sentLabel = sentAt
-    ? new Date(sentAt).toLocaleString("en-US", {
+    ? new Date(sentAt).toLocaleString(languageTag(locale), {
         month: "short",
         day: "numeric",
         hour: "numeric",
@@ -144,12 +164,12 @@ export function VenuePitchReview({
     <div className="mt-4 border-t border-ink-stage/10 pt-3">
       <div className="flex items-center justify-between gap-2">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-ink-stage/50">
-          Draft pitch
+          {t("dashboard.pitch.draft")}
         </p>
         {sentAt ? (
-          <Badge tone="teal">Sent</Badge>
+          <Badge tone="teal">{t("dashboard.pitch.sent")}</Badge>
         ) : (
-          pitch.status === "APPROVED" && <Badge tone="cyan">Ready to send</Badge>
+          pitch.status === "APPROVED" && <Badge tone="cyan">{t("dashboard.pitch.ready")}</Badge>
         )}
       </div>
 
@@ -159,7 +179,7 @@ export function VenuePitchReview({
             value={draftSubject}
             onChange={(e) => setDraftSubject(e.target.value)}
             maxLength={120}
-            aria-label="Pitch subject"
+            aria-label={t("dashboard.pitch.subject")}
             className="w-full rounded-xl border border-ink-stage/15 bg-cream/60 px-3 py-1.5 text-sm font-bold text-ink-stage focus:outline-none focus:ring-2 focus:ring-brand-cyan"
           />
           <textarea
@@ -167,7 +187,7 @@ export function VenuePitchReview({
             onChange={(e) => setDraftBody(e.target.value)}
             rows={8}
             maxLength={4000}
-            aria-label="Pitch body"
+            aria-label={t("dashboard.pitch.body")}
             className="w-full rounded-xl border border-ink-stage/15 bg-cream/60 px-3 py-2 text-sm text-ink-stage focus:outline-none focus:ring-2 focus:ring-brand-cyan"
           />
           {hasDraftEdits && !voiceExampleSaved && (
@@ -180,16 +200,16 @@ export function VenuePitchReview({
                   disabled={pending}
                   className="mt-0.5 size-4 accent-brand-cyan"
                 />
-                Save this edit as a voice example
+                {t("dashboard.pitch.saveVoice")}
               </label>
               <p className="ml-6 mt-1 text-xs text-ink-stage/50">
-                Optional. Editing this pitch alone won&apos;t change future writing.
+                {t("dashboard.pitch.saveVoiceHint")}
               </p>
             </div>
           )}
           {voiceExampleSaved && (
             <p className="text-xs font-semibold text-ink-stage/55">
-              A voice example from this pitch has already been saved.
+              {t("dashboard.pitch.voiceSaved")}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
@@ -221,7 +241,7 @@ export function VenuePitchReview({
                 })
               }
             >
-              Save
+              {t("common.save")}
             </button>
             <button
               type="button"
@@ -234,7 +254,7 @@ export function VenuePitchReview({
                 setEditing(false);
               }}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
           </div>
         </div>
@@ -254,7 +274,10 @@ export function VenuePitchReview({
 
       {sentAt && sentLabel && (
         <p className="mt-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-          Sent {sentLabel} {handoff ? "by you" : "from your mailbox"}
+          {t("dashboard.pitch.sentAt", {
+            date: sentLabel,
+            method: handoff ? t("dashboard.pitch.byYou") : t("dashboard.pitch.fromMailbox"),
+          })}
         </p>
       )}
 
@@ -267,26 +290,26 @@ export function VenuePitchReview({
                   href="/dashboard/settings#business-mailing-address"
                   className="text-brand-cyan hover:opacity-80"
                 >
-                  Add your business mailing address
+                  {t("dashboard.pitch.addAddress")}
                 </a>{" "}
-                before copying or sending
+                {t("dashboard.pitch.beforeCopy")}
               </>
             ) : consentFirst ? (
-              "Only send if you have consent or another lawful basis — copying it manually is not compliance"
+              t("dashboard.pitch.lawful")
             ) : (
-              "Review every line, then copy and send it yourself"
+              t("dashboard.pitch.reviewEvery")
             )
           ) : mailboxConnected ? (
-            "Sends from your own inbox — venues hear from you"
+            t("dashboard.pitch.fromInbox")
           ) : (
             <>
               <a
                 href="/dashboard/settings#connections"
                 className="text-brand-cyan hover:opacity-80"
               >
-                Connect your mailbox
+                {t("dashboard.pitch.connect")}
               </a>{" "}
-              to send
+              {t("dashboard.pitch.toSend")}
             </>
           )}
         </p>
@@ -302,7 +325,7 @@ export function VenuePitchReview({
                 className={`${buttonStyles.primary} min-h-11 w-full px-3.5 py-1.5 text-sm sm:min-h-0 sm:w-auto`}
                 onClick={() => run(() => approveVenuePitch(pitch.id))}
               >
-                Approve
+                {t("dashboard.pitch.approve")}
               </button>
               <button
                 type="button"
@@ -314,7 +337,7 @@ export function VenuePitchReview({
                   setEditing(true);
                 }}
               >
-                Edit
+                {t("common.edit")}
               </button>
             </>
           )}
@@ -333,7 +356,7 @@ export function VenuePitchReview({
                 })
               }
             >
-              {pending ? "Sending…" : "Send now"}
+              {pending ? t("dashboard.pitch.sending") : t("dashboard.pitch.send")}
             </button>
           )}
           {handoff && pitch.status === "APPROVED" && (
@@ -344,7 +367,7 @@ export function VenuePitchReview({
                 className={`${buttonStyles.secondaryOnLight} px-3.5 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-45`}
                 onClick={() => run(copyPitch)}
               >
-                {copied ? "Copied" : "Copy pitch"}
+                {copied ? t("dashboard.pitch.copied") : t("dashboard.pitch.copy")}
               </button>
               {copyPrepared && (
                 <button
@@ -363,8 +386,8 @@ export function VenuePitchReview({
                   }
                 >
                   {consentFirst
-                    ? "I had a lawful basis and sent it"
-                    : "I reviewed and sent it"}
+                    ? t("dashboard.pitch.lawfulSent")
+                    : t("dashboard.pitch.reviewedSent")}
                 </button>
               )}
             </>
@@ -372,13 +395,13 @@ export function VenuePitchReview({
           <details className="relative">
             <summary
               className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
-              title="Discard this wording but keep the venue available"
+              title={t("dashboard.pitch.discardTitle")}
             >
-              Discard draft
+              {t("dashboard.pitch.discard")}
             </summary>
             <div className="absolute right-0 top-full z-20 mt-2 w-60 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
               <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
-                What needs fixing?
+                {t("dashboard.pitch.fix")}
               </p>
               {(Object.keys(VENUE_PITCH_DISCARD_REASONS) as VenuePitchDiscardReason[]).map(
                 (reason) => (
@@ -389,7 +412,9 @@ export function VenuePitchReview({
                     className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream disabled:opacity-50"
                     onClick={() => run(() => discardVenuePitch(pitch.id, reason))}
                   >
-                    {VENUE_PITCH_DISCARD_REASONS[reason]}
+                    {locale === "th"
+                      ? THAI_DISCARD_REASONS[reason]
+                      : VENUE_PITCH_DISCARD_REASONS[reason]}
                   </button>
                 ),
               )}
@@ -398,13 +423,13 @@ export function VenuePitchReview({
           <details className="relative">
             <summary
               className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none px-3.5 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
-              title="Remove this venue and record why it missed"
+              title={t("dashboard.pitch.notFitTitle")}
             >
-              Not a fit
+              {t("dashboard.hunt.notFit")}
             </summary>
             <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
               <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
-                What missed?
+                {t("dashboard.hunt.whatMissed")}
               </p>
               {(Object.keys(SKIP_REASONS) as SkipReason[]).map((reason) => (
                 <button
@@ -414,7 +439,7 @@ export function VenuePitchReview({
                   className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream disabled:opacity-50"
                   onClick={() => run(() => skipVenuePitch(pitch.id, reason))}
                 >
-                  {SKIP_REASONS[reason]}
+                  {locale === "th" ? THAI_SKIP_REASONS[reason] : SKIP_REASONS[reason]}
                 </button>
               ))}
             </div>

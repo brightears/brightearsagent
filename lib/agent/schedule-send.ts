@@ -3,6 +3,8 @@ import { sendDraftReply, SEND_ERR } from "@/lib/agent/send-reply";
 import { canAutoSend } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
+import { normalizeLocale } from "@/lib/i18n/config";
+import { translator } from "@/lib/i18n/messages";
 
 /**
  * The "sending soon" buffer (P10.4). Autonomous sends — auto-send first
@@ -54,7 +56,8 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
 
   for (const draft of due) {
     const business = draft.lead.business;
-    const label = draft.lead.clientName ?? "a lead";
+    const t = translator(normalizeLocale(business.locale));
+    const label = draft.lead.clientName ?? t("notification.newLead");
 
     // Re-validate autonomy at FIRE time (P15 review): the owner may have
     // untrusted the source or downgraded plan during the 15-min buffer. If
@@ -80,8 +83,10 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
         // Informational receipt — push only (emailing every autonomous send
         // would defeat the point; the weekly report totals these).
         void notifyBusiness(business, {
-          title: draft.isFollowUp ? `Follow-up sent: ${label}` : `Auto-replied: ${label}`,
-          body: "Sent in your voice — tap to view the thread.",
+          title: draft.isFollowUp
+            ? t("notification.followUpSent", { name: label })
+            : t("notification.autoReplied", { name: label }),
+          body: t("notification.sentBody"),
           url: `/dashboard/leads/${draft.leadId}`,
           pushOnly: true,
         }).catch(() => null);
@@ -103,8 +108,8 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
           data: { scheduledSendAt: null },
         });
         void notifyBusiness(business, {
-          title: `Reply ready: ${label}`,
-          body: "Auto-send was blocked for this one — tap to review and send.",
+          title: t("notification.replyReady", { name: label }),
+          body: t("notification.autoBlocked"),
           url: `/dashboard/leads/${draft.leadId}`,
         }).catch(() => null);
       }
@@ -120,8 +125,8 @@ export async function runScheduledSends(now = new Date()): Promise<ScheduledSend
         })
         .catch(() => null);
       void notifyBusiness(business, {
-        title: `Reply needs you: ${label}`,
-        body: "The automatic send didn't go out — tap to review.",
+        title: t("notification.replyNeeds", { name: label }),
+        body: t("notification.sendFailed"),
         url: `/dashboard/leads/${draft.leadId}`,
       }).catch(() => null);
     }

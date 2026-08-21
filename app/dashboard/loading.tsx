@@ -4,16 +4,18 @@
 // (header + stat pills, a Hunt-feed hero card, the pipeline column grid) so
 // the swap to live content doesn't jump. Ink-canvas tokens only; the pulse is
 // guarded for reduced-motion (docs/DESIGN.md safety rule).
+import { getTranslations } from "@/lib/i18n/server";
 
 /** One ghost line — width set per call site to sketch the real text shape. */
 function Bar({ className }: { className: string }) {
   return <div className={`rounded-full bg-cream/10 ${className}`} />;
 }
 
-export default function DashboardLoading() {
+export default async function DashboardLoading() {
+  const { locale } = await getTranslations();
   return (
     <main className="flex-1 px-6 py-8 max-w-7xl mx-auto w-full">
-      <span className="sr-only">Loading your pipeline</span>
+      <span className="sr-only">{locale === "th" ? "กำลังโหลดไปป์ไลน์ของคุณ" : "Loading your pipeline"}</span>
       <div aria-hidden className="animate-pulse motion-reduce:animate-none">
         {/* Header: kicker, big title, subtitle — then the stat-pill row. */}
         <div className="pt-2">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { enablePush, getPushSnapshot } from "@/lib/push-client";
 import { buttonStyles } from "@/components/ui";
+import { useI18n } from "@/components/locale-provider";
 
 const DISMISS_KEY = "be-push-prompt-dismissed";
 
@@ -15,6 +16,8 @@ const DISMISS_KEY = "be-push-prompt-dismissed";
  * (the Control Room toggle remains the opt-in path after that).
  */
 export function PushPrompt() {
+  const { locale } = useI18n();
+  const c = (english: string, thai: string) => locale === "th" ? thai : english;
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -60,8 +63,8 @@ export function PushPrompt() {
   return (
     <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/30 px-4 py-3">
       <p className="min-w-48 flex-1 text-sm text-ink-stage/80">
-        <span className="font-bold text-ink-stage">Hear the ping.</span> Get notified the moment a
-        reply is ready — even mid-set.
+        <span className="font-bold text-ink-stage">{c("Hear the ping.", "รับเสียงแจ้งเตือน")}</span>{" "}
+        {c("Get notified the moment a reply is ready — even mid-set.", "รู้ทันทีเมื่อข้อความตอบพร้อม แม้คุณกำลังแสดงอยู่")}
       </p>
       <div className="flex flex-none items-center gap-3">
         <button
@@ -69,7 +72,7 @@ export function PushPrompt() {
           onClick={dismiss}
           className="text-sm font-semibold text-ink-stage/45 hover:text-ink-stage/70"
         >
-          Not now
+          {c("Not now", "ไว้ทีหลัง")}
         </button>
         <button
           type="button"
@@ -77,7 +80,7 @@ export function PushPrompt() {
           disabled={busy}
           className={`${buttonStyles.primary} text-sm`}
         >
-          {busy ? "Setting up…" : "Enable notifications"}
+          {busy ? c("Setting up…", "กำลังตั้งค่า…") : c("Enable notifications", "เปิดการแจ้งเตือน")}
         </button>
       </div>
     </div>

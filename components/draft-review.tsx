@@ -19,6 +19,15 @@ import {
   type DraftRejectionReason,
 } from "@/lib/feedback/owner-controls";
 import { parseFeeToMinor } from "@/lib/quote/fee";
+import { useI18n } from "@/components/locale-provider";
+
+const THAI_REJECTION_REASONS: Record<DraftRejectionReason, string> = {
+  WRONG_DETAILS: "รายละเอียดไม่ถูกต้อง",
+  WRONG_TONE: "สำนวนไม่เหมือนฉัน",
+  TOO_GENERIC: "ข้อความกว้างเกินไป",
+  HANDLE_MYSELF: "ฉันจะตอบเอง",
+  NOT_READY: "ฉันยังไม่พร้อมตอบ",
+};
 
 // "Mark booked" is the celebration: ghost pill at rest, magenta→orange
 // gradient on hover (ink text — white fails contrast on the orange end).
@@ -42,16 +51,17 @@ function RejectDraftMenu({
   busy: boolean;
   onReject: (reason: DraftRejectionReason) => void;
 }) {
+  const { locale, t } = useI18n();
   return (
     <details>
       <summary
         className={`${buttonStyles.secondaryOnLight} inline-block cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
       >
-        Reject
+        {t("dashboard.draft.reject")}
       </summary>
       <div className="mt-2 w-60 rounded-2xl border border-ink-stage/10 bg-white p-2 shadow-[0_16px_40px_rgba(0,0,0,0.25)]">
         <p className="px-2 pb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/45">
-          What needs fixing?
+          {t("dashboard.draft.fix")}
         </p>
         {(Object.keys(DRAFT_REJECTION_REASONS) as DraftRejectionReason[]).map((reason) => (
           <button
@@ -61,7 +71,7 @@ function RejectDraftMenu({
             className="w-full rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-ink-stage/80 transition-colors hover:bg-cream disabled:opacity-50"
             onClick={() => onReject(reason)}
           >
-            {DRAFT_REJECTION_REASONS[reason]}
+            {locale === "th" ? THAI_REJECTION_REASONS[reason] : DRAFT_REJECTION_REASONS[reason]}
           </button>
         ))}
       </div>
@@ -106,6 +116,7 @@ export function DraftReview({
   feeCurrency?: string;
   suggestedFeeMinor?: number | null;
 }) {
+  const { locale, t } = useI18n();
   const router = useRouter();
   const [editedSubject, setEditedSubject] = useState(subject);
   const [editedBody, setEditedBody] = useState(body);
@@ -145,7 +156,10 @@ export function DraftReview({
   };
 
   const fail = (error?: string) =>
-    setNote({ kind: "error", text: error ?? "Something went wrong — try again." });
+    setNote({
+      kind: "error",
+      text: error ?? (locale === "th" ? "เกิดข้อผิดพลาด โปรดลองอีกครั้ง" : "Something went wrong — try again."),
+    });
 
   const run = (action: () => Promise<ActionResult>, successText: (r: ActionResult) => string) =>
     startTransition(async () => {
@@ -167,8 +181,10 @@ export function DraftReview({
         }),
       (r) =>
         r.transport === "dev"
-          ? "Reply sent via the dev transport — saved to .dev-outbox/ (no real email until Postmark is connected)."
-          : "Reply sent — the lead is now in Replied.",
+          ? (locale === "th"
+              ? "บันทึกคำตอบไว้ในระบบทดสอบแล้ว ยังไม่มีอีเมลจริงจนกว่าจะเชื่อมต่อ Postmark"
+              : "Reply sent via the dev transport — saved to .dev-outbox/ (no real email until Postmark is connected).")
+          : t("dashboard.draft.replySent"),
     );
   };
 
@@ -179,12 +195,12 @@ export function DraftReview({
       await navigator.clipboard.writeText(editedBody);
       setNote({
         kind: "success",
-        text: `Copied — paste it into the ${platform?.name} conversation, then tap “I sent it” so follow-through gets recorded.`,
+        text: t("dashboard.draft.copied", { platform: platform?.name ?? "" }),
       });
     } catch {
       setNote({
         kind: "error",
-        text: "Couldn't reach the clipboard — select the reply text and copy it manually.",
+        text: t("dashboard.draft.copyError"),
       });
     }
   };
@@ -192,14 +208,14 @@ export function DraftReview({
   const onSentOnPlatform = () => {
     run(
       () => markSentOnPlatform(draftId, edits()),
-      () => "Recorded — the lead is now in Replied.",
+      () => t("dashboard.draft.recorded"),
     );
   };
 
   const onReject = (reason: DraftRejectionReason) =>
     run(
       () => rejectDraft(draftId, reason),
-      () => "Draft rejected — it won't be sent.",
+      () => t("dashboard.draft.rejected"),
     );
 
   const onBooked = () =>
@@ -207,14 +223,14 @@ export function DraftReview({
       () => markBooked(leadId, parseFeeToMinor(fee) ?? undefined),
       (r) =>
         r.confirmationDrafted
-          ? "Marked booked — a confirmation email is drafted for your approval."
-          : "Marked booked — follow-ups stopped and the gig is on your calendar.",
+          ? t("dashboard.draft.bookedConfirmation")
+          : t("dashboard.draft.booked"),
     );
 
   const onDead = () =>
     run(
       () => markDead(leadId),
-      () => "Marked dead — all follow-ups stopped.",
+      () => t("dashboard.draft.dead"),
     );
 
   return (
@@ -230,10 +246,10 @@ export function DraftReview({
 
       <div className="-mt-2.5 flex flex-wrap items-center justify-between gap-2 px-6 pt-4 pb-3">
         <h2 className="text-sm font-extrabold tracking-tight text-ink-stage">
-          Reply ready — written in your voice
+          {t("dashboard.draft.readyTitle")}
         </h2>
         <StickerChip tone="magenta" rotate={3}>
-          Reply ready
+          {t("dashboard.draft.ready")}
         </StickerChip>
       </div>
 
@@ -243,7 +259,7 @@ export function DraftReview({
             htmlFor="draft-subject"
             className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
           >
-            Subject
+            {t("dashboard.draft.subject")}
           </label>
           <input
             id="draft-subject"
@@ -261,8 +277,8 @@ export function DraftReview({
             className="mb-1 block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
           >
             {platform
-              ? `Reply — edit freely, then paste it on ${platform.name}`
-              : "Reply — edit freely, it sends as you"}
+              ? t("dashboard.draft.replyPlatform", { platform: platform.name })
+              : t("dashboard.draft.replyEmail")}
           </label>
           <textarea
             id="draft-body"
@@ -285,10 +301,10 @@ export function DraftReview({
                 disabled={busy}
                 className="mt-0.5 size-4 accent-brand-cyan"
               />
-              Save this edit as a voice example
+              {t("dashboard.draft.saveVoice")}
             </label>
             <p className="ml-6 mt-1 text-xs text-ink-stage/50">
-              Optional. Editing this reply alone won&apos;t change future writing.
+              {t("dashboard.draft.saveVoiceHint")}
             </p>
           </div>
         )}
@@ -309,7 +325,7 @@ export function DraftReview({
         {!platform && (canAttachPressKit || canAttachQuote) && (
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-white/60 px-3 py-2.5">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-ink-stage/45">
-              Attach
+              {t("dashboard.draft.attach")}
             </span>
             {canAttachPressKit && (
               <label className="flex items-center gap-2 text-sm text-ink-stage/80">
@@ -320,9 +336,9 @@ export function DraftReview({
                   disabled={busy}
                   className="size-4 accent-brand-cyan"
                 />
-                Press kit
+                {t("dashboard.draft.pressKit")}
                 {suggestPressKit && (
-                  <span className="font-semibold text-brand-cyan">· they asked</span>
+                  <span className="font-semibold text-brand-cyan">· {t("dashboard.draft.asked")}</span>
                 )}
               </label>
             )}
@@ -335,9 +351,9 @@ export function DraftReview({
                   disabled={busy}
                   className="size-4 accent-brand-cyan"
                 />
-                Quote
+                {t("dashboard.draft.quote")}
                 {suggestQuote && (
-                  <span className="font-semibold text-brand-cyan">· they asked</span>
+                  <span className="font-semibold text-brand-cyan">· {t("dashboard.draft.asked")}</span>
                 )}
               </label>
             )}
@@ -355,7 +371,7 @@ export function DraftReview({
               disabled={busy}
               className={`${buttonStyles.primary} flex-1 sm:flex-none sm:px-8`}
             >
-              Copy reply
+              {t("dashboard.draft.copy")}
             </button>
             {platform.inboxUrl && (
               <a
@@ -364,7 +380,7 @@ export function DraftReview({
                 rel="noopener noreferrer"
                 className={buttonStyles.secondaryOnLight}
               >
-                Open {platform.name}
+                {t("dashboard.draft.open", { platform: platform.name })}
               </a>
             )}
             <button
@@ -373,7 +389,7 @@ export function DraftReview({
               disabled={busy}
               className={buttonStyles.secondaryOnLight}
             >
-              {isPending ? "Working…" : "I sent it there"}
+              {isPending ? t("dashboard.draft.working") : t("dashboard.draft.sentThere")}
             </button>
             <RejectDraftMenu busy={busy} onReject={onReject} />
           </div>
@@ -386,7 +402,7 @@ export function DraftReview({
               disabled={busy}
               className={`${buttonStyles.primary} flex-1 sm:flex-none sm:px-8`}
             >
-              {isPending ? "Working…" : "Approve & send"}
+              {isPending ? t("dashboard.draft.working") : t("dashboard.draft.approveSend")}
             </button>
             {/* Ghost pill — ink outline on the cream panel (cream outline would vanish here). */}
             <RejectDraftMenu busy={busy} onReject={onReject} />
@@ -395,8 +411,7 @@ export function DraftReview({
 
         <div className="border-t border-ink-stage/10 pt-4">
           <p className="mb-2 text-xs text-ink-stage/55">
-            Already settled this one outside the thread? Set the outcome — follow-ups stop
-            instantly.
+            {t("dashboard.draft.outcomeHint")}
           </p>
           {bookingOpen ? (
             <div className="space-y-2">
@@ -404,7 +419,7 @@ export function DraftReview({
                 htmlFor="booked-fee"
                 className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-ink-stage/55"
               >
-                Fee — optional, stays private ({feeCurrency})
+                {t("dashboard.draft.fee", { currency: feeCurrency })}
               </label>
               <div className="flex flex-wrap items-center gap-3">
                 <input
@@ -417,7 +432,7 @@ export function DraftReview({
                   className="w-36 rounded-xl border border-ink-stage/15 bg-white px-3 py-2 text-base sm:text-sm text-ink-stage focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/40 disabled:opacity-60"
                 />
                 <button type="button" onClick={onBooked} disabled={busy} className={bookedButtonStyle}>
-                  Confirm booked
+                  {t("dashboard.draft.confirmBooked")}
                 </button>
                 <button
                   type="button"
@@ -425,11 +440,11 @@ export function DraftReview({
                   disabled={busy}
                   className="text-sm font-semibold text-ink-stage/45 transition-colors hover:text-ink-stage/70"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </div>
               <p className="text-[11px] text-ink-stage/50">
-                Powers your booked-value receipts — the client never sees it.
+                {t("dashboard.draft.feeHint")}
               </p>
             </div>
           ) : (
@@ -440,10 +455,10 @@ export function DraftReview({
                 disabled={busy}
                 className={bookedButtonStyle}
               >
-                Mark booked
+                {t("dashboard.draft.markBooked")}
               </button>
               <button type="button" onClick={onDead} disabled={busy} className={buttonStyles.danger}>
-                Mark dead
+                {t("dashboard.draft.markDead")}
               </button>
             </div>
           )}
