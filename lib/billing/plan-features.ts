@@ -7,13 +7,10 @@
 // actually consumed by the code. Add a field only when you wire it; the pricing
 // page only renders bullets backed by a field here.
 //
-// TRIAL = "free / not subscribed" (agent paused until subscribe — no auto
-// trial) and it FAILS CLOSED: zero inbound allowance, no autonomy, one city.
-// The old "mirror PRO for comped months" rationale was stale — a comped first
-// month is a real $0 Stripe subscription whose webhook flips plan to the paid
-// tier, so TRIAL never needs paid caps (audit 2026-07). isAgentPaused is the
-// primary gate; these caps are the belt-and-suspenders for any code path that
-// consults capability without checking the pause.
+// TRIAL = "free / not subscribed" and FAILS CLOSED: zero inbound allowance,
+// no autonomy, one city. A server-approved active beta remains stored as TRIAL
+// but lib/billing/metering.ts maps its metered allowance to Starter; the other
+// TRIAL capabilities already equal Starter. No generic signup receives this.
 import type { PlanTier } from "@/app/generated/prisma/enums";
 
 export interface PlanFeatures {
@@ -38,7 +35,7 @@ export interface PlanFeatures {
 }
 
 export const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
-  TRIAL: { leadCap: 0, autoSend: false, homeCityCap: 1, rosterCap: 1 }, // unsubscribed = fail closed (agent paused anyway)
+  TRIAL: { leadCap: 0, autoSend: false, homeCityCap: 1, rosterCap: 1 }, // inactive TRIAL fails closed; beta metering maps to Starter
   STARTER: { leadCap: 15, autoSend: false, homeCityCap: 1, rosterCap: 1 },
   PRO: { leadCap: 60, autoSend: true, homeCityCap: 3, rosterCap: 1 },
   STUDIO: { leadCap: 150, autoSend: true, homeCityCap: 25, rosterCap: 10 },

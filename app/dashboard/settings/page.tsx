@@ -207,6 +207,12 @@ function StrengthMeter({
 function BillingCard({ meter, state, locale }: { meter: MeterState; state: BillingState; locale: Locale }) {
   const pct = meter.cap > 0 ? Math.min(100, Math.round((meter.used / meter.cap) * 100)) : 100;
   const c = (english: string, thai: string) => locale === "th" ? thai : english;
+  const agentActive = state.subscribed || state.betaActive;
+  const betaEnd = state.betaEndsAt?.toLocaleDateString(locale === "th" ? "th-TH" : "en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   const planBlurb = (plan: (typeof PLAN_CARDS)[number]) => locale === "th"
     ? ({
         STARTER: `ค้นหาสถานที่และตอบคำถาม · ${PLAN_LEAD_CAPS.STARTER} ข้อความ/เดือน · คุณอนุมัติทุกครั้ง`,
@@ -232,14 +238,34 @@ function BillingCard({ meter, state, locale }: { meter: MeterState; state: Billi
             style={{ width: `${pct}%` }}
           />
         </div>
-        {meter.overCap && state.subscribed && (
+        {meter.overCap && agentActive && (
           <p className="mt-3 rounded-xl bg-[#ffdfba] px-3 py-2 text-sm text-ink-stage/80">
             <span className="font-semibold text-[#7a4100]">{c("Inquiry cap reached", "ถึงขีดจำกัดข้อความสอบถามแล้ว")}</span>{" "}
             {c("— new inquiries still arrive, but drafting is paused until you upgrade. No surprise bill, ever.", "— ข้อความใหม่ยังเข้ามา แต่ระบบหยุดร่างจนกว่าจะอัปเกรด และจะไม่มีค่าใช้จ่ายเกินคาด")}
           </p>
         )}
       </div>
-      {!state.enabled ? (
+      {state.betaActive ? (
+        <div className="rounded-2xl border-2 border-brand-cyan bg-brand-cyan-soft/50 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <Badge tone="cyan">{c("30-day beta", "เบต้า 30 วัน")}</Badge>
+              <h3 className="mt-3 text-xl font-extrabold text-ink-stage">
+                {c("Your Starter beta is active", "เบต้าแผน Starter ของคุณเปิดใช้งานแล้ว")}
+              </h3>
+            </div>
+            <span className="font-mono text-xs font-bold uppercase tracking-[0.12em] text-ink-stage/60">
+              {c(`Ends ${betaEnd}`, `สิ้นสุด ${betaEnd}`)}
+            </span>
+          </div>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-stage/70">
+            {c(
+              "You have the complete Starter experience for 30 days. No payment method was collected and nothing renews automatically. At the end date your agent pauses; your setup and results stay saved, and only you can choose a paid plan.",
+              "คุณใช้ฟีเจอร์ของแผน Starter ได้ครบเป็นเวลา 30 วัน โดยไม่ต้องเพิ่มวิธีชำระเงินและไม่มีการต่ออายุอัตโนมัติ เมื่อครบกำหนด ผู้ช่วยจะหยุดชั่วคราว แต่การตั้งค่าและผลลัพธ์ทั้งหมดจะยังคงอยู่ และมีเพียงคุณเท่านั้นที่เลือกสมัครแผนแบบชำระเงินได้",
+            )}
+          </p>
+        </div>
+      ) : !state.enabled ? (
         <p className="text-sm text-ink-stage/60">{c("Billing isn't configured in this environment yet.", "ยังไม่ได้ตั้งค่าการเรียกเก็บเงินในระบบนี้")}</p>
       ) : state.subscribed ? (
         // The ladder stays visible after subscribing (audit 2026-07): upgrades
@@ -295,7 +321,15 @@ function BillingCard({ meter, state, locale }: { meter: MeterState; state: Billi
       ) : (
         <div>
           <p className="text-sm text-ink-stage/60 mb-5">
-            {c("Your agent is paused — choose a plan to switch it on. Your setup is saved and new inquiries still arrive; the moment you subscribe it starts replying in your voice and hunting venues for you.", "ผู้ช่วยหยุดชั่วคราว เลือกแผนเพื่อเปิดใช้งาน การตั้งค่าของคุณยังอยู่และข้อความใหม่ยังเข้ามา เมื่อสมัครแล้วผู้ช่วยจะเริ่มตอบด้วยน้ำเสียงของคุณและค้นหาสถานที่ให้ทันที")}
+            {state.betaExpired
+              ? c(
+                  "Your 30-day beta has ended and your agent is paused. Your setup, leads and results are still saved. Choose a plan only if you want Bright Ears to continue working for you.",
+                  "เบต้า 30 วันสิ้นสุดแล้วและผู้ช่วยหยุดชั่วคราว การตั้งค่า ลีด และผลลัพธ์ทั้งหมดของคุณยังคงอยู่ เลือกแผนเมื่อคุณต้องการให้ Bright Ears ทำงานต่อ",
+                )
+              : c(
+                  "Your agent is paused — choose a plan to switch it on. Your setup is saved and new inquiries still arrive; the moment you subscribe it starts replying in your voice and hunting venues for you.",
+                  "ผู้ช่วยหยุดชั่วคราว เลือกแผนเพื่อเปิดใช้งาน การตั้งค่าของคุณยังอยู่และข้อความใหม่ยังเข้ามา เมื่อสมัครแล้วผู้ช่วยจะเริ่มตอบด้วยน้ำเสียงของคุณและค้นหาสถานที่ให้ทันที",
+                )}
           </p>
           <div className="grid sm:grid-cols-3 gap-4">
             {PLAN_CARDS.map((p) => {
@@ -338,7 +372,11 @@ function BillingCard({ meter, state, locale }: { meter: MeterState; state: Billi
 
 /** Short, mono plan label for the header status readout. */
 function planLabel(state: BillingState, t: Translator): string {
-  return state.subscribed ? state.plan : t("settings.control.notSubscribed");
+  return state.betaActive
+    ? "Starter beta"
+    : state.subscribed
+      ? state.plan
+      : t("settings.control.notSubscribed");
 }
 
 export default async function ControlRoomPage({
@@ -363,7 +401,7 @@ export default async function ControlRoomPage({
   // One pass of the reads the cockpit needs: usage meter, billing state, the
   // profile-strength inputs, the live travel windows, and the mailbox state.
   const [meter, billingSt, activePackages, gigs, travelWindows, mailboxConn, sequenceTemplate, performers] = await Promise.all([
-    meterState(business.id, business.plan, new Date(), business.trialEndsAt, business.timezone),
+    meterState(business.id, business, new Date(), business.timezone),
     billingState(),
     db.package.count({ where: { businessId: business.id, active: true } }),
     db.gig.count({ where: { businessId: business.id } }),
@@ -630,11 +668,11 @@ export default async function ControlRoomPage({
                           <th
                             key={p}
                             className={`pb-2 pr-4 font-bold ${
-                              business.plan === p ? "text-brand-cyan" : ""
+                              billingSt.plan === p ? "text-brand-cyan" : ""
                             }`}
                           >
                             {p.charAt(0) + p.slice(1).toLowerCase()}
-                            {business.plan === p ? c(" · yours", " · ของคุณ") : ""}
+                            {billingSt.plan === p ? c(" · yours", " · ของคุณ") : ""}
                           </th>
                         ))}
                       </tr>
@@ -659,7 +697,7 @@ export default async function ControlRoomPage({
                               <td
                                 key={plan}
                                 className={`py-2.5 pr-4 font-mono text-xs font-bold ${
-                                  business.plan === plan ? "text-brand-cyan" : ""
+                                  billingSt.plan === plan ? "text-brand-cyan" : ""
                                 }`}
                               >
                                 {v}

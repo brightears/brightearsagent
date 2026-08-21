@@ -17,7 +17,7 @@ import { getTranslations } from "@/lib/i18n/server";
  */
 export async function ActivationChecklist({
   business,
-  subscribed,
+  agentActive,
 }: {
   business: {
     id: string;
@@ -30,7 +30,7 @@ export async function ActivationChecklist({
     voiceSignoff?: string | null;
     serviceCities: string[];
   };
-  subscribed: boolean;
+  agentActive: boolean;
 }) {
   const { t } = await getTranslations();
   const setup = getSetupStatus(business);
@@ -66,7 +66,7 @@ export async function ActivationChecklist({
     {
       label: t("dashboard.activation.plan"),
       detail: t("dashboard.activation.planDetail"),
-      done: subscribed,
+      done: agentActive,
       href: "/dashboard/settings#billing",
       cta: t("dashboard.activation.plan"),
     },

@@ -232,10 +232,13 @@ def validate_environment(values: dict[str, str], secret_files: set[str]) -> None
         "https://"
     ):
         errors.append("R2_PUBLIC_BASE_URL must be HTTPS")
-    if values.get("BETA_COMP_EMAILS", "").strip() and not values.get(
-        "BETA_PROMO_CODE", ""
-    ).strip():
-        errors.append("BETA_PROMO_CODE is required when BETA_COMP_EMAILS is configured")
+    beta_emails = [
+        email.strip()
+        for email in values.get("BETA_COMP_EMAILS", "").split(",")
+        if email.strip()
+    ]
+    if any(not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) for email in beta_emails):
+        errors.append("BETA_COMP_EMAILS must contain only comma-separated email addresses")
     if values.get("EMAIL_TRANSPORT", "").strip().lower() == "dev":
         errors.append("EMAIL_TRANSPORT=dev is forbidden")
     if values.get("DISCOVERY_PROVIDER", "").strip().lower() == "stub":

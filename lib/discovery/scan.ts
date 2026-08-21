@@ -61,6 +61,8 @@ export async function runDiscoveryScan(
     select: {
       id: true,
       plan: true,
+      betaStartedAt: true,
+      trialEndsAt: true,
       country: true,
       performerKind: true,
       serviceCities: true,
@@ -103,8 +105,8 @@ export async function runDiscoveryScan(
   // Subscription gate: an unsubscribed tenant's agent is paused everywhere — so
   // never spend Serper queries hunting for one (no losses on free users). The
   // reactive draft path + venue-pitch actions gate on the same isAgentPaused.
-  if (isAgentPaused(business.plan)) {
-    return { ...base, reason: "agent paused — no active subscription" };
+  if (isAgentPaused(business, now)) {
+    return { ...base, reason: "agent paused — no active paid or beta entitlement" };
   }
 
   // Travel Mode: a tenant with NO home cities can still be hunted in a travel

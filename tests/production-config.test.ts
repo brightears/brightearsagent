@@ -42,9 +42,12 @@ describe("production runtime configuration", () => {
     expect(validateProductionRuntimeConfig(LIVE_ENV)).toEqual({ ok: true, issues: [] });
   });
 
-  it("allows an inert beta promotion before the founder supplies invite emails", () => {
+  it("accepts an exact beta email allowlist without Stripe promotion configuration", () => {
     expect(
-      validateProductionRuntimeConfig({ ...LIVE_ENV, BETA_PROMO_CODE: "BETA_TEST_CODE" }),
+      validateProductionRuntimeConfig({
+        ...LIVE_ENV,
+        BETA_COMP_EMAILS: "first@example.com, second@example.com",
+      }),
     ).toEqual({ ok: true, issues: [] });
   });
 
@@ -74,7 +77,7 @@ describe("production runtime configuration", () => {
       GOOGLE_OAUTH_CLIENT_SECRET: undefined,
       R2_SECRET_ACCESS_KEY: undefined,
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: "different",
-      BETA_COMP_EMAILS: "tester@example.com",
+      BETA_COMP_EMAILS: "tester@example.com,not-an-email",
       EMAIL_TRANSPORT: "dev",
       DISCOVERY_PROVIDER: "stub",
       TOKEN_ENCRYPTION_KEY: "too-short",
@@ -85,5 +88,8 @@ describe("production runtime configuration", () => {
       expect.arrayContaining(["pair_incomplete", "missing", "mode_mismatch", "forbidden", "invalid"]),
     );
     expect(result.issues.some((issue) => issue.message.includes("secret-token-value"))).toBe(false);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ key: "BETA_COMP_EMAILS", code: "invalid" })]),
+    );
   });
 });

@@ -78,12 +78,12 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
   const AGING_MS = 4 * 3600 * 1000;
   const aging = await db.draft.findMany({
     where: { status: "PENDING", agingPingAt: null, createdAt: { lt: new Date(now.getTime() - AGING_MS) } },
-    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true, locale: true } } } } },
+    include: { lead: { include: { business: { select: { id: true, ownerEmail: true, plan: true, betaStartedAt: true, trialEndsAt: true, locale: true } } } } },
     take: 50,
   });
   for (const draft of aging) {
     await db.draft.update({ where: { id: draft.id }, data: { agingPingAt: now } });
-    if (isAgentPaused(draft.lead.business.plan)) continue;
+    if (isAgentPaused(draft.lead.business, now)) continue;
     const t = translator(normalizeLocale(draft.lead.business.locale));
     const leadName = draft.lead.clientName ?? t("notification.newLead");
     const hours = Math.round((now.getTime() - draft.createdAt.getTime()) / 3600_000);
@@ -127,13 +127,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
       result.skipped++;
       continue;
     }
-    const meter = await meterState(
-      lead.business.id,
-      lead.business.plan,
-      now,
-      lead.business.trialEndsAt,
-      lead.business.timezone,
-    );
+    const meter = await meterState(lead.business.id, lead.business, now, lead.business.timezone);
     if (meter.overCap) continue; // still capped — leave NEW, owner already nudged
     result.draftAttempts++;
     try {
@@ -218,7 +212,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
           drafts: { where: { status: { in: ["PENDING", "SENDING"] } } },
           // Autopilot (P8.5): plan + trusted sources decide whether this
           // step SENDS or waits for approval.
-          business: { select: { id: true, plan: true, autoSendSources: true, ownerEmail: true, locale: true } },
+          business: { select: { id: true, plan: true, betaStartedAt: true, trialEndsAt: true, autoSendSources: true, ownerEmail: true, locale: true } },
         },
       },
     },
@@ -257,7 +251,7 @@ export async function runSequenceTick(now = new Date()): Promise<TickResult> {
     // and the due-run loop must too, or follow-up steps would keep drafting
     // (and autopilot would keep sending) for a paused tenant. The run stays
     // open with nextRunAt in the past, so subscribing resumes it next tick.
-    if (isAgentPaused(lead.business.plan)) {
+    if (isAgentPaused(lead.business, now)) {
       result.skipped++;
       continue;
     }

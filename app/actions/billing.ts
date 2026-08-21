@@ -10,66 +10,7 @@ import { stripe, stripeEnabled, PLAN_LOOKUP_KEYS } from "@/lib/billing/stripe";
 // fails closed in production instead.
 import { appUrl } from "@/lib/app-url";
 import type { PlanTier } from "@/app/generated/prisma/enums";
-
-/**
- * Chosen beta testers get their first month comped — WITHOUT being asked to
- * type a code.
- *
- * Typing was the original design and it does not work: the configured code is
- * a valid, active 100%-off-once promotion, and Stripe's own hosted "Add
- * promotion code" box still answers "Something went wrong, please try again".
- * Attaching the exact same promotion code server-side takes the total to 0.00
- * every time (verified live, with adaptive pricing both on and off, via
- * scripts/diagnose-promo.ts). Stripe will not say why the interactive path
- * refuses it — a vague message is deliberate there, so codes cannot be
- * enumerated — so we stop depending on that path.
- *
- * It is also the better product. A tester invited personally should not have to
- * transcribe anything, and a code that fails in the redemption box fails at the
- * exact moment they are deciding whether to trust us — and they will not report
- * it, they will just leave.
- *
- * Controlled by env so the founder can change who is comped, or retire the
- * offer, without a deploy:
- *   BETA_COMP_EMAILS=a@x.com,b@y.com   owner emails to comp (exact match)
- *   BETA_PROMO_CODE=<private code>     the code whose coupon is applied
- * Unset either and nothing is comped. Deliberately an allowlist and not a URL
- * parameter: a link would get forwarded and the offer would escape.
- */
-async function compDiscountFor(ownerEmail: string) {
-  const allowed = (process.env.BETA_COMP_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  if (!allowed.includes(ownerEmail.trim().toLowerCase())) return null;
-
-  // An address on the invite allowlist was explicitly promised a $0 first
-  // month. Never silently turn that promise into a full-price checkout because
-  // an environment variable or Stripe promotion went missing.
-  const code = process.env.BETA_PROMO_CODE?.trim();
-  if (!code) {
-    throw new Error(
-      "Your beta invite could not be applied. You have not been charged. Please contact support and we will fix it.",
-    );
-  }
-
-  const found = await stripe().promotionCodes.list({ code, active: true, limit: 1 });
-  const promo = found.data[0];
-  if (!promo) {
-    console.error(
-      JSON.stringify({
-        level: "error",
-        kind: "beta_comp_code_missing",
-        message: "An invited beta checkout was stopped because no active promotion code matched BETA_PROMO_CODE.",
-        ts: new Date().toISOString(),
-      }),
-    );
-    throw new Error(
-      "Your beta invite could not be applied. You have not been charged. Please contact support and we will fix it.",
-    );
-  }
-  return promo.id;
-}
+import { isActiveBeta, isExpiredBeta } from "@/lib/billing/beta";
 
 /** Resolve the catalog price for a plan by its stable lookup key. */
 async function priceForPlan(plan: Exclude<PlanTier, "TRIAL">) {
@@ -170,25 +111,18 @@ export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">): Promise<v
 
   const price = await priceForPlan(plan);
   const customerId = await usableCustomerId(business);
-  const compPromoId = await compDiscountFor(business.ownerEmail);
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: price.id, quantity: 1 }],
     client_reference_id: business.id,
     ...(customerId ? { customer: customerId } : { customer_email: business.ownerEmail }),
-    // The selected beta allowlist is the only supported discount path. Do not
-    // expose Stripe's generic promotion-code box: old or leaked catalog codes
-    // must never bypass the application-side invite boundary.
-    ...(compPromoId ? { discounts: [{ promotion_code: compPromoId }] } : {}),
+    // Beta entitlement never enters Checkout. Do not expose a generic promo
+    // box: old/leaked catalog codes must not become an unreviewed discount path.
     success_url: `${appUrl()}/dashboard/settings?billing=success`,
     cancel_url: `${appUrl()}/dashboard/settings?billing=cancelled`,
-    // Duplicate the cohort bit on Checkout and Subscription so either webhook
-    // event shape can durably anchor the selected-testers-only quality cohort.
-    metadata: { businessId: business.id, betaCohort: compPromoId ? "true" : "false" },
-    subscription_data: {
-      metadata: { businessId: business.id, betaCohort: compPromoId ? "true" : "false" },
-    },
+    metadata: { businessId: business.id },
+    subscription_data: { metadata: { businessId: business.id } },
   });
 
   redirect(session.url!);
@@ -307,16 +241,18 @@ export async function openPlanChange(plan: Exclude<PlanTier, "TRIAL">): Promise<
   redirect(session.url);
 }
 
-/** Settings page helper: current billing state in one shape.
- *  No free trial (founder decision 2026-06-16): the agent runs on an active
- *  subscription. `subscribed` is the whole story — an unsubscribed tenant
- *  (plan=TRIAL) is paused until they choose a plan. */
+/** Settings page helper: paid subscription plus the separate beta entitlement. */
 export async function billingState() {
   const business = await getCurrentBusiness();
+  const now = new Date();
+  const betaActive = isActiveBeta(business, now);
   return {
     enabled: stripeEnabled,
-    plan: business.plan,
+    plan: betaActive ? ("STARTER" as const) : business.plan,
     subscribed: !!business.stripeSubscriptionId,
+    betaActive,
+    betaExpired: isExpiredBeta(business, now),
+    betaEndsAt: betaActive ? business.trialEndsAt : null,
   };
 }
 

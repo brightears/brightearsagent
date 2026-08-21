@@ -7,7 +7,7 @@ import { htmlToText } from "@/lib/inbound/html-to-text";
 import { triage, triageHeuristics, SPAM_THRESHOLD } from "@/lib/inbound/triage";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { scheduleAutonomousSend } from "@/lib/agent/schedule-send";
-import { meterState } from "@/lib/billing/metering";
+import { isAgentPaused, meterState } from "@/lib/billing/metering";
 import { canAutoSend, clientEmailGrounded } from "@/lib/inbound/auto-send";
 import { notifyBusiness } from "@/lib/notify";
 import { reportError } from "@/lib/report-error";
@@ -452,13 +452,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     // keeps drafting paused for unsubscribed/over-cap tenants (the copy
     // promise: pause, never a surprise bill). suppressPush: the "they wrote
     // back" ping below is THE ping — two pushes seconds apart is noise.
-    const meter = await meterState(
-      business.id,
-      business.plan,
-      new Date(),
-      business.trialEndsAt,
-      business.timezone,
-    );
+    const meter = await meterState(business.id, business, new Date(), business.timezone);
     const drafting = !meter.overCap;
     if (drafting) {
       const leadId = existing.id;
@@ -678,13 +672,7 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
     });
     // Mid-thread draft (P10.8) — same continue-conversation mode as client
     // replies; the seeded pitch above gives the drafter the real thread.
-    const venueMeter = await meterState(
-      business.id,
-      business.plan,
-      new Date(),
-      business.trialEndsAt,
-      business.timezone,
-    );
+    const venueMeter = await meterState(business.id, business, new Date(), business.timezone);
     const draftingVenueReply = !venueMeter.overCap;
     if (draftingVenueReply) {
       const leadId = venueLead.id;
@@ -820,30 +808,21 @@ export async function processInbound(email: InboundEmail): Promise<PipelineResul
   // Lead-cap metering: at cap we still INGEST (never lose a lead) but pause
   // drafting and nudge the owner — never a surprise bill (CLAUDE.md pricing).
   if (!isSpam) {
-    const meter = await meterState(
-      business.id,
-      business.plan,
-      new Date(),
-      business.trialEndsAt,
-      business.timezone,
-    );
+    const meter = await meterState(business.id, business, new Date(), business.timezone);
     if (meter.overCap) {
-      // Transition-triggered only (audit 2026-07: this fired on EVERY lead) —
-      // and the copy tells the truth per state. For a subscribed tenant the
-      // cap-crossing lead is the strongest possible upgrade evidence; for an
-      // unsubscribed one, the first inquiry of the month is the activation
-      // nudge. Both dual-channel; repeats stay silent (the dashboard banner
-      // and checklist carry the standing state).
-      const subscribed = !!business.stripeSubscriptionId;
-      const justCrossed = subscribed ? meter.used === meter.cap + 1 : meter.used === 1;
+      // Transition-triggered only. Paid plans and active betas get the cap
+      // message; an inactive entitlement gets the activation message on the
+      // first inquiry. Both are dual-channel and repeats stay silent.
+      const agentActive = !isAgentPaused(business);
+      const justCrossed = agentActive ? meter.used === meter.cap + 1 : meter.used === 1;
       if (justCrossed) {
         void notifyBusiness(business, {
-          title: subscribed ? t("notification.capTitle") : t("notification.inquiryWaiting"),
-          body: subscribed
+          title: agentActive ? t("notification.capTitle") : t("notification.inquiryWaiting"),
+          body: agentActive
             ? t("notification.capBody", { count: meter.cap })
             : t("notification.inquiryWaitingBody"),
           url: "/dashboard/settings#billing",
-          emailBody: subscribed
+          emailBody: agentActive
             ? (locale === "th"
                 ? `ผู้ช่วยตอบข้อความสอบถามครบ ${meter.cap} รายการในเดือนนี้และยังมีข้อความใหม่เข้ามา ระบบพักการร่างไว้โดยไม่มีค่าใช้จ่ายเกินคาด อัปเกรดเพื่อให้ตอบต่อเนื่อง`
                 : `Your agent answered ${meter.cap} inquiries this month — and more are arriving. Drafting is paused (never a surprise bill); one tap and the next tier keeps replies flowing.`)

@@ -87,12 +87,23 @@ export async function checkEpkFreshness(
   };
 }
 
-/** Weekly sweep over EPK-enabled paying tenants; per-tenant failures isolated. */
+/** Weekly sweep over EPK-enabled paid/active-beta tenants; failures isolated. */
 export async function runEpkFreshnessSweep(
   fetchFn: typeof fetch = fetch,
 ): Promise<{ checked: number; nagged: number; failed: number }> {
+  const now = new Date();
   const businesses = await db.business.findMany({
-    where: { epkEnabled: true, plan: { not: "TRIAL" } },
+    where: {
+      epkEnabled: true,
+      OR: [
+        { plan: { not: "TRIAL" } },
+        {
+          plan: "TRIAL",
+          betaStartedAt: { not: null, lte: now },
+          trialEndsAt: { gt: now },
+        },
+      ],
+    },
   });
 
   let nagged = 0;

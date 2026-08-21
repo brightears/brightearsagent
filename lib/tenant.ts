@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { reportError } from "@/lib/report-error";
+import { betaWindowForInvite } from "@/lib/billing/beta";
 
 const clerkEnabled = !!process.env.CLERK_SECRET_KEY;
 
@@ -15,16 +16,13 @@ function slugify(input: string): string {
 /** First sign-in: provision the tenant — business, owner membership, and the
  *  default follow-up sequence so the engine works from the very first lead.
  *
- *  NO AUTOMATIC FREE TRIAL (founder decision, 2026-06-16): new tenants start on
- *  `plan=TRIAL` meaning "free / not subscribed", and the agent is PAUSED
- *  (lib/billing/metering.ts: isAgentPaused) until they subscribe. There is no
- *  time-based trial — a free trial was gameable (sign up, grab gigs, churn,
- *  re-sign with a new email). Instead, selected artists get a Stripe PROMOTION
- *  CODE (a 100%-off-first-month coupon the founder mints in the Stripe
- *  Dashboard) to enter at checkout, which makes their first month free; they're
- *  a normal paid subscriber to us. A successful Stripe checkout flips `plan` to
- *  the paid tier (webhook). They can finish onboarding, but the agent only
- *  starts working once subscribed. */
+ *  Ordinary new tenants start on `plan=TRIAL` meaning "free / not subscribed"
+ *  and stay paused until checkout. A founder-approved beta email is the narrow
+ *  exception: Clerk first verifies the primary email, then this provisioning
+ *  surface writes one non-renewing 30-day Starter entitlement. No Stripe
+ *  customer, checkout session, card or subscription is created. The existing
+ *  membership-adoption ladder prevents deleting/recreating a Clerk identity
+ *  from restarting the window for the same email. */
 async function createBusinessForUser(clerkUserId: string, email: string, name: string) {
   const base = slugify(email.split("@")[0]);
   // Find a free slug (base, base-2, base-3...).
@@ -32,15 +30,18 @@ async function createBusinessForUser(clerkUserId: string, email: string, name: s
   for (let i = 2; await db.business.findUnique({ where: { slug } }); i++) {
     slug = `${base}-${i}`;
   }
+  const betaWindow = betaWindowForInvite(email, process.env.BETA_COMP_EMAILS);
   return db.business.create({
     data: {
       name: name ? `${name}'s Business` : "My Business",
       slug,
       ownerEmail: email,
       ownerName: name || email.split("@")[0],
-      // plan=TRIAL = "free / not subscribed" → the agent is paused until they
-      // subscribe (no auto free trial). trialEndsAt is unused now.
+      // The stored plan stays TRIAL even for a beta. Runtime entitlement gates
+      // recognize only the server-authored beta window and apply Starter caps;
+      // this keeps beta usage out of paid subscription/margin reporting.
       plan: "TRIAL",
+      ...(betaWindow ?? {}),
       members: { create: { email, name: name || email, isOwner: true, clerkUserId } },
       sequences: { create: { stepsDays: [2, 5, 9] } },
     },
@@ -161,6 +162,7 @@ export async function getCurrentBusiness(opts: { provision?: boolean } = {}) {
         slug: created.slug,
         email,
         clerkUserId: userId,
+        beta: Boolean(created.betaStartedAt && created.trialEndsAt),
         ts: new Date().toISOString(),
       }),
     );

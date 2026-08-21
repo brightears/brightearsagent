@@ -42,7 +42,7 @@ function followUpBody(venueName: string, ownerName: string): string {
 
 export async function draftHotFollowUps(business: Business, now = new Date()): Promise<FollowUpResult> {
   const result: FollowUpResult = { drafted: 0 };
-  if (isAgentPaused(business.plan)) return result;
+  if (isAgentPaused(business, now)) return result;
 
   // Candidates: HOT, SENT ≥6 days, no follow-up child yet, venue still in
   // PITCHED (replies/suppression have moved on otherwise).

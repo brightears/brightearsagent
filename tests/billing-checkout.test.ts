@@ -5,7 +5,6 @@ const mocks = vi.hoisted(() => ({
   getCurrentBusiness: vi.fn(),
   sessionCreate: vi.fn(),
   priceList: vi.fn(),
-  promoList: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
@@ -19,7 +18,6 @@ vi.mock("@/lib/billing/stripe", async (importActual) => {
     stripeEnabled: true,
     stripe: () => ({
       prices: { list: mocks.priceList },
-      promotionCodes: { list: mocks.promoList },
       checkout: { sessions: { create: mocks.sessionCreate } },
     }),
   };
@@ -43,40 +41,28 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("beta checkout", () => {
-  it("does not expose a generic promotion-code box outside the invite allowlist", async () => {
+describe("subscription checkout", () => {
+  it("does not expose any promotion-code path", async () => {
     await startCheckout("STARTER");
 
     const params = mocks.sessionCreate.mock.calls[0]?.[0];
     expect(params).not.toHaveProperty("allow_promotion_codes");
     expect(params).not.toHaveProperty("discounts");
-    expect(mocks.promoList).not.toHaveBeenCalled();
   });
 
-  it("fails closed when an invited tester's promotion is unavailable", async () => {
+  it("keeps an approved beta email out of Stripe discounts and recurring beta metadata", async () => {
     vi.stubEnv("BETA_COMP_EMAILS", "artist@example.com");
-    vi.stubEnv("BETA_PROMO_CODE", "BETA_TEST_CODE");
-    mocks.promoList.mockResolvedValue({ data: [] });
-
-    await expect(startCheckout("STARTER")).rejects.toThrow("You have not been charged");
-    expect(mocks.sessionCreate).not.toHaveBeenCalled();
-  });
-
-  it("tags both Checkout and Subscription when the invited comp is applied", async () => {
-    vi.stubEnv("BETA_COMP_EMAILS", "artist@example.com");
-    vi.stubEnv("BETA_PROMO_CODE", "BETA_TEST_CODE");
-    mocks.promoList.mockResolvedValue({ data: [{ id: "promo_beta" }] });
 
     await startCheckout("STARTER");
 
     expect(mocks.sessionCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        discounts: [{ promotion_code: "promo_beta" }],
-        metadata: { businessId: "biz_beta", betaCohort: "true" },
-        subscription_data: {
-          metadata: { businessId: "biz_beta", betaCohort: "true" },
-        },
+        metadata: { businessId: "biz_beta" },
+        subscription_data: { metadata: { businessId: "biz_beta" } },
       }),
     );
+    const params = mocks.sessionCreate.mock.calls[0]?.[0];
+    expect(params).not.toHaveProperty("discounts");
+    expect(params.metadata).not.toHaveProperty("betaCohort");
   });
 });

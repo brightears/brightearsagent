@@ -98,7 +98,7 @@ export async function sendDraftReply(opts: {
   // through here, so a paused (unsubscribed) tenant can never email regardless
   // of which path missed its own check. Draft stays PENDING: subscribing
   // lets it send.
-  if (isAgentPaused(lead.business.plan)) {
+  if (isAgentPaused(lead.business)) {
     return { ok: false, error: SEND_ERR.paused };
   }
   // Compliance hard-stop at the SEND boundary (not just in the cron engine):
