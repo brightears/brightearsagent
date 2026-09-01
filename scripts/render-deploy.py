@@ -37,7 +37,7 @@ APP_URL = "https://brightears.io"
 BUILD_COMMAND = "npm ci && npm run build"
 START_COMMAND = "npm start"
 PREDEPLOY_COMMAND = "npm run db:deploy"
-HEALTH_PATH = "/api/health"
+HEALTH_PATH = "/api/live"
 
 REQUIRED_ENV = {
     "DATABASE_URL",
