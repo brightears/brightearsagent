@@ -27,6 +27,7 @@ describe("Render recovery planners", () => {
     expect(web.status).toBe(0);
     expect(web.stdout).toContain("DRY RUN — no network calls and no Render changes");
     expect(web.stdout).toContain("auto-deploy: OFF");
+    expect(web.stdout).toContain("pre-deploy/health: npm run db:deploy / /api/live");
     expect(crons.status).toBe(0);
     expect(crons.stdout).toContain("request timeout: 330s");
     expect(crons.stdout.match(/cron: brightears-app-/g)).toHaveLength(4);

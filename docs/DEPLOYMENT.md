@@ -17,7 +17,7 @@ All resources are in Render's `My Workspace`, Singapore unless noted.
 
 | Resource | ID | Current configuration |
 |---|---|---|
-| Web `brightears-app` | `srv-d8l2ni6gvqtc73ag9gsg` | Starter, `main`, health `/api/health`, public at `brightears.io` |
+| Web `brightears-app` | `srv-d8l2ni6gvqtc73ag9gsg` | Starter, `main`, liveness `/api/live`, public at `brightears.io` |
 | Postgres `brightears-app-db` | `dpg-d8l2martqb8s73anqjig-a` | Postgres 16, Basic-256mb |
 | Cron `brightears-app-sequences` | `crn-d8l2qi3tqb8s73anvbg0` | `*/30 * * * *` |
 | Cron `brightears-app-discovery` | `crn-d8lrfh8js32c73b65it0` | `0 5 * * *`; Oregon |
@@ -44,7 +44,10 @@ chooses to preserve Oregon or relocate it after review.
    Render must build with `npm ci && npm run build`, run
    `npm run db:deploy` as its pre-deploy command, and start with `npm start`.
    Never replace the migration step with `prisma db push`.
-4. Render checks `/api/health` before considering the release healthy.
+4. Render checks `/api/live` before considering the web process healthy. This
+   shallow liveness route must never query the database, validate production
+   configuration, or inspect cron freshness. `/api/health` remains the separate
+   readiness signal for operators and UptimeRobot.
 5. After the manual recovery smoke test passes, Render auto-deploy must be set
    to **After CI Checks Pass**. Read that setting, the build/pre-deploy commands,
    the branch and the health path back from the dashboard before release.
@@ -103,9 +106,14 @@ fix or explicitly investigate the recurring case first.
   tables. The temporary database and its one-IP access rule were deleted after
   verification; the live database was never modified.
 - Render sends email for service failures. Preview notifications are disabled.
-- `/api/health` is deployed as a readiness check. It returns HTTP 503 when the
-  production environment contract is
-  invalid, the database cannot be reached, or any of the four `OpsStamp` cron
+- `/api/live` is Render's process-liveness check. It returns HTTP 200 when the
+  Next.js process can answer a request and deliberately has no database,
+  production-config or cron dependency. Do not point Render at the readiness
+  route: recycling the web process cannot repair a stale cron or downstream
+  dependency and can prevent the cron from reaching the app to recover.
+- `/api/health` is deployed as the external readiness check. It returns HTTP
+  503 when the production environment contract is invalid, the database cannot
+  be reached, or any of the four `OpsStamp` cron
   **completion** heartbeats is stale. Its public config diagnostics expose only
   environment-variable names, issue codes and a count, never values or full
   internal messages. On deployed `246b411`, a production-shell request returned
@@ -309,7 +317,8 @@ provider webhooks or customer data.
    portal and webhook; Postmark inbound domain and authenticated bounce/spam
    webhook; R2 DNS/CORS; the UptimeRobot URL monitor; and Render backup/PITR
    policy.
-7. Require a 200 from `/api/health`, confirm its config issue count is zero,
+7. Require a 200 from Render's `/api/live` process check and a separate 200 from
+   `/api/health`; confirm the readiness response's config issue count is zero,
    verify all four cron completions naturally (or via an explicitly approved
    manual run), run `npx tsx scripts/preflight-live.ts` from the live shell, and
    complete the AI release gate. Then enable **After CI Checks Pass**, confirm
