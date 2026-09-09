@@ -6,6 +6,8 @@
 // Dry-run is the default. Execution requires an active subscription and a
 // Serper key, caps itself at 25 external queries, and imports no discovery,
 // LLM, pitch-drafting, Gmail, or Postmark path.
+// Retired: --execute fails before any database or provider access.
+import { assertAssistantRuntimeActive } from "../lib/assistant-runtime";
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
@@ -23,10 +25,11 @@ function maxArg(): number {
 }
 
 async function main() {
+  const execute = process.argv.includes("--execute");
+  if (execute) assertAssistantRuntimeActive();
   const slug = process.env.DEV_TENANT_SLUG?.trim();
   if (!slug) throw new Error("DEV_TENANT_SLUG is required; no default tenant is safe in production");
 
-  const execute = process.argv.includes("--execute");
   const max = maxArg();
   const now = new Date();
   const { db } = await import("../lib/db");
@@ -81,7 +84,7 @@ async function main() {
     `Contact backfill preview · ${business.name} (${slug}) · ${due} due now · cap ${Math.min(max, due)}`,
   );
   if (!execute) {
-    console.log("Dry run only. Add --execute to spend the bounded Serper queries and save results.");
+    console.log("Dry run only. Contact backfill execution is retired.");
     await db.$disconnect();
     return;
   }

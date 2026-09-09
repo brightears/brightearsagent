@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { NextRequest, NextResponse } from "next/server";
 import { sendWeeklyReports } from "@/lib/reports/weekly";
 import { runEpkFreshnessSweep } from "@/lib/epk/freshness";
@@ -11,6 +12,7 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  if (ASSISTANT_RUNTIME_RETIRED) return NextResponse.json({status:"retired",workPerformed:false});
   const { sent, failed } = await sendWeeklyReports();
   // P12.6: the EPK freshness sweep rides the weekly cadence — link-rot nags
   // land alongside the report, never as extra noise days.

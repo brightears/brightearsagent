@@ -1,3 +1,4 @@
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateObject, generateText } from "ai";
 import type { z } from "zod";
@@ -107,6 +108,7 @@ export async function llmObject<T>(opts: {
   /** Explicit transport retry budget for operations with an outer deadline. */
   maxRetries?: number;
 }): Promise<T> {
+  assertAssistantRuntimeActive();
   const model = modelFor(opts.purpose);
   const result = await generateObject({
     model: openrouter(model),
@@ -135,6 +137,7 @@ export async function llmText(opts: {
   system: string;
   prompt: string;
 }): Promise<string> {
+  assertAssistantRuntimeActive();
   const model = modelFor(opts.purpose);
   const result = await generateText({
     model: openrouter(model),

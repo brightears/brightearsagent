@@ -11,6 +11,7 @@
 //     them) are refused; one same-host redirect is revalidated before fetching
 //   * suppression re-checked at write time (defense in depth vs. ingest)
 
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 import { db } from "@/lib/db";
 import { isBlockedHost, resolvesToBlockedIp } from "@/lib/pdf/images";
 import { scoreVenue, type ScorableSignal, type VenueKind } from "@/lib/venues/score";
@@ -814,6 +815,7 @@ export function makeLiveDeps(opts: { apiKey?: string; fetchFn?: typeof fetch; gl
   return {
     queries: () => queries,
     async serperSearch(q) {
+      assertAssistantRuntimeActive();
       queries++;
       const res = await fetchFn("https://google.serper.dev/search", {
         method: "POST",
@@ -912,6 +914,7 @@ export async function runContactPass(
     wallClock?: () => number;
   } = {},
 ): Promise<ContactPassResult> {
+  assertAssistantRuntimeActive();
   const now = opts.now ?? new Date();
   const live = opts.deps ? null : makeLiveDeps({ gl: opts.gl });
   const deps = opts.deps ?? live!;

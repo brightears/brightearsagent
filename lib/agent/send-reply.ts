@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED, ASSISTANT_RETIRED_MESSAGE } from "@/lib/assistant-runtime";
 // The core "send a PENDING reply draft" path, shared by:
 //   • approveDraft (app/actions/drafts.ts) — the owner taps Approve (Clerk-auth)
 //   • the inbound pipeline's AUTO-SEND (lib/inbound/pipeline.ts) — no user
@@ -57,6 +58,7 @@ export async function sendDraftReply(opts: {
    *  race — the owner's explicit cancel can never be out-run by the tick. */
   requireScheduled?: boolean;
 }): Promise<SendReplyResult> {
+  if (ASSISTANT_RUNTIME_RETIRED) return {ok:false,error:ASSISTANT_RETIRED_MESSAGE};
   const {
     draftId,
     businessId,

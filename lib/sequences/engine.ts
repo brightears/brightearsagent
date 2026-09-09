@@ -1,3 +1,4 @@
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 import { db } from "@/lib/db";
 import { generateDraftForLead } from "@/lib/agent/generate-for-lead";
 import { runScheduledSends, scheduleAutonomousSend } from "@/lib/agent/schedule-send";
@@ -42,6 +43,7 @@ const DAY = 24 * 3600 * 1000;
  * even though actions/webhook already do it at the source.
  */
 export async function runSequenceTick(now = new Date()): Promise<TickResult> {
+  assertAssistantRuntimeActive();
   const result: TickResult = {
     expiredDrafts: 0,
     backfilledRuns: 0,

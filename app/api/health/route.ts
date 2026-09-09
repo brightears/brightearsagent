@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
@@ -24,8 +25,8 @@ export async function GET() {
     !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !!process.env.CLERK_SECRET_KEY;
   try {
     await db.$queryRaw`SELECT 1`;
-    const stamps = await db.opsStamp.findMany();
-    const crons = cronCompletionHealth(stamps);
+    const stamps = ASSISTANT_RUNTIME_RETIRED ? [] : await db.opsStamp.findMany();
+    const crons: Partial<ReturnType<typeof cronCompletionHealth>> = ASSISTANT_RUNTIME_RETIRED ? {} : cronCompletionHealth(stamps);
     const cronsHealthy = Object.values(crons).every((c) => !c.stale);
     const ready = config.ok && cronsHealthy;
     const publicConfig = {
@@ -39,6 +40,7 @@ export async function GET() {
         db: true,
         config: publicConfig,
         clerkConfigured,
+        assistantRuntime: ASSISTANT_RUNTIME_RETIRED ? "retired" : "active",
         cronsHealthy,
         crons,
         cronGraceStartedAt: cronDeploymentGraceStartedAt().toISOString(),

@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { NextRequest, NextResponse } from "next/server";
 import { computeMargins } from "@/lib/billing/margin";
 import { reconcileStripe, computeHeartbeat, renderHeartbeat } from "@/lib/ops/nightly";
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  if (ASSISTANT_RUNTIME_RETIRED) return NextResponse.json({status:"retired",workPerformed:false});
   const rows = await computeMargins();
   const flagged = rows.filter((r) => r.flagged);
 

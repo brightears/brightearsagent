@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 // Google OAuth callback (Phase 10.5). Verifies the CSRF state against the
 // signed cookie (and the tenant binding), exchanges the code for tokens,
 // upserts the tenant's MailboxConnection with the tokens ENCRYPTED, then
@@ -24,6 +25,11 @@ function settingsRedirect(_req: Request, query: string): NextResponse {
 }
 
 export async function GET(req: Request) {
+  if (ASSISTANT_RUNTIME_RETIRED) {
+    const response=NextResponse.redirect(new URL("/assistant", appUrl()));
+    response.cookies.delete(OAUTH_STATE_COOKIE);
+    return response;
+  }
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");

@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_RUNTIME_RETIRED, ASSISTANT_RETIRED_MESSAGE } from "@/lib/assistant-runtime";
 
 // Venue-opportunity feed actions (Phase 10.3/10.4, ADR-004) — tenant-scoped
 // via getCurrentBusiness, zod-validated, never trusting the UI: the hunting
@@ -189,6 +190,7 @@ export async function authorizeVenuePitchCopy(
  *      after reconnect). No LlmUsage write (no LLM here). revalidate.
  */
 export async function sendVenuePitch(pitchId: string): Promise<ActionResult> {
+  if (ASSISTANT_RUNTIME_RETIRED) return {ok:false,error:ASSISTANT_RETIRED_MESSAGE};
   const parsed = pitchIdSchema.safeParse(pitchId);
   if (!parsed.success) return { ok: false, error: "No pitch given" };
 
@@ -899,6 +901,7 @@ type TestEmailResult =
  * NEVER touches Venue or VenuePitch.
  */
 export async function sendTestEmail(): Promise<TestEmailResult> {
+  if (ASSISTANT_RUNTIME_RETIRED) return {ok:false,error:ASSISTANT_RETIRED_MESSAGE};
   const business = await getCurrentBusiness();
   const postalAddress = business.postalAddress?.trim();
   if (!postalAddress) {

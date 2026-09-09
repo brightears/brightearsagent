@@ -1,0 +1,7 @@
+import type {Metadata} from "next";
+import Link from "next/link";
+import {getRequestLocale} from "@/lib/i18n/server";
+import {AgencySearch} from "@/components/agency-search";
+import styles from "../agency.module.css";
+export const metadata:Metadata={title:"Discover — Bright Ears",description:"Find DJs for your venue, explore DJ opportunities and discover places with music. A free, simple search tool."};
+export default async function DiscoverPage(){const th=(await getRequestLocale())==="th";const c=(en:string,thai:string)=>th?thai:en;return <div className={styles.cataloguePage}><header className={styles.directoryIntro}><p className={styles.kicker}>{c("FOLLOW THE MUSIC","ตามหาเสียงดนตรี")}</p><h1>{c("Your next","จุดเริ่มต้น")}<br/><em>{c("connection.","ครั้งถัดไป")}</em></h1><div><p>{c("A venue looking for its sound. A DJ looking for a new room. Start exploring.","สถานที่ที่กำลังตามหาเสียงดนตรี ดีเจที่กำลังมองหางานใหม่ เริ่มค้นหาได้ที่นี่")}</p></div></header><div className={styles.discoverRoster}><div><p className={styles.kicker}>{c("LOOKING FOR A DJ?","กำลังมองหาดีเจ?")}</p><h2>{c("Meet your next selector.","รู้จักดีเจคนถัดไปของคุณ")}</h2><p>{c("Explore artist profiles and build a shortlist with Bright Ears.","สำรวจโปรไฟล์และเลือกดีเจที่สนใจกับ Bright Ears")}</p></div><Link className={styles.primary} href="/artists">{c("Explore the roster","ดูดีเจทั้งหมด")} ↗</Link></div><AgencySearch th={th} authConfigured={!!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}/></div>;}

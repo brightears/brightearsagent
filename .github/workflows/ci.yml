@@ -60,6 +60,8 @@ jobs:
       - run: npx prisma validate
       - run: npm run db:deploy
       - run: npx prisma migrate status
+      - name: Verify atomic search budgets with the isolated database
+        run: npx tsx tests/agency-search.integration.ts
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test

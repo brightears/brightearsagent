@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -70,6 +71,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           )}
         </div>
       </nav>
+      {ASSISTANT_RUNTIME_RETIRED && <aside className="border-b border-brand-cyan/30 bg-brand-cyan/10 px-6 py-4 text-sm"><div className="mx-auto max-w-7xl">The artist assistant has been retired. Automated search, drafting and emails are switched off. <Link className="underline ml-2" href="/discover">Explore the free search tool</Link></div></aside>}
       {children}
       <BottomTabs pendingCount={pendingCount} />
     </div>

@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { pushToBusiness } from "@/lib/push";
 import { sendEmail } from "@/lib/outbound/send";
 import { appUrl } from "@/lib/oauth/google";
@@ -30,6 +31,7 @@ export async function notifyBusiness(
     pushOnly?: boolean;
   },
 ): Promise<void> {
+  if (ASSISTANT_RUNTIME_RETIRED) return;
   const link = msg.url ? `${appUrl()}${msg.url}` : undefined;
 
   const push = pushToBusiness(business.id, {

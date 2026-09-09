@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 // Shared server-error reporter (audit B10).
 //
 // Structured-logs an error (Render captures stdout) and — rate-limited to one
@@ -32,6 +33,7 @@ export async function reportError(err: unknown, context: ErrorContext): Promise<
 
   // Email alerting needs Node APIs — skip on the edge runtime (the structured
   // log above still reaches stdout). Also skip when no destination is set.
+  if (ASSISTANT_RUNTIME_RETIRED) return;
   const opsEmail = process.env.OPS_ALERT_EMAIL;
   if (!opsEmail) return;
   if (process.env.NEXT_RUNTIME && process.env.NEXT_RUNTIME !== "nodejs") return;

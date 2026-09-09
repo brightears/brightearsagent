@@ -743,3 +743,18 @@ model OpsStamp {
   key String   @id // "cron:sequences" | "cron:discovery" | "cron:weekly-report" | "cron:margin-guardrail"
   at  DateTime
 }
+
+// Search-only public discovery. No Business, mailbox or artist provisioning.
+model AgencySearchCache {
+  key        String   @id
+  payload    Json?
+  expiresAt  DateTime
+  leaseUntil DateTime
+  @@index([expiresAt])
+}
+model AgencySearchBudget {
+  key       String   @id
+  used      Int      @default(0)
+  expiresAt DateTime
+  @@index([expiresAt])
+}

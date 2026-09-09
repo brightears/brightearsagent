@@ -10,6 +10,7 @@
 // --force bypasses the 20h scan-budget guard (the cron never does). Without
 // --force a recent scan makes this print the refusal and exit — that's the
 // guard working, not a bug.
+import { assertAssistantRuntimeActive } from "../lib/assistant-runtime";
 import { config } from "dotenv";
 config({ path: [".env.local", ".env"] });
 
@@ -22,6 +23,7 @@ const PARSE_IN_PER_M = 0.098;
 const PARSE_OUT_PER_M = 0.197;
 
 async function main() {
+  assertAssistantRuntimeActive();
   const { db } = await import("../lib/db");
   const { runDiscoveryScan } = await import("../lib/discovery/scan");
   const {

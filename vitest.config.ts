@@ -6,6 +6,7 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname) },
   },
   test: {
+    setupFiles: ["tests/legacy-assistant-setup.ts"],
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     environment: "node",
   },

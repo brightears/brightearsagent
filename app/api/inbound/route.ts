@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { NextRequest, NextResponse } from "next/server";
 import type { InboundEmail } from "@/lib/inbound/types";
 import { processInbound } from "@/lib/inbound/pipeline";
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  if (ASSISTANT_RUNTIME_RETIRED) return NextResponse.json({outcome:"retired"});
   let payload: PostmarkInbound;
   try {
     payload = await req.json();

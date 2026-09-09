@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 /**
  * Pure validation for the production runtime contract.
  *
@@ -112,6 +113,7 @@ function isCanonicalAppUrl(raw: string): boolean {
 export function validateProductionRuntimeConfig(env: RuntimeEnv): ProductionConfigResult {
   if (env.NODE_ENV !== "production") return { ok: true, issues: [] };
 
+  if (ASSISTANT_RUNTIME_RETIRED) return validateAgencyRuntimeConfig(env);
   const issues: ProductionConfigIssue[] = [];
   addMissing(issues, env, REQUIRED);
 
@@ -247,4 +249,17 @@ export function validateProductionRuntimeConfig(env: RuntimeEnv): ProductionConf
   }
 
   return { ok: issues.length === 0, issues };
+}
+
+/** Retained agency search, authentication and historical billing contract. */
+function validateAgencyRuntimeConfig(env: RuntimeEnv): ProductionConfigResult {
+  const issues: ProductionConfigIssue[]=[];
+  addMissing(issues,env,["DATABASE_URL","SERPER_API_KEY","STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET"]);
+  validatePair(issues,env,"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY","CLERK_SECRET_KEY",{required:true});
+  if(!isCanonicalAppUrl(value(env,"APP_URL"))) issues.push({key:"APP_URL",code:"invalid",message:"APP_URL must be https://brightears.io"});
+  for(const [key,prefix] of [["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY","pk_live_"],["CLERK_SECRET_KEY","sk_live_"],["STRIPE_SECRET_KEY","sk_live_"],["STRIPE_WEBHOOK_SECRET","whsec_"]]){
+    const configured=value(env,key);
+    if(configured&&!configured.startsWith(prefix)) issues.push({key,code:"mode_mismatch",message:"Retained service must use production credentials"});
+  }
+  return {ok:issues.length===0,issues};
 }
