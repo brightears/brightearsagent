@@ -10,6 +10,7 @@
 // now redirects to #profile. Design LAW (docs/DESIGN.md v2.1): ink canvas,
 // white/cream cards, cyan = interface, mono kickers, NO emoji ever.
 import { db } from "@/lib/db";
+import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
 import { getCurrentBusiness } from "@/lib/tenant";
 import { uploadsEnabled } from "@/lib/uploads/r2";
 import { Card, Badge, buttonStyles, Kicker, PageHeader, StatPill } from "@/components/ui";
@@ -245,7 +246,15 @@ function BillingCard({ meter, state, locale }: { meter: MeterState; state: Billi
           </p>
         )}
       </div>
-      {state.betaActive ? (
+      {!state.subscribed && !ASSISTANT_ENROLLMENT_OPEN ? (
+        <div className="rounded-2xl border border-brand-cyan/40 bg-brand-cyan-soft/40 p-5 text-ink-stage">
+          <h3 className="text-lg font-bold">{c("New assistant subscriptions are closed", "ปิดรับสมาชิกผู้ช่วยรายใหม่แล้ว")}</h3>
+          <p className="mt-3 text-sm">{state.betaActive
+            ? c("Your existing beta access continues until " + betaEnd + ". It does not renew or charge automatically. Your account and saved results remain accessible.", "สิทธิ์เบต้าของคุณยังใช้ได้ถึง " + betaEnd + " โดยไม่มีการต่ออายุหรือเรียกเก็บเงินอัตโนมัติ บัญชีและผลลัพธ์ยังเข้าถึงได้")
+            : c("Your saved account remains accessible. Bright Ears is now focused on its DJ agency, and we are not accepting new assistant subscriptions.", "คุณยังเข้าถึงบัญชีเดิมได้ Bright Ears กลับมาเน้นบริการดีเจเอเจนซี และไม่รับการสมัครผู้ช่วยรายใหม่")}</p>
+          <a className="mt-3 inline-block underline" href="/assistant">{c("Account access and support", "การเข้าถึงบัญชีและความช่วยเหลือ")}</a>
+        </div>
+      ) : state.betaActive ? (
         <div className="rounded-2xl border-2 border-brand-cyan bg-brand-cyan-soft/50 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

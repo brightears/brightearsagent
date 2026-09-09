@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { canonicalRedirectTarget } from "@/lib/canonical-host";
+import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
 
 // Signed-in-only surfaces. Marketing pages, the demo API, the inbound webhook,
 // crons and opt-out stay public (the latter are shared-secret-gated instead).
@@ -95,6 +96,7 @@ export default clerkEnabled
       // active keys), so the production swap needs no env change at all.
       const { userId, redirectToSignUp } = await auth();
       if (!userId && req.nextUrl.pathname.startsWith("/onboarding")) {
+        if (!ASSISTANT_ENROLLMENT_OPEN) return NextResponse.redirect(new URL("/assistant", process.env.APP_URL || req.nextUrl));
         return redirectToSignUp();
       }
       await auth.protect();

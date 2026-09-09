@@ -1,5 +1,7 @@
 # Bright Ears SaaS — Product Brief (canonical)
 
+> Historical SaaS plan, paused by founder decision on 2026-09-09. See `AGENCY-RESTORATION.md` for the current agency website direction. Do not resume this build or launch queue automatically.
+
 **Date:** June 10, 2026 · Supersedes `../../PRODUCT-BRIEF-GIGSORTED.md` (pre-decision draft). Research basis: 11-agent workflow `wf_fb02d04c-d1d`; raw output path in Appendix.
 **Founder decisions locked in:** brand = **Bright Ears** on brightears.io (no new domain); entry price $25/mo with usage tiers; no personal founder name — "we've been there" experience voice + the Vinyl story; design = colorful/fun on a light base (reference royalstreaming.com) — SUPERSEDED June 11 by the dark "Neon Collage" direction, see §8 and `docs/DESIGN.md` v2.1; old agency app moves to `agency.brightears.io` at cutover so Vinyl never stops.
 

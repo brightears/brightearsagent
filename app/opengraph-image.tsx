@@ -6,7 +6,7 @@ import { ImageResponse } from "next/og";
 // doesn't override it. Typographic on the ink canvas per docs/DESIGN.md
 // (editorial type IS the brand; no external assets to load or 404).
 
-export const alt = "Bright Ears — the AI that finds gigs for performers";
+export const alt = "Bright Ears — DJs and music for venues and events";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -67,7 +67,7 @@ export default function OpengraphImage() {
               flexDirection: "column",
             }}
           >
-            <span>Never miss a gig</span>
+            <span>Good music.</span>
             <span
               style={{
                 backgroundImage: "linear-gradient(90deg, #ff2dae, #ff8a00)",
@@ -75,11 +75,11 @@ export default function OpengraphImage() {
                 color: "transparent",
               }}
             >
-              you never knew existed.
+              Great nights.
             </span>
           </div>
           <div style={{ marginTop: 28, fontSize: 30, color: "rgba(245,242,236,0.62)" }}>
-            The AI finds it, drafts it in your voice — you approve.
+            DJs and music programming for venues and events.
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export default function OpengraphImage() {
           }}
         >
           <span style={{ letterSpacing: 4, textTransform: "uppercase", color: "#00bbe4" }}>
-            For performers of every kind
+            Bangkok / Thailand
           </span>
           <span>brightears.io</span>
         </div>

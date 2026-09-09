@@ -1,5 +1,7 @@
 # ROADMAP — Bright Ears SaaS (build queue)
 
+> Historical SaaS plan, paused by founder decision on 2026-09-09. See `docs/AGENCY-RESTORATION.md` for the current agency website direction. Do not resume this build or launch queue automatically.
+
 Rules of engagement for any agent working this file:
 - Work items **top to bottom**, one at a time. Mark `[x]` only when the acceptance check passes locally (build + tests green). Commit after each completed item with a clear message.
 - 🔑 = **founder gate**: stop, tell the founder exactly what to create/provide (with a link and steps), then continue with the next non-blocked item if one exists.

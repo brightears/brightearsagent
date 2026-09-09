@@ -1,4 +1,4 @@
-# Deployment — Bright Ears SaaS
+# Deployment — Bright Ears
 
 Production infrastructure and the deployed revision were last live-verified on
 **2026-08-16**. The sanitized verification record is
@@ -6,7 +6,7 @@ Production infrastructure and the deployed revision were last live-verified on
 date-stamped; read the dashboard back again before any future release rather
 than assuming this snapshot is still current.
 
-`brightears.io` is the production Bright Ears SaaS app. It is separate from the
+**2026-09-09 direction:** see `docs/AGENCY-RESTORATION.md`. `brightears.io` now serves the agency presentation while retaining existing assistant accounts. It is separate from the
 Vinyl agency service at `agency.brightears.io`; never modify, import from, or
 redeploy the sibling `../brightears` or `../brightears26` projects while working
 on this app.

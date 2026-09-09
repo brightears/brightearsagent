@@ -23,9 +23,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   // Hunt-led (the retired reactive tagline leaked from here onto every 404 —
   // audit 2026-07). Per-page metadata overrides this; it's the fallback voice.
-  title: "Bright Ears — the AI that finds gigs for performers",
+  title: "Bright Ears — DJs and music for venues and events",
   description:
-    "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
+    "DJs and music programming for hotels, restaurants and events. Based in Bangkok.",
   manifest: "/manifest.json",
   // iOS reads apple-touch-icon from metadata, not the manifest (P9.6) — the
   // whole approve-from-phone pitch rides on A2HS looking like a real app.
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
     url: "./",
     siteName: "Bright Ears",
     type: "website",
-    title: "Bright Ears — the AI that finds gigs for performers",
+    title: "Bright Ears — DJs and music for venues and events",
     description:
-      "Finds venues and gigs for performers of every kind, drafts the outreach and replies in your voice — you just tap Approve.",
+      "DJs and music programming for hotels, restaurants and events. Based in Bangkok.",
     images: [SOCIAL_IMAGE],
   },
   twitter: { card: "summary_large_image", images: [SOCIAL_IMAGE] },

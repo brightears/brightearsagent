@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
-import { getCurrentBusiness } from "@/lib/tenant";
+import { getCurrentBusiness, AssistantEnrollmentClosedError, NoTenantError } from "@/lib/tenant";
+import { redirect } from "next/navigation";
 import { isProvisionedBusinessName } from "@/lib/business-name";
 import { uploadsEnabled } from "@/lib/uploads/r2";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
@@ -27,7 +28,10 @@ export default async function OnboardingPage({
   // lands here, so "we have never seen this identity" genuinely means "new
   // customer". Everywhere else fails closed rather than inventing an empty
   // workspace — see lib/tenant.ts.
-  const business = await getCurrentBusiness({ provision: true });
+  const business = await getCurrentBusiness({ provision: true }).catch(error => {
+    if (error instanceof AssistantEnrollmentClosedError || error instanceof NoTenantError) redirect("/assistant");
+    throw error;
+  });
   // The plan the visitor picked on the pricing page rides the funnel (P5.5) —
   // the step-5 finale opens checkout for it directly. Unknown values drop.
   const { plan } = await searchParams;
