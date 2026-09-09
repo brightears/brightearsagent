@@ -1,8 +1,10 @@
 @AGENTS.md
 
-# Bright Ears — AI back office for wedding/event performer businesses
+# Bright Ears — agency website and existing assistant accounts
 
-**Read `docs/PRODUCT-BRIEF.md` before any product or architecture decision** (canonical spec). **`ROADMAP.md` is the build queue** — work it top to bottom. `docs/MARKETING-PLAN.md` is the launch engine.
+**Current direction, 2026-09-09:** read `docs/AGENCY-RESTORATION.md` first. The founder has restored brightears.io to the DJ agency presentation. New assistant enrollment and purchases are closed. Existing assistant accounts, billing, data and operations remain supported. The SaaS brief, roadmap and marketing plan below are historical; do not resume their growth queue without a new founder instruction.
+
+The current public design uses the real BE mark, cyan, ink, warm white and genuine roster photography. Reusing existing public brand photographs for this restoration is authorized; the separate agency application and its database remain untouched.
 
 ## What this is
 

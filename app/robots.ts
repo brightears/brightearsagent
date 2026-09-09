@@ -5,7 +5,7 @@ import { appUrlLenient } from "@/lib/app-url";
 const BASE = appUrlLenient();
 
 /** App-private surfaces; everything marketing-facing stays crawlable. */
-const PRIVATE = ["/dashboard/", "/api/"];
+const PRIVATE = ["/dashboard/", "/onboarding", "/assistant", "/api/"];
 
 /**
  * Staging must never become the canonical "Bright Ears" in the index (audit

@@ -42,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if ((err as Error)?.name === "NoTenantError") noTenant = true;
   }
   // Outside the catch: redirect() signals by throwing, and must not be caught.
-  if (noTenant) redirect("/onboarding");
+  if (noTenant) redirect("/assistant");
 
   return (
     // The app shell owns the ink canvas (docs/DESIGN.md v2): every dashboard

@@ -5,7 +5,7 @@ export const SOCIAL_IMAGE = {
   url: "/opengraph-image",
   width: 1200,
   height: 630,
-  alt: "Bright Ears — the AI that finds gigs for performers",
+  alt: "Bright Ears — DJs and music for venues and events",
 } as const;
 
 /**

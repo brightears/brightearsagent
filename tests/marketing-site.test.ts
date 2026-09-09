@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { pageMeta } from "@/lib/marketing/site";
 
 const MARKETING_LINK_FILES = [
+  "app/(marketing)/assistant/page.tsx",
   "app/(marketing)/compare/[slug]/page.tsx",
   "app/(marketing)/compare/page.tsx",
   "app/(marketing)/layout.tsx",
@@ -55,18 +56,6 @@ describe("public marketing guardrails", () => {
         /(?:bg-neon-magenta[^"'`\n]*text-white|text-white[^"'`\n]*bg-neon-magenta)/,
       );
     }
-  });
-
-  it("keeps the setup steps as direct list items", () => {
-    const homepage = source("app/(marketing)/page.tsx");
-    const setupList = homepage.match(
-      /<ol className="relative grid gap-6 lg:grid-cols-3">([\s\S]*?)<\/ol>/,
-    )?.[1];
-
-    expect(setupList).toBeDefined();
-    expect(setupList).toMatch(/SETUP_STEPS\.map[\s\S]*?<li key=\{step\.number\}/);
-    expect(setupList).not.toMatch(/<RevealOnScroll[^>]*>\s*<li/);
-    expect(setupList).not.toMatch(/<div\s+aria-hidden/);
   });
 
   it("does not prefetch auth-protected routes from public pages", () => {

@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
 
 import { redirect } from "next/navigation";
 import type Stripe from "stripe";
@@ -108,6 +109,7 @@ export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">): Promise<v
   // choice from someone who already has one is an upgrade/downgrade — route
   // it through the portal's confirm flow instead.
   if (business.stripeSubscriptionId) return openPlanChange(plan);
+  if (!ASSISTANT_ENROLLMENT_OPEN) redirect("/assistant");
 
   const price = await priceForPlan(plan);
   const customerId = await usableCustomerId(business);

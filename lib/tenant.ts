@@ -2,8 +2,12 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { reportError } from "@/lib/report-error";
 import { betaWindowForInvite } from "@/lib/billing/beta";
+import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
 
 const clerkEnabled = !!process.env.CLERK_SECRET_KEY;
+export class AssistantEnrollmentClosedError extends Error {
+  constructor() { super("The artist assistant is closed to new accounts."); this.name = "AssistantEnrollmentClosedError"; }
+}
 
 function slugify(input: string): string {
   return input
@@ -149,6 +153,7 @@ export async function getCurrentBusiness(opts: { provision?: boolean } = {}) {
       throw new NoTenantError(email);
     }
 
+    if (!ASSISTANT_ENROLLMENT_OPEN) throw new AssistantEnrollmentClosedError();
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ");
     const created = await createBusinessForUser(userId, email, fullName);
     // Every new tenant is an event worth seeing while the customer count is

@@ -1,5 +1,7 @@
 # MARKETING-PLAN — Bright Ears SaaS (agentic engine + founder motions)
 
+> Historical SaaS plan, paused by founder decision on 2026-09-09. See `AGENCY-RESTORATION.md` for the current agency website direction. Do not resume this build or launch queue automatically.
+
 Two tracks: **the engine** (agents produce, founder approves) and **founder motions** (sales work only a human can do, all async from Bangkok). The engine is a queue — a marketing loop picks the next unchecked item, produces it, founder reviews, ship.
 
 ## Track 1 — The engine (agent-produced queue)

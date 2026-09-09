@@ -87,34 +87,18 @@ describe("getCurrentBusiness — adoption ladder", () => {
     expect(mockDb.member.findFirst).toHaveBeenCalledTimes(2);
   });
 
-  it("provisions for a genuinely new signup ONLY where provisioning is asked for", async () => {
+  it("refuses new tenant provisioning after enrollment closes", async () => {
     mockDb.member.findFirst.mockResolvedValue(null);
-    mockDb.business.findUnique.mockResolvedValue(null); // slug is free
-    mockDb.business.create.mockResolvedValue({ id: "biz_new", slug: "owner" });
-    await expect(getCurrentBusiness({ provision: true })).resolves.toEqual({ id: "biz_new", slug: "owner" });
-    expect(mockDb.business.create).toHaveBeenCalledOnce();
+    await expect(getCurrentBusiness({ provision: true })).rejects.toMatchObject({ name: "AssistantEnrollmentClosedError" });
+    expect(mockDb.business.create).not.toHaveBeenCalled();
     expect(mockDb.member.update).not.toHaveBeenCalled();
   });
 
-  it("grants an approved verified email one fixed beta window without changing its stored plan", async () => {
-    process.env.BETA_COMP_EMAILS = " other@example.com, OWNER@EXAMPLE.COM ";
+  it("does not let a historical beta allowlist reopen enrollment", async () => {
+    process.env.BETA_COMP_EMAILS = "OWNER@EXAMPLE.COM";
     mockDb.member.findFirst.mockResolvedValue(null);
-    mockDb.business.findUnique.mockResolvedValue(null);
-    mockDb.business.create.mockImplementation(async ({ data }) => ({ id: "biz_beta", slug: "owner", ...data }));
-
-    await getCurrentBusiness({ provision: true });
-
-    const data = mockDb.business.create.mock.calls[0]?.[0]?.data;
-    expect(data).toEqual(
-      expect.objectContaining({
-        plan: "TRIAL",
-        betaStartedAt: expect.any(Date),
-        trialEndsAt: expect.any(Date),
-      }),
-    );
-    expect(data.trialEndsAt.getTime() - data.betaStartedAt.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
-    expect(data).not.toHaveProperty("stripeCustomerId");
-    expect(data).not.toHaveProperty("stripeSubscriptionId");
+    await expect(getCurrentBusiness({ provision: true })).rejects.toMatchObject({ name: "AssistantEnrollmentClosedError" });
+    expect(mockDb.business.create).not.toHaveBeenCalled();
   });
 
   // The regression that produced three tenants for one person.
