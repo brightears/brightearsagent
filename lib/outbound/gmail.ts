@@ -1,3 +1,4 @@
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 // Gmail send transport (Phase 10.5) — sends proactive venue pitches from the
 // ARTIST'S own connected mailbox. NOT Postmark: that's the whole point of
 // own-mailbox sending (one artist's cold pitches must never touch the reactive
@@ -39,6 +40,7 @@ export async function getValidAccessToken(
   businessId: string,
   fetchImpl: FetchLike = fetch,
 ): Promise<string> {
+  assertAssistantRuntimeActive();
   const conn = await db.mailboxConnection.findUnique({ where: { businessId } });
   if (!conn) throw new MailboxError("No mailbox connected", true);
   if (conn.status === "REVOKED") {
@@ -183,6 +185,7 @@ export async function sendGmail(
   input: GmailSendInput,
   fetchImpl: FetchLike = fetch,
 ): Promise<GmailSendResult> {
+  assertAssistantRuntimeActive();
   const conn = await db.mailboxConnection.findUnique({ where: { businessId } });
   if (!conn) throw new MailboxError("No mailbox connected", true);
 

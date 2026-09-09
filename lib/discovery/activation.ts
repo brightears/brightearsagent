@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { after } from "next/server";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
 import { reportError } from "@/lib/report-error";
@@ -20,6 +21,7 @@ import { reportError } from "@/lib/report-error";
  * mean it, and the daily cron remains the backstop in production.
  */
 export function scheduleActivationScan(businessId: string, opts: { force?: boolean } = {}) {
+  if (ASSISTANT_RUNTIME_RETIRED) return;
   try {
     after(() =>
       runDiscoveryScan(businessId, { force: opts.force }).catch((err) =>

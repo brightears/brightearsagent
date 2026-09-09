@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runDiscoveryScan } from "@/lib/discovery/scan";
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  if (ASSISTANT_RUNTIME_RETIRED) return NextResponse.json({status:"retired",workPerformed:false});
   const startedAt = Date.now();
 
   const businesses = await db.business.findMany({

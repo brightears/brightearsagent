@@ -1,52 +1,50 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { organizationJsonLd } from "@/lib/marketing/site";
+import { getAgencyRoster, heroArtists } from "@/lib/agency/roster";
 import { AgencyBrief } from "@/components/agency-brief";
 import { AgencySound } from "@/components/agency-sound";
+import { AgencyMotion } from "@/components/agency-motion";
+import { MotionToggle } from "@/components/motion-toggle";
 import styles from "./agency.module.css";
-
 export const metadata: Metadata = {
-  title: "Bright Ears — DJs & music for Bangkok venues and events",
-  alternates: {canonical:"/"},
-  description: "DJs and music programming for hotels, restaurants, rooftops and private events. Tell Bright Ears about your venue and the night you have in mind.",
-  openGraph: { title: "Bright Ears — Good music. Great nights.", description: "DJs and music programming for Bangkok venues and events.", images: [] },
-  twitter: { card: "summary", title: "Bright Ears — Good music. Great nights.", images: [] },
+ title: "Bright Ears — DJs, residencies & unforgettable nights",
+ description: "Bangkok's independent DJ agency. Explore our artists, build your lineup and shape the music for your venue or event.",
+ alternates:{canonical:"/"},openGraph:{title:"Bright Ears — The night is yours.",description:"DJs. Residencies. Good company.",images:[]},twitter:{card:"summary",images:[]}
 };
-export default async function HomePage({searchParams}:{searchParams:Promise<{artist?:string}>}) {
-  const requestedArtist=(await searchParams).artist;
-  const initialArtist=["UFO","RabbitDisco","Benji"].includes(requestedArtist || "") ? requestedArtist || "" : "";
-  const th = (await getRequestLocale()) === "th";
-  return <div className={styles.home}>
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()).replace(/</g, "\\u003c") }} />
-    <section className={styles.hero} aria-labelledby="hero-title">
-      <div className={styles.heroCopy}>
-        <p className={styles.eyebrow}><span />{th ? "ดีเจเอเจนซี · กรุงเทพฯ" : "Independent DJ agency · Bangkok"}</p>
-        <h1 id="hero-title" className={styles.heroTitle}>{th ? "ดนตรีที่ใช่." : "Good music."}<br /><em>{th ? "ค่ำคืนที่ดี." : "Great nights."}</em></h1>
-        <p className={styles.heroIntro}>{th ? "ดีเจและการวางโปรแกรมดนตรีสำหรับโรงแรม ร้านอาหาร และอีเวนต์ เลือกเสียงดนตรีให้เข้ากับสถานที่ แขก และบรรยากาศที่คุณต้องการ" : "DJs and music programming for hotels, restaurants and events. The right sound for your space, your guests and the night you have in mind."}</p>
-        <div className={styles.heroActions}><a className={styles.primary} href="#brief">{th ? "วางแผนดนตรีของคุณ" : "Let’s plan your music"}<span aria-hidden>↗</span></a><a className={styles.textLink} href="#artists">{th ? "รู้จักดีเจของเรา" : "Meet the DJs"}<span aria-hidden>↓</span></a></div>
-        <div className={styles.heroNote}>{th ? "ตั้งแต่ดินเนอร์สบาย ๆ จนถึงเพลงสุดท้ายบนฟลอร์" : "From the first drink to the last track."}</div>
-      </div>
-      <figure className={styles.heroVisual}>
-        <Image src="/agency/ufo-photo1.png" alt={th ? "DJ UFO เล่นดนตรีที่โต๊ะดีเจ" : "DJ UFO at the decks"} fill sizes="(max-width: 800px) 100vw, 48vw" preload className={styles.heroImage} />
-        <div className={styles.photoCorner} aria-hidden>BE / SELECTED</div>
-        <figcaption><span>{th ? "หลังบูธดีเจ" : "Behind the decks"}</span><strong>DJ UFO</strong><span aria-hidden>↗</span></figcaption>
-      </figure>
-    </section>
-    <div className={styles.serviceStrip}><span>{th ? "โรงแรมและรูฟท็อป" : "Hotels & rooftops"}</span><span aria-hidden> / </span><span>{th ? "ร้านอาหารและบาร์" : "Restaurants & bars"}</span><span aria-hidden> / </span><span>{th ? "งานส่วนตัวและแบรนด์อีเวนต์" : "Private & brand events"}</span></div>
-    <section id="approach" className={styles.section} aria-labelledby="approach-title">
-      <div className={styles.sectionHeading}><p className={styles.eyebrow}><span />{th ? "ฟัง เข้าใจ แล้วเลือกดนตรี" : "A feel for the room"}</p><h2 id="approach-title">{th ? "ทุกสถานที่" : "Every room"}<br /><em>{th ? "มีจังหวะของตัวเอง." : "has a rhythm."}</em></h2><p>{th ? "ดนตรีที่ดีเริ่มจากการเข้าใจสถานที่และผู้คน เราช่วยเลือกดีเจและวางแนวดนตรีให้เข้ากับเวลาของวันและบรรยากาศของคุณ" : "A great set starts with understanding the room. We bring together the artist, the music and the moment—whether you need one memorable evening or a regular programme."}</p></div>
-      <div className={styles.offerRows}>
-        <article><span className={styles.offerNumber}>01</span><div><h3>{th ? "ดีเจสำหรับงานของคุณ" : "One occasion. The right DJ."}</h3><p>{th ? "งานส่วนตัว งานแบรนด์ และงานเปิดตัว บอกวัน สถานที่ และแขกของคุณ แล้วเราจะช่วยเลือกศิลปินที่เหมาะ" : "Private celebrations, brand events and venue openings. Tell us about the occasion and we’ll help find an artist who fits."}</p></div><a href="#brief" aria-label={th ? "สอบถามดีเจสำหรับงาน" : "Inquire about an event DJ"}>↗</a></article>
-        <article><span className={styles.offerNumber}>02</span><div><h3>{th ? "ดนตรีประจำสถานที่" : "A regular sound for your venue."}</h3><p>{th ? "เลือกศิลปิน วางตาราง และกำหนดแนวดนตรีสำหรับโรงแรม ร้านอาหาร และบาร์ พร้อมปรับตามความคิดเห็นของทีมคุณ" : "Artist selection, scheduling and music direction for hotels, restaurants and bars, with feedback from your team shaping the programme."}</p></div><a href="#brief" aria-label={th ? "สอบถามโปรแกรมดนตรีประจำ" : "Inquire about a regular music programme"}>↗</a></article>
-      </div>
-      <div className={styles.venueExperience}><p className={styles.eyebrow}>{th ? "ประสบการณ์ในสถานที่และโรงแรม รวมถึง" : "Venue experience includes"}</p><div><span>NOBU</span><span>Marriott Hotels</span><span>Hilton Hotels</span></div></div>
-    </section>
-    <section className={styles.soundSection} aria-labelledby="sound-title"><div className={styles.compactHeading}><p className={styles.eyebrow}><span />{th ? "เริ่มจากบรรยากาศ" : "Start with a feeling"}</p><h2 id="sound-title">{th ? "คืนนี้ควรรู้สึกอย่างไร?" : "How should the night feel?"}</h2><p>{th ? "ลองเลือกแนวทาง แล้วค่อยปรับให้เป็นเสียงของสถานที่คุณ" : "Explore a starting point. We’ll shape the details around your space."}</p></div><AgencySound th={th} /></section>
-    <section id="artists" className={styles.section} aria-labelledby="artists-title"><div className={styles.artistsHeading}><div><p className={styles.eyebrow}><span />{th ? "คนที่อยู่เบื้องหลังเสียงดนตรี" : "The people behind the music"}</p><h2 id="artists-title">{th ? "เลือกด้วยหู." : "Selected by ear."}<br /><em>{th ? "เล่นด้วยใจ." : "Played with feeling."}</em></h2></div><p>{th ? "พบกับดีเจบางส่วนของ Bright Ears เราจะช่วยเลือกศิลปินให้เข้ากับบรีฟและวันจัดงานของคุณ" : "A few faces from Bright Ears. We’ll recommend a lineup around your brief and the artists available for your dates."}</p></div>
-      <div className={styles.artistsGrid}>{[{name:"UFO",image:"ufo-photo1.png",number:"01"},{name:"RabbitDisco",image:"rabbitdisco-photo1.png",number:"02"},{name:"Benji",image:"benji-photo1.png",number:"03"}].map(artist => <article key={artist.name}><a href={"/?artist=" + encodeURIComponent(artist.name) + "#brief"} aria-label={(th ? "สอบถามเกี่ยวกับ " : "Inquire about ") + artist.name}><div className={styles.artistPhoto}><Image src={"/agency/" + artist.image} alt={"DJ " + artist.name} fill sizes="(max-width: 600px) 88vw, (max-width: 900px) 42vw, 28vw" /><span>{artist.number} / BRIGHT EARS</span></div><div className={styles.artistCaption}><h3>{artist.name}</h3><span aria-hidden>↗</span></div></a></article>)}</div>
-    </section>
-    <aside className={styles.breezeBand}><div><p className={styles.eyebrow}>{th ? "นอกเหนือจากช่วงดีเจ" : "Between the live sets"}</p><h2>{th ? "ดนตรีสำหรับทั้งวัน." : "Music for the rest of the day."}</h2><p>{th ? "สำรวจ Beat Breeze โดย BMAsia Music สำหรับเพลงเปิดในธุรกิจและการจัดตารางดนตรีในแต่ละโซน ตั้งแต่เปิดร้านจนถึงเวลาปิด" : "Explore Beat Breeze by BMAsia Music for business music and zone scheduling, from opening time to the last guest."}</p></div><a href="https://beatbreeze.io" className={styles.secondary}>{th ? "รู้จัก Beat Breeze" : "Explore Beat Breeze"} <span aria-hidden>↗</span></a></aside>
-    <section id="brief" className={styles.briefSection} aria-label={th ? "เตรียมบรีฟดนตรี" : "Prepare a music brief"}><AgencyBrief key={initialArtist} th={th} initialArtist={initialArtist} /></section>
-  </div>;
+const logos=[{name:"Nobu",file:"nobu.png",width:170},{name:"Marriott",file:"marriott.svg",width:135},{name:"Hilton",file:"hilton.png",width:95},{name:"Centara",file:"centara.png",width:145},{name:"Accor",file:"accor.png",width:100},{name:"Le Du Kaan",file:"ledukaan.svg",width:115},{name:"ABar",file:"abar.png",width:150}];
+export default async function HomePage({searchParams}:{searchParams:Promise<{artist?:string;artists?:string}>}){
+ const [params,roster,locale]=await Promise.all([searchParams,getAgencyRoster(),getRequestLocale()]);const th=locale==="th";const c=(en:string,thai:string)=>th?thai:en;
+ const ids=(params.artists||"").split(",").slice(0,6);const initialArtist=roster.filter(a=>ids.includes(a.id)||a.name===params.artist).map(a=>a.name).join(" + ");
+ const featured=heroArtists.filter(a=>roster.some(r=>r.id===a.id));
+ return <AgencyMotion><div className={styles.home}>
+ <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(organizationJsonLd()).replace(/</g,"\\u003c")}}/>
+ <section className={styles.nocturneHero} aria-labelledby="hero-title">
+  <div className={styles.heroWall} aria-hidden="true">{[0,1,2,3].map(col=><div className={styles.wallColumn} key={col}>{heroArtists.filter((_,i)=>i%4===col).map(a=><div className={styles.wallPortrait} key={a.id}><Image src={a.image} alt="" fill sizes="(max-width: 600px) 42vw, 24vw" preload={col<2} style={{objectPosition:a.position}}/><span>{a.name}</span></div>)}</div>)}</div>
+  <div className={styles.heroShade}/><div className={styles.nocturneCopy}>
+   <p className={styles.kicker}><span className={styles.liveDot}/>{c("INDEPENDENT DJ AGENCY / BANGKOK","ดีเจเอเจนซี / กรุงเทพฯ")}</p>
+   <h1 id="hero-title">{c("The night","ค่ำคืนนี้")}<br/><em>{c("is yours.","เป็นของคุณ")}</em><span className={styles.heroAsterisk} aria-hidden="true">✳</span></h1>
+   <p className={styles.nocturneIntro}>{c("We bring the people who make it.","เราพาคนที่ทำให้ค่ำคืนพิเศษมาพบคุณ")}<br/>{c("DJs. Residencies. Good company.","ดีเจ ดนตรีประจำสถานที่ และผู้คนที่ใช่")}</p>
+   <div className={styles.heroActions}><Link className={styles.primary} href="/artists">{c("Find your DJ","ค้นหาดีเจของคุณ")} <span aria-hidden>↗</span></Link><a className={styles.textLink} href="#brief">{c("Plan your music","วางแผนดนตรี")} <span aria-hidden>↗</span></a></div>
+  </div>
+  <div className={styles.heroBase}><span>{c("FROM THE FIRST DRINK TO THE LAST TRACK","ตั้งแต่แก้วแรกจนถึงเพลงสุดท้าย")}</span><MotionToggle th={th}/><a href="#approach" aria-label={c("Explore Bright Ears","รู้จัก Bright Ears")}>↓</a></div>
+ </section>
+ <section className={styles.clients} aria-label={c("Our venue and hospitality experience","ประสบการณ์กับโรงแรมและสถานที่")}><p className={styles.kicker}>{c("GOOD COMPANY TO KEEP","ผู้คนและสถานที่ที่เราได้ร่วมงาน")}</p><div className={styles.logoRail}>{logos.map(l=><div key={l.name} className={styles.logoItem}><Image src={"/agency/clients/"+l.file} alt={l.name} width={l.width} height={64} style={{width:l.width,height:64,objectFit:"contain"}}/></div>)}</div></section>
+ <section id="approach" className={styles.manifesto} data-reveal><p className={styles.kicker}>01 / {c("A FEEL FOR THE ROOM","เข้าใจบรรยากาศ")}</p><h2>{c("Some nights you go out.","บางคืน คุณออกไปข้างนอก")}<br/>{c("Some nights you","บางคืน คุณ")} <em>{c("feel something.","รู้สึกถึงสิ่งพิเศษ")}</em></h2><div className={styles.manifestoBottom}><span className={styles.orbit} aria-hidden="true">✳</span><p>{c("That’s the difference the right DJ makes. We connect places and people through music—shaping the sound of hotel lounges, rooftops, restaurants and celebrations across Bangkok and beyond.","ดีเจที่ใช่สร้างความแตกต่าง เราเชื่อมสถานที่และผู้คนด้วยดนตรี วางเสียงให้กับเลานจ์โรงแรม รูฟท็อป ร้านอาหาร และงานฉลองในกรุงเทพฯ และพื้นที่อื่น ๆ")}</p><a href="#brief" className={styles.textLink}>{c("Let’s make it happen","เริ่มวางแผนด้วยกัน")} ↗</a></div></section>
+ <section className={styles.servicePanels} aria-label={c("Our services","บริการของเรา")}>
+  <a href="#brief" className={styles.servicePanel} data-reveal><Image src="/agency/hero/dj-ufo.jpg" alt={c("UFO performing at the decks","UFO เล่นดนตรีที่บูธดีเจ")} fill sizes="(max-width: 700px) 100vw, 50vw"/><span className={styles.panelNumber}>01 / {c("FOR YOUR VENUE","สำหรับสถานที่")}</span><div><p>{c("RESIDENT DJS · MUSIC DIRECTION · SCHEDULING","ดีเจประจำ · แนวดนตรี · ตารางงาน")}</p><h2>{c("Make it","สร้างเสียงที่")}<br/><em>{c("your sound.","เป็นของคุณ")}</em></h2><span className={styles.panelAction}>{c("Build a music programme","วางโปรแกรมดนตรี")} ↗</span></div></a>
+  <a href="#brief" className={styles.servicePanel} data-reveal><Image src="/agency/hero/dj-rabbitdisco.png" alt="RabbitDisco" fill sizes="(max-width: 700px) 100vw, 50vw"/><span className={styles.panelNumber}>02 / {c("FOR YOUR EVENT","สำหรับงานของคุณ")}</span><div><p>{c("PRIVATE PARTIES · BRAND EVENTS · OPENINGS","งานส่วนตัว · งานแบรนด์ · งานเปิดตัว")}</p><h2>{c("One night.","หนึ่งค่ำคืน")}<br/><em>{c("All the feeling.","เต็มไปด้วยความรู้สึก")}</em></h2><span className={styles.panelAction}>{c("Find your lineup","เลือกดีเจสำหรับงาน")} ↗</span></div></a>
+ </section>
+ <section className={styles.rosterSection} id="artists"><div className={styles.editorialHeading} data-reveal><div><p className={styles.kicker}>02 / {c("THE PEOPLE BEHIND THE MUSIC","ผู้คนเบื้องหลังเสียงดนตรี")}</p><h2>{c("All different.","ทุกคนแตกต่าง")}<br/><em>{c("All ears.","ใส่ใจทุกเสียง")}</em></h2></div><div><p>{c("Selectors with a point of view. Explore the sounds, personalities and people in our roster.","ดีเจที่มีแนวทางของตัวเอง สำรวจดนตรี บุคลิก และผู้คนในรายชื่อของเรา")}</p><Link className={styles.textLink} href="/artists">{c("Explore the full roster","ดูดีเจทั้งหมด")}{roster.length?` (${roster.length})`:""} ↗</Link></div></div><div className={styles.featuredRail}>{featured.map((a,i)=><Link href={"/artists/"+a.id} className={styles.featuredArtist} key={a.id}><div><Image src={a.image} alt={a.name} fill sizes="(max-width: 600px) 65vw, 25vw" style={{objectPosition:a.position}}/><span>{String(i+1).padStart(2,"0")} / BE</span></div><h3>{a.name}<span>↗</span></h3><p>{roster.find(r=>r.id===a.id)?.genres.slice(0,2).join(" / ")}</p></Link>)}</div><p className={styles.railHint}>{c("SCROLL TO MEET THE SELECTORS","เลื่อนเพื่อรู้จักดีเจของเรา")} <span>⟷</span></p></section>
+ <section className={styles.soundSection}><div className={styles.compactHeading} data-reveal><p className={styles.kicker}>03 / {c("SET THE MOOD","เลือกบรรยากาศ")}</p><h2>{c("What’s your","ค่ำคืนของคุณ")} <em>{c("kind of night?","เป็นแบบไหน?")}</em></h2><p>{c("Start with a feeling. We’ll help find the people and records to match.","เริ่มจากความรู้สึก แล้วเราจะช่วยเลือกดีเจและดนตรีที่เข้ากัน")}</p></div><AgencySound th={th}/></section>
+ <section id="your-space" className={styles.portalSection}><div className={styles.editorialHeading} data-reveal><div><p className={styles.kicker}>04 / {c("BEHIND THE SCENES","เบื้องหลังค่ำคืนของคุณ")}</p><h2>{c("Less back-and-forth.","จัดการได้ง่ายขึ้น")}<br/><em>{c("More music.","เพื่อดนตรีที่ดีขึ้น")}</em></h2></div><p>{c("A shared rhythm for venues, DJs and the team that brings it all together.","เชื่อมสถานที่ ดีเจ และทีมงานให้ทำงานไปในจังหวะเดียวกัน")}</p></div><div className={styles.portalCards}>
+  <a className={styles.portalCard} href={`https://agency.brightears.io/${locale}/venue-portal`}><span className={styles.portalGlyph} aria-hidden>▦</span><p className={styles.kicker}>{c("FOR VENUE TEAMS","สำหรับทีมสถานที่")}</p><h3>{c("Your programme.\nIn one place.","โปรแกรมดนตรีของคุณ\nในที่เดียว")}</h3><p>{c("See your monthly DJ schedule, download the programme and share feedback on the music.","ดูตารางดีเจประจำเดือน ดาวน์โหลดตาราง และส่งความคิดเห็นเกี่ยวกับดนตรี")}</p><span className={styles.portalLink}>{c("Open venue space","เข้าสู่พื้นที่สถานที่")} ↗</span></a>
+  <a className={styles.portalCard} href={`https://agency.brightears.io/${locale}/dj-portal`}><span className={styles.portalGlyph} aria-hidden>◎</span><p className={styles.kicker}>{c("FOR BRIGHT EARS DJS","สำหรับดีเจ BRIGHT EARS")}</p><h3>{c("Your next set.\nYour own space.","งานถัดไปของคุณ\nพื้นที่ของคุณ")}</h3><p>{c("Check your upcoming assignments, keep your artist profile current and see venue feedback.","ตรวจสอบงานที่ได้รับ อัปเดตโปรไฟล์ และดูความคิดเห็นจากสถานที่")}</p><span className={styles.portalLink}>{c("Open DJ space","เข้าสู่พื้นที่ดีเจ")} ↗</span></a>
+  <div className={`${styles.portalCard} ${styles.vinylCard}`}><span className={styles.vinylRecord} aria-hidden><i/></span><p className={styles.kicker}>{c("MEET VINYL","รู้จัก VINYL")}</p><h3>{c("The rhythm\nbehind the scenes.","จังหวะการทำงาน\nเบื้องหลังค่ำคืน")}</h3><p>{c("Our operations assistant helps coordinate schedules, invoices, receipts and updates with the team on LINE.","ผู้ช่วยฝ่ายปฏิบัติการช่วยประสานตารางงาน ใบแจ้งหนี้ ใบเสร็จ และอัปเดตกับทีมผ่าน LINE")}</p><a className={styles.portalLink} href="https://page.line.me/944grjuq">{c("Connect with Bright Ears","ติดต่อ Bright Ears")} ↗</a></div>
+ </div></section>
+ <aside className={styles.breezeBand}><div><p className={styles.kicker}>{c("THE MUSIC DOESN’T STOP HERE","ดนตรีไม่ได้หยุดแค่ช่วงดีเจ")}</p><h2>{c("Before the DJ. After the encore.","ก่อนดีเจมา หลังเพลงสุดท้าย")}</h2><p>{c("Music for every hour of your business. Discover Beat Breeze by BMAsia Music.","ดนตรีสำหรับทุกช่วงเวลาของธุรกิจ รู้จัก Beat Breeze โดย BMAsia Music")}</p></div><a href="https://beatbreeze.io" className={styles.secondary}>Beat Breeze ↗</a></aside>
+ <section id="brief" className={styles.briefSection}><AgencyBrief key={initialArtist} th={th} initialArtist={initialArtist}/></section>
+ </div></AgencyMotion>;
 }

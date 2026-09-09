@@ -7,6 +7,7 @@
 //
 // No Date.now() in here — `now` arrives via DiscoveryOpts (provider contract).
 
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 import { z } from "zod";
 import { llmObject } from "@/lib/llm";
 import type {
@@ -706,6 +707,7 @@ export class SerperDiscoveryProvider implements DiscoveryProvider {
   }
 
   async searchVenueSignals(metro: Metro, opts: DiscoveryOpts): Promise<RawSignal[]> {
+    assertAssistantRuntimeActive();
     if (!this.apiKey) throw new Error("SERPER_API_KEY is not set — cannot run a live scan");
     // Hot battery every scan; the WARM battery rides along only when scan.ts
     // says it's the warm wheel's turn (every 3rd scan — cost discipline).

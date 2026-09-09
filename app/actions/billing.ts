@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
 
 import { redirect } from "next/navigation";
@@ -101,6 +102,7 @@ async function usableCustomerId(business: {
 
 /** Start a subscription checkout for the chosen plan (Stripe-hosted page). */
 export async function startCheckout(plan: Exclude<PlanTier, "TRIAL">): Promise<void> {
+  if (ASSISTANT_RUNTIME_RETIRED) redirect("/assistant");
   if (!stripeEnabled) throw new Error("Billing not configured yet");
   const business = await getCurrentBusiness();
 
@@ -205,6 +207,7 @@ export async function openBillingPortal() {
  * plan. Falls back to a fresh checkout when nothing is subscribed yet.
  */
 export async function openPlanChange(plan: Exclude<PlanTier, "TRIAL">): Promise<void> {
+  if (ASSISTANT_RUNTIME_RETIRED) redirect("/assistant");
   if (!stripeEnabled) throw new Error("Billing not configured yet");
   const business = await getCurrentBusiness();
   if (!business.stripeSubscriptionId) return startCheckout(plan);

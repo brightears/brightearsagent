@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 // The Control Room (Phase 2b) — one cockpit for everything the AI office needs
 // to sound like you and hunt for you. Replaces the old split Profile + Settings
 // pages: five anchored sections (Identity · Voice & profile · Where you hunt ·
@@ -208,6 +210,7 @@ function StrengthMeter({
 function BillingCard({ meter, state, locale }: { meter: MeterState; state: BillingState; locale: Locale }) {
   const pct = meter.cap > 0 ? Math.min(100, Math.round((meter.used / meter.cap) * 100)) : 100;
   const c = (english: string, thai: string) => locale === "th" ? thai : english;
+  if (ASSISTANT_RUNTIME_RETIRED) return <Card className="p-6"><h3 className="text-xl font-bold">{c("Assistant retired", "ยุติระบบผู้ช่วยแล้ว")}</h3><p className="my-4 text-sm">{c("Automated discovery, drafting and email sending have stopped. Your saved work and billing history remain available.", "หยุดการค้นหา การร่าง และการส่งอีเมลอัตโนมัติแล้ว ข้อมูลและประวัติการเรียกเก็บเงินยังเข้าถึงได้")}</p><form action={openBillingPortal}><button className={buttonStyles.secondaryOnLight}>{c("Manage billing & invoices", "จัดการการเรียกเก็บเงินและใบแจ้งหนี้")}</button></form><Link className="mt-4 inline-block underline" href="/discover">{c("Try free discovery", "ค้นหาฟรี")} ↗</Link></Card>;
   const agentActive = state.subscribed || state.betaActive;
   const betaEnd = state.betaEndsAt?.toLocaleDateString(locale === "th" ? "th-TH" : "en-GB", {
     day: "numeric",

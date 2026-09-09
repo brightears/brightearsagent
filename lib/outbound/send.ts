@@ -1,3 +1,4 @@
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 export interface OutboundAttachment {
   filename: string;
   content: Buffer; // raw bytes; base64-encoded for Postmark
@@ -72,6 +73,7 @@ export function fitAttachments(attachments: OutboundAttachment[]): {
  * From address: OUTBOUND_FROM (Phase 8 moves this to mail.brightears.io).
  */
 export async function sendEmail(email: OutboundEmail): Promise<SendResult> {
+  assertAssistantRuntimeActive();
   const token = process.env.POSTMARK_SERVER_TOKEN;
   const fromAddress = process.env.OUTBOUND_FROM ?? "replies@dev.invalid";
 

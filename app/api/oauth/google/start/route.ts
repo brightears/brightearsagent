@@ -1,3 +1,4 @@
+import { ASSISTANT_RUNTIME_RETIRED } from "@/lib/assistant-runtime";
 // Google OAuth start (Phase 10.5). Tenant-scoped: getCurrentBusiness resolves
 // the signed-in artist (Clerk-protected via proxy.ts). We mint a CSRF state
 // bound to the tenant, drop it in a short-lived signed httpOnly cookie, and
@@ -21,6 +22,11 @@ function settingsUrl(_req: Request, query: string): URL {
 }
 
 export async function GET(req: Request) {
+  if (ASSISTANT_RUNTIME_RETIRED) {
+    const response=NextResponse.redirect(new URL("/assistant", appUrl()));
+    response.cookies.delete(OAUTH_STATE_COOKIE);
+    return response;
+  }
   let business;
   try {
     business = await getCurrentBusiness();

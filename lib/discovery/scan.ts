@@ -1,3 +1,4 @@
+import { assertAssistantRuntimeActive } from "@/lib/assistant-runtime";
 // Scan orchestration (Phase 10.2b): one tenant's full discovery cycle —
 // metros from the artist profile → provider scan → ingest (dedup/suppression/
 // scoring) → contact pass for promising venues missing an email.
@@ -55,6 +56,7 @@ export async function runDiscoveryScan(
   businessId: string,
   opts: { now?: Date; force?: boolean; forceWarm?: boolean; provider?: DiscoveryProvider } = {},
 ): Promise<ScanResult> {
+  assertAssistantRuntimeActive();
   const now = opts.now ?? new Date();
   const business = await db.business.findUniqueOrThrow({
     where: { id: businessId },

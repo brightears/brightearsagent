@@ -1,0 +1,337 @@
+{
+  "photos": {
+    "dj-linze": {
+      "source": "/images/djs/linze-photo1.png",
+      "local": "/agency/roster/linze-photo1.png"
+    },
+    "dj-dj-mint": {
+      "source": "/images/djs/mint-photo1.png",
+      "local": "/agency/roster/mint-photo1.png"
+    },
+    "dj-vita": {
+      "source": "/images/djs/vita-photo1.png",
+      "local": "/agency/roster/vita-photo1.png"
+    },
+    "dj-tom-fkg": {
+      "source": "/images/djs/tomfkg-photo1.png",
+      "local": "/agency/roster/tomfkg-photo1.png"
+    },
+    "dj-rabbitdisco": {
+      "source": "/images/djs/rabbitdisco-photo1.png",
+      "local": "/agency/roster/rabbitdisco-photo1.png"
+    },
+    "dj-dj-enjoy": {
+      "source": "/images/djs/enjoy-photo1.png",
+      "local": "/agency/roster/enjoy-photo1.png"
+    },
+    "dj-mizuyo": {
+      "source": "/images/djs/mizuyo-photo1.jpg",
+      "local": "/agency/roster/mizuyo-photo1.jpg"
+    },
+    "dj-dj-furry": {
+      "source": "/images/djs/furry-photo1.png",
+      "local": "/agency/roster/furry-photo1.png"
+    },
+    "dj-izaar": {
+      "source": "/images/djs/izaar-photo1.png",
+      "local": "/agency/roster/izaar-photo1.png"
+    },
+    "dj-dj-pound": {
+      "source": "/images/djs/pound-photo1.png",
+      "local": "/agency/roster/pound-photo1.png"
+    },
+    "dj-scotty-b": {
+      "source": "/images/djs/scottyb-photo1.png",
+      "local": "/agency/roster/scottyb-photo1.png"
+    },
+    "dj-yui-truluv": {
+      "source": "/images/djs/yuitruluv-photo1.png",
+      "local": "/agency/roster/yuitruluv-photo1.png"
+    },
+    "dj-eskay-da-real": {
+      "source": "/images/djs/eskay-photo1.png",
+      "local": "/agency/roster/eskay-photo1.png"
+    },
+    "dj-benji": {
+      "source": "/images/djs/benji-photo1.png",
+      "local": "/agency/roster/benji-photo1.png"
+    },
+    "dj-manymaur": {
+      "source": "/images/djs/manymaur-photo1.png",
+      "local": "/agency/roster/manymaur-photo1.png"
+    },
+    "dj-ufo": {
+      "source": "/images/djs/ufo-photo1.png",
+      "local": "/agency/roster/ufo-photo1.png"
+    },
+    "dj-tohmo": {
+      "source": "/images/djs/tohmo-photo1.jpg",
+      "local": "/agency/roster/tohmo-photo1.jpg"
+    },
+    "dj-krit": {
+      "source": "/images/djs/krit-photo1.jpg",
+      "local": "/agency/roster/krit-photo1.jpg"
+    },
+    "dj-april": {
+      "source": "/images/djs/april-photo1.jpg",
+      "local": "/agency/roster/april-photo1.jpg"
+    },
+    "dj-jj": {
+      "source": "/images/djs/jj-photo1.jpg",
+      "local": "/agency/roster/jj-photo1.jpg"
+    },
+    "dj-camilo": {
+      "source": "/images/djs/camilo-photo1.png",
+      "local": "/agency/roster/camilo-photo1.png"
+    },
+    "dj-ize": {
+      "source": "/images/djs/ize-photo1.jpg",
+      "local": "/agency/roster/ize-photo1.jpg"
+    },
+    "dj-nun": {
+      "source": "/images/djs/nun-photo1.png",
+      "local": "/agency/roster/nun-photo1.png"
+    },
+    "dj-joyyly": {
+      "source": "/images/djs/joyyly-photo1.jpg",
+      "local": "/agency/roster/joyyly-photo1.jpg"
+    },
+    "dj-t-gecko": {
+      "source": "/images/djs/tgecko-photo1.jpg",
+      "local": "/agency/roster/tgecko-photo1.jpg"
+    },
+    "dj-lupo": {
+      "source": "/images/djs/lupo-photo1.png",
+      "local": "/agency/roster/lupo-photo1.png"
+    },
+    "dj-zara-gift": {
+      "source": "/images/djs/zaragift-photo1.png",
+      "local": "/agency/roster/zaragift-photo1.png"
+    },
+    "dj-hvngyvk": {
+      "source": "/images/djs/hvngyvk-photo1.png",
+      "local": "/agency/roster/hvngyvk-photo1.png"
+    }
+  },
+  "bios": {
+    "dj-linze": {
+      "hash": "69b963ce92d196fe290f5dd1489cff5243835bff3d0b2316d35142a48fa69cfa",
+      "en": "Open format DJ specializing in pop and dance music with a flair for Thai pop and K-pop. Known for taking requests and keeping the flow fresh.",
+      "th": "Linze เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Pop & Dance, Thai Pop, K-pop, Open Format, Techno, EDM"
+    },
+    "dj-dj-mint": {
+      "hash": "cfbd4182dc20dbba7c703a41639013cac3cce6c566260af7e21647f21aa2259a",
+      "en": "Nu Disco, Tech House and Afro House are DJ Mint’s core styles. Based in Bangkok.",
+      "th": "DJ Mint เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Nu Disco, Tech House, Afro House"
+    },
+    "dj-vita": {
+      "hash": "2450e2d38fa5ea35c55f70f0c602911a6069a12b5b94479a3f118e6a2380dd42",
+      "en": "A Bangkok-based open-format DJ whose styles include Pop, K-Pop and R&B.",
+      "th": "Vita เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Open Format, Pop, K-Pop, R&B"
+    },
+    "dj-tom-fkg": {
+      "hash": "b7a5a4b2d5a5a179afad4ffb21d8cbf87c722652dbc6acaf4cfdbee8633cab4e",
+      "en": "Tom FKG’s selection spans Nu Disco, Funky House, Soulful House and Deep House. Based in Bangkok.",
+      "th": "Tom FKG เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Nu Disco, Funky House, Soulful House, Deep House"
+    },
+    "dj-rabbitdisco": {
+      "hash": "e0bcc4ee3e624037faa6960f516174f96c122d9ab09773296f15ba5c6181e01d",
+      "en": "Nu Disco and Indie Dance specialist bringing fun, upbeat energy to early evening sets.",
+      "th": "RabbitDisco เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Nu Disco, Indie Dance"
+    },
+    "dj-dj-enjoy": {
+      "hash": "75630d16c3922ca5990d374c8235e8d7e1675cd86cbb8495108b7f0e03ebfb03",
+      "en": "A Bangkok-based House DJ with a focus on uplifting sounds.",
+      "th": "DJ Enjoy เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว House, Uplifting House"
+    },
+    "dj-mizuyo": {
+      "hash": "df70b332cab01aa4f7d45836a0941fbd65eb45563ecdb545ecf43e83dd7a03d8",
+      "en": "A Bangkok-based DJ specializing in Funk, Disco, Latin and World Fusion.",
+      "th": "Mizuyo เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Funk, Disco, Latin, World Fusion"
+    },
+    "dj-dj-furry": {
+      "hash": "679ddafd6c90e1b516ec62162c6203f1b675ae3f0d968aaf1fa8c984e097d8f8",
+      "en": "Versatile DJ comfortable in both club and bar settings. House and Commercial specialist.",
+      "th": "DJ Furry เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว House, Commercial, Open Format"
+    },
+    "dj-izaar": {
+      "hash": "e6b802d111ed2c2c720a7a5f7e420f23765d7362b21b001c362b28719d720a6f",
+      "en": "A Bangkok-based DJ focused on Deep House, Soulful House and Organic House.",
+      "th": "Izaar เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Deep House, Soulful House, Organic House"
+    },
+    "dj-dj-pound": {
+      "hash": "d7eebd04930a9b77b4d71a9ae23802325a8d33f64eea32bf20e57346ee9688a9",
+      "en": "Open Format with Pop Charts, R&B and Hip Hop. DJ Pound is based in Bangkok.",
+      "th": "DJ Pound เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Open Format, Pop Charts, R&B, Hip Hop"
+    },
+    "dj-scotty-b": {
+      "hash": "7c4107730b1189b8509aa16389b807663444521858c4eeb67473e1f571ec545c",
+      "en": "A Bangkok-based DJ whose styles span Open Format and Nu Disco.",
+      "th": "Scotty B เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Open Format, Nu Disco"
+    },
+    "dj-yui-truluv": {
+      "hash": "4d28993a589f41525901709b6b041cd149bcab2d57d3bdf1404a963cb132406e",
+      "en": "Yui Truluv produces original tracks and remixes alongside smooth, feel-good DJ sets. Her range spans Nu Disco, Disco House, Deep House and Tech House, with Hip-Hop, R&B, Latin and Reggaeton also in the mix. Based in Bangkok.",
+      "th": "Yui Truluv สร้างสรรค์เพลงและรีมิกซ์ควบคู่กับเซ็ตดีเจที่ลื่นไหลและฟังสบาย แนวเพลงครอบคลุม Nu Disco, Disco House, Deep House และ Tech House รวมถึง Hip-Hop, R&B, Latin และ Reggaeton โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-eskay-da-real": {
+      "hash": "6c105cb20c0ad3879a3363a6b2b7a66daa2692a89c0e4293a0a525d5c7642337",
+      "en": "A DJ and beatmaker, Eskay Da Real blends Hip-Hop, R&B, Afro House and Latino rhythms. His wider selection includes Pop, House, Electro and Open Format. Based in Bangkok.",
+      "th": "Eskay Da Real เป็นทั้งดีเจและบีตเมกเกอร์ ผสมผสาน Hip-Hop, R&B, Afro House และจังหวะ Latino พร้อมแนว Pop, House, Electro และ Open Format โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-benji": {
+      "hash": "3c4bd16330fedd712294b4387bf5c402bf88d85e67f6ac7ad5c047bc43cbe91b",
+      "en": "Benji weaves organic-house remixes of familiar tracks into her sets. Her selection moves through Afro House, Organic House, Soulful House, Deep House and Nu Disco. Based in Bangkok.",
+      "th": "Benji นำเพลงคุ้นหูมาเล่าใหม่ผ่านรีมิกซ์แนว Organic House เซ็ตของเธอผสมผสาน Afro House, Organic House, Soulful House, Deep House และ Nu Disco โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-manymaur": {
+      "hash": "3b5fa232d70153be7891adcc82655b7a1cd42a1f6de08f3972d8d4ef408d351c",
+      "en": "Versatile DJ comfortable across House, Tech House, and Afro House genres. Can adapt to commercial settings when needed.",
+      "th": "Manymaur เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว House, Tech House, Afro House, Commercial"
+    },
+    "dj-ufo": {
+      "hash": "85ea260dcd5117fa7dcac5c7daa3438421fd56006bc6eedab85424295166a779",
+      "en": "Afro and Organic House specialist bringing cosmic energy to the dance floor. Can also play commercial sets for late-night crowds.",
+      "th": "UFO เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Afro House, Organic House, Commercial"
+    },
+    "dj-tohmo": {
+      "hash": "8a4f25a10374675fd0bf3540c92ce33b2da9716194bbaad2ef1df4be2d6167da",
+      "en": "Tohmo brings his background as a rapper and club hype man to his Hip-Hop sets. R&B, Lounge and Chillout are also part of his musical range. Based in Bangkok.",
+      "th": "Tohmo นำประสบการณ์การเป็นแร็ปเปอร์และผู้สร้างสีสันหน้าเวทีในคลับมาสู่เซ็ต Hip-Hop ของเขา พร้อมแนว R&B, Lounge และ Chillout โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-krit": {
+      "hash": "b67fa41d62a635bb4763471cb283b5d53c75be5785f38358fcb6e4ab8916feb8",
+      "en": "Krit’s selection spans Nu Disco, House, R&B, Hip Hop and Pop. Based in Bangkok.",
+      "th": "Krit เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Nu Disco, House, R&B, Hip Hop, Pop"
+    },
+    "dj-april": {
+      "hash": "19140a6d0ab196ca1ba2279f97e6f8ca8e55a078345c8bf42f589bae2b849ba4",
+      "en": "April’s musical range includes House, Tech House, Soulful House, EDM, Top 40 and Open Format. Based in Bangkok.",
+      "th": "April เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว EDM, Top 40, House, Tech House, Soulful House, Open Format"
+    },
+    "dj-jj": {
+      "hash": "146e7361a2d9ac08e357e69ee541fcc16906ed8a67ccba01b7e108a009a603d8",
+      "en": "An open-format selection spanning Soul, Funk, Disco, R&B, Hip Hop, Indie Rock and Pop. JJ is based in Bangkok.",
+      "th": "JJ เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Soul, Funk, Disco, R&B, Hip Hop, Indie Rock, Pop, Open Format"
+    },
+    "dj-camilo": {
+      "hash": "23e7bc0120defd01329f45c40d4923c3d7a73d528dfe668920f2720b529177ff",
+      "en": "Camilo is a DJ and percussionist who has recorded, produced and performed with salsa bands in Colombia. Salsa, Latin, Tropical, Afro-Latin and World Music shape his selection. Based in Bangkok.",
+      "th": "Camilo เป็นดีเจและนักเพอร์คัสชันที่เคยบันทึกเสียง โปรดิวซ์ และแสดงร่วมกับวงซัลซาในโคลอมเบีย เขาเลือกเพลงแนว Salsa, Latin, Tropical, Afro-Latin และ World Music โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-ize": {
+      "hash": "364025c9d29890cbad5743c7243c7a883d3a93ed9c456df96b11eb7ff9f79d6e",
+      "en": "R&B, Hip-Hop and Soul with music from the ’80s and ’90s. DJ Ize is based in Bangkok.",
+      "th": "DJ Ize เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว R&B, Hip-Hop, 80s, 90s, Soul"
+    },
+    "dj-nun": {
+      "hash": "79c9b18e871e209feda2eede6bc82726958780e6a831766c220cd58066d310f9",
+      "en": "DJ Nun brings a background in hospitality, bar management, beverage design and fashion production. Her musical selection includes Funky, Groovy and Disco House, Thai music, and records from the ’80s, ’90s and 2000s. Based in Bangkok.",
+      "th": "DJ Nun มีประสบการณ์ด้านการบริการ การจัดการบาร์ การออกแบบเครื่องดื่ม และการผลิตงานแฟชั่น แนวเพลงของเธอมีทั้ง Funky, Groovy, Disco House เพลงไทย และเพลงจากยุค 80, 90 และ 2000 โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-joyyly": {
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "en": "Deep House, Nu Disco, Organic House and Chillout. Joyyly is based in Bangkok.",
+      "th": "Joyyly เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Deep House, Nu Disco, Organic House, Chillout"
+    },
+    "dj-t-gecko": {
+      "hash": "cddc554e1bd8a752af511d411f25566a737a9483853733213d15d78b7021b815",
+      "en": "Organic House, Deep House and Afro House are T-Gecko’s listed styles. Based in Bangkok.",
+      "th": "T-Gecko เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว Organic House, Deep House, Afro House"
+    },
+    "dj-lupo": {
+      "hash": "79d013b32fef29e7cce1d9e60c87bad8e2e95d9c447b5860d5a2b38d82cdce19",
+      "en": "Lupo began his musical journey in Berlin’s underground scene and later worked in Mongolia and Bali. His selection moves through Nu Disco, Indie Dance, House, Organic House, Classic House, Progressive and Tech House. Based in Bangkok.",
+      "th": "Lupo เริ่มต้นเส้นทางดนตรีในวงการอันเดอร์กราวด์ของเบอร์ลิน ก่อนทำงานในมองโกเลียและบาหลี แนวเพลงครอบคลุม Nu Disco, Indie Dance, House, Organic House, Classic House, Progressive และ Tech House โดยมีกรุงเทพฯ เป็นฐาน"
+    },
+    "dj-zara-gift": {
+      "hash": "730c9edf1cffc46b1f43b79aa8f873bcd32d027bc55f99d329b06c7af377f432",
+      "en": "Zara Gift’s styles span House, Progressive, Bass House, Future Rave and Melodic Techno, alongside Hip Hop and Trap. Based in Bangkok.",
+      "th": "Zara Gift เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว House, Progressive, Bass House, Future Rave, Hip Hop, Trap, Melodic Techno"
+    },
+    "dj-hvngyvk": {
+      "hash": "6079dc33a68f7984843d7e49f51f52896712266c801dff54fac8850790151525",
+      "en": "House, Afro House and Tech House. Hvngyvk is based in Bangkok.",
+      "th": "Hvngyvk เป็นดีเจที่อยู่ในกรุงเทพฯ เล่นแนว House, Afro House, Tech House"
+    },
+    "dj-telemaggy": {
+      "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "en": "Telemaggy is a DJ based in Bangkok.",
+      "th": "Telemaggy เป็นดีเจที่อยู่ในกรุงเทพฯ"
+    }
+  },
+  "heroes": [
+    {
+      "id": "dj-ufo",
+      "name": "UFO",
+      "image": "/agency/hero/dj-ufo.jpg",
+      "position": "50% 60%"
+    },
+    {
+      "id": "dj-rabbitdisco",
+      "name": "RabbitDisco",
+      "image": "/agency/hero/dj-rabbitdisco.png",
+      "position": "50% 45%"
+    },
+    {
+      "id": "dj-dj-furry",
+      "name": "DJ Furry",
+      "image": "/agency/hero/dj-dj-furry.png",
+      "position": "50% 35%"
+    },
+    {
+      "id": "dj-lupo",
+      "name": "Lupo",
+      "image": "/agency/hero/dj-lupo.png",
+      "position": "50% 45%"
+    },
+    {
+      "id": "dj-mizuyo",
+      "name": "Mizuyo",
+      "image": "/agency/hero/dj-mizuyo.jpg",
+      "position": "50% 50%"
+    },
+    {
+      "id": "dj-dj-enjoy",
+      "name": "DJ Enjoy",
+      "image": "/agency/hero/dj-dj-enjoy.png",
+      "position": "50% 45%"
+    },
+    {
+      "id": "dj-scotty-b",
+      "name": "Scotty B",
+      "image": "/agency/hero/dj-scotty-b.jpg",
+      "position": "52% 30%"
+    },
+    {
+      "id": "dj-benji",
+      "name": "Benji",
+      "image": "/agency/hero/dj-benji.png",
+      "position": "50% 42%"
+    },
+    {
+      "id": "dj-t-gecko",
+      "name": "T-Gecko",
+      "image": "/agency/hero/dj-t-gecko.jpg",
+      "position": "50% 45%"
+    },
+    {
+      "id": "dj-linze",
+      "name": "Linze",
+      "image": "/agency/hero/dj-linze.jpg",
+      "position": "50% 30%"
+    },
+    {
+      "id": "dj-camilo",
+      "name": "Camilo",
+      "image": "/agency/hero/dj-camilo.png",
+      "position": "50% 42%"
+    },
+    {
+      "id": "dj-hvngyvk",
+      "name": "Hvngyvk",
+      "image": "/agency/hero/dj-hvngyvk.png",
+      "position": "50% 35%"
+    }
+  ]
+}
