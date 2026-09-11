@@ -37,3 +37,12 @@
 @media(max-width:950px){.grid{gap:24px;grid-template-columns:.9fr 1.1fr}.photoPanel,.bioPanel,.linksPanel{padding:20px}.contact{align-items:start;flex-direction:column;gap:20px}.header{gap:25px}.header>p{max-width:260px}}
 @media(max-width:750px){.page{padding:22px 6% 45px}.back{margin-bottom:12px}.header{display:block;padding-bottom:24px;margin-bottom:25px}.header h1{font-size:3.3rem}.header>p{margin-top:18px;max-width:500px}.grid{grid-template-columns:1fr;gap:24px}.photo{aspect-ratio:1.15}.photoPanel,.bioPanel,.linksPanel{padding:22px}.photoPanel .note{margin-top:15px}.biography{min-height:190px}.eyebrow{font-size:.75rem;letter-spacing:.1em}.panelHeading{margin-bottom:18px}}
 @media(max-width:430px){.photoPanel,.bioPanel,.linksPanel{padding:17px}.header h1{font-size:2.7rem}.photo{aspect-ratio:1}.primary{font-size:.875rem;padding:13px 15px;gap:20px}.photoPanel .primary{width:100%}.publicLinks{gap:10px}.publicLinks a{font-size:.875rem}.contact h2{font-size:1.4rem}}
+.kitDownload{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:32px;margin:0 0 30px}
+.kitDownloadAction{min-width:0}
+.kitDownloadButton{max-width:100%;text-align:left}
+.kitDownloadButton>span{flex-shrink:0}
+.kitDownloadButton:focus-visible{outline:2px solid #f2f0eb;outline-offset:4px}
+.page .kitDownloadButton:disabled{cursor:wait;background:var(--agency-cyan);color:#101214;opacity:.7}
+.kitDownloadHelp{max-width:490px;font-size:.9375rem;line-height:1.8;color:#a7b8c2}
+.kitDownloadError{color:#ffc9b5}
+@media(max-width:750px){.kitDownload{grid-template-columns:1fr;gap:5px;margin-bottom:25px}.kitDownloadButton{width:100%}.kitDownloadHelp{max-width:none}}

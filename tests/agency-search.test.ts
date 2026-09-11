@@ -30,4 +30,12 @@ describe("public artist projection",()=>{
  it("does not publish staffing notes or unsafe social links",()=>{
   const data=sanitizeArtist({id:"test",stageName:"Test",bio:"Replacement every Monday, 2000 THB per shift",instagram:"https://evil.example/x",profileImage:"https://evil.example/photo"});expect(data?.bio).toBe("");expect(data?.image).toBeNull();expect(data?.links).toEqual([]);
  });
+ it.each(["2000 THB per shift", "ค่าตัว 2000 บาทต่อกะ", "ไม่ว่างวันศุกร์", "ตารางงานส่งในกลุ่ม"])("screens independent Thai-field staffing notes: %s",bioTh=>{
+  const data=sanitizeArtist({id:"test",stageName:"Test",bio:"House and disco DJ.",bioTh});
+  expect(data?.bio).toBe("House and disco DJ.");expect(data?.bioTh).toBe("");
+ });
+ it("preserves a public Thai biography when both source fields are promotional",()=>{
+  const data=sanitizeArtist({id:"test",stageName:"Test",bio:"House and disco DJ.",bioTh:"ดีเจแนวเฮาส์และดิสโก้"});
+  expect(data?.bioTh).toBe("ดีเจแนวเฮาส์และดิสโก้");
+ });
 });

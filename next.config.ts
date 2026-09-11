@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   // not pass through the bundler — keep it external so it's required at runtime.
   serverExternalPackages: ["@react-pdf/renderer"],
 
+  // ZIP downloads read only curated public photos. Keep their runtime files
+  // available without tracing unrelated project files into this route.
+  outputFileTracingIncludes: {
+    "/api/agency/artists/*/kit": ["./public/agency/roster/*", "./public/agency/hero/*", "./public/agency/*.{png,jpg,jpeg,webp}"],
+  },
+
   // Apex-cutover redirects (audit 2026-07-27). When brightears.io changes hands,
   // the venues who have been using the agency site for years still hold bookmarks
   // and LINE messages pointing at these paths — without this they land on this
