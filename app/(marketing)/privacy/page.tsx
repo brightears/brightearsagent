@@ -25,7 +25,8 @@ export default function PrivacyPage() {
     >
       <LegalSection kicker="Who we are" title={`${LEGAL_ENTITY_NAME}, a Thailand-registered controller`}>
         <p>
-          Bright Ears is an AI back office for wedding and event performer businesses. The contracting
+          Bright Ears is a DJ agency providing venue programmes, event artist supply and related
+          online services. The contracting
           entity and data controller for this service is{" "}
           <span className="font-semibold text-ink-stage">{LEGAL_ENTITY_NAME}</span>, a company
           registered in Thailand (registration number{" "}
@@ -82,7 +83,38 @@ export default function PrivacyPage() {
         </ul>
       </LegalSection>
 
-      <LegalSection kicker="What we collect" title="The data we hold, and why">
+      <LegalSection kicker="Agency enquiries" title="When you contact our agency">
+        <p>
+          If you submit a music brief, we collect your name, email, venue or city, occasion,
+          preferred music and artists, and the date, timing, guest count and additional details
+          you choose to provide. We use this information to assess and respond to your request,
+          prepare a proposal and coordinate any service you subsequently agree with us.
+        </p>
+        <p>
+          Your enquiry is stored in our Render-hosted database and shared with our operations
+          workflow through authenticated access. Our operations assistant Vinyl uses Anthropic&rsquo;s
+          Claude to help review enquiries and bring them to the team. Correspondence may be handled through our Bright Ears Google
+          Workspace account. Submitting this form does not subscribe you to a marketing mailing list
+          or authorize an automatic sales sequence. This intake does not use Postmark or the
+          retired performer-assistant parsing and drafting pipeline.
+        </p>
+        <p>
+          We also keep an enquiry reference, submission and handoff records, and a keyed hash
+          derived from the submitting network address to limit abuse. The enquiry record does not
+          store the raw network address. Our hosting provider may maintain its own request logs.
+          We retain enquiry correspondence while handling your request and any resulting business
+          relationship. Contact us to request access, correction or deletion; records needed for an
+          agreed booking, accounting or a dispute may need to be retained separately.
+        </p>
+        <p>
+          Our earlier performer-assistant product has been retired. References below to its
+          forwarding addresses, proactive Hunt, automated drafting and follow-up sequences describe
+          legacy account data and the processing associated with that product, where applicable.
+          They do not describe the agency music-brief form.
+        </p>
+      </LegalSection>
+
+      <LegalSection kicker="What we collect" title="Account and legacy service data">
         <p>We collect the following categories of personal data:</p>
         <ul className="list-disc space-y-3 pl-5">
           <li>

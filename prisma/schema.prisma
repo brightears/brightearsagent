@@ -758,3 +758,22 @@ model AgencySearchBudget {
   expiresAt DateTime
   @@index([expiresAt])
 }
+
+// Agency enquiries are independent of the retired artist-assistant tenants.
+// The authenticated worker acknowledges only after recording a durable handoff.
+model AgencyInquiry {
+  id              String    @id @default(uuid())
+  submissionKey   String    @unique
+  requestHash     String
+  createdAt       DateTime  @default(now())
+  locale          String
+  source          String
+  brief           Json
+  clientHash      String
+  acknowledgedAt  DateTime?
+  handoffReference String?
+
+  @@index([acknowledgedAt, createdAt])
+  @@index([clientHash, createdAt])
+  @@index([createdAt])
+}

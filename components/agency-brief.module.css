@@ -1,0 +1,12 @@
+.fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.fields:disabled { opacity: .65; }
+.fields > button { margin-top: 20px; }
+.srOnly, .honeypot { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.receipt { border: 1px solid #00bbe4; background: #00bbe40b; padding: 24px; margin-top: 20px; }
+.receipt > span { color: #00bbe4; font-size: 2rem; }
+.receipt h3 { font-size: 1.3rem; margin: 10px 0; line-height: 1.3; }
+.receipt p { font-size: .85rem; color: #b5c0c6; line-height: 1.7; }
+.receipt code { display: block; overflow-wrap: anywhere; font-size: .75rem; margin: 16px 0; color: #00bbe4; }
+.receipt button { cursor: pointer; background: none; }
+.alternatives { margin-top: 22px; border-top: 1px solid #ffffff25; padding-top: 18px; }
+.alternatives summary { font-size: .8rem; cursor: pointer; color: #b5c0c6; line-height: 1.6; }
