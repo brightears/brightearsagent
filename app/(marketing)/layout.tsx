@@ -10,7 +10,7 @@ const serif = Playfair_Display({ subsets: ["latin"], style: ["normal", "italic"]
 
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
   const th = (await getRequestLocale()) === "th";
-  const links = [{ href: "/artists", label: th ? "ดีเจ" : "The roster" }, { href: "/#approach", label: th ? "บริการ" : "What we do" }, { href: "/discover", label: th ? "ค้นหา" : "Discover" }, { href: "/#your-space", label: th ? "พื้นที่ของคุณ" : "Your space" }];
+  const links = [{ href: "/venues", label: th ? "สำหรับสถานที่" : "For venues" }, { href: "/events", label: th ? "สำหรับอีเวนต์" : "For events" }, { href: "/artists", label: th ? "ดีเจ" : "The roster" }, { href: "/#your-space", label: th ? "พื้นที่ของคุณ" : "Your space" }];
   return <div className={`${styles.shell} ${sans.variable} ${serif.variable}`}>
     <a className={styles.skip} href="#main-content">{th ? "ข้ามไปเนื้อหา" : "Skip to content"}</a>
     <header className={styles.header}><div className={styles.headerInner}>
@@ -22,7 +22,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
     <footer className={styles.footer}>
       <div className={styles.footerTop}><Link href="/" className={styles.wordmark}><BrightEarsLogo size={32} /><span>bright ears.</span></Link><p>{th ? "ดนตรีที่ใช่ สำหรับสถานที่ของคุณ" : "Good company. Better music."}</p><a href="mailto:info@brightears.io">info@brightears.io <span aria-hidden>↗</span></a></div>
       <div className={styles.footerBig} aria-hidden="true">ALL EARS<span>↗</span></div>
-      <div className={styles.footerBottom}><span>© {new Date().getFullYear()} Bright Ears Co., Ltd. · Bangkok</span><nav aria-label={th ? "ลิงก์เพิ่มเติม" : "Additional links"}><a href="https://instagram.com/brightearsgroup">Instagram ↗</a><a href={`https://agency.brightears.io/${th?"th":"en"}/venue-portal`}>{th ? "เข้าสู่ระบบสถานที่" : "Venue access"}</a><a href={`https://agency.brightears.io/${th?"th":"en"}/dj-portal`}>{th?"เข้าสู่ระบบดีเจ":"DJ access"}</a><Link href="/assistant">{th ? "บัญชีผู้ช่วยเดิม" : "Assistant accounts"}</Link><Link href="/privacy">{th ? "ความเป็นส่วนตัว" : "Privacy"}</Link><Link href="/terms">{th ? "ข้อกำหนด" : "Terms"}</Link></nav></div>
+      <div className={styles.footerBottom}><span>© {new Date().getFullYear()} Bright Ears Co., Ltd. · Bangkok</span><nav aria-label={th ? "ลิงก์เพิ่มเติม" : "Additional links"}><a href="https://instagram.com/brightearsgroup">Instagram ↗</a><a href={`https://agency.brightears.io/${th?"th":"en"}/venue-portal`}>{th ? "เข้าสู่ระบบสถานที่" : "Venue access"}</a><a href={`https://agency.brightears.io/${th?"th":"en"}/dj-portal`}>{th?"เข้าสู่ระบบดีเจ":"DJ access"}</a><Link href="/discover">{th ? "ค้นหางานสำหรับดีเจ" : "Discovery for DJs"}</Link><Link href="/assistant">{th ? "บัญชีผู้ช่วยเดิม" : "Assistant accounts"}</Link><Link href="/privacy">{th ? "ความเป็นส่วนตัว" : "Privacy"}</Link><Link href="/terms">{th ? "ข้อกำหนด" : "Terms"}</Link></nav></div>
     </footer>
   </div>;
 }
