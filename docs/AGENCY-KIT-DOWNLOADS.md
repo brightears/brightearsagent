@@ -1,0 +1,11 @@
+# Artist promotion downloads
+
+Each public artist kit at `/artists/[id]/kit` offers one ZIP download alongside the existing individual photo and biography controls. Venue marketing teams can obtain the available public material without an account. The download is a dated snapshot; its README links to the maintained kit page.
+
+The ZIP contains a README, artist display information, public source/music/social links, available English and Thai biographies, and at most the current curated website photo. External images remain source links. Website photos are not described as print originals; missing biographies and photos are not fabricated. Source text is preserved, with the roster's staffing-note suppression applied to both biography fields.
+
+`GET /api/agency/artists/[id]/kit` resolves only a member of the current public roster. It never reads the raw private Artist record, fetches an external image, accepts a file path, or exports schedules, reviews, rates or tax records. Fixed archive entry names, checked-in photo mappings, real-path containment and file/text limits bound the export. The ZIP uses `fflate`, already present transitively and now declared directly. No subscription, schema, migration or AI-runtime change is involved.
+
+Responses use an attachment filename, `no-store` and `noindex`. Invalid/unknown IDs return 404; an unavailable roster or unusable local photo returns a retryable 503. The page keeps the visitor in place on error and retains the individual controls. Runtime photo tracing is restricted to public agency image directories.
+
+Validation on 11 September: 1,118 tests in 111 files, lint, TypeScript and the production build passed locally under Node 22. The archive/route checks cover Thai text, private extra-field exclusion, filesystem/symlink boundaries, oversized/nonregular files, no remote photo fetching, response headers and spoofed hosts. Signed-out browser checks at 1440, 390 and 360 pixels passed ZIP downloads, layout, English/Thai presentation, biography copying, simulated failure and retry. Python's independent ZIP reader verified the three actual downloads against the original photo bytes and both curated biographies. These are local checks; production verification is recorded separately after deployment.
