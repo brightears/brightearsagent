@@ -11,6 +11,7 @@ export type AgencyArtist = {
 const ORIGIN = "https://agency.brightears.io";
 function publicImage(value: unknown): string | null {
   if (typeof value !== "string" || !value) return null;
+  if (value.startsWith("/agency/roster/")) return value;
   if (value.startsWith("/images/djs/")) return ORIGIN + value;
   try { const url=new URL(value); return url.protocol==="https:" && ["res.cloudinary.com","images.unsplash.com", "agency.brightears.io"].includes(url.hostname) ? url.href : null; } catch { return null; }
 }
@@ -41,12 +42,17 @@ export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | nu
   });
   return {id:value.id,name:value.stageName,bio,bioTh:unchanged?note.th:internal||staffingNote.test(rawBioTh)?"":rawBioTh,city:typeof value.baseCity==="string"?value.baseCity:"Bangkok",genres,image,gallery:[...new Set([image,...(Array.isArray(value.images)?value.images.map(publicImage):[])].filter((p):p is string=>!!p))],links};
 }
+export function withSupplementalArtists(values: Record<string,unknown>[]):Record<string,unknown>[] {
+  const existing=new Set(values.flatMap(value=>typeof value.id==="string"?[value.id]:[]));
+  const supplemental=(curated.supplementalArtists as Record<string,unknown>[]|undefined)??[];
+  return [...values,...supplemental.filter(value=>typeof value.id==="string"&&!existing.has(value.id))];
+}
 export const getAgencyRoster=cache(async ():Promise<AgencyArtist[]>=>{
   try {
     const response=await fetch(ORIGIN+"/api/artists?categories=DJ&limit=100",{next:{revalidate:300},signal:AbortSignal.timeout(12000)});
     if(!response.ok) throw new Error("Roster unavailable");
     const data=await response.json();
     if(!Array.isArray(data.artists)) return [];
-    return data.artists.map(sanitizeArtist).filter((a:AgencyArtist|null):a is AgencyArtist=>a!==null).sort((a:AgencyArtist,b:AgencyArtist)=>a.name.localeCompare(b.name));
+    return withSupplementalArtists(data.artists).map(sanitizeArtist).filter((a:AgencyArtist|null):a is AgencyArtist=>a!==null).sort((a:AgencyArtist,b:AgencyArtist)=>a.name.localeCompare(b.name));
   } catch {return [];}
 });

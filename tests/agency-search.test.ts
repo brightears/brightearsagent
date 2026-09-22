@@ -1,6 +1,6 @@
 import {describe,expect,it} from "vitest";
 import {buildSearchQueries,normalizeSearchResults,searchInput} from "@/lib/agency/search-contract";
-import {sanitizeArtist} from "@/lib/agency/roster";
+import {sanitizeArtist,withSupplementalArtists} from "@/lib/agency/roster";
 describe("search-only discovery",()=>{
  it("accepts Thai and international city names but rejects query operators and oversized input",()=>{
   for(const city of ["Bangkok","กรุงเทพฯ","Ho Chi Minh City","St. John's"]){expect(searchInput.safeParse({city,mode:"opportunities",country:"th"}).success).toBe(true);}
@@ -37,5 +37,17 @@ describe("public artist projection",()=>{
  it("preserves a public Thai biography when both source fields are promotional",()=>{
   const data=sanitizeArtist({id:"test",stageName:"Test",bio:"House and disco DJ.",bioTh:"ดีเจแนวเฮาส์และดิสโก้"});
   expect(data?.bioTh).toBe("ดีเจแนวเฮาส์และดิสโก้");
+ });
+ it("allows curated local roster photos",()=>{
+  const data=sanitizeArtist({id:"test",stageName:"Test",profileImage:"/agency/roster/test.jpg",images:["/agency/roster/test-live.jpg"]});
+  expect(data?.image).toBe("/agency/roster/test.jpg");
+  expect(data?.gallery).toEqual(["/agency/roster/test.jpg","/agency/roster/test-live.jpg"]);
+ });
+ it("adds missing supplemental artists without replacing an upstream record",()=>{
+  const missing=withSupplementalArtists([]);
+  expect(missing.some(artist=>artist.id==="dj-funktastic")).toBe(true);
+  const upstream={id:"dj-funktastic",stageName:"Funktastic from API"};
+  const merged=withSupplementalArtists([upstream]);
+  expect(merged.filter(artist=>artist.id==="dj-funktastic")).toEqual([upstream]);
  });
 });
