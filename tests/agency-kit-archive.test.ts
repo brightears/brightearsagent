@@ -84,6 +84,22 @@ describe("promotion kit archive public contents", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("includes an explicitly mapped supplemental artist photo", async () => {
+    const supplemental = curated.supplementalArtists.find(item => item.id === "dj-funktastic");
+    expect(supplemental).toBeDefined();
+    const supplementalPhotoPath = path.join(publicDirectory, supplemental!.profileImage.slice(1));
+    await mkdir(path.dirname(supplementalPhotoPath), { recursive: true });
+    await writeFile(supplementalPhotoPath, photo);
+    const archive = await buildPromotionKitArchive(publicArtist({
+      id: supplemental!.id,
+      name: supplemental!.stageName,
+      image: supplemental!.profileImage,
+    }), { now, publicDirectory });
+    const entries = unzipSync(archive.bytes);
+    expect(Buffer.from(entries["website-photo.jpg"])).toEqual(photo);
+    expect(strFromU8(entries["README.txt"])).toContain("Included photo: website-photo.jpg");
+  });
+
   it.each([
     { id: "unmapped-artist", image: localImage },
     { id: "dj-benji", image: curated.photos["dj-linze"].local },
