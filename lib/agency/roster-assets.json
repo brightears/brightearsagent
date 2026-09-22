@@ -260,6 +260,28 @@
       "th": "Telemaggy เป็นดีเจที่อยู่ในกรุงเทพฯ"
     }
   },
+  "supplementalArtists": [
+    {
+      "id": "dj-funktastic",
+      "stageName": "Funktastic",
+      "bio": "DJ Funktastic is a Bangkok-based open-format DJ and turntablist specialising in R&B, Hip-Hop, Afrobeats and Neo-Soul. A competitive battle DJ — DMC Thailand 2024 (Single Division) and Pioneer DJ Thailand 2023 — he runs the ‘Coffee Break’ mixtape series and delivers scratch-driven, crowd-reading sets.",
+      "bioTh": "Funktastic เป็นดีเจสาย Open Format และ Turntablist ที่อยู่ในกรุงเทพฯ เชี่ยวชาญแนว R&B, Hip-Hop, Afrobeats และ Neo-Soul เขาเข้าร่วมการแข่งขัน DMC Thailand 2024 ประเภท Single Division และ Pioneer DJ Thailand 2023 พร้อมทำมิกซ์ซีรีส์ ‘Coffee Break’ ที่โดดเด่นด้วยเทคนิคการสแครตช์และการอ่านบรรยากาศของผู้ฟัง",
+      "baseCity": "Bangkok",
+      "genres": [
+        "R&B",
+        "Hip-Hop",
+        "Afrobeats",
+        "Neo-Soul",
+        "Open Format",
+        "Turntablism"
+      ],
+      "profileImage": "/agency/roster/funktastic-photo1.jpg",
+      "images": [
+        "/agency/roster/funktastic-photo2.jpg"
+      ],
+      "youtube": "https://www.youtube.com/watch?v=FPwNjhCtPZg"
+    }
+  ],
   "heroes": [
     {
       "id": "dj-ufo",
