@@ -19,7 +19,10 @@ export async function buildPromotionKitArchive(
   const kitUrl = `${PUBLIC_KIT_ORIGIN}/artists/${encodeURIComponent(artist.id)}/kit`;
   const photoSource = artist.image?.startsWith("/") ? PUBLIC_KIT_ORIGIN + artist.image : artist.image;
   const mapped = (curated.photos as Record<string, { local: string }>)[artist.id];
-  const local = mapped?.local === artist.image ? localKitDownload(artist.image, artist.id) : null;
+  const supplemental = (curated.supplementalArtists as Array<{ id: string; profileImage?: string }> | undefined)
+    ?.find(item => item.id === artist.id);
+  const approvedLocalImage = mapped?.local ?? supplemental?.profileImage;
+  const local = approvedLocalImage === artist.image ? localKitDownload(artist.image, artist.id) : null;
   const entries: Zippable = {};
   let photoName: string | null = null;
 
