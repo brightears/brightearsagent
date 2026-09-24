@@ -282,6 +282,26 @@
       "youtube": "https://www.youtube.com/watch?v=FPwNjhCtPZg"
     },
     {
+      "id": "dj-ekception",
+      "stageName": "Ekception",
+      "bio": "Ekception is a Bangkok-based DJ and producer whose sets move through house, UK garage, disco, boogie and Thai remixes. His Wildlife EP was released in 2020.",
+      "bioTh": "Ekception เป็นดีเจและโปรดิวเซอร์จากกรุงเทพฯ เซ็ตของเขาครอบคลุม House, UK Garage, Disco, Boogie และรีมิกซ์เพลงไทย ผลงาน EP Wildlife ออกในปี 2020",
+      "baseCity": "Bangkok",
+      "genres": [
+        "House",
+        "UK Garage",
+        "Disco",
+        "Boogie & Funk",
+        "Electronica",
+        "Indie",
+        "Thai Remixes"
+      ],
+      "profileImage": "/agency/roster/ekception-photo1.jpg",
+      "images": [],
+      "instagram": "https://www.instagram.com/ekception/",
+      "soundcloud": "https://soundcloud.com/ekception"
+    },
+    {
       "id": "dj-fen",
       "stageName": "DJ Fen",
       "bio": "DJ Fen has more than a decade of experience playing rooftop bars, hotel venues and events in Bangkok, Phuket and Geneva. Her sets span Deep House, Tech House, Afro House, Nu Disco and Disco House, alongside Funk, R&B, Hip-Hop and Latin sounds.",
