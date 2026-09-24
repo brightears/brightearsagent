@@ -100,6 +100,26 @@ describe("promotion kit archive public contents", () => {
     expect(strFromU8(entries["README.txt"])).toContain("Included photo: website-photo.jpg");
   });
 
+  it("includes both approved Fen photos without exporting her private source sheet", async () => {
+    const fen = curated.supplementalArtists.find(item => item.id === "dj-fen");
+    expect(fen).toBeDefined();
+    const second = Buffer.from("second approved photo");
+    for (const [image, bytes] of [[fen!.profileImage, photo], [fen!.images[0], second]] as const) {
+      const file = path.join(publicDirectory, image.slice(1));
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, bytes);
+    }
+    const archive = await buildPromotionKitArchive(publicArtist({
+      id: fen!.id, name: fen!.stageName, image: fen!.profileImage,
+      gallery: [fen!.profileImage, ...fen!.images],
+    }), { now, publicDirectory });
+    const entries = unzipSync(archive.bytes);
+    expect(Buffer.from(entries["website-photo.jpg"])).toEqual(photo);
+    expect(Buffer.from(entries["website-photo-2.jpg"])).toEqual(second);
+    expect(strFromU8(entries["links.txt"])).toContain(`Additional published image: https://brightears.io${fen!.images[0]}`);
+    expect(strFromU8(entries["README.txt"])).toContain("Additional photo: website-photo-2.jpg");
+  });
+
   it.each([
     { id: "unmapped-artist", image: localImage },
     { id: "dj-benji", image: curated.photos["dj-linze"].local },

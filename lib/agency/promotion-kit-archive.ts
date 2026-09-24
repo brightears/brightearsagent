@@ -19,14 +19,19 @@ export async function buildPromotionKitArchive(
   const kitUrl = `${PUBLIC_KIT_ORIGIN}/artists/${encodeURIComponent(artist.id)}/kit`;
   const photoSource = artist.image?.startsWith("/") ? PUBLIC_KIT_ORIGIN + artist.image : artist.image;
   const mapped = (curated.photos as Record<string, { local: string }>)[artist.id];
-  const supplemental = (curated.supplementalArtists as Array<{ id: string; profileImage?: string }> | undefined)
+  const supplemental = (curated.supplementalArtists as Array<{ id: string; profileImage?: string; images?: string[] }> | undefined)
     ?.find(item => item.id === artist.id);
   const approvedLocalImage = mapped?.local ?? supplemental?.profileImage;
   const local = approvedLocalImage === artist.image ? localKitDownload(artist.image, artist.id) : null;
+  const additionalPhotos = (local ? (supplemental?.images ?? []) : [])
+    .filter(image => artist.gallery.includes(image))
+    .map(image => localKitDownload(image, artist.id))
+    .filter((image): image is NonNullable<typeof image> => image !== null);
   const entries: Zippable = {};
   let photoName: string | null = null;
+  const additionalNames: string[] = [];
 
-  if (local) {
+  if (local || additionalPhotos.length) {
     // The URL comes from this artist's checked-in mapping, not a request path.
     // Real paths also prevent a public-directory symlink from exporting secrets.
     // Scoped assets are listed in outputFileTracingIncludes. The optional
@@ -35,16 +40,20 @@ export async function buildPromotionKitArchive(
     const root = await realpath(path.join(publicRoot, "agency"));
     const rootRelative = path.relative(publicRoot, root);
     if (!rootRelative || rootRelative.startsWith("..") || path.isAbsolute(rootRelative)) throw new Error("Invalid public image root");
-    const file = await realpath(/* turbopackIgnore: true */ path.join(/* turbopackIgnore: true */ publicDirectory, local.href.slice(1)));
-    const relative = path.relative(root, file);
-    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Invalid public image path");
-    const metadata = await stat(file);
-    if (!metadata.isFile() || metadata.size > MAX_KIT_PHOTO_BYTES) throw new Error("Public image unavailable");
-    const bytes = await readFile(file);
-    if (bytes.byteLength > MAX_KIT_PHOTO_BYTES) throw new Error("Public image too large");
-    photoName = `website-photo.${local.href.split(".").at(-1)!.toLowerCase()}`;
-    // Published PNG/JPEG/WebP files are already compressed.
-    entries[photoName] = [bytes, { level: 0, mtime: now }];
+    for (const [index, image] of [local, ...additionalPhotos].filter((value): value is NonNullable<typeof value> => value !== null).entries()) {
+      const file = await realpath(/* turbopackIgnore: true */ path.join(/* turbopackIgnore: true */ publicDirectory, image.href.slice(1)));
+      const relative = path.relative(root, file);
+      if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Invalid public image path");
+      const metadata = await stat(file);
+      if (!metadata.isFile() || metadata.size > MAX_KIT_PHOTO_BYTES) throw new Error("Public image unavailable");
+      const bytes = await readFile(file);
+      if (bytes.byteLength > MAX_KIT_PHOTO_BYTES) throw new Error("Public image too large");
+      const filename = `website-photo${index ? `-${index + 1}` : ""}.${image.href.split(".").at(-1)!.toLowerCase()}`;
+      if (index === 0) photoName = filename;
+      else additionalNames.push(filename);
+      // Published PNG/JPEG/WebP files are already compressed.
+      entries[filename] = [bytes, { level: 0, mtime: now }];
+    }
   }
 
   const textFiles: Record<string, string> = {
@@ -56,6 +65,7 @@ export async function buildPromotionKitArchive(
       "",
       "Public artist material for venue and event marketing.",
       photoName ? `Included photo: ${photoName} (the published website image).` : "No photo file is included. Any published image is linked in links.txt.",
+      ...additionalNames.map(name => `Additional photo: ${name} (published artist image).`),
       "Available public biographies are included in their original languages.",
       "This download is a snapshot. Use the current kit link for updates.",
       "For a larger or uncropped photo, another format or a photographer credit, contact Bright Ears.",
@@ -73,6 +83,7 @@ export async function buildPromotionKitArchive(
       `Current promotion kit: ${kitUrl}`,
       `Artist profile: ${PUBLIC_KIT_ORIGIN}/artists/${encodeURIComponent(artist.id)}`,
       ...(photoSource ? [`Published image: ${photoSource}`] : []),
+      ...additionalPhotos.map(image => `Additional published image: ${PUBLIC_KIT_ORIGIN}${image.href}`),
       ...artist.links.map(link => `${link.label}: ${link.url}`),
     ].join("\n") + "\n",
     ...(artist.bio ? { "bio-en.txt": artist.bio + "\n" } : {}),

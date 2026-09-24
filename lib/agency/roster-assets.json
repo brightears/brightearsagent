@@ -280,6 +280,29 @@
         "/agency/roster/funktastic-photo2.jpg"
       ],
       "youtube": "https://www.youtube.com/watch?v=FPwNjhCtPZg"
+    },
+    {
+      "id": "dj-fen",
+      "stageName": "DJ Fen",
+      "bio": "DJ Fen has more than a decade of experience playing rooftop bars, hotel venues and events in Bangkok, Phuket and Geneva. Her sets span Deep House, Tech House, Afro House, Nu Disco and Disco House, alongside Funk, R&B, Hip-Hop and Latin sounds.",
+      "bioTh": "DJ Fen มีประสบการณ์เล่นดนตรีมากกว่า 10 ปี ทั้งในรูฟท็อปบาร์ โรงแรม และงานอีเวนต์ในกรุงเทพฯ ภูเก็ต และเจนีวา แนวดนตรีของเธอครอบคลุม Deep House, Tech House, Afro House, Nu Disco, Disco House, Funk, R&B, Hip-Hop และดนตรีละติน",
+      "baseCity": "Bangkok",
+      "genres": [
+        "Deep House",
+        "Tech House",
+        "Afro House",
+        "Nu Disco",
+        "Disco House",
+        "Funk",
+        "R&B",
+        "Hip-Hop",
+        "Latin"
+      ],
+      "profileImage": "/agency/roster/fen-photo1.jpg",
+      "images": [
+        "/agency/roster/fen-photo2.jpg"
+      ],
+      "instagram": "https://www.instagram.com/djfennn/"
     }
   ],
   "heroes": [
