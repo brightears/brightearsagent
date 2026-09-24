@@ -97,7 +97,7 @@ export function AgencyPromotionKit({ artist, th }: { artist: AgencyArtist; th: b
         <div className={styles.panelHeading}><h2 id="kit-photo-title">{c("Artist photo", "ภาพศิลปิน")}</h2><span>01</span></div>
         {artist.image && !imageFailed ? <>
           <div className={styles.photo}>
-            <Image src={artist.image} alt={artist.name} fill unoptimized sizes="(max-width: 750px) 88vw, 36vw" onLoad={event => setImageSize({width:event.currentTarget.naturalWidth,height:event.currentTarget.naturalHeight})} onError={() => setImageFailed(true)}/>
+            <Image src={artist.image} alt={artist.name} fill unoptimized sizes="(max-width: 750px) 88vw, 36vw" style={artist.id==="dj-yui-truluv"?{objectFit:"cover",objectPosition:"50% 10%"}:undefined} onLoad={event => setImageSize({width:event.currentTarget.naturalWidth,height:event.currentTarget.naturalHeight})} onError={() => setImageFailed(true)}/>
           </div>
           <p className={styles.imageLabel}>{c("Website image", "ภาพที่ใช้บนเว็บไซต์")}{imageSize ? ` · ${imageSize.width} × ${imageSize.height} px` : ""}</p>
           <div className={styles.actions}>{download ? <a className={styles.primary} href={download.href} download={download.filename}>{c("Download website photo", "ดาวน์โหลดภาพจากเว็บไซต์")} <span aria-hidden>↓</span></a> : <a className={styles.primary} href={artist.image} target="_blank" rel="noopener noreferrer">{c("Open published image", "เปิดภาพที่เผยแพร่")} <span aria-hidden>↗</span></a>}</div>
