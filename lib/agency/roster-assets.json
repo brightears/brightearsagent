@@ -372,6 +372,23 @@
       "profileImage": "/agency/roster/trees-photo1.jpg",
       "images": [],
       "instagram": "https://www.instagram.com/trees_musik/"
+    },
+    {
+      "id": "dj-sweetheart",
+      "stageName": "SweetHeatt",
+      "bio": "SweetHeatt plays Techno and House with an unhurried, underground approach. Her sets move through varied rhythms with a strong sense of story.",
+      "bioTh": "SweetHeatt เล่น Techno และ House ด้วยแนวทางอันเดอร์กราวด์ที่ค่อย ๆ พาอารมณ์ไปข้างหน้า เซตของเธอผสมจังหวะหลากหลายเข้ากับการเล่าเรื่องผ่านดนตรี",
+      "baseCity": "",
+      "genres": [
+        "Techno",
+        "House",
+        "Disco",
+        "Funky House",
+        "Dubstep"
+      ],
+      "profileImage": "/agency/roster/sweetheatt-photo1.jpg",
+      "images": [],
+      "instagram": "https://www.instagram.com/tarn_djsweetheatt/"
     }
   ],
   "heroes": [
