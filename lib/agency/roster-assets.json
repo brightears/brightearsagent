@@ -303,6 +303,26 @@
         "/agency/roster/fen-photo2.jpg"
       ],
       "instagram": "https://www.instagram.com/djfennn/"
+    },
+    {
+      "id": "dj-riot-hunt",
+      "stageName": "Riot Hunt",
+      "bio": "Riot Hunt plays Arabic disco, Indian-sampled sounds, soulful house, hip-hop and R&B, with edits in the mix. His press kit lists appearances at Wonderfruit, Playtime Mongolia and Jamfest, as well as Bangkok venues including Thaipioka, The Norm, Blanc and RIM.",
+      "bioTh": "Riot Hunt เล่น Arabic Disco, ดนตรีที่ใช้แซมเปิลจากอินเดีย, Soulful House, Hip-Hop และ R&B รวมถึงเพลง Edits เพรสคิตของเขาระบุว่าเคยเล่นที่ Wonderfruit, Playtime Mongolia และ Jamfest รวมถึงสถานที่ในกรุงเทพฯ เช่น Thaipioka, The Norm, Blanc และ RIM",
+      "baseCity": "Bangkok",
+      "genres": [
+        "Arabic Disco",
+        "Soulful House",
+        "Hip-Hop",
+        "R&B",
+        "Edits"
+      ],
+      "profileImage": "/agency/roster/riot-hunt-photo1.jpg",
+      "images": [
+        "/agency/roster/riot-hunt-photo2.jpg",
+        "/agency/roster/riot-hunt-photo3.jpg"
+      ],
+      "instagram": "https://www.instagram.com/riothuntt/"
     }
   ],
   "heroes": [
