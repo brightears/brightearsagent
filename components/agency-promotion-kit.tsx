@@ -89,7 +89,7 @@ export function AgencyPromotionKit({ artist, th }: { artist: AgencyArtist; th: b
           {zipState === "pending" ? c("Preparing your promotion kit…", "กำลังจัดเตรียมชุดสื่อประชาสัมพันธ์…") : zipState === "started" ? c("ZIP download started.", "เริ่มดาวน์โหลดไฟล์ ZIP แล้ว") : zipState === "error" ? c("We couldn't prepare the ZIP. Please try again, or use the photo and biography controls below.", "ไม่สามารถจัดเตรียมไฟล์ ZIP ได้ ลองอีกครั้ง หรือดาวน์โหลดภาพและคัดลอกประวัติจากส่วนด้านล่าง") : ""}
         </p>
       </div>
-      <p id="kit-download-help" className={styles.kitDownloadHelp}>{c("Public biographies, links and the available website photo in one ZIP. Images hosted elsewhere are included as links.", "รวมประวัติสาธารณะ ลิงก์ และภาพจากเว็บไซต์ที่มีให้ดาวน์โหลดไว้ใน ZIP เดียว ภาพจากเว็บไซต์ภายนอกจะรวมไว้เป็นลิงก์")}</p>
+      <p id="kit-download-help" className={styles.kitDownloadHelp}>{c("Public biographies, links and available website photos in one ZIP. Images hosted elsewhere are included as links.", "รวมประวัติสาธารณะ ลิงก์ และภาพจากเว็บไซต์ที่มีให้ดาวน์โหลดไว้ใน ZIP เดียว ภาพจากเว็บไซต์ภายนอกจะรวมไว้เป็นลิงก์")}</p>
     </div>
 
     <div className={styles.grid}>
