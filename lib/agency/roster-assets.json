@@ -302,6 +302,20 @@
       "soundcloud": "https://soundcloud.com/ekception"
     },
     {
+      "id": "dj-morgan",
+      "stageName": "Morgan",
+      "bio": "Morgan is an international DJ whose sets span house and global grooves. His artist biography describes performances at bars, beach clubs and events across Europe and Asia.",
+      "bioTh": "Morgan เป็นดีเจที่เล่นดนตรีแนว House และ Global Grooves ประวัติที่ศิลปินให้มาระบุถึงการแสดงในบาร์ บีชคลับ และงานอีเวนต์ทั่วยุโรปและเอเชีย",
+      "baseCity": "Bangkok",
+      "genres": [
+        "House",
+        "Global Grooves"
+      ],
+      "profileImage": "/agency/roster/morgan-photo1.jpg",
+      "images": [],
+      "instagram": "https://www.instagram.com/morganleobet/"
+    },
+    {
       "id": "dj-fen",
       "stageName": "DJ Fen",
       "bio": "DJ Fen has more than a decade of experience playing rooftop bars, hotel venues and events in Bangkok, Phuket and Geneva. Her sets span Deep House, Tech House, Afro House, Nu Disco and Disco House, alongside Funk, R&B, Hip-Hop and Latin sounds.",
