@@ -357,6 +357,21 @@
         "/agency/roster/riot-hunt-photo3.jpg"
       ],
       "instagram": "https://www.instagram.com/riothuntt/"
+    },
+    {
+      "id": "dj-trees",
+      "stageName": "TREEs",
+      "bio": "TREEs plays House, Afro House and Melodic Afro, pairing driving rhythms with melodic passages in his sets.",
+      "bioTh": "TREEs เล่นเพลง House, Afro House และ Melodic Afro โดยผสมจังหวะที่หนักแน่นกับทำนองที่ชวนติดตาม",
+      "baseCity": "",
+      "genres": [
+        "House",
+        "Afro House",
+        "Melodic Afro"
+      ],
+      "profileImage": "/agency/roster/trees-photo1.jpg",
+      "images": [],
+      "instagram": "https://www.instagram.com/trees_musik/"
     }
   ],
   "heroes": [
