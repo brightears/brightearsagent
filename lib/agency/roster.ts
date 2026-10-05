@@ -1,7 +1,9 @@
 import { cache } from "react";
 import { createHash } from "node:crypto";
 import curated from "./roster-assets.json";
-export const heroArtists = curated.heroes;
+import presentation from "./roster-presentation.json";
+const hiddenArtistIds = new Set<string>(presentation.hiddenArtistIds);
+export const heroArtists = curated.heroes.filter(artist => !hiddenArtistIds.has(artist.id) && artist.image);
 
 export type AgencyArtist = {
   id: string; name: string; bio: string; bioTh: string; city: string; genres: string[];
@@ -27,6 +29,7 @@ function publicLink(value: unknown, domain: string): string | null {
 }
 export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | null {
   if(!value || typeof value!=="object" || typeof value.id!=="string" || typeof value.stageName!=="string") return null;
+  if(hiddenArtistIds.has(value.id)) return null;
   const genres=Array.isArray(value.genres)?[...new Set(value.genres.filter((v):v is string=>typeof v==="string").map(v=>{const key=v.toLowerCase().replace(/[\s-]/g,"");return key==="hiphop"?"Hip-Hop":key==="kpop"?"K-Pop":v.trim();}).filter(Boolean))].slice(0,12):[];
   const rawBio=typeof value.bio==="string"?value.bio:"";
   const staffingNote=/schedule|rotation|not available|unavailable|replacement|per shift|off every|replaces|every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|THB|฿|ค่าตัว|ค่าจ้าง|ต่อกะ|บาท(?:\s*\/|\s*ต่อ)|ไม่ว่าง|ตาราง(?:งาน|เวร)|แทน(?:กะ|งาน)/i;
@@ -37,6 +40,8 @@ export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | nu
   const bio=unchanged?note.en:internal?"":rawBio;
   const photo=(curated.photos as Record<string,{source:string;local:string}>)[value.id];
   const image=photo && photo.source===value.profileImage?photo.local:publicImage(value.profileImage);
+  // Public profiles, kits, search and the sitemap share this photo requirement.
+  if(!image) return null;
   const links=[["instagram","Instagram","instagram.com"],["soundcloud","SoundCloud","soundcloud.com"],["mixcloud","Mixcloud","mixcloud.com"],["spotify","Spotify","open.spotify.com"],["youtube","YouTube","youtube.com"]].flatMap(([field,label,domain])=>{
     const url=publicLink(value[field],domain); return url?[{label,url}]:[];
   });
@@ -47,12 +52,18 @@ export function withSupplementalArtists(values: Record<string,unknown>[]):Record
   const supplemental=(curated.supplementalArtists as Record<string,unknown>[]|undefined)??[];
   return [...values,...supplemental.filter(value=>typeof value.id==="string"&&!existing.has(value.id))];
 }
+export function buildAgencyRoster(values: Record<string,unknown>[]):AgencyArtist[] {
+  const order=new Map(presentation.firstArtistIds.map((id,index)=>[id,index]));
+  return withSupplementalArtists(values).map(sanitizeArtist)
+    .filter((artist):artist is AgencyArtist=>artist!==null)
+    .sort((a,b)=>(order.get(a.id)??Number.MAX_SAFE_INTEGER)-(order.get(b.id)??Number.MAX_SAFE_INTEGER)||a.name.localeCompare(b.name));
+}
 export const getAgencyRoster=cache(async ():Promise<AgencyArtist[]>=>{
   try {
     const response=await fetch(ORIGIN+"/api/artists?categories=DJ&limit=100",{next:{revalidate:300},signal:AbortSignal.timeout(12000)});
     if(!response.ok) throw new Error("Roster unavailable");
     const data=await response.json();
     if(!Array.isArray(data.artists)) return [];
-    return withSupplementalArtists(data.artists).map(sanitizeArtist).filter((a:AgencyArtist|null):a is AgencyArtist=>a!==null).sort((a:AgencyArtist,b:AgencyArtist)=>a.name.localeCompare(b.name));
+    return buildAgencyRoster(data.artists);
   } catch {return [];}
 });
