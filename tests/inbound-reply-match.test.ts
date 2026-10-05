@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
   business: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
@@ -225,6 +225,9 @@ beforeEach(() => {
 });
 
 describe("processInbound repeat sender routing", () => {
+  // These source messages and the routing window are dated relative to TODAY.
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(TODAY); });
+  afterEach(() => { vi.useRealTimers(); });
   it("creates a separate lead for a different event received within the window", async () => {
     mockDb.lead.findMany.mockResolvedValue([dbCandidate()]);
 

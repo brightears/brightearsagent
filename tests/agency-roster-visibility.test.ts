@@ -5,8 +5,11 @@ const artist = (id: string, stageName = id, profileImage: string | null = "/imag
 
 describe("public agency roster", () => {
   it("withholds profiles with no usable lead photo from every shared roster consumer", () => {
-    expect(sanitizeArtist(artist("new-no-photo", "New artist", null))).toBeNull();
-    expect(sanitizeArtist(artist("new-bad-photo", "New artist", "http://unsafe.example/photo.jpg"))).toBeNull();
+    const roster = buildAgencyRoster([
+      artist("new-no-photo", "New artist", null),
+      artist("new-bad-photo", "New artist", "http://unsafe.example/photo.jpg"),
+    ]);
+    expect(roster.some(a => a.id === "new-no-photo" || a.id === "new-bad-photo")).toBe(false);
     expect(sanitizeArtist(artist("new-photo"))?.image).toBe("https://agency.brightears.io/images/djs/portrait.jpg");
   });
 

@@ -40,8 +40,6 @@ export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | nu
   const bio=unchanged?note.en:internal?"":rawBio;
   const photo=(curated.photos as Record<string,{source:string;local:string}>)[value.id];
   const image=photo && photo.source===value.profileImage?photo.local:publicImage(value.profileImage);
-  // Public profiles, kits, search and the sitemap share this photo requirement.
-  if(!image) return null;
   const links=[["instagram","Instagram","instagram.com"],["soundcloud","SoundCloud","soundcloud.com"],["mixcloud","Mixcloud","mixcloud.com"],["spotify","Spotify","open.spotify.com"],["youtube","YouTube","youtube.com"]].flatMap(([field,label,domain])=>{
     const url=publicLink(value[field],domain); return url?[{label,url}]:[];
   });
@@ -55,7 +53,8 @@ export function withSupplementalArtists(values: Record<string,unknown>[]):Record
 export function buildAgencyRoster(values: Record<string,unknown>[]):AgencyArtist[] {
   const order=new Map(presentation.firstArtistIds.map((id,index)=>[id,index]));
   return withSupplementalArtists(values).map(sanitizeArtist)
-    .filter((artist):artist is AgencyArtist=>artist!==null)
+    // Public profiles, kits, search and the sitemap share this photo requirement.
+    .filter((artist):artist is AgencyArtist=>artist!==null && !!artist.image)
     .sort((a,b)=>(order.get(a.id)??Number.MAX_SAFE_INTEGER)-(order.get(b.id)??Number.MAX_SAFE_INTEGER)||a.name.localeCompare(b.name));
 }
 export const getAgencyRoster=cache(async ():Promise<AgencyArtist[]>=>{
