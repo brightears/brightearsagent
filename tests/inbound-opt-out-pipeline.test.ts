@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDb = vi.hoisted(() => ({
   business: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
@@ -73,6 +73,9 @@ beforeEach(() => {
 });
 
 describe("processInbound explicit opt-out hard stop", () => {
+  // Keep the fixture conversation inside the production reply-routing window.
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date("2026-08-16T12:00:00Z")); });
+  afterEach(() => { vi.useRealTimers(); });
   it("atomically closes a matched Hunt lead, its venue and every queued automation", async () => {
     mockDb.lead.findFirst.mockResolvedValue({
       id: "lead-existing",
