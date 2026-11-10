@@ -135,11 +135,14 @@ export default function PrivacyPage() {
         <p>
           Your application is stored in our Render-hosted database, including any photo, and is
           copied to our talent team&rsquo;s private records through authenticated access. Our
-          talent team uses Anthropic&rsquo;s Claude to help review applications. The website copy
-          is deleted 30 days after it reaches the talent team. We keep the application for 12
-          months and then delete it, unless you start working with us. A keyed hash of the
-          submitting network address limits abuse and is removed when the application is copied
-          to the talent team. Write to{" "}
+          talent team uses Anthropic&rsquo;s Claude to help review applications. The form resizes
+          a photo in your browser before sending it, which usually also removes data stored in the
+          file, such as location. The website deletes its copy of your photo as soon as the photo
+          reaches the talent team, and the rest of its copy 30 days later. If the talent team has
+          not collected an application within 30 days, the website deletes it. We keep the
+          application for 12 months and then delete it, unless you start working with us. A keyed
+          hash of the submitting network address limits abuse and is removed when the application
+          is copied to the talent team. Write to{" "}
           <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
             {CONTACT}
           </a>{" "}

@@ -8,6 +8,7 @@ import { stampCronCompletion } from "@/lib/ops-stamp";
 import { sendMonthlyRoiReceipts } from "@/lib/reports/roi";
 import { huntQualityNeedsAttention } from "@/lib/reports/hunt-quality";
 import { reportError } from "@/lib/report-error";
+import { purgeExportedApplications } from "@/lib/agency/applications";
 
 export const maxDuration = 300;
 
@@ -28,6 +29,11 @@ export async function GET(req: NextRequest) {
   if (!checkSharedSecret(process.env.CRON_SECRET, providedSecret(req))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // Agency artist applications: deletes site copies past their retention
+  // (30 days after export, or 30 days uncollected) even if the Mac-side export
+  // has stopped. Runs before the retired-assistant return; never blocks it.
+  try { await purgeExportedApplications(); }
+  catch { console.error(JSON.stringify({ kind: "agency_application_purge_failed", at: new Date().toISOString() })); }
   if (ASSISTANT_RUNTIME_RETIRED) return NextResponse.json({status:"retired",workPerformed:false});
   const rows = await computeMargins();
   const flagged = rows.filter((r) => r.flagged);

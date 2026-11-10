@@ -8,11 +8,13 @@ import { formatMusicBrief, EMPTY_BRIEF } from "@/lib/agency/brief";
 import { LANDING_PAGES } from "@/lib/agency/landing-pages";
 import { BUYER_ACTS, ENQUIRY_ACT_OPTIONS } from "@/lib/agency/acts";
 import { buildAgencyRoster } from "@/lib/agency/roster";
+import { fitWithin } from "@/lib/agency/photo-resize";
 
 const save = vi.hoisted(() => vi.fn());
 const pending = vi.hoisted(() => vi.fn());
+const open = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agency/applications", () => ({
-  saveArtistApplication: save, pendingArtistApplications: pending,
+  saveArtistApplication: save, pendingArtistApplications: pending, applicationsOpen: open, purgeApplicationsSoon: vi.fn(),
   applicationExportAuthorized: (request: Request) => request.headers.get("authorization") === "Bearer fixture-token-with-at-least-thirty-two-chars",
 }));
 import { GET, POST } from "@/app/api/agency/applications/route";
@@ -80,7 +82,10 @@ describe("artist application contract", () => {
 });
 
 describe("artist application route", () => {
-  beforeEach(() => { save.mockReset(); save.mockResolvedValue({ reference: "BE-APP-fixture", duplicate: false }); pending.mockReset(); });
+  beforeEach(() => {
+    save.mockReset(); save.mockResolvedValue({ reference: "BE-APP-fixture", duplicate: false, photoStored: true });
+    pending.mockReset(); open.mockReset(); open.mockResolvedValue(true);
+  });
   it("saves a valid multipart application with a photo", async () => {
     const response = await post(formWith(payload(), jpeg()));
     expect(response.status).toBe(201);
@@ -103,12 +108,75 @@ describe("artist application route", () => {
     const json = await POST(new Request("https://brightears.io/api/agency/applications", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) }));
     expect(json.status).toBe(415);
   });
+  it("says when the photo was not kept because photo storage is full", async () => {
+    save.mockResolvedValue({ reference: "BE-APP-fixture", duplicate: false, photoStored: false });
+    const response = await post(formWith(payload(), jpeg()));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({ ok: true, reference: "BE-APP-fixture", photo: "not_stored" });
+  });
+  it("refuses before reading the body when closed, too large or rate-limited", async () => {
+    let pulled = false;
+    const untouched = () => new ReadableStream({ pull() { pulled = true; } }, { highWaterMark: 0 });
+    const request = (headers: Record<string, string>) => new Request("https://brightears.io/api/agency/applications", {
+      method: "POST", body: untouched(), duplex: "half",
+      headers: { "content-type": "multipart/form-data; boundary=x", "cf-connecting-ip": crypto.randomUUID(), ...headers },
+    } as RequestInit);
+    open.mockResolvedValue(false);
+    expect((await POST(request({}))).status).toBe(503);
+    open.mockResolvedValue(true);
+    expect((await POST(request({ "content-length": String(MAX_PHOTO_BYTES * 2) }))).status).toBe(413);
+    const ip = crypto.randomUUID();
+    open.mockResolvedValue(false);
+    for (let i = 0; i < 6; i++) await POST(request({ "cf-connecting-ip": ip }));
+    expect((await POST(request({ "cf-connecting-ip": ip }))).status).toBe(429);
+    expect(pulled).toBe(false);
+  });
+  it("stops reading a body without a length once it passes the limit", async () => {
+    const chunk = new Uint8Array(1024 * 1024);
+    let sent = 0;
+    const body = new ReadableStream({ pull(controller) { sent += chunk.byteLength; controller.enqueue(chunk); } });
+    const response = await POST(new Request("https://brightears.io/api/agency/applications", {
+      method: "POST", body, duplex: "half",
+      headers: { "content-type": "multipart/form-data; boundary=x", "cf-connecting-ip": crypto.randomUUID() },
+    } as RequestInit));
+    expect(response.status).toBe(413);
+    expect(sent).toBeLessThan(MAX_PHOTO_BYTES * 2);
+  });
+  it("caps uploads in progress", async () => {
+    const releases: Array<() => void> = [];
+    const slow = () => {
+      const form = new Response(formWith(payload()));
+      return { headers: form.headers, body: new ReadableStream({ async start(controller) {
+        await new Promise<void>(resolve => releases.push(resolve));
+        controller.enqueue(new Uint8Array(await form.arrayBuffer())); controller.close();
+      } }) };
+    };
+    const send = () => { const { headers, body } = slow(); return POST(new Request("https://brightears.io/api/agency/applications", {
+      method: "POST", body, duplex: "half",
+      headers: { "content-type": headers.get("content-type")!, "cf-connecting-ip": crypto.randomUUID() },
+    } as RequestInit)); };
+    const running = [send(), send(), send()];
+    await vi.waitFor(() => expect(releases).toHaveLength(3));
+    const fourth = await send();
+    expect(fourth.status).toBe(503);
+    expect(await fourth.json()).toEqual({ error: "busy" });
+    releases.forEach(release => release());
+    expect((await Promise.all(running)).map(response => response.status)).toEqual([201, 201, 201]);
+  });
   it("keeps the export list private", async () => {
     pending.mockResolvedValue([{ id: "x" }]);
     expect((await GET(new Request("https://brightears.io/api/agency/applications"))).status).toBe(401);
     const authorized = await GET(new Request("https://brightears.io/api/agency/applications", { headers: { authorization: "Bearer fixture-token-with-at-least-thirty-two-chars" } }));
     expect(authorized.status).toBe(200);
     expect(authorized.headers.get("cache-control")).toMatch(/no-store/);
+  });
+});
+
+describe("photo preparation", () => {
+  it("fits photos inside 2,400 pixels on the long side without enlarging them", () => {
+    expect(fitWithin(8064, 6048)).toEqual({ width: 2400, height: 1800 });
+    expect(fitWithin(3000, 4000)).toEqual({ width: 1800, height: 2400 });
+    expect(fitWithin(800, 600)).toEqual({ width: 800, height: 600 });
   });
 });
 

@@ -3,9 +3,10 @@
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ACT_TYPE_LABELS } from "@/lib/agency/acts";
 import {
-  ACT_TYPES, CHANNELS, CITIES, EQUIPMENT, FEES, FREE_TEXT_FIELDS, GENRES, HEARD_FROM, LANGUAGES, MAX_PHOTO_BYTES, NIGHTS,
-  PHOTO_TYPES, RIGHT_TO_WORK, SET_LENGTHS, SETTINGS, TRAVEL, YEARS, applicationFieldsSchema, applicationIssues, containsThaiIdNumber,
+  ACT_TYPES, CHANNELS, CITIES, EQUIPMENT, FEES, FREE_TEXT_FIELDS, GENRES, HEARD_FROM, LANGUAGES, NIGHTS,
+  RIGHT_TO_WORK, SET_LENGTHS, SETTINGS, TRAVEL, YEARS, applicationFieldsSchema, applicationIssues, containsThaiIdNumber,
 } from "@/lib/agency/application-contract";
+import { preparePhoto } from "@/lib/agency/photo-resize";
 import agency from "@/app/(marketing)/agency.module.css";
 import styles from "./artist-application.module.css";
 
@@ -34,6 +35,8 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState("");
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [photoNotStored, setPhotoNotStored] = useState(false);
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState("");
@@ -53,14 +56,20 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
     const list = fields[key];
     set(key, list.includes(value) ? list.filter(item => item !== value) : list.length < max ? [...list, value] : list);
   }
-  function choosePhoto(file: File | null) {
-    setPhotoError(""); submissionKey.current = null;
-    if (file && (!(file.type in PHOTO_TYPES) || file.size > MAX_PHOTO_BYTES)) {
-      setPhoto(null); if (photoInput.current) photoInput.current.value = "";
-      setPhotoError(c("Use one JPG, PNG or WebP photo up to 8 MB.", "ใช้รูป JPG, PNG หรือ WebP หนึ่งไฟล์ ขนาดไม่เกิน 8 MB"));
+  async function choosePhoto(file: File | null) {
+    setPhotoError(""); submissionKey.current = null; setPhoto(null);
+    if (!file) return;
+    setPreparingPhoto(true);
+    const prepared = await preparePhoto(file);
+    setPreparingPhoto(false);
+    if ("error" in prepared) {
+      if (photoInput.current) photoInput.current.value = "";
+      setPhotoError(prepared.error === "type"
+        ? c("Use one JPG, PNG or WebP photo.", "ใช้รูป JPG, PNG หรือ WebP หนึ่งไฟล์")
+        : c("This photo is too large. Choose a smaller one.", "รูปภาพนี้มีขนาดใหญ่เกินไป โปรดเลือกรูปที่เล็กกว่านี้"));
       return;
     }
-    setPhoto(file);
+    setPhoto(prepared.file);
   }
 
   const idWarnings = FREE_TEXT_FIELDS.filter(key => containsThaiIdNumber(fields[key]));
@@ -70,7 +79,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting || receipt) return;
+    if (submitting || receipt || preparingPhoto) return;
     const parsed = applicationFieldsSchema.safeParse(payloadFields());
     if (!parsed.success || photoError) {
       const bad = new Set(parsed.success ? [] : applicationIssues(parsed.error).map(issue => issue.field));
@@ -99,6 +108,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         if (Array.isArray(body.fields)) setErrors(new Set(body.fields));
         throw new Error(body.error === "id_number" ? "id" : response.status === 429 ? "limit" : response.status === 400 || response.status === 413 || response.status === 415 ? "invalid" : "unavailable");
       }
+      setPhotoNotStored(body.photo === "not_stored");
       setReceipt(body.reference);
       requestAnimationFrame(() => { done.current?.focus(); done.current?.scrollIntoView({ block: "center" }); });
     } catch (error) {
@@ -118,6 +128,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
       <p>{th
         ? `เราอ่านใบสมัครทุกฉบับ โดยปกติภายในหนึ่งสัปดาห์ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อผ่าน ${channel ? l(channel) : "ช่องทางที่เลือก"} หากไม่ได้รับการติดต่อ หมายความว่าขณะนี้ยังไม่มีตำแหน่งที่เหมาะสม และเราจะเก็บใบสมัครไว้ 12 เดือน`
         : `We read every one, usually within a week. If your act fits a venue we work with, we will contact you through ${channel ? l(channel) : "the channel you chose"}. If you do not hear from us, we have no suitable slot right now and will keep your application for 12 months.`}</p>
+      {photoNotStored && <p>{c("Your photo was not saved. We will ask for one if we need it.", "ระบบไม่ได้บันทึกรูปภาพของคุณ หากต้องการ เราจะขอรูปภาพจากคุณภายหลัง")}</p>}
       <code>{receipt}</code>
     </div>;
   }
@@ -176,8 +187,9 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         {text("mixcloud_url", "Mixcloud" + optional, { max: 300, type: "url", placeholder: "https://mixcloud.com/…" })}
         {text("youtube_url", "YouTube" + optional, { max: 300, type: "url", placeholder: "https://youtube.com/…" })}
         {text("website_url", c("Website", "เว็บไซต์") + optional, { max: 300, type: "url", placeholder: "https://" })}
-        <label className={styles.wide} data-invalid={!!photoError || undefined}>{c("Photo", "รูปภาพ") + optional}<small>{c("One JPG, PNG or WebP up to 8 MB. Only our talent team sees it.", "รูป JPG, PNG หรือ WebP หนึ่งไฟล์ ไม่เกิน 8 MB เฉพาะทีมคัดเลือกศิลปินเท่านั้นที่เห็น")}</small>
-          <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => choosePhoto(event.target.files?.[0] ?? null)}/>
+        <label className={styles.wide} data-invalid={!!photoError || undefined}>{c("Photo", "รูปภาพ") + optional}<small>{c("One JPG, PNG or WebP. The form makes it smaller before sending. Only our talent team sees it.", "รูป JPG, PNG หรือ WebP หนึ่งไฟล์ แบบฟอร์มจะย่อขนาดรูปก่อนส่ง เฉพาะทีมคัดเลือกศิลปินเท่านั้นที่เห็น")}</small>
+          <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={event => void choosePhoto(event.target.files?.[0] ?? null)}/>
+          {preparingPhoto && <span role="status">{c("Preparing photo…", "กำลังเตรียมรูปภาพ…")}</span>}
           {photoError && <span className={styles.warning} role="alert">{photoError}</span>}
         </label>
         {photo && text("photo_credit", c("Photographer", "ช่างภาพ") + optional, { max: 80, hint: c("If you know who took it.", "หากทราบว่าใครเป็นผู้ถ่าย") })}
@@ -211,7 +223,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
           ? <>ข้าพเจ้ายินยอมให้ Bright Ears เก็บข้อมูลและลิงก์ในแบบฟอร์มนี้ เพื่อพิจารณาการแสดงของข้าพเจ้าสำหรับงานที่มีค่าตอบแทนในสถานที่และงานอีเวนต์ และติดต่อข้าพเจ้าเกี่ยวกับเรื่องนี้ผ่านช่องทางที่เลือกไว้ Bright Ears จะไม่เผยแพร่ข้อมูลจากแบบฟอร์มนี้ และจะไม่ส่งต่อให้บุคคลภายนอก Bright Ears โดยไม่ถามข้าพเจ้าก่อน หากข้าพเจ้าอัปโหลดรูปภาพ ข้าพเจ้ายืนยันว่ามีสิทธิ์ส่งต่อรูปภาพนั้นได้ Bright Ears จะเก็บใบสมัครไว้ 12 เดือน จากนั้นจะลบออก เว้นแต่ข้าพเจ้าได้เริ่มทำงานกับ Bright Ears ข้าพเจ้าสามารถขอแก้ไขหรือลบใบสมัครได้ตลอดเวลาโดยส่งอีเมลถึง <a href="mailto:info@brightears.io">info@brightears.io</a></>
           : <>I agree that Bright Ears may keep the details and links in this form to assess my act for paid work at venues and events, and to contact me about it through the channel I chose. Bright Ears does not publish anything from this form and does not share it outside Bright Ears without asking me first. If I upload a photo, I confirm I may share it. Bright Ears keeps an application for 12 months and then deletes it unless I start working with Bright Ears. I can ask for my application to be corrected or deleted at any time by writing to <a href="mailto:info@brightears.io">info@brightears.io</a>.</>}</span></label>
         <div className={styles.honeypot} aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)}/></label></div>
-        <button className={agency.primary} type="submit">{submitting ? c("Sending your application…", "กำลังส่งใบสมัคร…") : c("Send my application", "ส่งใบสมัคร")}<span aria-hidden>↗</span></button>
+        <button className={agency.primary} type="submit" disabled={preparingPhoto}>{submitting ? c("Sending your application…", "กำลังส่งใบสมัคร…") : c("Send my application", "ส่งใบสมัคร")}<span aria-hidden>↗</span></button>
         <p className={styles.status} role={status ? "alert" : undefined} aria-live="polite">{status}</p>
         <p className={styles.small}>{c("Sending this form does not create a booking, a trial or a rate. ", "การส่งแบบฟอร์มนี้ยังไม่ใช่การจองงาน การนัดเล่นทดลอง หรือการตกลงค่าตัว ")}<a href="/privacy#artist-applications">{c("Privacy", "ความเป็นส่วนตัว")}</a></p>
       </section>
