@@ -12,12 +12,12 @@
 .form input[type=file]{padding:10px;background:#fff}
 .form textarea{resize:vertical}
 .form [data-invalid=true] input,.form [data-invalid=true] select,.form [data-invalid=true] textarea{border-color:#c2410c;background:#fff7f2}
-.chips{border:0;padding:0;margin:22px 0 4px;min-width:0}
+.chips{border:0;padding:0;margin:22px 0;min-width:0}
 .chips legend{font-size:.9375rem;font-weight:600;margin-bottom:12px;display:flex;flex-direction:column;gap:4px;padding:0}
 .chips>div{display:flex;flex-wrap:wrap;gap:8px}
 .chips label{flex-direction:row;font-weight:500;font-size:.875rem;cursor:pointer}
 .chips label input{position:absolute;opacity:0;width:1px;height:1px}
-.chips label span{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border:1px solid #17161f40;border-radius:999px;background:#f8f8fa}
+.chips label span{display:inline-flex;align-items:center;min-height:44px;padding:8px 14px;border:1px solid #17161f40;border-radius:999px;background:#f8f8fa}
 .chips label input:checked+span{background:#00bbe4;border-color:#00bbe4;color:#101214}
 .chips label input:focus-visible+span{outline:3px solid #007a92;outline-offset:2px}
 .chips label input:disabled+span{opacity:.45;cursor:not-allowed}

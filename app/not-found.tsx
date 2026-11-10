@@ -16,7 +16,7 @@ export default async function NotFound() {
       <p className="mt-8 font-mono text-xs font-bold uppercase tracking-[0.2em] text-brand-cyan">
         {c("404 — nothing playing here", "404 — ไม่พบหน้านี้")}
       </p>
-      <h1 className="mt-3 max-w-xl text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
+      <h1 className="mt-3 max-w-full [overflow-wrap:anywhere] text-4xl font-black tracking-tight text-cream-bright sm:text-5xl">
         {c("This page missed its", "หน้านี้ไม่ผ่าน")}{" "}
         <span className="bg-gradient-to-r from-neon-magenta to-neon-orange bg-clip-text text-transparent">
           {c("soundcheck.", "การซาวด์เช็ก")}
@@ -34,7 +34,7 @@ export default async function NotFound() {
         </Link>
         <Link
           href="/dashboard"
-          className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-cream/60 hover:text-brand-cyan"
+          className="inline-flex min-h-11 items-center font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-cream/60 hover:text-brand-cyan"
         >
           {c("Your dashboard →", "แดชบอร์ดของคุณ →")}
         </Link>
