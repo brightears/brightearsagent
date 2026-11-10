@@ -14,7 +14,7 @@ const publicArtist = (overrides: Partial<AgencyArtist> = {}): AgencyArtist => ({
   id: "dj-benji", name: "Benji / เบนจิ", city: "Bangkok", genres: ["House", "Disco"],
   bio: "Warm house and disco.\nA public introduction.", bioTh: "เพลงเฮาส์และดิสโก้\nประวัติสำหรับประชาสัมพันธ์",
   image: localImage, gallery: [],
-  links: [{ label: "SoundCloud", url: "https://soundcloud.com/public-mix" }, { label: "Instagram", url: "https://instagram.com/public-artist" }],
+  links: [{ label: "SoundCloud", url: "https://soundcloud.com/public-mix" }, { label: "Instagram", url: "https://instagram.com/public-artist" }], actType: "dj",
   ...overrides,
 });
 

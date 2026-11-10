@@ -777,3 +777,38 @@ model AgencyInquiry {
   @@index([clientHash, createdAt])
   @@index([createdAt])
 }
+
+// Public artist applications from /join (team/talent/application-form-spec.md).
+// Internal to the Talent desk: no public route, sitemap or export returns them.
+// clientHash exists only for the per-network limit and is cleared on export.
+model ArtistApplication {
+  id              String    @id @default(uuid())
+  submissionKey   String    @unique
+  requestHash     String
+  createdAt       DateTime  @default(now())
+  locale          String
+  sourcePath      String
+  actType         String
+  details         Json
+  utm             Json?
+  status          String    @default("new")
+  clientHash      String?
+  exportedAt      DateTime?
+  exportReference String?
+  photo           ArtistApplicationPhoto?
+
+  @@index([exportedAt, createdAt])
+  @@index([clientHash, createdAt])
+  @@index([createdAt])
+}
+
+// Private applicant photo, stored in the database rather than the public R2
+// bucket. Read only through the authenticated Talent-desk export.
+model ArtistApplicationPhoto {
+  applicationId String            @id
+  application   ArtistApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  contentType   String
+  byteSize      Int
+  sha256        String
+  bytes         Bytes
+}

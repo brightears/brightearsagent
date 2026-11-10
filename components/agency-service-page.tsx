@@ -77,6 +77,8 @@ export function AgencyServicePage({ kind, th }: { kind: ServiceKind; th: boolean
 
     <section className={styles.questions} aria-labelledby="questions-title"><div><p className={styles.eyebrow}>{c("BEFORE WE BEGIN", "ก่อนเริ่มงานด้วยกัน")}</p><h2 id="questions-title">{c("A few details.", "รายละเอียดที่ควรรู้")}</h2></div><div>{questions.map(({q, a}) => <details key={q}><summary>{q}<span aria-hidden="true">+</span></summary><p>{a}</p></details>)}</div></section>
     <aside className={styles.otherService}><p>{venue ? c("Planning one special occasion?", "กำลังจัดงานพิเศษหนึ่งครั้ง?") : c("Looking for music week after week?", "ต้องการดนตรีสำหรับทุกสัปดาห์?")}</p><Link href={venue ? "/events" : "/venues"}>{venue ? c("Explore event music", "ดูบริการดนตรีสำหรับอีเวนต์") : c("Explore venue programmes", "ดูโปรแกรมดนตรีสำหรับสถานที่")} <span aria-hidden>↗</span></Link></aside>
+    {venue ? <aside className={styles.otherService}><p>{c("Programmes by city", "โปรแกรมดนตรีตามเมือง")}</p><span><Link href="/venues/bangkok">{c("Bangkok", "กรุงเทพฯ")} <span aria-hidden>↗</span></Link> <Link href="/venues/pattaya">{c("Pattaya", "พัทยา")} <span aria-hidden>↗</span></Link></span></aside>
+      : <aside className={styles.otherService}><p>{c("Planning 31 December, or want live musicians?", "กำลังวางแผนคืนวันที่ 31 ธันวาคม หรืออยากได้นักดนตรีสด?")}</p><span><Link href="/events/new-years-eve">{c("New Year’s Eve", "คืนส่งท้ายปีเก่า")} <span aria-hidden>↗</span></Link> <Link href="/acts">{c("Live acts", "ดนตรีสด")} <span aria-hidden>↗</span></Link></span></aside>}
     <section id="brief" className={`${agency.briefSection} ${styles.brief}`}><AgencyBrief th={th} initialOccasion={occasion} source={kind}/></section>
   </div></AgencyMotion>;
 }
