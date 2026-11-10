@@ -30,6 +30,8 @@ const nextConfig: NextConfig = {
       { source: "/venue-onboarding/:path*", destination: `${agency}/venue-onboarding/:path*`, permanent: false },
       { source: "/dj-portal/:path*", destination: `${agency}/dj-portal/:path*`, permanent: false },
       { source: "/liff/:path*", destination: `${agency}/liff/:path*`, permanent: false },
+      // The Talent spec named /artists/apply; the application page lives at /join.
+      { source: "/artists/apply", destination: "/join", permanent: false },
       // www must follow the apex or the two hosts serve different applications.
       {
         source: "/:path*",

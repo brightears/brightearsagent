@@ -4,7 +4,9 @@ const text = (max: number) => z.string().trim().max(max);
 export const inquirySchema = z.object({
   submissionKey: z.uuid(),
   locale: z.enum(["en", "th"]),
-  source: z.enum(["home", "venues", "events", "artist"]),
+  // Added sources and brief fields are optional extensions: the intake worker
+  // relays `source` and `brief` as opaque JSON, and older cached forms omit them.
+  source: z.enum(["home", "venues", "events", "artist", "acts", "bangkok", "pattaya", "new-years-eve"]),
   website: text(200).optional().default(""),
   brief: z.object({
     occasion: text(100).min(1),
@@ -16,6 +18,9 @@ export const inquirySchema = z.object({
     details: text(500),
     name: text(80).min(1),
     email: z.email().max(150).transform(value => value.trim().toLowerCase()),
+    venueType: text(100).optional(),
+    nightsPerWeek: text(100).optional(),
+    actType: text(100).optional(),
   }).strict(),
 }).strict();
 export type AgencyInquiryInput = z.infer<typeof inquirySchema>;
@@ -29,6 +34,14 @@ export async function boundedJson(request: Request, maxBytes = 8192): Promise<un
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     throw new InquiryError(415, "json_required");
   }
+  const body = await boundedBytes(request, maxBytes);
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));
+  } catch { throw new InquiryError(400, "invalid_request"); }
+}
+
+/** Reads at most maxBytes, whatever Content-Length claims, then stops the stream. */
+export async function boundedBytes(request: Request, maxBytes: number): Promise<Uint8Array<ArrayBuffer>> {
   const declared = request.headers.get("content-length");
   if (declared && Number(declared) > maxBytes) throw new InquiryError(413, "body_too_large");
   const reader = request.body?.getReader();
@@ -49,7 +62,7 @@ export async function boundedJson(request: Request, maxBytes = 8192): Promise<un
     const body = new Uint8Array(bytes);
     let offset = 0;
     for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body));
+    return body;
   } catch (error) {
     if (error instanceof InquiryError) throw error;
     throw new InquiryError(400, "invalid_request");

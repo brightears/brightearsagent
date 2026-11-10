@@ -55,14 +55,16 @@ export function ToBeCompleted({ label }: { label?: string }) {
 export function LegalSection({
   kicker,
   title,
+  id,
   children,
 }: {
   kicker?: string;
   title: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="scroll-mt-24">
+    <section id={id} className="scroll-mt-24">
       {kicker ? (
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
           {kicker}

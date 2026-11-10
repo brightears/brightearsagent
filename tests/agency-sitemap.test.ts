@@ -15,9 +15,14 @@ describe("agency sitemap", () => {
       "https://brightears.io",
       "https://brightears.io/venues",
       "https://brightears.io/events",
+      "https://brightears.io/venues/bangkok",
+      "https://brightears.io/venues/pattaya",
+      "https://brightears.io/events/new-years-eve",
+      "https://brightears.io/acts",
       "https://brightears.io/artists",
       "https://brightears.io/artists/dj-benji",
       "https://brightears.io/artists/dj-ufo",
+      "https://brightears.io/join",
     ]);
     expect(urls.some(url => /assistant|portal|feedback|dashboard/.test(url))).toBe(false);
   });
@@ -25,7 +30,7 @@ describe("agency sitemap", () => {
   it("keeps public buying pages available when the roster is unavailable", async () => {
     roster.mockResolvedValue([]);
     const entries = await sitemap();
-    expect(entries).toHaveLength(4);
+    expect(entries).toHaveLength(9);
     expect(entries.every(entry => !entry.lastModified)).toBe(true);
   });
 });
