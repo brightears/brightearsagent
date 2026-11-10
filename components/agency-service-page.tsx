@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AgencyBrief } from "@/components/agency-brief";
+import { localizedPath } from "@/lib/i18n/routing";
 import { AgencyMotion } from "@/components/agency-motion";
 import agency from "@/app/(marketing)/agency.module.css";
 import styles from "@/app/(marketing)/services.module.css";
@@ -10,6 +11,7 @@ type ServiceKind = "venues" | "events";
 export function AgencyServicePage({ kind, th }: { kind: ServiceKind; th: boolean }) {
   const venue = kind === "venues";
   const c = (en: string, thai: string) => th ? thai : en;
+  const l = (href: string) => localizedPath(href, th ? "th" : "en");
   const occasion = venue
     ? c("A regular venue programme", "โปรแกรมดนตรีประจำสถานที่")
     : c("A brand or corporate event", "งานแบรนด์หรือองค์กร");
@@ -47,13 +49,13 @@ export function AgencyServicePage({ kind, th }: { kind: ServiceKind; th: boolean
         <p className={styles.intro}>{venue
           ? c("Resident and guest DJs. A musical direction that fits. One team to bring your programme together in Bangkok and Pattaya.", "ดีเจประจำและดีเจรับเชิญ แนวดนตรีที่เข้ากัน พร้อมทีมประสานโปรแกรมของคุณในกรุงเทพฯ และพัทยา")
           : c("DJs for company celebrations, receptions, launches and private events. Tell us what you have in mind. We’ll help shape the music around it.", "ดีเจสำหรับงานฉลองบริษัท งานเลี้ยงรับรอง งานเปิดตัว และงานส่วนตัว บอกภาพงานที่คุณต้องการ แล้วให้เราช่วยเลือกดนตรีที่เข้ากัน")}</p>
-        <div className={styles.actions}><a className={agency.primary} href="#brief">{action}<span aria-hidden>↗</span></a><Link className={agency.textLink} href="/artists">{c("Meet the roster", "รู้จักดีเจของเรา")} <span aria-hidden>↗</span></Link></div>
+        <div className={styles.actions}><a className={agency.primary} href="#brief">{action}<span aria-hidden>↗</span></a><Link className={agency.textLink} href={l("/artists")}>{c("Meet the roster", "รู้จักดีเจของเรา")} <span aria-hidden>↗</span></Link></div>
         <p className={styles.location}>{c("BRIGHT EARS / BANGKOK & PATTAYA", "BRIGHT EARS / กรุงเทพฯ และพัทยา")}</p>
       </div>
       <figure className={styles.heroPhoto}>
         <Image src={venue ? "/agency/hero/dj-ufo.jpg" : "/agency/hero/dj-rabbitdisco.png"} alt={venue ? c("UFO performing at the decks", "UFO เล่นดนตรีที่บูธดีเจ") : "RabbitDisco"} fill sizes="(max-width: 800px) 88vw, 46vw" preload style={{objectPosition: venue ? "50% 48%" : "50% 35%"}}/>
         <span className={styles.photoStamp} aria-hidden="true">{venue ? "01 / RESIDENCIES" : "02 / OCCASIONS"}</span>
-        <figcaption><span>{c("THE PEOPLE BEHIND THE MUSIC", "ผู้คนเบื้องหลังเสียงดนตรี")}</span><Link href={venue ? "/artists/dj-ufo" : "/artists/dj-rabbitdisco"}>{venue ? "UFO" : "RabbitDisco"} <span aria-hidden>↗</span></Link></figcaption>
+        <figcaption><span>{c("THE PEOPLE BEHIND THE MUSIC", "ผู้คนเบื้องหลังเสียงดนตรี")}</span><Link href={l(venue ? "/artists/dj-ufo" : "/artists/dj-rabbitdisco")}>{venue ? "UFO" : "RabbitDisco"} <span aria-hidden>↗</span></Link></figcaption>
       </figure>
     </section>
 
@@ -76,9 +78,9 @@ export function AgencyServicePage({ kind, th }: { kind: ServiceKind; th: boolean
     </section>}
 
     <section className={styles.questions} aria-labelledby="questions-title"><div><p className={styles.eyebrow}>{c("BEFORE WE BEGIN", "ก่อนเริ่มงานด้วยกัน")}</p><h2 id="questions-title">{c("A few details.", "รายละเอียดที่ควรรู้")}</h2></div><div>{questions.map(({q, a}) => <details key={q}><summary>{q}<span aria-hidden="true">+</span></summary><p>{a}</p></details>)}</div></section>
-    <aside className={styles.otherService}><p>{venue ? c("Planning one special occasion?", "กำลังจัดงานพิเศษหนึ่งครั้ง?") : c("Looking for music week after week?", "ต้องการดนตรีสำหรับทุกสัปดาห์?")}</p><Link href={venue ? "/events" : "/venues"}>{venue ? c("Explore event music", "ดูบริการดนตรีสำหรับอีเวนต์") : c("Explore venue programmes", "ดูโปรแกรมดนตรีสำหรับสถานที่")} <span aria-hidden>↗</span></Link></aside>
-    {venue ? <aside className={styles.otherService}><p>{c("Programmes by city", "โปรแกรมดนตรีตามเมือง")}</p><span><Link href="/venues/bangkok">{c("Bangkok", "กรุงเทพฯ")} <span aria-hidden>↗</span></Link> <Link href="/venues/pattaya">{c("Pattaya", "พัทยา")} <span aria-hidden>↗</span></Link></span></aside>
-      : <aside className={styles.otherService}><p>{c("Planning 31 December, or want live musicians?", "กำลังวางแผนคืนวันที่ 31 ธันวาคม หรืออยากได้นักดนตรีสด?")}</p><span><Link href="/events/new-years-eve">{c("New Year’s Eve", "คืนส่งท้ายปีเก่า")} <span aria-hidden>↗</span></Link> <Link href="/acts">{c("Live acts", "ดนตรีสด")} <span aria-hidden>↗</span></Link></span></aside>}
+    <aside className={styles.otherService}><p>{venue ? c("Planning one special occasion?", "กำลังจัดงานพิเศษหนึ่งครั้ง?") : c("Looking for music week after week?", "ต้องการดนตรีสำหรับทุกสัปดาห์?")}</p><Link href={l(venue ? "/events" : "/venues")}>{venue ? c("Explore event music", "ดูบริการดนตรีสำหรับอีเวนต์") : c("Explore venue programmes", "ดูโปรแกรมดนตรีสำหรับสถานที่")} <span aria-hidden>↗</span></Link></aside>
+    {venue ? <aside className={styles.otherService}><p>{c("Programmes by city", "โปรแกรมดนตรีตามเมือง")}</p><span><Link href={l("/venues/bangkok")}>{c("Bangkok", "กรุงเทพฯ")} <span aria-hidden>↗</span></Link> <Link href={l("/venues/pattaya")}>{c("Pattaya", "พัทยา")} <span aria-hidden>↗</span></Link></span></aside>
+      : <aside className={styles.otherService}><p>{c("Planning 31 December, or want live musicians?", "กำลังวางแผนคืนวันที่ 31 ธันวาคม หรืออยากได้นักดนตรีสด?")}</p><span><Link href={l("/events/new-years-eve")}>{c("New Year’s Eve", "คืนส่งท้ายปีเก่า")} <span aria-hidden>↗</span></Link> <Link href={l("/acts")}>{c("Live acts", "ดนตรีสด")} <span aria-hidden>↗</span></Link></span></aside>}
     <section id="brief" className={`${agency.briefSection} ${styles.brief}`}><AgencyBrief th={th} initialOccasion={occasion} source={kind}/></section>
   </div></AgencyMotion>;
 }

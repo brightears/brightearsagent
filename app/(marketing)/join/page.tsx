@@ -2,16 +2,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArtistApplicationForm } from "@/components/artist-application-form";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { localizedPath } from "@/lib/i18n/routing";
+import { localizedPageMeta } from "@/lib/marketing/site";
 import styles from "../services.module.css";
 import join from "./join.module.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const th = (await getRequestLocale()) === "th";
-  return {
+  const locale = await getRequestLocale();
+  const th = locale === "th";
+  return localizedPageMeta({
+    path: "/join",
+    locale,
     title: th ? "ร่วมงานกับ Bright Ears — สมัครเป็นศิลปิน" : "Play with Bright Ears — artist applications",
     description: th ? "ดีเจ นักดนตรีสด นักร้อง และพิธีกร สมัครร่วมงานกับ Bright Ears สำหรับโรงแรม ร้านอาหาร และงานอีเวนต์ในกรุงเทพฯ และพัทยา" : "DJs, live musicians, singers and MCs: apply to play hotels, restaurants and events in Bangkok and Pattaya with Bright Ears.",
-    alternates: { canonical: "/join" },
-  };
+  });
 }
 
 export default async function JoinPage() {
@@ -34,7 +38,7 @@ export default async function JoinPage() {
     </section>
     <section className={join.formSection} aria-label={c("Artist application", "ใบสมัครศิลปิน")}>
       <ArtistApplicationForm th={th}/>
-      <p className={join.alt}>{c("Prefer to talk first? ", "อยากคุยก่อน? ")}<a href="https://page.line.me/944grjuq">{c("Message us on LINE", "ติดต่อเราทาง LINE")} ↗</a> · <Link href="/acts">{c("See the acts we book", "ดูรูปแบบการแสดงที่เราจัด")} ↗</Link></p>
+      <p className={join.alt}>{c("Prefer to talk first? ", "อยากคุยก่อน? ")}<a href="https://page.line.me/944grjuq">{c("Message us on LINE", "ติดต่อเราทาง LINE")} ↗</a> · <Link href={localizedPath("/acts", th ? "th" : "en")}>{c("See the acts we book", "ดูรูปแบบการแสดงที่เราจัด")} ↗</Link></p>
     </section>
   </div>;
 }

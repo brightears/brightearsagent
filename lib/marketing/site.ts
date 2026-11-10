@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { appUrlLenient } from "@/lib/app-url";
+import type { Locale } from "@/lib/i18n/config";
+import { localeAlternates } from "@/lib/i18n/routing";
 
 export const SOCIAL_IMAGE = {
   url: "/opengraph-image",
@@ -49,6 +51,42 @@ export function pageMeta(title: string, description: string): Metadata {
       description,
       images: [SOCIAL_IMAGE],
     },
+  };
+}
+
+/**
+ * Metadata for a marketing page that exists in English and Thai. The rewrite
+ * that serves /th/<page> hides the /th from Next, so a route-relative "./"
+ * canonical or og:url would point the Thai page at the English URL; both are
+ * set explicitly from the language being rendered instead. `openGraph`
+ * overrides individual Open Graph fields (it replaces the root object, so the
+ * defaults repeat the shared image and site name).
+ */
+export function localizedPageMeta(input: {
+  path: string;
+  locale: Locale;
+  title: string;
+  description?: string;
+  openGraph?: { title?: string; description?: string; images?: Array<typeof SOCIAL_IMAGE> };
+  extra?: Omit<Metadata, "title" | "description" | "alternates" | "openGraph">;
+}): Metadata {
+  const alternates = localeAlternates(input.path, input.locale);
+  return {
+    title: input.title,
+    ...(input.description ? { description: input.description } : {}),
+    alternates,
+    openGraph: {
+      title: input.title,
+      ...(input.description ? { description: input.description } : {}),
+      url: alternates.canonical,
+      siteName: "Bright Ears",
+      type: "website",
+      locale: input.locale === "th" ? "th_TH" : "en_US",
+      alternateLocale: input.locale === "th" ? ["en_US"] : ["th_TH"],
+      images: [SOCIAL_IMAGE],
+      ...input.openGraph,
+    },
+    ...input.extra,
   };
 }
 

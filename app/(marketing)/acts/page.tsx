@@ -4,16 +4,20 @@ import { AgencyLandingPage } from "@/components/agency-landing-page";
 import { BUYER_ACTS } from "@/lib/agency/acts";
 import { ACTS } from "@/lib/agency/landing-pages";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { localizedPath } from "@/lib/i18n/routing";
+import { localizedPageMeta } from "@/lib/marketing/site";
 import landing from "../landing.module.css";
 import styles from "../services.module.css";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const th = (await getRequestLocale()) === "th";
-  return {
+  const locale = await getRequestLocale();
+  const th = locale === "th";
+  return localizedPageMeta({
+    path: "/acts",
+    locale,
     title: th ? "ดีเจ ดนตรีสด นักร้อง และพิธีกร — Bright Ears" : "DJs, live musicians, singers & MCs — Bright Ears",
     description: th ? "ดีเจร่วมกับแซกโซโฟนหรือเพอร์คัชชัน นักดนตรีเดี่ยว นักร้อง วงอะคูสติกและแจ๊ส และพิธีกร สำหรับโรงแรมและงานอีเวนต์ในกรุงเทพฯ และพัทยา" : "DJ with sax or percussion, solo instrumentalists, singers, acoustic and jazz trios, and MCs for hotels and events in Bangkok and Pattaya.",
-    alternates: { canonical: "/acts" },
-  };
+  });
 }
 
 export default async function ActsPage({ searchParams }: { searchParams: Promise<{ act?: string }> }) {
@@ -30,12 +34,12 @@ export default async function ActsPage({ searchParams }: { searchParams: Promise
         <h3>{t(act.name)}</h3>
         <p>{t(act.body)}</p>
         <p className={landing.settings}>{t(act.settings)}</p>
-        <Link href={`/acts?act=${act.id}#brief`}>{th ? "สอบถามรูปแบบนี้" : "Ask about this format"} <span aria-hidden>↗</span></Link>
+        <Link href={localizedPath(`/acts?act=${act.id}#brief`, locale)}>{th ? "สอบถามรูปแบบนี้" : "Ask about this format"} <span aria-hidden>↗</span></Link>
       </li>)}</ul>
     </section>
     <aside className={landing.join} aria-labelledby="join-title">
       <div><h2 id="join-title">{th ? "เป็นนักดนตรี นักร้อง หรือพิธีกร?" : "Musician, singer or MC?"}</h2><p>{th ? "ส่งใบสมัครพร้อมลิงก์ที่เราฟังหรือดูได้ ทีมของเราอ่านทุกใบสมัคร" : "Apply with a link we can listen to or watch. Our team reads every application."}</p></div>
-      <Link href="/join">{th ? "สมัครร่วมงานกับเรา" : "Apply to perform"} <span aria-hidden>↗</span></Link>
+      <Link href={localizedPath("/join", locale)}>{th ? "สมัครร่วมงานกับเรา" : "Apply to perform"} <span aria-hidden>↗</span></Link>
     </aside>
   </AgencyLandingPage>;
 }
