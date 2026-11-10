@@ -74,9 +74,16 @@ export const HEARD_FROM = options({
   instagram: { en: "Instagram", th: "Instagram" }, google: { en: "Google", th: "Google" }, friend: { en: "A friend", th: "เพื่อน" }, other: { en: "Other", th: "อื่น ๆ" },
 });
 
-// 8 MB, not the 10 MB in the spec: proxy.ts buffers request bodies only up to
-// 10 MB (Next proxyClientMaxBodySize), and a truncated multipart body would fail.
-export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+/**
+ * Largest photo the server accepts. The form resizes photos in the browser to
+ * PHOTO_MAX_EDGE pixels on the long side (usually 0.5 to 1.5 MB as JPEG), so a
+ * phone photo of any size fits; the original is sent only when the browser
+ * cannot resize it.
+ */
+export const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
+/** Largest file the form will try to resize. */
+export const MAX_PHOTO_SOURCE_BYTES = 40 * 1024 * 1024;
+export const PHOTO_MAX_EDGE = 2400;
 export const PHOTO_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as const;
 export type PhotoType = keyof typeof PHOTO_TYPES;
 /** Multipart body ceiling: one photo plus the JSON payload and boundaries. */

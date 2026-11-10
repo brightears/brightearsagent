@@ -18,6 +18,8 @@ vi.mock("@/lib/outbound/send", () => ({ sendEmail: mockSend }));
 vi.mock("@/lib/reports/roi", () => ({ sendMonthlyRoiReceipts: mockRoi }));
 vi.mock("@/lib/reports/hunt-quality", () => ({ huntQualityNeedsAttention: vi.fn(() => false) }));
 vi.mock("@/lib/report-error", () => ({ reportError: vi.fn() }));
+const mockPurge = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/agency/applications", () => ({ purgeExportedApplications: mockPurge }));
 
 import { GET } from "@/app/api/cron/margin-guardrail/route";
 
@@ -52,6 +54,7 @@ beforeEach(() => {
   mockSend.mockResolvedValue({ providerMessageId: "pm_1", transport: "postmark" });
   mockRoi.mockResolvedValue({ sent: 0, skipped: 0, failed: 0 });
   mockDb.opsStamp.upsert.mockResolvedValue({});
+  mockPurge.mockResolvedValue({ removed: 0, unexportedRemoved: 0 });
 });
 
 afterEach(() => {
@@ -100,6 +103,15 @@ describe("nightly cron completion semantics", () => {
 
     expect(response.status).toBe(200);
     expect(mockDb.opsStamp.upsert).toHaveBeenCalledOnce();
+  });
+
+  it("purges artist application site copies, and a purge failure does not stop the nightly pass", async () => {
+    await GET(request());
+    expect(mockPurge).toHaveBeenCalledOnce();
+    mockPurge.mockRejectedValue(new Error("database unavailable"));
+    const response = await GET(request());
+    expect(response.status).toBe(200);
+    expect(mockDb.opsStamp.upsert).toHaveBeenCalledTimes(2);
   });
 
   it("cannot look healthy without an ops destination", async () => {
