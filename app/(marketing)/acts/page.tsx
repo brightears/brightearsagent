@@ -24,7 +24,7 @@ export default async function ActsPage({ searchParams }: { searchParams: Promise
   const config = chosen ? { ...ACTS, brief: { ...ACTS.brief, actType: chosen.enquiry } } : ACTS;
   return <AgencyLandingPage config={config} th={th}>
     <section className={landing.acts} aria-labelledby="acts-title">
-      <header><p className={styles.eyebrow}>{th ? "รูปแบบการแสดง" : "ACT FORMATS"}</p><h2 id="acts-title">{th ? "เลือกรูปแบบ" : "Choose a format."}<br/><em>{th ? "แล้วเราเสนอผู้แสดง" : "We propose the performers."}</em></h2><p>{th ? "แต่ละรูปแบบด้านล่างคือสิ่งที่เราวางขอบเขตและเสนอราคาได้ ศิลปินที่ว่างจะยืนยันตามวันของคุณ" : "Each format below is something we can scope and quote. Which performers are free depends on your date."}</p></header>
+      <header><p className={styles.eyebrow}>{th ? "รูปแบบการแสดง" : "ACT FORMATS"}</p><h2 id="acts-title">{th ? "เลือกรูปแบบ" : "Choose a format."}<br/><em>{th ? "แล้วเราเสนอผู้แสดง" : "We propose the performers."}</em></h2><p>{th ? "แต่ละรูปแบบด้านล่างคือสิ่งที่เราวางขอบเขตและเสนอราคาให้ได้ ศิลปินที่ว่างขึ้นอยู่กับวันที่ของคุณ" : "Each format below is something we can scope and quote. Which performers are free depends on your date."}</p></header>
       <ul className={landing.actGrid}>{BUYER_ACTS.map((act, i) => <li key={act.id} className={landing.actCard} data-reveal>
         <span aria-hidden="true">0{i + 1}</span>
         <h3>{t(act.name)}</h3>

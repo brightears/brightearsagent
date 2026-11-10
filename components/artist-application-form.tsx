@@ -116,7 +116,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
       <span aria-hidden="true">✓</span>
       <h2>{c("Thanks, we have your application.", "ขอบคุณ เราได้รับใบสมัครของคุณแล้ว")}</h2>
       <p>{th
-        ? `เราอ่านทุกใบ โดยปกติภายในหนึ่งสัปดาห์ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อผ่าน ${channel ? l(channel) : "ช่องทางที่เลือก"} หากไม่ได้รับการติดต่อ แปลว่ายังไม่มีช่วงเวลาที่เหมาะในตอนนี้ และเราจะเก็บใบสมัครไว้ 12 เดือน`
+        ? `เราอ่านใบสมัครทุกฉบับ โดยปกติภายในหนึ่งสัปดาห์ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อผ่าน ${channel ? l(channel) : "ช่องทางที่เลือก"} หากไม่ได้รับการติดต่อ หมายความว่าขณะนี้ยังไม่มีตำแหน่งที่เหมาะสม และเราจะเก็บใบสมัครไว้ 12 เดือน`
         : `We read every one, usually within a week. If your act fits a venue we work with, we will contact you through ${channel ? l(channel) : "the channel you chose"}. If you do not hear from us, we have no suitable slot right now and will keep your application for 12 months.`}</p>
       <code>{receipt}</code>
     </div>;
@@ -149,10 +149,10 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         {select("act_type", c("Type of act", "ประเภทการแสดง"), Object.fromEntries(ACT_TYPES.map(type => [type, ACT_TYPE_LABELS[type]])), { required: true })}
         {text("instrument_or_role", c("Instrument or role", "เครื่องดนตรี / บทบาท") + (fields.act_type === "dj" || !fields.act_type ? optional : ""), { max: 120, placeholder: c("e.g. alto sax, piano and vocals, MC in Thai and English", "เช่น อัลโตแซกโซโฟน เปียโนและร้อง พิธีกรภาษาไทยและอังกฤษ") })}
         {field("members", c("Members in the act", "จำนวนสมาชิก"), <input type="number" min={1} max={12} inputMode="numeric" value={fields.members} onChange={event => set("members", event.target.value)}/>, c("Band members do not apply separately.", "สมาชิกในวงไม่ต้องสมัครแยก"))}
-        {select("base_city", c("Where you are based", "เมืองที่อยู่"), CITIES, { required: true })}
-        {select("years_performing", c("Years performing", "ประสบการณ์"), YEARS, { required: true })}
+        {select("base_city", c("Where you are based", "พื้นที่ที่คุณประจำอยู่"), CITIES, { required: true })}
+        {select("years_performing", c("Years performing", "ประสบการณ์การแสดง"), YEARS, { required: true })}
       </div>
-        {chips("travel", c("Where you can travel to perform", "เดินทางไปแสดงที่") + optional, TRAVEL, 7)}
+        {chips("travel", c("Where you can travel to perform", "พื้นที่ที่สะดวกเดินทางไปแสดง") + optional, TRAVEL, 7)}
         {chips("languages", c("Languages you perform or host in", "ภาษาที่ใช้ในการแสดง") + optional, LANGUAGES, 6)}
       </section>
 
@@ -161,10 +161,10 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         <div className={styles.grid}>{text("genres_other", c("Other genres", "แนวเพลงอื่น") + optional, { max: 120, wide: true })}</div>
         {chips("settings_played", c("Settings you have played", "เคยเล่นในงานแบบใด"), SETTINGS, 12)}
         <div className={styles.grid}>
-          {area("venues_played", c("Venues or events you have played", "สถานที่ที่เคยเล่น (ไม่เกิน 5 แห่ง)") + optional, 400, c("Up to five from the last two years, names only.", "ไม่เกิน 5 แห่งในช่วงสองปีที่ผ่านมา ระบุเฉพาะชื่อ"))}
+          {area("venues_played", c("Venues or events you have played", "สถานที่หรืองานที่เคยเล่น") + optional, 400, c("Up to five from the last two years, names only.", "ไม่เกิน 5 แห่งในช่วงสองปีที่ผ่านมา ระบุเฉพาะชื่อ"))}
           {area("bio", c("Short bio", "ประวัติสั้น ๆ") + optional, 600, c("40 to 600 characters, in your own words. We may edit it before we use it.", "40–600 ตัวอักษร เขียนด้วยคำของคุณเอง เราอาจปรับแก้ก่อนนำไปใช้"))}
         </div>
-        {chips("set_lengths", c("Set lengths you can play", "ความยาวการแสดง") + optional, SET_LENGTHS, 7)}
+        {chips("set_lengths", c("Set lengths you can play", "ความยาวเซ็ตที่เล่นได้") + optional, SET_LENGTHS, 7)}
         {chips("own_equipment", c("Equipment you bring", "อุปกรณ์ที่มีเอง") + optional, EQUIPMENT, 7)}
       </section>
 
@@ -184,7 +184,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
       </div></section>
 
       <section className={styles.group} aria-labelledby="apply-work"><h2 id="apply-work"><span>04</span>{c("Work details", "รายละเอียดการทำงาน")}</h2>
-        {chips("available_nights", c("Nights you are usually free", "วันที่สะดวก") + optional, NIGHTS, 8)}
+        {chips("available_nights", c("Nights you are usually free", "คืนที่ปกติสะดวก") + optional, NIGHTS, 8)}
         <div className={styles.grid}>
           {text("earliest_start", c("Earliest start date", "เริ่มงานได้ตั้งแต่") + optional, { max: 10, type: "date" })}
           {select("expected_fee_per_hour_thb", c("Expected fee per hour", "ค่าตัวต่อชั่วโมงที่คาดหวัง (ไม่เปิดเผย)") + optional, FEES, { hint: c("For the whole act. Private, never shown on the site.", "สำหรับทั้งวง เป็นข้อมูลส่วนตัว ไม่แสดงบนเว็บไซต์") })}
@@ -197,7 +197,7 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         <div className={styles.grid}>
           {text("email", c("Email", "อีเมล"), { max: 150, type: "email", autoComplete: "email" })}
           {text("line_id", "LINE ID", { max: 40 })}
-          {text("phone", c("Phone", "เบอร์โทรศัพท์"), { max: 30, type: "tel", autoComplete: "tel", placeholder: c("e.g. 081 234 5678 or +44…", "เช่น 081 234 5678") })}
+          {text("phone", c("Phone", "เบอร์โทรศัพท์"), { max: 30, type: "tel", autoComplete: "tel", placeholder: c("e.g. 081 234 5678 or +44…", "เช่น 081 234 5678 หรือ +44…") })}
           {select("preferred_channel", c("Best way to contact you", "ช่องทางที่สะดวกให้ติดต่อ"), CHANNELS, { required: true })}
           {select("heard_from", c("How did you hear about us?", "รู้จักเราจาก") + optional, HEARD_FROM)}
           {text("referred_by", c("Referred by", "ชื่อผู้แนะนำ") + optional, { max: 80, hint: c("If a Bright Ears artist sent you, their name.", "หากศิลปินของ Bright Ears แนะนำคุณมา ระบุชื่อ") })}
@@ -205,10 +205,10 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
       </section>
 
       <section className={styles.consent} aria-labelledby="apply-consent"><h2 id="apply-consent" className={styles.srOnly}>{c("Consent", "ความยินยอม")}</h2>
-        <p className={styles.never}>{c("Do not send ID cards, passports or bank details with this form. If we work together, we will ask for what we need for payment privately.", "กรุณาอย่าส่งสำเนาบัตรประชาชน หนังสือเดินทาง หรือข้อมูลบัญชีธนาคารมากับแบบฟอร์มนี้ หากได้ร่วมงานกัน เราจะขอข้อมูลที่จำเป็นสำหรับการจ่ายเงินเป็นการส่วนตัว")}</p>
-        <label data-invalid={errors.has("consent_age") || undefined}><input type="checkbox" checked={fields.consent_age} onChange={event => set("consent_age", event.target.checked)}/><span>{c("I am 18 or older and I am applying for my own act, or I have the other members’ agreement to apply for it.", "ข้าพเจ้าอายุ 18 ปีขึ้นไป และสมัครในนามการแสดงของข้าพเจ้าเอง หรือได้รับความยินยอมจากสมาชิกคนอื่นแล้ว")}</span></label>
+        <p className={styles.never}>{c("Do not send ID cards, passports or bank details with this form. If we work together, we will ask for what we need for payment privately.", "กรุณาอย่าส่งสำเนาบัตรประชาชน หนังสือเดินทาง หรือข้อมูลบัญชีธนาคารมากับแบบฟอร์มนี้ หากได้ร่วมงานกัน เราจะขอข้อมูลที่จำเป็นสำหรับการจ่ายค่าตอบแทนแยกต่างหากผ่านช่องทางส่วนตัว")}</p>
+        <label data-invalid={errors.has("consent_age") || undefined}><input type="checkbox" checked={fields.consent_age} onChange={event => set("consent_age", event.target.checked)}/><span>{c("I am 18 or older and I am applying for my own act, or I have the other members’ agreement to apply for it.", "ข้าพเจ้าอายุ 18 ปีขึ้นไป และสมัครในนามการแสดงของข้าพเจ้าเอง หรือได้รับความยินยอมจากสมาชิกคนอื่นในการสมัครครั้งนี้แล้ว")}</span></label>
         <label data-invalid={errors.has("consent_data") || undefined}><input type="checkbox" checked={fields.consent_data} onChange={event => set("consent_data", event.target.checked)}/><span>{th
-          ? <>ข้าพเจ้ายินยอมให้ Bright Ears เก็บข้อมูลและลิงก์ในแบบฟอร์มนี้ เพื่อพิจารณาการแสดงของข้าพเจ้าสำหรับงานที่มีค่าตอบแทนในสถานที่และงานอีเวนต์ และติดต่อข้าพเจ้าผ่านช่องทางที่เลือกไว้ Bright Ears จะไม่เผยแพร่ข้อมูลจากแบบฟอร์มนี้ และจะไม่ส่งต่อให้บุคคลภายนอกโดยไม่ถามข้าพเจ้าก่อน หากข้าพเจ้าอัปโหลดรูปภาพ ข้าพเจ้ายืนยันว่ามีสิทธิ์ใช้รูปนั้น Bright Ears เก็บใบสมัครไว้ 12 เดือนแล้วลบทิ้ง เว้นแต่ข้าพเจ้าได้เริ่มทำงานกับ Bright Ears ข้าพเจ้าขอแก้ไขหรือลบใบสมัครได้ตลอดเวลาโดยเขียนถึง <a href="mailto:info@brightears.io">info@brightears.io</a></>
+          ? <>ข้าพเจ้ายินยอมให้ Bright Ears เก็บข้อมูลและลิงก์ในแบบฟอร์มนี้ เพื่อพิจารณาการแสดงของข้าพเจ้าสำหรับงานที่มีค่าตอบแทนในสถานที่และงานอีเวนต์ และติดต่อข้าพเจ้าเกี่ยวกับเรื่องนี้ผ่านช่องทางที่เลือกไว้ Bright Ears จะไม่เผยแพร่ข้อมูลจากแบบฟอร์มนี้ และจะไม่ส่งต่อให้บุคคลภายนอก Bright Ears โดยไม่ถามข้าพเจ้าก่อน หากข้าพเจ้าอัปโหลดรูปภาพ ข้าพเจ้ายืนยันว่ามีสิทธิ์ส่งต่อรูปภาพนั้นได้ Bright Ears จะเก็บใบสมัครไว้ 12 เดือน จากนั้นจะลบออก เว้นแต่ข้าพเจ้าได้เริ่มทำงานกับ Bright Ears ข้าพเจ้าสามารถขอแก้ไขหรือลบใบสมัครได้ตลอดเวลาโดยส่งอีเมลถึง <a href="mailto:info@brightears.io">info@brightears.io</a></>
           : <>I agree that Bright Ears may keep the details and links in this form to assess my act for paid work at venues and events, and to contact me about it through the channel I chose. Bright Ears does not publish anything from this form and does not share it outside Bright Ears without asking me first. If I upload a photo, I confirm I may share it. Bright Ears keeps an application for 12 months and then deletes it unless I start working with Bright Ears. I can ask for my application to be corrected or deleted at any time by writing to <a href="mailto:info@brightears.io">info@brightears.io</a>.</>}</span></label>
         <div className={styles.honeypot} aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)}/></label></div>
         <button className={agency.primary} type="submit">{submitting ? c("Sending your application…", "กำลังส่งใบสมัคร…") : c("Send my application", "ส่งใบสมัคร")}<span aria-hidden>↗</span></button>

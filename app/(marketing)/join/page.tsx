@@ -22,7 +22,7 @@ export default async function JoinPage() {
       <div>
         <p className={styles.eyebrow}>{c("FOR DJS, MUSICIANS, SINGERS & MCS", "สำหรับดีเจ นักดนตรี นักร้อง และพิธีกร")}</p>
         <h1 id="join-title">{c("Play with", "ร่วมงานกับ")}<br/><em>Bright Ears.</em></h1>
-        <p className={styles.intro}>{c("We book DJs, live musicians, singers and hosts for hotels, restaurants and events in Bangkok and Pattaya. Tell us about your act and send one link we can listen to or watch. We read every application. If your act fits a venue we work with, we will contact you to arrange a paid trial set.", "เราจัดหาดีเจ นักดนตรีสด นักร้อง และพิธีกร ให้โรงแรม ร้านอาหาร และงานอีเวนต์ในกรุงเทพฯ และพัทยา เล่าให้เราฟังเกี่ยวกับการแสดงของคุณ และส่งลิงก์ที่เราฟังหรือดูได้อย่างน้อยหนึ่งลิงก์ เราอ่านใบสมัครทุกฉบับ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อกลับเพื่อนัดเล่นทดลองแบบมีค่าตอบแทน")}</p>
+        <p className={styles.intro}>{c("We book DJs, live musicians, singers and hosts for hotels, restaurants and events in Bangkok and Pattaya. Tell us about your act and send one link we can listen to or watch. We read every application. If your act fits a venue we work with, we will contact you to arrange a paid trial set.", "เราจัดหาดีเจ นักดนตรีสด นักร้อง และพิธีกร ให้โรงแรม ร้านอาหาร และงานอีเวนต์ในกรุงเทพฯ และพัทยา เล่าให้เราฟังเกี่ยวกับการแสดงของคุณ และส่งลิงก์ที่เราฟังหรือดูได้หนึ่งลิงก์ เราอ่านใบสมัครทุกฉบับ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อกลับเพื่อนัดเล่นทดลองแบบมีค่าตอบแทน")}</p>
       </div>
       <aside className={join.panel} aria-label={c("What this form asks for", "สิ่งที่แบบฟอร์มนี้ขอ")}>
         <h2>{c("What we ask for", "สิ่งที่เราขอ")}</h2>

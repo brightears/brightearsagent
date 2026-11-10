@@ -11,7 +11,7 @@ export const ACT_TYPE_LABELS: Record<ActType, { en: string; th: string }> = {
   singer: { en: "Singer", th: "นักร้อง" },
   vocal_duo: { en: "Vocal duo", th: "นักร้องคู่" },
   acoustic_duo_trio: { en: "Acoustic duo or trio", th: "วงอะคูสติก 2–3 คน" },
-  jazz_band: { en: "Jazz trio or band", th: "วงแจ๊ส" },
+  jazz_band: { en: "Jazz trio or band", th: "วงแจ๊ส (3 ชิ้นหรือวงเต็ม)" },
   band: { en: "Band", th: "วงดนตรี" },
   percussionist: { en: "Percussionist", th: "นักเพอร์คัชชัน" },
   mc_host: { en: "MC or host", th: "พิธีกร / MC" },
@@ -45,13 +45,13 @@ export const BUYER_ACTS: BuyerAct[] = [
   {
     id: "solo", enquiry: "Solo instrumentalist", applicationTypes: ["solo_instrumentalist"],
     name: { en: "Solo instrumentalists", th: "นักดนตรีเดี่ยว" },
-    body: { en: "Saxophone, violin, piano or guitar on its own, for rooms where music should stay in the background until someone stops to listen.", th: "แซกโซโฟน ไวโอลิน เปียโน หรือกีตาร์เดี่ยว สำหรับพื้นที่ที่ต้องการดนตรีคลอเบา ๆ แต่ฟังแล้วน่าหยุดฟัง" },
+    body: { en: "Saxophone, violin, piano or guitar on its own, for rooms where music should stay in the background until someone stops to listen.", th: "แซกโซโฟน ไวโอลิน เปียโน หรือกีตาร์เดี่ยว สำหรับพื้นที่ที่ดนตรีควรคลออยู่เบื้องหลัง แต่ไพเราะพอให้คนหยุดฟัง" },
     settings: { en: "Lobbies · dinners · cocktail hours", th: "ล็อบบี้ · มื้อค่ำ · ช่วงค็อกเทล" },
   },
   {
     id: "vocal", enquiry: "Singer or vocal duo", applicationTypes: ["singer", "vocal_duo"],
     name: { en: "Singers and vocal duos", th: "นักร้องและนักร้องคู่" },
-    body: { en: "A singer with backing tracks, or a duo with guitar or keys. Tell us the languages your guests speak and the songs they expect.", th: "นักร้องกับแบ็กกิ้งแทร็ก หรือนักร้องคู่กับกีตาร์หรือคีย์บอร์ด บอกเราว่าแขกของคุณพูดภาษาอะไร และอยากฟังเพลงแบบไหน" },
+    body: { en: "A singer with backing tracks, or a duo with guitar or keys. Tell us the languages your guests speak and the songs they expect.", th: "นักร้องพร้อมแบ็กกิ้งแทร็ก หรือนักร้องคู่พร้อมกีตาร์หรือคีย์บอร์ด บอกเราว่าแขกของคุณใช้ภาษาอะไร และคาดหวังเพลงแบบไหน" },
     settings: { en: "Dinners · weddings · private parties", th: "มื้อค่ำ · งานแต่งงาน · งานส่วนตัว" },
   },
   {

@@ -27,14 +27,14 @@ export const YEARS = options({
   "5_10": { en: "5–10 years", th: "5–10 ปี" }, over_10: { en: "Over 10 years", th: "มากกว่า 10 ปี" },
 });
 export const GENRES = options({
-  deep_house: { en: "Deep house", th: "ดีพเฮาส์" }, house: { en: "House", th: "เฮาส์" }, afro_house: { en: "Afro house", th: "แอโฟรเฮาส์" },
+  deep_house: { en: "Deep house", th: "ดีพเฮาส์" }, house: { en: "House", th: "เฮาส์" }, afro_house: { en: "Afro house", th: "แอฟโฟรเฮาส์" },
   nu_disco: { en: "Nu-disco", th: "นูดิสโก้" }, disco_funk: { en: "Disco & funk", th: "ดิสโก้และฟังก์" }, soulful_house: { en: "Soulful house", th: "โซลฟูลเฮาส์" },
   lounge_downtempo: { en: "Lounge & downtempo", th: "เลานจ์และดาวน์เทมโป" }, chill_balearic: { en: "Chill & Balearic", th: "ชิลล์และบาเลียริก" },
-  hip_hop_rnb: { en: "Hip-hop & R&B", th: "ฮิปฮอปและอาร์แอนด์บี" }, open_format_top40: { en: "Open format & Top 40", th: "โอเพนฟอร์แมตและเพลงฮิต" },
+  hip_hop_rnb: { en: "Hip-hop & R&B", th: "ฮิปฮอปและอาร์แอนด์บี" }, open_format_top40: { en: "Open format & Top 40", th: "โอเพนฟอร์แมตและเพลงฮิตติดชาร์ต" },
   latin: { en: "Latin", th: "ลาติน" }, jazz: { en: "Jazz", th: "แจ๊ส" }, bossa_nova: { en: "Bossa nova", th: "บอสซาโนวา" },
   soul_motown: { en: "Soul & Motown", th: "โซลและโมทาวน์" }, acoustic_pop: { en: "Acoustic pop", th: "อะคูสติกป๊อป" }, thai_pop: { en: "Thai pop", th: "เพลงป๊อปไทย" },
   luk_thung: { en: "Luk thung", th: "ลูกทุ่ง" }, chinese_pop: { en: "Chinese pop", th: "เพลงป๊อปจีน" }, classical: { en: "Classical", th: "คลาสสิก" },
-  rock: { en: "Rock", th: "ร็อก" }, reggae: { en: "Reggae", th: "เร็กเก" }, techno: { en: "Techno", th: "เทคโน" }, other: { en: "Other", th: "อื่น ๆ" },
+  rock: { en: "Rock", th: "ร็อก" }, reggae: { en: "Reggae", th: "เร็กเก้" }, techno: { en: "Techno", th: "เทคโน" }, other: { en: "Other", th: "อื่น ๆ" },
 });
 export const SETTINGS = options({
   hotel_bar_lounge: { en: "Hotel bar or lounge", th: "บาร์หรือเลานจ์ในโรงแรม" }, rooftop: { en: "Rooftop", th: "รูฟท็อป" },
@@ -60,7 +60,7 @@ export const FEES = options({
   under_1000: { en: "Under THB 1,000", th: "ต่ำกว่า 1,000 บาท" }, "1000_1500": { en: "THB 1,000–1,500", th: "1,000–1,500 บาท" },
   "1500_2500": { en: "THB 1,500–2,500", th: "1,500–2,500 บาท" }, "2500_4000": { en: "THB 2,500–4,000", th: "2,500–4,000 บาท" },
   "4000_6000": { en: "THB 4,000–6,000", th: "4,000–6,000 บาท" }, over_6000: { en: "Over THB 6,000", th: "มากกว่า 6,000 บาท" },
-  per_event_quote: { en: "I quote per event", th: "เสนอราคาเป็นรายงาน" },
+  per_event_quote: { en: "I quote per event", th: "เสนอราคาแยกตามแต่ละงาน" },
 });
 export const RIGHT_TO_WORK = options({
   thai_national: { en: "Thai national", th: "สัญชาติไทย" }, foreigner_with_work_permit: { en: "Foreigner with a work permit", th: "ชาวต่างชาติที่มีใบอนุญาตทำงาน" },
@@ -70,7 +70,7 @@ export const CHANNELS = options({
   line: { en: "LINE", th: "LINE" }, email: { en: "Email", th: "อีเมล" }, phone: { en: "Phone", th: "โทรศัพท์" }, instagram: { en: "Instagram", th: "Instagram" },
 });
 export const HEARD_FROM = options({
-  referral_bright_ears_artist: { en: "A Bright Ears artist", th: "ศิลปินของ Bright Ears" }, venue: { en: "A venue", th: "สถานที่ที่เคยเล่น" },
+  referral_bright_ears_artist: { en: "A Bright Ears artist", th: "ศิลปินของ Bright Ears" }, venue: { en: "A venue", th: "สถานที่ที่เคยเล่น (โรงแรม/ร้าน)" },
   instagram: { en: "Instagram", th: "Instagram" }, google: { en: "Google", th: "Google" }, friend: { en: "A friend", th: "เพื่อน" }, other: { en: "Other", th: "อื่น ๆ" },
 });
 
