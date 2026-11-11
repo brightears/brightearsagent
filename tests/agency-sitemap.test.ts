@@ -15,8 +15,6 @@ describe("agency sitemap", () => {
       "https://brightears.io",
       "https://brightears.io/venues",
       "https://brightears.io/events",
-      "https://brightears.io/venues/bangkok",
-      "https://brightears.io/venues/pattaya",
       "https://brightears.io/events/new-years-eve",
       "https://brightears.io/acts",
       "https://brightears.io/artists",
@@ -25,12 +23,14 @@ describe("agency sitemap", () => {
       "https://brightears.io/join",
     ]);
     expect(urls.some(url => /assistant|portal|feedback|dashboard/.test(url))).toBe(false);
+    // Owner decision, 11 Nov 2026: one catalogue, no city pages.
+    expect(urls.some(url => /\/venues\/(bangkok|pattaya)/.test(url))).toBe(false);
   });
 
   it("keeps public buying pages available when the roster is unavailable", async () => {
     roster.mockResolvedValue([]);
     const entries = await sitemap();
-    expect(entries).toHaveLength(9);
+    expect(entries).toHaveLength(7);
     expect(entries.every(entry => !entry.lastModified)).toBe(true);
   });
 });

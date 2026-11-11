@@ -13,8 +13,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: origin, changeFrequency: "monthly", priority: 1 },
     { url: `${origin}/venues`, changeFrequency: "monthly", priority: 0.9 },
     { url: `${origin}/events`, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${origin}/venues/bangkok`, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${origin}/venues/pattaya`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/events/new-years-eve`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${origin}/acts`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${origin}/artists`, changeFrequency: "weekly", priority: 0.8 },

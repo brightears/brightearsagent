@@ -4,92 +4,6 @@ import type { LandingConfig } from "@/components/agency-landing-page";
 // Vinyl's 10 November 2026 snapshot (team/shared/requests/BE-GROWTH-SNAPSHOT-20261110-01)
 // and venue names the site already shows. No rates, contract terms or feedback.
 
-const venueOccasion = { en: "A regular venue programme", th: "โปรแกรมดนตรีประจำสถานที่" };
-const coverQuestion = {
-  q: { en: "What happens if a DJ is ill?", th: "ถ้าดีเจป่วยกะทันหันจะทำอย่างไร?" },
-  a: { en: "We find a replacement from the roster and confirm the change with your team. How cover works is agreed before the programme starts.", th: "เราหาดีเจแทนจากรายชื่อศิลปินของเรา และแจ้งยืนยันกับทีมของคุณ โดยตกลงแนวทางจัดหาดีเจแทนไว้ก่อนเริ่มโปรแกรม" },
-};
-const startQuestion = {
-  q: { en: "Can we start with a few evenings?", th: "เริ่มจากบางคืนก่อนได้ไหม?" },
-  a: { en: "Yes. Tell us which evenings and hours you have in mind. We can scope a four-week paid series around those dates, with artists, equipment and fees agreed in the quotation.", th: "ได้ แจ้งวันและเวลาที่ต้องการได้เลย เราจะวางโปรแกรมแบบมีค่าบริการระยะ 4 สัปดาห์ตามวันดังกล่าว โดยระบุศิลปิน อุปกรณ์ และค่าบริการไว้ในใบเสนอราคา" },
-};
-const lineQuestion = {
-  q: { en: "Do we need another app?", th: "ต้องใช้แอปเพิ่มหรือไม่?" },
-  a: { en: "No. Routine coordination and after-set ratings stay on LINE. The venue portal is there when you want to view or download the schedule.", th: "ไม่ต้อง การประสานงานประจำวันและการให้คะแนนหลังการแสดงยังคงใช้ LINE ตามเดิม ส่วนพอร์ทัลสถานที่มีไว้สำหรับดูหรือดาวน์โหลดตารางเมื่อต้องการ" },
-};
-const venueSteps = [
-  { title: { en: "A music direction for each part of the night", th: "แนวดนตรีสำหรับแต่ละช่วงของค่ำคืน" }, body: { en: "Tell us who your guests are and which hours you want to fill. We agree a brief with your team, from early dinner to the last hour at the bar.", th: "แจ้งเราว่าแขกของคุณเป็นใคร และต้องการดนตรีช่วงเวลาใด เราจะวางบรีฟร่วมกับทีมของคุณ ตั้งแต่มื้อค่ำช่วงหัวค่ำจนถึงชั่วโมงสุดท้ายที่บาร์" } },
-  { title: { en: "A schedule we run", th: "ตารางงานที่เราดูแลให้" }, body: { en: "We book the DJs, publish the schedule in the venue portal and arrange cover when someone cannot play.", th: "เราจองดีเจ ลงตารางในพอร์ทัลสถานที่ และจัดหาดีเจแทนเมื่อมีคนเล่นไม่ได้" } },
-  { title: { en: "Ratings after every set", th: "ให้คะแนนหลังทุกเซ็ต" }, body: { en: "Your managers can rate each performance from 1 to 5 stars in LINE and add a comment. We review those ratings with your team as the programme develops.", th: "ผู้จัดการของคุณให้คะแนนการแสดงแต่ละครั้งได้ 1–5 ดาวผ่าน LINE พร้อมเพิ่มความคิดเห็น เราจะนำคะแนนเหล่านี้มาทบทวนร่วมกับทีมของคุณเพื่อพัฒนาโปรแกรมต่อไป" } },
-];
-
-export const BANGKOK: LandingConfig = {
-  eyebrow: { en: "BANGKOK · HOTELS, ROOFTOPS & RESTAURANTS", th: "กรุงเทพฯ · โรงแรม รูฟท็อป และร้านอาหาร" },
-  title: [{ en: "DJs for Bangkok", th: "ดีเจสำหรับ" }, { en: "hotels and rooftops.", th: "โรงแรมและรูฟท็อปในกรุงเทพฯ" }],
-  intro: { en: "We book resident and guest DJs for hotel bars, rooftops and restaurants across Bangkok. We plan the music with your team, run the schedule and arrange cover when a DJ cannot play.", th: "เราจัดหาดีเจประจำและดีเจรับเชิญให้บาร์ในโรงแรม รูฟท็อป และร้านอาหารทั่วกรุงเทพฯ วางแนวดนตรีร่วมกับทีมของคุณ ดูแลตารางงาน และหาดีเจแทนเมื่อมีคนเล่นไม่ได้" },
-  action: { en: "Plan your Bangkok programme", th: "วางแผนโปรแกรมดนตรีในกรุงเทพฯ" },
-  heroArtistId: "dj-scotty-b", stamp: "BKK / RESIDENCIES",
-  evidence: {
-    heading: { en: "WHERE WE PLAY NOW", th: "สถานที่ที่เราดูแลอยู่ตอนนี้" },
-    note: { en: "Bangkok venues with a Bright Ears DJ programme every night of the week, November 2026.", th: "สถานที่ในกรุงเทพฯ ที่มีโปรแกรมดีเจของ Bright Ears ทุกคืน (ข้อมูล ณ เดือนพฤศจิกายน 2569)" },
-    items: [
-      { name: "Nobu Bangkok", place: { en: "Restaurant and bar", th: "ร้านอาหารและบาร์" }, logo: { src: "/agency/clients/nobu.png", width: 120 } },
-      { name: "Le Du Kaan", place: { en: "Restaurant, early and late sets", th: "ร้านอาหาร เซ็ตหัวค่ำและเซ็ตดึก" }, logo: { src: "/agency/clients/ledukaan.svg", width: 100 } },
-      { name: "ABar Rooftop", place: { en: "Bangkok Marriott Marquis Queen’s Park", th: "Bangkok Marriott Marquis Queen’s Park" }, logo: { src: "/agency/clients/abar.png", width: 110, invert: true } },
-    ],
-  },
-  formats: {
-    heading: { en: "Formats we run in Bangkok", th: "รูปแบบที่เราจัดในกรุงเทพฯ" },
-    items: [
-      { en: "One DJ for a four-hour evening", th: "ดีเจหนึ่งคนสำหรับค่ำคืน 4 ชั่วโมง" },
-      { en: "Two DJs splitting the night into an early and a late set", th: "ดีเจสองคนแบ่งเป็นเซ็ตหัวค่ำและเซ็ตดึก" },
-      { en: "Saxophone and percussion for a Sunday brunch", th: "แซกโซโฟนและเพอร์คัชชันสำหรับบรันช์วันอาทิตย์" },
-    ],
-  },
-  stepsHeading: [{ en: "HOW A PROGRAMME RUNS", th: "ขั้นตอนการดูแลโปรแกรมดนตรี" }, { en: "Your nights,", th: "ทุกค่ำคืนของคุณ" }, { en: "one team to run them.", th: "ดูแลโดยทีมเดียว" }],
-  steps: venueSteps,
-  questions: [startQuestion, coverQuestion, lineQuestion],
-  other: [
-    { text: { en: "Running a venue in Pattaya?", th: "ดูแลสถานที่ในพัทยาอยู่หรือไม่?" }, href: "/venues/pattaya", link: { en: "DJs for Pattaya", th: "ดีเจสำหรับพัทยา" } },
-    { text: { en: "Planning 31 December?", th: "กำลังวางแผนคืนวันที่ 31 ธันวาคม?" }, href: "/events/new-years-eve", link: { en: "New Year’s Eve entertainment", th: "ความบันเทิงคืนส่งท้ายปีเก่า" } },
-  ],
-  brief: { occasion: venueOccasion, source: "bangkok" },
-};
-
-export const PATTAYA: LandingConfig = {
-  eyebrow: { en: "PATTAYA · HOTELS, ROOFTOPS & BEACH VENUES", th: "พัทยา · โรงแรม รูฟท็อป และสถานที่ริมทะเล" },
-  title: [{ en: "DJs for Pattaya", th: "ดีเจสำหรับ" }, { en: "hotels and rooftops.", th: "โรงแรมและรูฟท็อปในพัทยา" }],
-  intro: { en: "We run the nightly house-music programme at Horizon, the rooftop bar at Hilton Pattaya. Other hotels, rooftops and beach venues in Pattaya can book the same service: an agreed music direction, a schedule we run and a team you can reach on LINE.", th: "เราดูแลโปรแกรมดนตรีเฮาส์ทุกคืนที่ Horizon รูฟท็อปบาร์ของ Hilton Pattaya โรงแรม รูฟท็อป และสถานที่ริมทะเลอื่น ๆ ในพัทยาก็สามารถใช้บริการแบบเดียวกันได้ ทั้งแนวดนตรีที่ตกลงร่วมกัน ตารางงานที่เราดูแลให้ และทีมงานที่ติดต่อได้ทาง LINE" },
-  action: { en: "Plan your Pattaya programme", th: "วางแผนโปรแกรมดนตรีในพัทยา" },
-  heroArtistId: "dj-benji", stamp: "PTY / SUNSET TO LATE",
-  evidence: {
-    heading: { en: "WHERE WE PLAY NOW", th: "สถานที่ที่เราดูแลอยู่ตอนนี้" },
-    note: { en: "A Bright Ears DJ plays Horizon every night from sunset, November 2026.", th: "ดีเจของ Bright Ears เล่นที่ Horizon ทุกคืนตั้งแต่ช่วงพระอาทิตย์ตก (ข้อมูล ณ เดือนพฤศจิกายน 2569)" },
-    items: [
-      { name: "Horizon Rooftop", place: { en: "Hilton Pattaya · house music, one DJ nightly", th: "Hilton Pattaya · ดนตรีเฮาส์ ดีเจหนึ่งคนทุกคืน" }, logo: { src: "/agency/clients/hilton.png", width: 80, invert: true } },
-    ],
-  },
-  formats: {
-    heading: { en: "What we can scope in Pattaya", th: "สิ่งที่เราวางขอบเขตให้ได้ในพัทยา" },
-    items: [
-      { en: "A nightly sunset-to-evening DJ set", th: "เซ็ตดีเจทุกคืน ตั้งแต่ช่วงพระอาทิตย์ตกถึงหัวค่ำ" },
-      { en: "Weekend pool or beach sessions", th: "เซ็ตริมสระหรือริมทะเลช่วงสุดสัปดาห์" },
-      { en: "Event nights with a DJ and a live musician", th: "คืนพิเศษกับดีเจและนักดนตรีสด" },
-    ],
-  },
-  stepsHeading: [{ en: "HOW A PROGRAMME RUNS", th: "ขั้นตอนการดูแลโปรแกรมดนตรี" }, { en: "Sunset to late,", th: "ตั้งแต่พระอาทิตย์ตกถึงดึก" }, { en: "one team to run it.", th: "ดูแลโดยทีมเดียว" }],
-  steps: venueSteps,
-  questions: [
-    { q: { en: "Do the DJs travel from Bangkok?", th: "ดีเจเดินทางมาจากกรุงเทพฯ หรือไม่?" }, a: { en: "Tell us the dates and hours. The quotation names the artists who will play in Pattaya and includes any travel costs.", th: "บอกวันและเวลาที่ต้องการ ใบเสนอราคาจะระบุชื่อศิลปินที่จะเล่นในพัทยา และรวมค่าเดินทาง (ถ้ามี)" } },
-    startQuestion, coverQuestion,
-  ],
-  other: [
-    { text: { en: "Running a venue in Bangkok?", th: "ดูแลสถานที่ในกรุงเทพฯ อยู่หรือไม่?" }, href: "/venues/bangkok", link: { en: "DJs for Bangkok", th: "ดีเจสำหรับกรุงเทพฯ" } },
-    { text: { en: "Planning 31 December?", th: "กำลังวางแผนคืนวันที่ 31 ธันวาคม?" }, href: "/events/new-years-eve", link: { en: "New Year’s Eve entertainment", th: "ความบันเทิงคืนส่งท้ายปีเก่า" } },
-  ],
-  brief: { occasion: venueOccasion, source: "pattaya" },
-};
-
 export const NEW_YEARS_EVE: LandingConfig = {
   eyebrow: { en: "31 DECEMBER · BANGKOK & PATTAYA", th: "31 ธันวาคม · กรุงเทพฯ และพัทยา" },
   title: [{ en: "New Year’s Eve,", th: "คืนส่งท้ายปีเก่า" }, { en: "planned before December.", th: "วางแผนให้พร้อมก่อนเดือนธันวาคม" }],
@@ -160,4 +74,4 @@ export const ACTS: LandingConfig = {
   brief: { occasion: { en: "A brand or corporate event", th: "งานแบรนด์หรือองค์กร" }, source: "acts", actType: "DJ with a live musician" },
 };
 
-export const LANDING_PAGES = { BANGKOK, PATTAYA, NEW_YEARS_EVE, ACTS };
+export const LANDING_PAGES = { NEW_YEARS_EVE, ACTS };
