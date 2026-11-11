@@ -3,16 +3,21 @@
 import { usePathname } from "next/navigation";
 import { setLocale } from "@/app/actions/locale";
 import { useI18n } from "@/components/locale-provider";
+import { localizedPath, splitLocalePath } from "@/lib/i18n/routing";
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { locale, t } = useI18n();
   const pathname = usePathname();
   const nextLocale = locale === "th" ? "en" : "th";
+  // A /th page is served through a proxy rewrite, so the pathname can read
+  // with or without the prefix. Normalize first; the result is identical on
+  // the server and the client and points at the other language's URL.
+  const returnTo = localizedPath(splitLocalePath(pathname).path, nextLocale);
 
   return (
     <form action={setLocale}>
       <input type="hidden" name="locale" value={nextLocale} />
-      <input type="hidden" name="returnTo" value={pathname} />
+      <input type="hidden" name="returnTo" value={returnTo} />
       <button
         type="submit"
         aria-label={locale === "th" ? t("language.switchToEnglish") : t("language.switchToThai")}

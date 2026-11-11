@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AgencyBrief } from "@/components/agency-brief";
+import { localizedPath } from "@/lib/i18n/routing";
 import { AgencyMotion } from "@/components/agency-motion";
 import { heroArtists } from "@/lib/agency/roster";
 import type { InquirySource } from "@/lib/agency/inquiry-contract";
@@ -24,6 +25,7 @@ export type LandingConfig = {
 
 export function AgencyLandingPage({ config, th, children }: { config: LandingConfig; th: boolean; children?: ReactNode }) {
   const t = (copy: Copy) => th ? copy.th : copy.en;
+  const l = (href: string) => localizedPath(href, th ? "th" : "en");
   const hero = heroArtists.find(artist => artist.id === config.heroArtistId);
   return <AgencyMotion><div className={styles.page} lang={th ? "th" : "en"}>
     <section className={styles.hero} aria-labelledby="landing-title">
@@ -31,13 +33,13 @@ export function AgencyLandingPage({ config, th, children }: { config: LandingCon
         <p className={styles.eyebrow}>{t(config.eyebrow)}</p>
         <h1 id="landing-title">{t(config.title[0])}<br/><em>{t(config.title[1])}</em></h1>
         <p className={styles.intro}>{t(config.intro)}</p>
-        <div className={styles.actions}><a className={agency.primary} href="#brief">{t(config.action)}<span aria-hidden>↗</span></a><Link className={agency.textLink} href="/artists">{th ? "รู้จักศิลปินของเรา" : "Meet the roster"} <span aria-hidden>↗</span></Link></div>
+        <div className={styles.actions}><a className={agency.primary} href="#brief">{t(config.action)}<span aria-hidden>↗</span></a><Link className={agency.textLink} href={l("/artists")}>{th ? "รู้จักศิลปินของเรา" : "Meet the roster"} <span aria-hidden>↗</span></Link></div>
         <p className={styles.location}>{th ? "BRIGHT EARS / กรุงเทพฯ และพัทยา" : "BRIGHT EARS / BANGKOK & PATTAYA"}</p>
       </div>
       {hero ? <figure className={styles.heroPhoto}>
         <Image src={hero.image} alt={hero.name} fill sizes="(max-width: 800px) 88vw, 46vw" preload style={{ objectPosition: hero.position }}/>
         {config.stamp && <span className={styles.photoStamp} aria-hidden="true">{config.stamp}</span>}
-        <figcaption><span>{th ? "ผู้คนเบื้องหลังเสียงดนตรี" : "THE PEOPLE BEHIND THE MUSIC"}</span><Link href={"/artists/" + encodeURIComponent(hero.id)}>{hero.name} <span aria-hidden>↗</span></Link></figcaption>
+        <figcaption><span>{th ? "ผู้คนเบื้องหลังเสียงดนตรี" : "THE PEOPLE BEHIND THE MUSIC"}</span><Link href={l("/artists/" + encodeURIComponent(hero.id))}>{hero.name} <span aria-hidden>↗</span></Link></figcaption>
       </figure> : config.heroPanel && <ul className={landing.heroPanel} aria-label={th ? "รูปแบบการแสดง" : "Act formats"}>
         {config.heroPanel.map((item, i) => <li key={item.en}><span aria-hidden="true">0{i + 1}</span>{t(item)}</li>)}
       </ul>}
@@ -61,7 +63,7 @@ export function AgencyLandingPage({ config, th, children }: { config: LandingCon
     </section>
 
     <section className={styles.questions} aria-labelledby="questions-title"><div><p className={styles.eyebrow}>{th ? "ก่อนเริ่มงานด้วยกัน" : "BEFORE WE BEGIN"}</p><h2 id="questions-title">{th ? "รายละเอียดที่ควรรู้" : "A few details."}</h2></div><div>{config.questions.map(({ q, a }) => <details key={q.en}><summary>{t(q)}<span aria-hidden="true">+</span></summary><p>{t(a)}</p></details>)}</div></section>
-    {config.other.map(item => <aside key={item.href} className={styles.otherService}><p>{t(item.text)}</p><Link href={item.href}>{t(item.link)} <span aria-hidden>↗</span></Link></aside>)}
+    {config.other.map(item => <aside key={item.href} className={styles.otherService}><p>{t(item.text)}</p><Link href={l(item.href)}>{t(item.link)} <span aria-hidden>↗</span></Link></aside>)}
     <section id="brief" className={`${agency.briefSection} ${styles.brief}`}><AgencyBrief key={config.brief.actType ?? ""} th={th} initialOccasion={t(config.brief.occasion)} initialVenueType={config.brief.venueType} initialActType={config.brief.actType} initialDate={config.brief.date} source={config.brief.source}/></section>
   </div></AgencyMotion>;
 }

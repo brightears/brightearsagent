@@ -2,6 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { canonicalRedirectTarget } from "@/lib/canonical-host";
 import { ASSISTANT_ENROLLMENT_OPEN } from "@/lib/assistant-enrollment";
+import { LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALE_HEADER, resolveLocaleRoute } from "@/lib/i18n/routing";
 
 // Signed-in-only surfaces. Marketing pages, the demo API, the inbound webhook,
 // crons and opt-out stay public (the latter are shared-secret-gated instead).
@@ -54,6 +56,49 @@ function stagingHostRedirect(req: NextRequest): NextResponse | null {
   return target ? NextResponse.redirect(target, 301) : null;
 }
 
+/**
+ * Language URLs for the agency marketing pages (lib/i18n/routing.ts):
+ * /th/<page> is rewritten to the existing route with LOCALE_HEADER=th, an
+ * unprefixed page is tagged English or, for a visitor who chose Thai, sent to
+ * its /th URL. Elsewhere a client-supplied LOCALE_HEADER is dropped so only
+ * this proxy can set it. Localized pages are never protected routes.
+ *
+ * Rewrite and redirect targets are built from req.nextUrl, so Next relativizes
+ * the redirect Location instead of leaking Render's internal origin.
+ */
+function localeRouting(req: NextRequest): NextResponse | null {
+  const route = resolveLocaleRoute({
+    method: req.method,
+    pathname: req.nextUrl.pathname,
+    cookieLocale: req.cookies.get(LOCALE_COOKIE)?.value,
+    acceptLanguage: req.headers.get("accept-language"),
+  });
+  const requestHeaders = new Headers(req.headers);
+  switch (route.action) {
+    case "redirect": {
+      const target = req.nextUrl.clone();
+      target.pathname = route.pathname;
+      const response = NextResponse.redirect(target, 307);
+      response.headers.set("Cache-Control", "private, no-store");
+      response.headers.set("Vary", "Cookie, Accept-Language");
+      return response;
+    }
+    case "rewrite": {
+      requestHeaders.set(LOCALE_HEADER, route.locale);
+      const target = req.nextUrl.clone();
+      target.pathname = route.pathname;
+      return NextResponse.rewrite(target, { request: { headers: requestHeaders } });
+    }
+    case "tag":
+      requestHeaders.set(LOCALE_HEADER, route.locale);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+    case "pass":
+      if (!req.headers.has(LOCALE_HEADER)) return null;
+      requestHeaders.delete(LOCALE_HEADER);
+      return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+}
+
 // Guard against the silent-disable trap (audit B3-NF): if the publishable key is
 // missing in PRODUCTION the guard can't authenticate, so we must NOT fall back
 // to passing everything through — that would serve /dashboard, /onboarding and
@@ -80,7 +125,7 @@ export default clerkEnabled
       // any auth decision (the canonical host is where the session lives).
       const hostRedirect = stagingHostRedirect(req);
       if (hostRedirect) return hostRedirect;
-      if (!isProtected(req)) return;
+      if (!isProtected(req)) return localeRouting(req) ?? undefined;
       // "Get started" must land NEW visitors on sign-UP, not sign-in (audit
       // 2026-07: every marketing CTA 307'd to a sign-in screen — the wrong
       // label at peak intent). Only /onboarding gets this treatment; deep
@@ -107,7 +152,7 @@ export default clerkEnabled
       if (process.env.NODE_ENV === "production" && isProtected(req)) {
         return new NextResponse("Authentication is not configured.", { status: 503 });
       }
-      return NextResponse.next();
+      return localeRouting(req) ?? NextResponse.next();
     };
 
 export const config = {

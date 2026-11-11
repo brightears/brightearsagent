@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import type { AgencyArtist } from "@/lib/agency/roster";
 import { localKitDownload } from "@/lib/agency/promotion-kit";
+import { localizedPath } from "@/lib/i18n/routing";
 import styles from "./agency-promotion-kit.module.css";
 
 export { localKitDownload } from "@/lib/agency/promotion-kit";
@@ -20,7 +21,7 @@ export function AgencyPromotionKit({ artist, th }: { artist: AgencyArtist; th: b
   const [zipState, setZipState] = useState<"idle" | "pending" | "started" | "error">("idle");
   const zipInFlight = useRef(false);
   const download = localKitDownload(artist.image, artist.id);
-  const profileHref = `/artists/${encodeURIComponent(artist.id)}`;
+  const profileHref = localizedPath(`/artists/${encodeURIComponent(artist.id)}`, th ? "th" : "en");
 
   async function downloadKit() {
     if (zipInFlight.current) return;
