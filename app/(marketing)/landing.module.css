@@ -31,12 +31,12 @@
 .actCard p.settings{font-size:.875rem;color:#d7e0e4;letter-spacing:.02em}
 .actCard a{margin-top:auto;color:var(--agency-cyan);font-size:.9375rem;display:inline-flex;gap:14px;align-items:center;min-height:44px}
 
-.join{margin:30px 5% 0;padding:45px 5%;background:var(--agency-cyan);color:#101214;display:grid;grid-template-columns:1fr auto;gap:30px;align-items:center}
+.join{margin:30px 5% 0;padding:45px 5%;background:var(--agency-cyan);color:#101214;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:center}
 .join h2{font-size:clamp(2rem,3vw,3rem);letter-spacing:-.04em;line-height:1.2;font-weight:500;margin:0 0 12px}
 .join p{font-size:1.0625rem;line-height:1.75;margin:0;max-width:620px}
 .join a{display:inline-flex;gap:20px;align-items:center;background:#101214;color:#f2f0eb;min-height:50px;padding:14px 22px;font-size:.9375rem;white-space:nowrap}
 .join a:hover{background:#263b43}
 
 @media(max-width:1000px){.actGrid{grid-template-columns:1fr 1fr}}
-@media(max-width:800px){.evidence{grid-template-columns:1fr;padding:28px 6%;gap:24px}.acts{padding:65px 6% 30px}.join{margin-inline:6%;padding:32px 6%;grid-template-columns:1fr}.heroPanel{padding:22px 20px}}
-@media(max-width:560px){.actGrid{grid-template-columns:1fr}.actCard{min-height:0}.join a{white-space:normal}}
+@media(max-width:800px){.evidence{grid-template-columns:minmax(0,1fr);padding:28px 6%;gap:24px}.acts{padding:65px 6% 30px}.join{margin-inline:6%;padding:32px 6%;grid-template-columns:minmax(0,1fr)}.heroPanel{padding:22px 20px}}
+@media(max-width:560px){.actGrid{grid-template-columns:minmax(0,1fr)}.actCard{min-height:0}.join a{white-space:normal}}
