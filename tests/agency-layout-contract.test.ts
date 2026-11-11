@@ -37,6 +37,17 @@ describe("home hero layout", () => {
   });
 });
 
+describe("home hero on short windows (option B, decided 10 Nov 2026)", () => {
+  it("scales the headline with window height only on wide, short windows", () => {
+    // Phones (<=800px) and windows 900px or taller keep the original sizes.
+    const block = agency.match(/@media\(min-width:801px\) and \(max-height:899px\)\{(.*?)\}\s*\n/)?.[1] ?? "";
+    expect(block).toMatch(/\.nocturneCopy h1\{[^}]*font-size:clamp\(5rem,min\(10\.2vw,calc\(\(100svh - 400px\)\*var\(--hero-fit\)\)\),10\.5rem\)/);
+    expect(block).toMatch(/\.nocturneHero\{min-height:calc\(100svh - 88px\)\}/);
+    expect(agency).toMatch(/\.nocturneCopy\{--hero-fit:\.48\}/);
+    expect(agency).toMatch(/\.shell:lang\(th\) \.nocturneCopy\{--hero-fit:\.38\}/);
+  });
+});
+
 describe("panels that hold text", () => {
   it("use a minimum height so enlarged text is not clipped", () => {
     for (const body of rules(agency, ".servicePanel")) {
