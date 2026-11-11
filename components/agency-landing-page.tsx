@@ -32,7 +32,7 @@ export function AgencyLandingPage({ config, th, children }: { config: LandingCon
         <h1 id="landing-title">{t(config.title[0])}<br/><em>{t(config.title[1])}</em></h1>
         <p className={styles.intro}>{t(config.intro)}</p>
         <div className={styles.actions}><a className={agency.primary} href="#brief">{t(config.action)}<span aria-hidden>↗</span></a><Link className={agency.textLink} href="/artists">{th ? "รู้จักศิลปินของเรา" : "Meet the roster"} <span aria-hidden>↗</span></Link></div>
-        <p className={styles.location}>{th ? "BRIGHT EARS / กรุงเทพฯ และพัทยา" : "BRIGHT EARS / BANGKOK & PATTAYA"}</p>
+        <p className={styles.location}>{th ? "BRIGHT EARS / กรุงเทพฯ" : "BRIGHT EARS / BANGKOK"}</p>
       </div>
       {hero ? <figure className={styles.heroPhoto}>
         <Image src={hero.image} alt={hero.name} fill sizes="(max-width: 800px) 88vw, 46vw" preload style={{ objectPosition: hero.position }}/>
