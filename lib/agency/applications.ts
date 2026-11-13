@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { InquiryError } from "./inquiry-contract";
 import { inquiryIntakeReady, inquiryWorkerAuthorized } from "./inquiries";
 import type { ArtistApplicationInput, PhotoType } from "./application-contract";
+import { LISTING_CONSENT_VERSION } from "./listing-consent";
 
 // The Talent desk pulls applications with the same Mac-side Bearer credential as
 // the enquiry worker (AGENCY_INQUIRY_TOKEN). Applications never enter the
@@ -80,7 +81,7 @@ export async function saveArtistApplication(input: ArtistApplicationInput, photo
       const stored = await tx.artistApplicationPhoto.aggregate({ _sum: { byteSize: true } });
       if ((stored._sum.byteSize ?? 0) + photo.bytes.byteLength > MAX_STORED_PHOTO_BYTES) storedPhoto = null;
     }
-    const { consent_age, consent_data, ...details } = input.application;
+    const { consent_age, consent_data, consent_listing, ...details } = input.application;
     const application = await tx.artistApplication.create({ data: {
       submissionKey: input.submissionKey, requestHash: hash, locale: input.locale,
       sourcePath: input.sourcePath || "/join", actType: details.act_type,
@@ -90,6 +91,8 @@ export async function saveArtistApplication(input: ArtistApplicationInput, photo
         consent: { age: consent_age, data: consent_data, at: new Date(now).toISOString(), locale: input.locale },
       },
       utm: input.utm && Object.keys(input.utm).length ? input.utm : undefined,
+      // The answer is stored either way, with the wording version the applicant saw.
+      listingConsent: consent_listing, listingConsentAt: new Date(now), listingConsentVersion: LISTING_CONSENT_VERSION,
       clientHash,
       photo: storedPhoto ? { create: {
         contentType: storedPhoto.contentType, byteSize: storedPhoto.bytes.byteLength, sha256: photoHash!,
@@ -106,6 +109,7 @@ export async function pendingArtistApplications() {
     where: { exportedAt: null }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 25,
     select: {
       id: true, createdAt: true, locale: true, sourcePath: true, actType: true, details: true, utm: true, status: true,
+      listingConsent: true, listingConsentAt: true, listingConsentVersion: true,
       photo: { select: { contentType: true, byteSize: true, sha256: true } },
     },
   });

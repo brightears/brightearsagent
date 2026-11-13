@@ -128,9 +128,13 @@ export default function PrivacyPage() {
         <p>
           We use this information to assess your act for paid work at venues and events and to
           contact you about it through the channel you chose. We rely on your request and your
-          consent (Thailand PDPA sections 19 and 24(3)). We do not publish anything from the form,
-          and we do not share it outside Bright Ears without asking you first. We do not fetch or
-          preview the links you send; a person opens them.
+          consent (Thailand PDPA sections 19 and 24(3)). We publish nothing from the form unless you
+          also tick the separate, optional public profile box. If you tick it, we may use the act
+          name, bio, photo and links you sent for a profile on brightears.io; we send you the
+          profile to check before it goes live and remove it when you ask. We record your answer,
+          the time and the version of the wording you saw. We do not share the form outside Bright
+          Ears without asking you first. We do not fetch or preview the links you send; a person
+          opens them.
         </p>
         <p>
           Your application is stored in our Render-hosted database, including any photo, and is

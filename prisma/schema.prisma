@@ -792,6 +792,10 @@ model ArtistApplication {
   details         Json
   utm             Json?
   status          String    @default("new")
+  /// Optional consent to a public profile on brightears.io (/join, since 13 Nov 2026).
+  listingConsent        Boolean   @default(false)
+  listingConsentAt      DateTime?
+  listingConsentVersion String?
   clientHash      String?
   exportedAt      DateTime?
   exportReference String?

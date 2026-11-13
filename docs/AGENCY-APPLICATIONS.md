@@ -50,3 +50,11 @@ The purge runs from three places: the export script, the nightly Render cron (`/
 ## Release
 
 Apply migration `20261110090000_artist_applications` (additive: two new tables), deploy, then run the export script once so `/join` opens. Tests: `tests/agency-applications.test.tsx`, `tests/agency-applications.integration.ts` and `team/web/test_application_export.py`.
+
+## Public profile consent (since 13 November 2026)
+
+The roster on `/artists` is a catalogue buyers choose from. An applicant is listed only with written consent, so `/join` has a separate, optional box (`consent_listing`, unchecked by default, not required to submit). The wording and its version live in `lib/agency/listing-consent.ts`; change the version whenever either wording changes.
+
+- `ArtistApplication.listingConsent` (false unless ticked), `listingConsentAt` (submission time) and `listingConsentVersion` (wording shown, `listing-v1-2026-11-13`) are stored for every new application. Older rows have false and no timestamp.
+- The export returns all three fields, `application_export.py` writes them into each inbox record, and its receipt counts `listing_consented`.
+- The required data consent now says nothing is published unless the box is ticked, and that Bright Ears sends the artist the profile to check before it goes live. Whoever builds the profile must do that check before making it visible.

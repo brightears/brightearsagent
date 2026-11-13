@@ -162,6 +162,8 @@ export const applicationFieldsSchema = z.object({
   referred_by: text(80).default(""),
   consent_age: z.literal(true),
   consent_data: z.literal(true),
+  // Optional public-profile consent; absent in older submissions.
+  consent_listing: z.boolean().default(false),
 }).strict().superRefine((value, ctx) => {
   const issue = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
   if (value.act_type !== "dj" && value.instrument_or_role.length < 2) issue("instrument_or_role", "required");

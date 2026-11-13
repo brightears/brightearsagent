@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Fragment, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ACT_TYPE_LABELS } from "@/lib/agency/acts";
 import {
   ACT_TYPES, CHANNELS, CITIES, EQUIPMENT, FEES, FREE_TEXT_FIELDS, GENRES, HEARD_FROM, LANGUAGES, NIGHTS,
   RIGHT_TO_WORK, SET_LENGTHS, SETTINGS, TRAVEL, YEARS, applicationFieldsSchema, applicationIssues, containsThaiIdNumber,
 } from "@/lib/agency/application-contract";
 import { preparePhoto } from "@/lib/agency/photo-resize";
+import { LISTING_CONSENT_TEXT, PUBLISHING_SENTENCE } from "@/lib/agency/listing-consent";
 import agency from "@/app/(marketing)/agency.module.css";
 import styles from "./artist-application.module.css";
 
@@ -17,14 +18,14 @@ type Fields = {
   venues_played: string; set_lengths: string[]; own_equipment: string[]; bio: string; mix_or_video_url: string; instagram_url: string;
   facebook_url: string; soundcloud_url: string; mixcloud_url: string; youtube_url: string; website_url: string; photo_credit: string;
   available_nights: string[]; earliest_start: string; expected_fee_per_hour_thb: string; right_to_work: string; email: string;
-  line_id: string; phone: string; preferred_channel: string; heard_from: string; referred_by: string; consent_age: boolean; consent_data: boolean;
+  line_id: string; phone: string; preferred_channel: string; heard_from: string; referred_by: string; consent_age: boolean; consent_data: boolean; consent_listing: boolean;
 };
 const EMPTY: Fields = {
   act_name: "", contact_name: "", act_type: "", instrument_or_role: "", members: "1", base_city: "", travel: [], languages: [], years_performing: "",
   genres: [], genres_other: "", settings_played: [], venues_played: "", set_lengths: [], own_equipment: [], bio: "", mix_or_video_url: "",
   instagram_url: "", facebook_url: "", soundcloud_url: "", mixcloud_url: "", youtube_url: "", website_url: "", photo_credit: "",
   available_nights: [], earliest_start: "", expected_fee_per_hour_thb: "", right_to_work: "", email: "", line_id: "", phone: "",
-  preferred_channel: "", heard_from: "", referred_by: "", consent_age: false, consent_data: false,
+  preferred_channel: "", heard_from: "", referred_by: "", consent_age: false, consent_data: false, consent_listing: false,
 };
 type ListKey = { [K in keyof Fields]: Fields[K] extends string[] ? K : never }[keyof Fields];
 type TextKey = { [K in keyof Fields]: Fields[K] extends string ? K : never }[keyof Fields];
@@ -220,8 +221,9 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         <p className={styles.never}>{c("Do not send ID cards, passports or bank details with this form. If we work together, we will ask for what we need for payment privately.", "กรุณาอย่าส่งสำเนาบัตรประชาชน หนังสือเดินทาง หรือข้อมูลบัญชีธนาคารมากับแบบฟอร์มนี้ หากได้ร่วมงานกัน เราจะขอข้อมูลที่จำเป็นสำหรับการจ่ายค่าตอบแทนแยกต่างหากผ่านช่องทางส่วนตัว")}</p>
         <label data-invalid={errors.has("consent_age") || undefined}><input type="checkbox" checked={fields.consent_age} onChange={event => set("consent_age", event.target.checked)}/><span>{c("I am 18 or older and I am applying for my own act, or I have the other members’ agreement to apply for it.", "ข้าพเจ้าอายุ 18 ปีขึ้นไป และสมัครในนามการแสดงของข้าพเจ้าเอง หรือได้รับความยินยอมจากสมาชิกคนอื่นในการสมัครครั้งนี้แล้ว")}</span></label>
         <label data-invalid={errors.has("consent_data") || undefined}><input type="checkbox" checked={fields.consent_data} onChange={event => set("consent_data", event.target.checked)}/><span>{th
-          ? <>ข้าพเจ้ายินยอมให้ Bright Ears เก็บข้อมูลและลิงก์ในแบบฟอร์มนี้ เพื่อพิจารณาการแสดงของข้าพเจ้าสำหรับงานที่มีค่าตอบแทนในสถานที่และงานอีเวนต์ และติดต่อข้าพเจ้าเกี่ยวกับเรื่องนี้ผ่านช่องทางที่เลือกไว้ Bright Ears จะไม่เผยแพร่ข้อมูลจากแบบฟอร์มนี้ และจะไม่ส่งต่อให้บุคคลภายนอก Bright Ears โดยไม่ถามข้าพเจ้าก่อน หากข้าพเจ้าอัปโหลดรูปภาพ ข้าพเจ้ายืนยันว่ามีสิทธิ์ส่งต่อรูปภาพนั้นได้ Bright Ears จะเก็บใบสมัครไว้ 12 เดือน จากนั้นจะลบออก เว้นแต่ข้าพเจ้าได้เริ่มทำงานกับ Bright Ears ข้าพเจ้าสามารถขอแก้ไขหรือลบใบสมัครได้ตลอดเวลาโดยส่งอีเมลถึง <a href="mailto:info@brightears.io">info@brightears.io</a></>
-          : <>I agree that Bright Ears may keep the details and links in this form to assess my act for paid work at venues and events, and to contact me about it through the channel I chose. Bright Ears does not publish anything from this form and does not share it outside Bright Ears without asking me first. If I upload a photo, I confirm I may share it. Bright Ears keeps an application for 12 months and then deletes it unless I start working with Bright Ears. I can ask for my application to be corrected or deleted at any time by writing to <a href="mailto:info@brightears.io">info@brightears.io</a>.</>}</span></label>
+          ? <>ข้าพเจ้ายินยอมให้ Bright Ears เก็บข้อมูลและลิงก์ในแบบฟอร์มนี้ เพื่อพิจารณาการแสดงของข้าพเจ้าสำหรับงานที่มีค่าตอบแทนในสถานที่และงานอีเวนต์ และติดต่อข้าพเจ้าเกี่ยวกับเรื่องนี้ผ่านช่องทางที่เลือกไว้ {PUBLISHING_SENTENCE.th} หากข้าพเจ้าอัปโหลดรูปภาพ ข้าพเจ้ายืนยันว่ามีสิทธิ์ส่งต่อรูปภาพนั้นได้ Bright Ears จะเก็บใบสมัครไว้ 12 เดือน จากนั้นจะลบออก เว้นแต่ข้าพเจ้าได้เริ่มทำงานกับ Bright Ears ข้าพเจ้าสามารถขอแก้ไขหรือลบใบสมัครได้ตลอดเวลาโดยส่งอีเมลถึง <a href="mailto:info@brightears.io">info@brightears.io</a></>
+          : <>I agree that Bright Ears may keep the details and links in this form to assess my act for paid work at venues and events, and to contact me about it through the channel I chose. {PUBLISHING_SENTENCE.en} If I upload a photo, I confirm I may share it. Bright Ears keeps an application for 12 months and then deletes it unless I start working with Bright Ears. I can ask for my application to be corrected or deleted at any time by writing to <a href="mailto:info@brightears.io">info@brightears.io</a>.</>}</span></label>
+        <label><input type="checkbox" checked={fields.consent_listing} onChange={event => set("consent_listing", event.target.checked)}/><span>{(th ? LISTING_CONSENT_TEXT.th : LISTING_CONSENT_TEXT.en).split("info@brightears.io").map((part, index) => <Fragment key={index}>{index > 0 && <a href="mailto:info@brightears.io">info@brightears.io</a>}{part}</Fragment>)}</span></label>
         <div className={styles.honeypot} aria-hidden="true"><label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={event => setWebsite(event.target.value)}/></label></div>
         <button className={agency.primary} type="submit" disabled={preparingPhoto}>{submitting ? c("Sending your application…", "กำลังส่งใบสมัคร…") : c("Send my application", "ส่งใบสมัคร")}<span aria-hidden>↗</span></button>
         <p className={styles.status} role={status ? "alert" : undefined} aria-live="polite">{status}</p>

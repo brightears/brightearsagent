@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { InquiryError } from "@/lib/agency/inquiry-contract";
 import { applicationSchema } from "@/lib/agency/application-contract";
+import { LISTING_CONSENT_VERSION } from "@/lib/agency/listing-consent";
 import {
   acknowledgeArtistApplication, APPLICATION_EXPORT_STAMP, artistApplicationPhoto, MAX_STORED_PHOTO_BYTES, pendingArtistApplications,
   purgeExportedApplications, saveArtistApplication,
@@ -51,6 +52,10 @@ async function main() {
 
     const pending = await pendingArtistApplications();
     assert.equal(pending.length, 1);
+    // No profile box ticked: stored as false, with the time and the wording version shown.
+    assert.equal(pending[0].listingConsent, false);
+    assert.equal(pending[0].listingConsentVersion, LISTING_CONSENT_VERSION);
+    assert.ok(pending[0].listingConsentAt instanceof Date);
     assert.equal(pending[0].actType, "vocal_duo");
     assert.equal(JSON.stringify(pending[0]).includes("clientHash"), false);
     assert.deepEqual(pending[0].photo, { contentType: "image/jpeg", byteSize: 7, sha256: pending[0].photo!.sha256 });
@@ -80,6 +85,19 @@ async function main() {
     // Site copies are purged 30 days after export.
     assert.deepEqual(await purgeExportedApplications(), { removed: 0, unexportedRemoved: 0 });
     assert.deepEqual(await purgeExportedApplications(Date.now() + 31 * 86_400_000), { removed: 1, unexportedRemoved: 0 });
+
+    // A ticked profile box is stored and exported.
+    await reset();
+    const withListing = input();
+    withListing.application.consent_listing = true;
+    await saveArtistApplication(withListing, null, "fixture-listing");
+    const consented = await pendingArtistApplications();
+    assert.equal(consented[0].listingConsent, true);
+    assert.equal(consented[0].listingConsentVersion, LISTING_CONSENT_VERSION);
+    const exportedJson = await (await GET(new Request("https://brightears.io/api/agency/applications", { headers: auth }))).json();
+    assert.equal(exportedJson.applications[0].listingConsent, true);
+    assert.equal(typeof exportedJson.applications[0].listingConsentAt, "string");
+    assert.equal(JSON.stringify(exportedJson).includes("consent_listing"), false);
 
     // Applications nobody collected are deleted after 30 days too.
     await reset();
@@ -117,7 +135,7 @@ async function main() {
     assert.equal((await POST(new Request("https://brightears.io/api/agency/applications", { method: "POST", headers: { "cf-connecting-ip": "fixture-spam" }, body: spam }))).status, 400);
     await stamp(new Date(Date.now() - 9 * 86_400_000));
     await assert.rejects(saveArtistApplication(input(), null, "fixture-stale"), isError(503));
-    console.log("PASS: application idempotency, export gate, private photo storage and download, separate from the enquiry queue, durable ack, hash and photo removal at export, 30-day purge of exported and uncollected copies, photo storage cap, per-network limit, honeypot.");
+    console.log("PASS: application idempotency, export gate, private photo storage and download, separate from the enquiry queue, durable ack, hash and photo removal at export, 30-day purge of exported and uncollected copies, photo storage cap, per-network limit, honeypot, optional listing consent stored and exported.");
   } finally {
     await reset(); await db.opsStamp.deleteMany({ where: { key: APPLICATION_EXPORT_STAMP } }); await db.$disconnect();
   }

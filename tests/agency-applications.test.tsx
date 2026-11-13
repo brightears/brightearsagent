@@ -9,6 +9,7 @@ import { LANDING_PAGES } from "@/lib/agency/landing-pages";
 import { BUYER_ACTS, ENQUIRY_ACT_OPTIONS } from "@/lib/agency/acts";
 import { buildAgencyRoster } from "@/lib/agency/roster";
 import { fitWithin } from "@/lib/agency/photo-resize";
+import { LISTING_CONSENT_TEXT, PUBLISHING_SENTENCE } from "@/lib/agency/listing-consent";
 
 const save = vi.hoisted(() => vi.fn());
 const pending = vi.hoisted(() => vi.fn());
@@ -46,6 +47,11 @@ describe("artist application contract", () => {
     expect(issues({ line_id: "", email: "", phone: "" })).toContainEqual({ field: "contact", code: "contact_required" });
     expect(issues({ consent_age: false }).map(issue => issue.field)).toContain("consent_age");
     expect(issues({ consent_data: false }).map(issue => issue.field)).toContain("consent_data");
+  });
+  it("treats the public profile consent as optional and false unless ticked", () => {
+    expect(applicationFieldsSchema.parse(fields()).consent_listing).toBe(false);
+    expect(applicationFieldsSchema.parse(fields({ consent_listing: true })).consent_listing).toBe(true);
+    expect(issues({ consent_listing: "yes" }).map(issue => issue.field)).toContain("consent_listing");
   });
   it("asks non-DJ acts for their instrument or role", () => {
     expect(issues({ instrument_or_role: "" }).map(issue => issue.field)).toContain("instrument_or_role");
@@ -107,6 +113,12 @@ describe("artist application route", () => {
     expect((await post(formWith(payload()), "https://example.invalid")).status).toBe(403);
     const json = await POST(new Request("https://brightears.io/api/agency/applications", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) }));
     expect(json.status).toBe(415);
+  });
+  it("submits with and without the public profile box", async () => {
+    expect((await post(formWith(payload()))).status).toBe(201);
+    expect(save.mock.calls[0][0].application.consent_listing).toBe(false);
+    expect((await post(formWith(payload({ consent_listing: true })))).status).toBe(201);
+    expect(save.mock.calls[1][0].application.consent_listing).toBe(true);
   });
   it("says when the photo was not kept because photo storage is full", async () => {
     save.mockResolvedValue({ reference: "BE-APP-fixture", duplicate: false, photoStored: false });
@@ -189,6 +201,20 @@ describe("application form", () => {
     expect(en).toContain("I am 18 or older");
     expect(th).toContain("ข้าพเจ้าอายุ 18 ปีขึ้นไป");
     expect(en).not.toMatch(/name="(passport|bank|dob)/i);
+  });
+  it("offers an unchecked public profile box and no longer promises to publish nothing", () => {
+    const en = renderToStaticMarkup(<ArtistApplicationForm th={false}/>);
+    const th = renderToStaticMarkup(<ArtistApplicationForm th/>);
+    const unescape = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    for (const [html, lang] of [[en, "en"], [th, "th"]] as const) {
+      expect(unescape(html)).toContain(LISTING_CONSENT_TEXT[lang]);
+      expect(unescape(html)).toContain(PUBLISHING_SENTENCE[lang]);
+      const box = html.slice(0, html.indexOf(LISTING_CONSENT_TEXT[lang].slice(0, 20))).split("<input").pop()!;
+      expect(box).toContain('type="checkbox"');
+      expect(box).not.toMatch(/checked=""|required/);
+    }
+    expect(en).not.toContain("does not publish anything from this form");
+    expect(en + th).not.toMatch(/BMAsia|Beat Breeze|background music/i);
   });
 });
 
