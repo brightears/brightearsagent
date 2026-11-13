@@ -62,6 +62,8 @@ export const FEES = options({
   "4000_6000": { en: "THB 4,000–6,000", th: "4,000–6,000 บาท" }, over_6000: { en: "Over THB 6,000", th: "มากกว่า 6,000 บาท" },
   per_event_quote: { en: "I quote per event", th: "เสนอราคาแยกตามแต่ละงาน" },
 });
+/** Hourly bands for a regular residency night: the same bands, without "I quote per event". */
+export const RESIDENCY_FEES = Object.fromEntries(Object.entries(FEES).filter(([key]) => key !== "per_event_quote")) as Omit<typeof FEES, "per_event_quote">;
 export const RIGHT_TO_WORK = options({
   thai_national: { en: "Thai national", th: "สัญชาติไทย" }, foreigner_with_work_permit: { en: "Foreigner with a work permit", th: "ชาวต่างชาติที่มีใบอนุญาตทำงาน" },
   foreigner_no_work_permit: { en: "Foreigner without a work permit", th: "ชาวต่างชาติที่ยังไม่มีใบอนุญาตทำงาน" }, prefer_to_discuss: { en: "I’d rather discuss it", th: "ขอคุยรายละเอียดภายหลัง" },
@@ -152,6 +154,10 @@ export const applicationFieldsSchema = z.object({
   photo_credit: text(80).default(""),
   available_nights: many(NIGHTS, 8),
   earliest_start: text(10).default(""),
+  // Requested fees, per hour for the whole act, in THB. Private: never on a public profile.
+  residency_fee_per_hour_thb: optionalEnum(RESIDENCY_FEES),
+  event_fee_per_hour_thb: optionalEnum(FEES),
+  // Single fee field used before 13 Nov 2026; still accepted so older pages can submit.
   expected_fee_per_hour_thb: optionalEnum(FEES),
   right_to_work: optionalEnum(RIGHT_TO_WORK),
   email: z.union([z.email().max(150), z.literal("")]).default("").transform(value => value.trim().toLowerCase()),

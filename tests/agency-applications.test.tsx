@@ -18,7 +18,10 @@ vi.mock("@/lib/agency/applications", () => ({
   saveArtistApplication: save, pendingArtistApplications: pending, applicationsOpen: open, purgeApplicationsSoon: vi.fn(),
   applicationExportAuthorized: (request: Request) => request.headers.get("authorization") === "Bearer fixture-token-with-at-least-thirty-two-chars",
 }));
+vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: vi.fn(async () => "en") }));
 import { GET, POST } from "@/app/api/agency/applications/route";
+import JoinPage from "@/app/(marketing)/join/page";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { ArtistApplicationForm } from "@/components/artist-application-form";
 
 const fields = (overrides: Record<string, unknown> = {}) => ({
@@ -47,6 +50,13 @@ describe("artist application contract", () => {
     expect(issues({ line_id: "", email: "", phone: "" })).toContainEqual({ field: "contact", code: "contact_required" });
     expect(issues({ consent_age: false }).map(issue => issue.field)).toContain("consent_age");
     expect(issues({ consent_data: false }).map(issue => issue.field)).toContain("consent_data");
+  });
+  it("takes optional residency and event fees, and still accepts the old single fee field", () => {
+    const parsed = applicationFieldsSchema.parse(fields({ residency_fee_per_hour_thb: "1000_1500", event_fee_per_hour_thb: "per_event_quote" }));
+    expect([parsed.residency_fee_per_hour_thb, parsed.event_fee_per_hour_thb]).toEqual(["1000_1500", "per_event_quote"]);
+    expect(applicationFieldsSchema.parse(fields()).residency_fee_per_hour_thb).toBe("");
+    expect(issues({ residency_fee_per_hour_thb: "per_event_quote" }).map(issue => issue.field)).toContain("residency_fee_per_hour_thb");
+    expect(applicationFieldsSchema.parse(fields({ expected_fee_per_hour_thb: "1500_2500" })).expected_fee_per_hour_thb).toBe("1500_2500");
   });
   it("treats the public profile consent as optional and false unless ticked", () => {
     expect(applicationFieldsSchema.parse(fields()).consent_listing).toBe(false);
@@ -181,6 +191,28 @@ describe("artist application route", () => {
     const authorized = await GET(new Request("https://brightears.io/api/agency/applications", { headers: { authorization: "Bearer fixture-token-with-at-least-thirty-two-chars" } }));
     expect(authorized.status).toBe(200);
     expect(authorized.headers.get("cache-control")).toMatch(/no-store/);
+  });
+});
+
+describe("/join page", () => {
+  const page = async (locale: "en" | "th") => {
+    vi.mocked(getRequestLocale).mockResolvedValue(locale);
+    return renderToStaticMarkup(await JoinPage()).replace(/<[^>]+>/g, " ").replace(/&#x27;|&rsquo;|’/g, "'");
+  };
+  it("explains the terms and promises no trial, date or fee", async () => {
+    const en = await page("en");
+    expect(en).toContain("How this works");
+    expect(en).toContain("Joining is free and non-exclusive");
+    expect(en).toContain("we cannot guarantee bookings");
+    expect(en).toContain("remove your profile at any time");
+    expect(en).toContain("For Bright Ears only; never shown on your profile");
+    expect(en).not.toMatch(/trial set|paid trial|usually within a week/i);
+    const th = await page("th");
+    expect(th).toContain("เราทำงานอย่างไร");
+    expect(th).toContain("ไม่ผูกขาด");
+    expect(th).not.toContain("นัดเล่นทดลองแบบมีค่าตอบแทน");
+    expect(en + th).not.toMatch(/BMAsia|Beat Breeze|background music|Bangkok and Pattaya|กรุงเทพฯ และพัทยา/i);
+    expect(en).toContain("Bright Ears is a Bangkok agency");
   });
 });
 

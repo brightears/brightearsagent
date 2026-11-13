@@ -120,7 +120,7 @@ export default function PrivacyPage() {
           act type, instruments or role, number of members, base city, travel, languages,
           experience, genres, settings and venues you have played, set lengths, equipment, a short
           bio, the links you provide, an optional photo and photographer credit, your usual
-          availability, earliest start date, expected fee range, right-to-work status as you
+          availability, earliest start date, expected fees per hour for residencies and one-off events, right-to-work status as you
           describe it, your email, LINE ID or phone number, your preferred contact channel, how you
           heard about us and who referred you. The form does not ask for, and you should not send,
           ID cards, passport details, bank details, your date of birth or your home address.
@@ -128,12 +128,12 @@ export default function PrivacyPage() {
         <p>
           We use this information to assess your act for paid work at venues and events and to
           contact you about it through the channel you chose. We rely on your request and your
-          consent (Thailand PDPA sections 19 and 24(3)). We publish nothing from the form unless you
-          also tick the separate, optional public profile box. If you tick it, we may use the act
-          name, bio, photo and links you sent for a profile on brightears.io; we send you the
-          profile to check before it goes live and remove it when you ask. We record your answer,
-          the time and the version of the wording you saw. We do not share the form outside Bright
-          Ears without asking you first. We do not fetch or preview the links you send; a person
+          consent (Thailand PDPA sections 19 and 24(3)). We do not publish the form or share it
+          outside Bright Ears without asking you first. The optional profile box is that question:
+          if you tick it, we may use the act name, bio, photo and links you sent for a profile that
+          we show to our clients and publish on brightears.io. We send you the profile to check
+          before it goes live and remove it when you ask. Your fees are never part of the profile.
+          We record your answer, the time and the version of the wording you saw. We do not fetch or preview the links you send; a person
           opens them.
         </p>
         <p>

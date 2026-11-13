@@ -3,7 +3,7 @@
 import { Fragment, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { ACT_TYPE_LABELS } from "@/lib/agency/acts";
 import {
-  ACT_TYPES, CHANNELS, CITIES, EQUIPMENT, FEES, FREE_TEXT_FIELDS, GENRES, HEARD_FROM, LANGUAGES, NIGHTS,
+  ACT_TYPES, CHANNELS, CITIES, EQUIPMENT, FEES, FREE_TEXT_FIELDS, RESIDENCY_FEES, GENRES, HEARD_FROM, LANGUAGES, NIGHTS,
   RIGHT_TO_WORK, SET_LENGTHS, SETTINGS, TRAVEL, YEARS, applicationFieldsSchema, applicationIssues, containsThaiIdNumber,
 } from "@/lib/agency/application-contract";
 import { preparePhoto } from "@/lib/agency/photo-resize";
@@ -17,14 +17,14 @@ type Fields = {
   travel: string[]; languages: string[]; years_performing: string; genres: string[]; genres_other: string; settings_played: string[];
   venues_played: string; set_lengths: string[]; own_equipment: string[]; bio: string; mix_or_video_url: string; instagram_url: string;
   facebook_url: string; soundcloud_url: string; mixcloud_url: string; youtube_url: string; website_url: string; photo_credit: string;
-  available_nights: string[]; earliest_start: string; expected_fee_per_hour_thb: string; right_to_work: string; email: string;
+  available_nights: string[]; earliest_start: string; residency_fee_per_hour_thb: string; event_fee_per_hour_thb: string; right_to_work: string; email: string;
   line_id: string; phone: string; preferred_channel: string; heard_from: string; referred_by: string; consent_age: boolean; consent_data: boolean; consent_listing: boolean;
 };
 const EMPTY: Fields = {
   act_name: "", contact_name: "", act_type: "", instrument_or_role: "", members: "1", base_city: "", travel: [], languages: [], years_performing: "",
   genres: [], genres_other: "", settings_played: [], venues_played: "", set_lengths: [], own_equipment: [], bio: "", mix_or_video_url: "",
   instagram_url: "", facebook_url: "", soundcloud_url: "", mixcloud_url: "", youtube_url: "", website_url: "", photo_credit: "",
-  available_nights: [], earliest_start: "", expected_fee_per_hour_thb: "", right_to_work: "", email: "", line_id: "", phone: "",
+  available_nights: [], earliest_start: "", residency_fee_per_hour_thb: "", event_fee_per_hour_thb: "", right_to_work: "", email: "", line_id: "", phone: "",
   preferred_channel: "", heard_from: "", referred_by: "", consent_age: false, consent_data: false, consent_listing: false,
 };
 type ListKey = { [K in keyof Fields]: Fields[K] extends string[] ? K : never }[keyof Fields];
@@ -123,17 +123,23 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
 
   if (receipt) {
     const channel = CHANNELS[fields.preferred_channel as keyof typeof CHANNELS];
+    const via = channel ? l(channel) : c("the channel you chose", "ช่องทางที่เลือก");
     return <div className={styles.done} ref={done} tabIndex={-1} role="status">
       <span aria-hidden="true">✓</span>
       <h2>{c("Thanks, we have your application.", "ขอบคุณ เราได้รับใบสมัครของคุณแล้ว")}</h2>
       <p>{th
-        ? `เราอ่านใบสมัครทุกฉบับ โดยปกติภายในหนึ่งสัปดาห์ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อผ่าน ${channel ? l(channel) : "ช่องทางที่เลือก"} หากไม่ได้รับการติดต่อ หมายความว่าขณะนี้ยังไม่มีตำแหน่งที่เหมาะสม และเราจะเก็บใบสมัครไว้ 12 เดือน`
-        : `We read every one, usually within a week. If your act fits a venue we work with, we will contact you through ${channel ? l(channel) : "the channel you chose"}. If you do not hear from us, we have no suitable slot right now and will keep your application for 12 months.`}</p>
+        ? fields.consent_listing
+          ? `เราอ่านใบสมัครทุกฉบับ หากใบสมัครของคุณมีเสียงหรือวิดีโอล่าสุด ประวัติ และรูปภาพของคุณเอง และคุณทำงานในประเทศไทยได้ เราจะส่งโปรไฟล์ให้คุณตรวจสอบผ่าน ${via} ก่อนเผยแพร่ เราเก็บใบสมัครไว้ 12 เดือน`
+          : `เราอ่านใบสมัครทุกฉบับ คุณไม่ได้เลือกช่องโปรไฟล์ เราจึงจะไม่แสดงข้อมูลของคุณให้บุคคลภายนอก Bright Ears หากมีงานที่เหมาะกับการแสดงของคุณ เราจะสอบถามคุณผ่าน ${via} ก่อน เราเก็บใบสมัครไว้ 12 เดือน`
+        : fields.consent_listing
+          ? `We read every application. If yours has recent sound or video, a bio and your own photo, and you can work in Thailand, we will send you your profile through ${via} to check before it goes live. We keep your application for 12 months.`
+          : `We read every application. You did not tick the profile box, so we will not show your details to anyone outside Bright Ears. If a request fits your act, we will ask you through ${via} first. We keep your application for 12 months.`}</p>
       {photoNotStored && <p>{c("Your photo was not saved. We will ask for one if we need it.", "ระบบไม่ได้บันทึกรูปภาพของคุณ หากต้องการ เราจะขอรูปภาพจากคุณภายหลัง")}</p>}
       <code>{receipt}</code>
     </div>;
   }
 
+  const feeHint = c("For the whole act. For Bright Ears only; never shown on your profile.", "สำหรับทั้งวง ใช้ภายใน Bright Ears เท่านั้น ไม่แสดงบนโปรไฟล์ของคุณ");
   const invalid = (key: string) => errors.has(key) || (FREE_TEXT_FIELDS as readonly string[]).includes(key) && idWarnings.includes(key as typeof idWarnings[number]);
   const idNote = (key: TextKey) => idWarnings.includes(key as typeof idWarnings[number]) && <span className={styles.warning} role="alert">{c("This looks like a Thai ID number. Remove it: we never need ID on this form.", "ข้อความนี้ดูเหมือนเลขบัตรประชาชน โปรดลบออก แบบฟอร์มนี้ไม่ต้องใช้ข้อมูลบัตรประชาชน")}</span>;
   const field = (key: TextKey, label: string, input: ReactNode, hint?: string, wide = false) =>
@@ -200,7 +206,8 @@ export function ArtistApplicationForm({ th }: { th: boolean }) {
         {chips("available_nights", c("Nights you are usually free", "คืนที่ปกติสะดวก") + optional, NIGHTS, 8)}
         <div className={styles.grid}>
           {text("earliest_start", c("Earliest start date", "เริ่มงานได้ตั้งแต่") + optional, { max: 10, type: "date" })}
-          {select("expected_fee_per_hour_thb", c("Expected fee per hour", "ค่าตัวต่อชั่วโมงที่คาดหวัง (ไม่เปิดเผย)") + optional, FEES, { hint: c("For the whole act. Private, never shown on the site.", "สำหรับทั้งวง เป็นข้อมูลส่วนตัว ไม่แสดงบนเว็บไซต์") })}
+          {select("residency_fee_per_hour_thb", c("Your fee per hour for a regular residency night", "ค่าตัวต่อชั่วโมงสำหรับงานประจำ (เรซิเดนซี)") + optional, RESIDENCY_FEES, { hint: feeHint })}
+          {select("event_fee_per_hour_thb", c("Your fee per hour for a one-off event", "ค่าตัวต่อชั่วโมงสำหรับงานอีเวนต์ครั้งเดียว") + optional, FEES, { hint: feeHint })}
           {select("right_to_work", c("Right to work in Thailand", "สิทธิ์ทำงานในประเทศไทย (ไม่ต้องแนบเอกสาร)") + optional, RIGHT_TO_WORK, { hint: c("Hotels ask us about this. Do not upload any document.", "โรงแรมมักสอบถามเรื่องนี้ ไม่ต้องอัปโหลดเอกสารใด ๆ") })}
         </div>
       </section>

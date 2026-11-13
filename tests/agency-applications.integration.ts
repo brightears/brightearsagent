@@ -26,7 +26,8 @@ const input = () => applicationSchema.parse({
     act_name: "FIXTURE duo", contact_name: "Fixture", act_type: "vocal_duo", instrument_or_role: "vocals and guitar", members: 2,
     base_city: "pattaya", years_performing: "1_3", genres: ["acoustic_pop"], settings_played: ["restaurant_dinner"],
     mix_or_video_url: "https://www.youtube.com/watch?v=fixture", preferred_channel: "email", email: "fixture@example.invalid",
-    expected_fee_per_hour_thb: "1500_2500", consent_age: true, consent_data: true,
+    expected_fee_per_hour_thb: "1500_2500", residency_fee_per_hour_thb: "1000_1500", event_fee_per_hour_thb: "per_event_quote",
+    consent_age: true, consent_data: true,
   },
 });
 const photo = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]), contentType: "image/jpeg" as const };
@@ -96,6 +97,9 @@ async function main() {
     assert.equal(consented[0].listingConsentVersion, LISTING_CONSENT_VERSION);
     const exportedJson = await (await GET(new Request("https://brightears.io/api/agency/applications", { headers: auth }))).json();
     assert.equal(exportedJson.applications[0].listingConsent, true);
+    // Both requested fees travel in the exported details.
+    assert.equal(exportedJson.applications[0].details.residency_fee_per_hour_thb, "1000_1500");
+    assert.equal(exportedJson.applications[0].details.event_fee_per_hour_thb, "per_event_quote");
     assert.equal(typeof exportedJson.applications[0].listingConsentAt, "string");
     assert.equal(JSON.stringify(exportedJson).includes("consent_listing"), false);
 
@@ -135,7 +139,7 @@ async function main() {
     assert.equal((await POST(new Request("https://brightears.io/api/agency/applications", { method: "POST", headers: { "cf-connecting-ip": "fixture-spam" }, body: spam }))).status, 400);
     await stamp(new Date(Date.now() - 9 * 86_400_000));
     await assert.rejects(saveArtistApplication(input(), null, "fixture-stale"), isError(503));
-    console.log("PASS: application idempotency, export gate, private photo storage and download, separate from the enquiry queue, durable ack, hash and photo removal at export, 30-day purge of exported and uncollected copies, photo storage cap, per-network limit, honeypot, optional listing consent stored and exported.");
+    console.log("PASS: application idempotency, export gate, private photo storage and download, separate from the enquiry queue, durable ack, hash and photo removal at export, 30-day purge of exported and uncollected copies, photo storage cap, per-network limit, honeypot, optional listing consent and both fees stored and exported.");
   } finally {
     await reset(); await db.opsStamp.deleteMany({ where: { key: APPLICATION_EXPORT_STAMP } }); await db.$disconnect();
   }
