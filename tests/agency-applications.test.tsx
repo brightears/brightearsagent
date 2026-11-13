@@ -9,6 +9,7 @@ import { LANDING_PAGES } from "@/lib/agency/landing-pages";
 import { BUYER_ACTS, ENQUIRY_ACT_OPTIONS } from "@/lib/agency/acts";
 import { buildAgencyRoster } from "@/lib/agency/roster";
 import { fitWithin } from "@/lib/agency/photo-resize";
+import { LISTING_CONSENT_TEXT, PUBLISHING_SENTENCE } from "@/lib/agency/listing-consent";
 
 const save = vi.hoisted(() => vi.fn());
 const pending = vi.hoisted(() => vi.fn());
@@ -17,7 +18,10 @@ vi.mock("@/lib/agency/applications", () => ({
   saveArtistApplication: save, pendingArtistApplications: pending, applicationsOpen: open, purgeApplicationsSoon: vi.fn(),
   applicationExportAuthorized: (request: Request) => request.headers.get("authorization") === "Bearer fixture-token-with-at-least-thirty-two-chars",
 }));
+vi.mock("@/lib/i18n/server", () => ({ getRequestLocale: vi.fn(async () => "en") }));
 import { GET, POST } from "@/app/api/agency/applications/route";
+import JoinPage from "@/app/(marketing)/join/page";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { ArtistApplicationForm } from "@/components/artist-application-form";
 
 const fields = (overrides: Record<string, unknown> = {}) => ({
@@ -46,6 +50,18 @@ describe("artist application contract", () => {
     expect(issues({ line_id: "", email: "", phone: "" })).toContainEqual({ field: "contact", code: "contact_required" });
     expect(issues({ consent_age: false }).map(issue => issue.field)).toContain("consent_age");
     expect(issues({ consent_data: false }).map(issue => issue.field)).toContain("consent_data");
+  });
+  it("takes optional residency and event fees, and still accepts the old single fee field", () => {
+    const parsed = applicationFieldsSchema.parse(fields({ residency_fee_per_hour_thb: "1000_1500", event_fee_per_hour_thb: "per_event_quote" }));
+    expect([parsed.residency_fee_per_hour_thb, parsed.event_fee_per_hour_thb]).toEqual(["1000_1500", "per_event_quote"]);
+    expect(applicationFieldsSchema.parse(fields()).residency_fee_per_hour_thb).toBe("");
+    expect(issues({ residency_fee_per_hour_thb: "per_event_quote" }).map(issue => issue.field)).toContain("residency_fee_per_hour_thb");
+    expect(applicationFieldsSchema.parse(fields({ expected_fee_per_hour_thb: "1500_2500" })).expected_fee_per_hour_thb).toBe("1500_2500");
+  });
+  it("treats the public profile consent as optional and false unless ticked", () => {
+    expect(applicationFieldsSchema.parse(fields()).consent_listing).toBe(false);
+    expect(applicationFieldsSchema.parse(fields({ consent_listing: true })).consent_listing).toBe(true);
+    expect(issues({ consent_listing: "yes" }).map(issue => issue.field)).toContain("consent_listing");
   });
   it("asks non-DJ acts for their instrument or role", () => {
     expect(issues({ instrument_or_role: "" }).map(issue => issue.field)).toContain("instrument_or_role");
@@ -107,6 +123,12 @@ describe("artist application route", () => {
     expect((await post(formWith(payload()), "https://example.invalid")).status).toBe(403);
     const json = await POST(new Request("https://brightears.io/api/agency/applications", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) }));
     expect(json.status).toBe(415);
+  });
+  it("submits with and without the public profile box", async () => {
+    expect((await post(formWith(payload()))).status).toBe(201);
+    expect(save.mock.calls[0][0].application.consent_listing).toBe(false);
+    expect((await post(formWith(payload({ consent_listing: true })))).status).toBe(201);
+    expect(save.mock.calls[1][0].application.consent_listing).toBe(true);
   });
   it("says when the photo was not kept because photo storage is full", async () => {
     save.mockResolvedValue({ reference: "BE-APP-fixture", duplicate: false, photoStored: false });
@@ -172,6 +194,28 @@ describe("artist application route", () => {
   });
 });
 
+describe("/join page", () => {
+  const page = async (locale: "en" | "th") => {
+    vi.mocked(getRequestLocale).mockResolvedValue(locale);
+    return renderToStaticMarkup(await JoinPage()).replace(/<[^>]+>/g, " ").replace(/&#x27;|&rsquo;|’/g, "'");
+  };
+  it("explains the terms and promises no trial, date or fee", async () => {
+    const en = await page("en");
+    expect(en).toContain("How this works");
+    expect(en).toContain("Joining is free and non-exclusive");
+    expect(en).toContain("we cannot guarantee bookings");
+    expect(en).toContain("remove your profile at any time");
+    expect(en).toContain("For Bright Ears only; never shown on your profile");
+    expect(en).not.toMatch(/trial set|paid trial|usually within a week/i);
+    const th = await page("th");
+    expect(th).toContain("เราทำงานอย่างไร");
+    expect(th).toContain("ไม่ผูกขาด");
+    expect(th).not.toContain("นัดเล่นทดลองแบบมีค่าตอบแทน");
+    expect(en + th).not.toMatch(/BMAsia|Beat Breeze|background music|Bangkok and Pattaya|กรุงเทพฯ และพัทยา/i);
+    expect(en).toContain("Bright Ears is a Bangkok agency");
+  });
+});
+
 describe("photo preparation", () => {
   it("fits photos inside 2,400 pixels on the long side without enlarging them", () => {
     expect(fitWithin(8064, 6048)).toEqual({ width: 2400, height: 1800 });
@@ -189,6 +233,20 @@ describe("application form", () => {
     expect(en).toContain("I am 18 or older");
     expect(th).toContain("ข้าพเจ้าอายุ 18 ปีขึ้นไป");
     expect(en).not.toMatch(/name="(passport|bank|dob)/i);
+  });
+  it("offers an unchecked public profile box and no longer promises to publish nothing", () => {
+    const en = renderToStaticMarkup(<ArtistApplicationForm th={false}/>);
+    const th = renderToStaticMarkup(<ArtistApplicationForm th/>);
+    const unescape = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+    for (const [html, lang] of [[en, "en"], [th, "th"]] as const) {
+      expect(unescape(html)).toContain(LISTING_CONSENT_TEXT[lang]);
+      expect(unescape(html)).toContain(PUBLISHING_SENTENCE[lang]);
+      const box = html.slice(0, html.indexOf(LISTING_CONSENT_TEXT[lang].slice(0, 20))).split("<input").pop()!;
+      expect(box).toContain('type="checkbox"');
+      expect(box).not.toMatch(/checked=""|required/);
+    }
+    expect(en).not.toContain("does not publish anything from this form");
+    expect(en + th).not.toMatch(/BMAsia|Beat Breeze|background music/i);
   });
 });
 

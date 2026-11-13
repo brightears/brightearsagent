@@ -50,3 +50,14 @@ The purge runs from three places: the export script, the nightly Render cron (`/
 ## Release
 
 Apply migration `20261110090000_artist_applications` (additive: two new tables), deploy, then run the export script once so `/join` opens. Tests: `tests/agency-applications.test.tsx`, `tests/agency-applications.integration.ts` and `team/web/test_application_export.py`.
+
+## Terms, profile consent and fees (since 13 November 2026)
+
+Owner terms (Norbert, 13 November 2026): joining is free and non-exclusive; neither side commits and Bright Ears cannot guarantee bookings; Bright Ears shows profiles to its clients and lists them in the catalogue on brightears.io; an artist can opt out at any time. `/join` states these in a "How this works" block and promises no trial, date or fee.
+
+The roster on `/artists` is a catalogue buyers choose from. An applicant is shown to clients or listed only with written consent, so `/join` has a separate, optional box (`consent_listing`, unchecked by default, not required to submit). The wording and its version live in `lib/agency/listing-consent.ts`; change the version whenever any consent wording there changes.
+
+- `ArtistApplication.listingConsent` (false unless ticked), `listingConsentAt` (submission time) and `listingConsentVersion` (wording shown, now `listing-v2-2026-11-13`; v1 was never released) are stored for every new application. Older rows have false and no timestamp.
+- The required data consent says the form is not published or shared outside Bright Ears without asking first, and that ticking the box leads to a profile the artist checks before it goes live. Whoever builds the profile must send it to the artist first.
+- Fees, both optional, per hour for the whole act in THB, in `details`: `residency_fee_per_hour_thb` (a regular residency night; bands only) and `event_fee_per_hour_thb` (a one-off event; bands or "I quote per event"). Per hour matches how venues state budgets, so the two can be compared with a buyer's hourly budget. They are for Bright Ears only and never appear on a profile. The older single field `expected_fee_per_hour_thb` is still accepted from older pages.
+- The export returns all of these; `application_export.py` writes them into each inbox record, and its receipt counts `listing_consented`.

@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const th = (await getRequestLocale()) === "th";
   return {
     title: th ? "ร่วมงานกับ Bright Ears — สมัครเป็นศิลปิน" : "Play with Bright Ears — artist applications",
-    description: th ? "ดีเจ นักดนตรีสด นักร้อง และพิธีกร สมัครร่วมงานกับ Bright Ears สำหรับโรงแรม ร้านอาหาร และงานอีเวนต์ในกรุงเทพฯ และพัทยา" : "DJs, live musicians, singers and MCs: apply to play hotels, restaurants and events in Bangkok and Pattaya with Bright Ears.",
+    description: th ? "ดีเจ นักดนตรีสด นักร้อง และพิธีกร สมัครเข้าแคตตาล็อกของ Bright Ears ได้ฟรีและไม่ผูกขาด Bright Ears เป็นเอเจนซีในกรุงเทพฯ สำหรับโรงแรม ร้านอาหาร และงานอีเวนต์" : "DJs, live musicians, singers and MCs: join the Bright Ears catalogue, free and non-exclusive. Bright Ears is a Bangkok agency for hotels, restaurants and events.",
     alternates: { canonical: "/join" },
   };
 }
@@ -22,7 +22,17 @@ export default async function JoinPage() {
       <div>
         <p className={styles.eyebrow}>{c("FOR DJS, MUSICIANS, SINGERS & MCS", "สำหรับดีเจ นักดนตรี นักร้อง และพิธีกร")}</p>
         <h1 id="join-title">{c("Play with", "ร่วมงานกับ")}<br/><em>Bright Ears.</em></h1>
-        <p className={styles.intro}>{c("We book DJs, live musicians, singers and hosts for hotels, restaurants and events in Bangkok and Pattaya. Tell us about your act and send one link we can listen to or watch. We read every application. If your act fits a venue we work with, we will contact you to arrange a paid trial set.", "เราจัดหาดีเจ นักดนตรีสด นักร้อง และพิธีกร ให้โรงแรม ร้านอาหาร และงานอีเวนต์ในกรุงเทพฯ และพัทยา เล่าให้เราฟังเกี่ยวกับการแสดงของคุณ และส่งลิงก์ที่เราฟังหรือดูได้หนึ่งลิงก์ เราอ่านใบสมัครทุกฉบับ หากการแสดงของคุณเหมาะกับสถานที่ที่เราดูแล เราจะติดต่อกลับเพื่อนัดเล่นทดลองแบบมีค่าตอบแทน")}</p>
+        <p className={styles.intro}>{c("Bright Ears is a Bangkok agency. We book DJs, live musicians, singers and hosts for hotels, restaurants and events. Tell us about your act and send one link we can listen to or watch.", "Bright Ears เป็นเอเจนซีในกรุงเทพฯ เราจัดหาดีเจ นักดนตรีสด นักร้อง และพิธีกร ให้โรงแรม ร้านอาหาร และงานอีเวนต์ เล่าให้เราฟังเกี่ยวกับการแสดงของคุณ และส่งลิงก์ที่เราฟังหรือดูได้หนึ่งลิงก์")}</p>
+        <section className={join.how} aria-labelledby="join-how">
+          <h2 id="join-how">{c("How this works", "เราทำงานอย่างไร")}</h2>
+          <ul>
+            <li>{c("Joining is free and non-exclusive. You can keep working with anyone.", "สมัครฟรีและไม่ผูกขาด คุณยังรับงานกับใครก็ได้ตามปกติ")}</li>
+            <li>{c("Neither side commits to anything, and we cannot guarantee bookings.", "ทั้งสองฝ่ายไม่มีข้อผูกมัดใด ๆ และเราไม่สามารถรับประกันงานได้")}</li>
+            <li>{c("If you tick the profile box at the end of the form, we show your profile to the venues and event planners we work with, introduce you when a request fits, and list you in the catalogue buyers browse on brightears.io.", "หากคุณเลือกช่องโปรไฟล์ท้ายแบบฟอร์ม เราจะนำโปรไฟล์ของคุณไปเสนอให้สถานที่และผู้จัดงานที่เราทำงานด้วย แนะนำคุณเมื่อมีงานที่เหมาะ และแสดงคุณในแคตตาล็อกที่ลูกค้าเปิดดูได้บน brightears.io")}</li>
+            <li>{c("Your fees are for us only. They never appear on your profile.", "ค่าตัวของคุณใช้ภายใน Bright Ears เท่านั้น และจะไม่แสดงบนโปรไฟล์")}</li>
+            <li>{c("You can ask us to remove your profile at any time.", "คุณขอให้เราลบโปรไฟล์ออกได้ทุกเมื่อ")}</li>
+          </ul>
+        </section>
       </div>
       <aside className={join.panel} aria-label={c("What this form asks for", "สิ่งที่แบบฟอร์มนี้ขอ")}>
         <h2>{c("What we ask for", "สิ่งที่เราขอ")}</h2>
