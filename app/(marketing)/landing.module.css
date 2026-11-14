@@ -1,0 +1,42 @@
+/* City, occasion, acts and artist-application pages. Extends services.module.css. */
+.heroPanel{list-style:none;margin:0;padding:34px 30px;border:1px solid #00bbe466;background:#142027;display:grid;gap:4px;align-self:center}
+.heroPanel li{display:grid;grid-template-columns:42px 1fr;align-items:baseline;font-size:clamp(1.35rem,2.2vw,2rem);letter-spacing:-.03em;line-height:1.35;padding:12px 0;border-bottom:1px solid var(--agency-line)}
+.heroPanel li:last-child{border-bottom:0}
+.heroPanel li>span{font-size:.8125rem;color:var(--agency-cyan);letter-spacing:.1em}
+
+.evidence{border-block:1px solid var(--agency-line);padding:34px 5%;display:grid;grid-template-columns:.8fr 1.6fr;gap:6%;align-items:center}
+.evidence .evidenceNote{font-size:1rem;line-height:1.75;color:#b9c5cb;margin:0;max-width:380px}
+.evidence ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:22px}
+.evidence li{display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--agency-cyan);padding:4px 0 4px 16px}
+.evidence li img{object-fit:contain;object-position:left center;height:40px;width:auto;max-width:130px;opacity:.85;margin-bottom:8px}
+.evidence li strong{font-size:1.15rem;font-weight:600;letter-spacing:-.01em}
+.evidence li span{font-size:.875rem;line-height:1.6;color:#9fb0b8}
+.evidence li img.invert{filter:brightness(0) invert(1);opacity:.8}
+.logoSpace{display:none}
+
+.formats{margin-top:36px;border-top:1px solid var(--agency-line);padding-top:24px;max-width:420px}
+.formats h3{font-size:.8125rem;letter-spacing:.12em;text-transform:uppercase;color:#aebbc2;font-weight:500;margin:0 0 14px}
+.formats ul{margin:0;padding-left:18px;display:grid;gap:10px}
+.formats li{font-size:1rem;line-height:1.7;color:#d5dee2}
+
+.acts{padding:90px 5% 40px}
+.acts>header{max-width:760px;margin-bottom:40px}
+.acts>header h2{font-size:clamp(2.4rem,3.6vw,3.9rem);letter-spacing:-.045em;line-height:1.2;font-weight:500}
+.acts>header p:last-child{font-size:1.0625rem;line-height:1.85;color:#aebbc2;margin-top:20px}
+.actGrid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.actCard{background:#142027;border:1px solid #00bbe430;padding:28px 26px;display:flex;flex-direction:column;gap:14px;min-height:300px}
+.actCard>span{font-size:.8125rem;color:var(--agency-cyan);letter-spacing:.12em}
+.actCard h3{font-size:1.45rem;font-weight:500;letter-spacing:-.025em;line-height:1.35;margin:0}
+.actCard p{font-size:1rem;line-height:1.8;color:#b3c0c6;margin:0}
+.actCard p.settings{font-size:.875rem;color:#d7e0e4;letter-spacing:.02em}
+.actCard a{margin-top:auto;color:var(--agency-cyan);font-size:.9375rem;display:inline-flex;gap:14px;align-items:center;min-height:44px}
+
+.join{margin:30px 5% 0;padding:45px 5%;background:var(--agency-cyan);color:#101214;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:center}
+.join h2{font-size:clamp(2rem,3vw,3rem);letter-spacing:-.04em;line-height:1.2;font-weight:500;margin:0 0 12px}
+.join p{font-size:1.0625rem;line-height:1.75;margin:0;max-width:620px}
+.join a{display:inline-flex;gap:20px;align-items:center;background:#101214;color:#f2f0eb;min-height:50px;padding:14px 22px;font-size:.9375rem;white-space:nowrap}
+.join a:hover{background:#263b43}
+
+@media(max-width:1000px){.actGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.evidence{grid-template-columns:minmax(0,1fr);padding:28px 6%;gap:24px}.acts{padding:65px 6% 30px}.join{margin-inline:6%;padding:32px 6%;grid-template-columns:minmax(0,1fr)}.heroPanel{padding:22px 20px}}
+@media(max-width:560px){.actGrid{grid-template-columns:minmax(0,1fr)}.actCard{min-height:0}.join a{white-space:normal}}

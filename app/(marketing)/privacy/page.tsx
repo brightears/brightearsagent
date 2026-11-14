@@ -85,9 +85,9 @@ export default function PrivacyPage() {
 
       <LegalSection kicker="Agency enquiries" title="When you contact our agency">
         <p>
-          If you submit a music brief, we collect your name, email, venue or city, occasion,
-          preferred music and artists, and the date, timing, guest count and additional details
-          you choose to provide. We use this information to assess and respond to your request,
+          If you submit a music brief, we collect your name, email, venue or city, type of venue,
+          occasion, how many nights a week you need music, the type of act, preferred music and
+          artists, and the date, timing, guest count and additional details you choose to provide. We use this information to assess and respond to your request,
           prepare a proposal and coordinate any service you subsequently agree with us.
         </p>
         <p>
@@ -111,6 +111,46 @@ export default function PrivacyPage() {
           forwarding addresses, proactive Hunt, automated drafting and follow-up sequences describe
           legacy account data and the processing associated with that product, where applicable.
           They do not describe the agency music-brief form.
+        </p>
+      </LegalSection>
+
+      <LegalSection id="artist-applications" kicker="Artist applications" title="When you apply to perform with us">
+        <p>
+          If you apply through our artist application form, we collect your act and contact name,
+          act type, instruments or role, number of members, base city, travel, languages,
+          experience, genres, settings and venues you have played, set lengths, equipment, a short
+          bio, the links you provide, an optional photo and photographer credit, your usual
+          availability, earliest start date, expected fees per hour for residencies and one-off events, right-to-work status as you
+          describe it, your email, LINE ID or phone number, your preferred contact channel, how you
+          heard about us and who referred you. The form does not ask for, and you should not send,
+          ID cards, passport details, bank details, your date of birth or your home address.
+        </p>
+        <p>
+          We use this information to assess your act for paid work at venues and events and to
+          contact you about it through the channel you chose. We rely on your request and your
+          consent (Thailand PDPA sections 19 and 24(3)). We do not publish the form or share it
+          outside Bright Ears without asking you first. The optional profile box is that question:
+          if you tick it, we may use the act name, bio, photo and links you sent for a profile that
+          we show to our clients and publish on brightears.io. We send you the profile to check
+          before it goes live and remove it when you ask. Your fees are never part of the profile.
+          We record your answer, the time and the version of the wording you saw. We do not fetch or preview the links you send; a person
+          opens them.
+        </p>
+        <p>
+          Your application is stored in our Render-hosted database, including any photo, and is
+          copied to our talent team&rsquo;s private records through authenticated access. Our
+          talent team uses Anthropic&rsquo;s Claude to help review applications. The form resizes
+          a photo in your browser before sending it, which usually also removes data stored in the
+          file, such as location. The website deletes its copy of your photo as soon as the photo
+          reaches the talent team, and the rest of its copy 30 days later. If the talent team has
+          not collected an application within 30 days, the website deletes it. We keep the
+          application for 12 months and then delete it, unless you start working with us. A keyed
+          hash of the submitting network address limits abuse and is removed when the application
+          is copied to the talent team. Write to{" "}
+          <a href={`mailto:${CONTACT}`} className="font-semibold text-ink-stage underline decoration-ink-stage/30 underline-offset-2 hover:decoration-ink-stage">
+            {CONTACT}
+          </a>{" "}
+          to correct or delete your application at any time.
         </p>
       </LegalSection>
 

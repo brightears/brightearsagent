@@ -3,15 +3,16 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { EMPTY_BRIEF, briefEmailHref, formatMusicBrief, type MusicBrief } from "@/lib/agency/brief";
 import { inquirySchema, type InquirySource } from "@/lib/agency/inquiry-contract";
+import { ENQUIRY_ACT_OPTIONS, ENQUIRY_NIGHTS, ENQUIRY_VENUE_TYPES } from "@/lib/agency/acts";
 import styles from "@/app/(marketing)/agency.module.css";
 import formStyles from "./agency-brief.module.css";
 
-type Props = { th: boolean; initialArtist?: string; initialOccasion?: string; source?: InquirySource };
+type Props = { th: boolean; initialArtist?: string; initialOccasion?: string; initialVenueType?: string; initialActType?: string; initialDate?: string; source?: InquirySource };
 
-export function AgencyBrief({ th, initialArtist = "", initialOccasion = "", source = "home" }: Props) {
+export function AgencyBrief({ th, initialArtist = "", initialOccasion = "", initialVenueType = "", initialActType = "", initialDate = "", source = "home" }: Props) {
   const c = (en: string, thai: string) => th ? thai : en;
   const [brief, setBrief] = useState<MusicBrief>({
-    ...EMPTY_BRIEF, occasion: initialOccasion,
+    ...EMPTY_BRIEF, occasion: initialOccasion, venueType: initialVenueType, actType: initialActType, date: initialDate,
     details: initialArtist ? (th ? "ดีเจที่สนใจ: " : "Preferred DJ: ") + initialArtist : "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -86,12 +87,15 @@ export function AgencyBrief({ th, initialArtist = "", initialOccasion = "", sour
     }
   }
 
-  const fields: { key: keyof MusicBrief; label: string; placeholder?: string; type?: string; required?: boolean; max: number }[] = [
-    { key: "venue", label: c("Venue & city", "สถานที่และเมือง"), placeholder: c("e.g. Rooftop bar, Bangkok", "เช่น รูฟท็อปบาร์ กรุงเทพฯ"), required: true, max: 100 },
-    { key: "date", label: c("Date / start date (optional)", "วันที่ / วันเริ่มต้น (ไม่บังคับ)"), type: "date", max: 10 },
-    { key: "time", label: c("Time & duration (optional)", "เวลาและระยะเวลา (ไม่บังคับ)"), placeholder: c("e.g. Fridays, 7–11 pm", "เช่น ทุกวันศุกร์ 19:00–23:00"), max: 100 },
-    { key: "guests", label: c("Guests (optional)", "จำนวนแขก (ไม่บังคับ)"), placeholder: c("Approximate number", "จำนวนโดยประมาณ"), max: 50 },
-  ];
+  type Field = { key: keyof MusicBrief; label: string; placeholder?: string; type?: string; required?: boolean; max: number };
+  const input = (field: Field) => <label key={field.key}>{field.label}<input required={field.required} type={field.type || "text"} maxLength={field.max} value={brief[field.key] ?? ""} placeholder={field.placeholder} onChange={e => change(field.key, e.target.value)} /></label>;
+  // Qualification selects: required in the form, optional in the contract so
+  // older cached pages and the intake worker stay compatible.
+  const choice = (key: "venueType" | "nightsPerWeek" | "actType", label: string, prompt: string, options: readonly { en: string; th: string }[]) =>
+    <label key={key}>{label}<select required value={brief[key] ?? ""} onChange={e => change(key, e.target.value)}>
+      <option value="">{prompt}</option>
+      {options.map(option => <option key={option.en} value={option.en}>{th ? option.th : option.en}</option>)}
+    </select></label>;
   return <div className={styles.briefGrid}>
     <div className={styles.briefIntro}>
       <p className={styles.eyebrow}><span />{c("Make a music brief", "สร้างบรีฟดนตรี")}</p>
@@ -106,9 +110,15 @@ export function AgencyBrief({ th, initialArtist = "", initialOccasion = "", sour
         <div className={styles.formGrid}>
           <label>{c("What are you planning?", "คุณกำลังวางแผนอะไร?")}<select required value={brief.occasion} onChange={e => change("occasion", e.target.value)}>
             <option value="">{c("Choose an occasion", "เลือกรูปแบบงาน")}</option>
-            {[c("A regular venue programme", "โปรแกรมดนตรีประจำสถานที่"), c("A private celebration", "งานฉลองส่วนตัว"), c("A brand or corporate event", "งานแบรนด์หรือองค์กร"), c("A restaurant or venue opening", "เปิดร้านอาหารหรือสถานที่"), c("Something else", "รูปแบบอื่น")].map(value => <option key={value}>{value}</option>)}
+            {[c("A regular venue programme", "โปรแกรมดนตรีประจำสถานที่"), c("A private celebration", "งานฉลองส่วนตัว"), c("A brand or corporate event", "งานแบรนด์หรือองค์กร"), c("A restaurant or venue opening", "เปิดร้านอาหารหรือสถานที่"), c("New Year’s Eve", "งานคืนส่งท้ายปีเก่า"), c("Something else", "รูปแบบอื่น")].map(value => <option key={value}>{value}</option>)}
           </select></label>
-          {fields.map(field => <label key={field.key}>{field.label}<input required={field.required} type={field.type || "text"} maxLength={field.max} value={brief[field.key]} placeholder={field.placeholder} onChange={e => change(field.key, e.target.value)} /></label>)}
+          {choice("venueType", c("Type of venue", "ประเภทสถานที่"), c("Choose a venue type", "เลือกประเภทสถานที่"), ENQUIRY_VENUE_TYPES)}
+          {input({ key: "venue", label: c("Venue & city", "สถานที่และเมือง"), placeholder: c("e.g. Rooftop bar, Bangkok", "เช่น รูฟท็อปบาร์ กรุงเทพฯ"), required: true, max: 100 })}
+          {input({ key: "date", label: c("Date / start date (optional)", "วันที่ / วันเริ่มต้น (ไม่บังคับ)"), type: "date", max: 10 })}
+          {choice("nightsPerWeek", c("How often?", "บ่อยแค่ไหน?"), c("Choose nights per week", "เลือกจำนวนคืนต่อสัปดาห์"), ENQUIRY_NIGHTS)}
+          {input({ key: "time", label: c("Time & duration (optional)", "เวลาและระยะเวลา (ไม่บังคับ)"), placeholder: c("e.g. Fridays, 7–11 pm", "เช่น ทุกวันศุกร์ 19:00–23:00"), max: 100 })}
+          {input({ key: "guests", label: c("Guests (optional)", "จำนวนแขก (ไม่บังคับ)"), placeholder: c("Approximate number", "จำนวนโดยประมาณ"), max: 50 })}
+          {choice("actType", c("Type of act", "รูปแบบการแสดง"), c("Choose an act", "เลือกรูปแบบการแสดง"), ENQUIRY_ACT_OPTIONS)}
           <label>{c("Sound & atmosphere", "ดนตรีและบรรยากาศ")}<select required value={brief.sound} onChange={e => change("sound", e.target.value)}>
             <option value="">{c("Choose a direction", "เลือกแนวทาง")}</option>
             {[c("Warm & relaxed", "อบอุ่นและผ่อนคลาย"), c("Social & upbeat", "สดใสและเป็นกันเอง"), c("Dancefloor energy", "สนุกบนฟลอร์เต้นรำ"), c("Let’s find the right sound together", "ช่วยเลือกแนวที่เหมาะให้เรา")].map(value => <option key={value}>{value}</option>)}

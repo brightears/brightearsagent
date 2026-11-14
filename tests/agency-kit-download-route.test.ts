@@ -10,7 +10,7 @@ const artist: AgencyArtist = {
   id: "dj-benji", name: "Public Artist", city: "Bangkok", genres: ["House"],
   bio: "A public biography.", bioTh: "ประวัติศิลปินสำหรับประชาสัมพันธ์",
   image: "https://res.cloudinary.com/public/artist.jpg", gallery: [],
-  links: [{ label: "Mixcloud", url: "https://mixcloud.com/public-mix" }],
+  links: [{ label: "Mixcloud", url: "https://mixcloud.com/public-mix" }], actType: "dj",
 };
 const context = (id = artist.id) => ({ params: Promise.resolve({ id }) });
 const request = () => new Request("https://attacker.invalid/api/agency/artists/dj-benji/kit", {

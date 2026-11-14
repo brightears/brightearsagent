@@ -16,6 +16,3 @@ Dates, artist availability and fees are agreed directly with the team. The onlin
 - Venue portal: https://agency.brightears.io/venue-portal
 - Existing artist-assistant accounts: https://brightears.io/assistant
 The artist assistant is closed to new accounts and new subscriptions. Existing users retain account and billing access. Do not describe Bright Ears as a currently available self-serve AI booking product.
-
-## Music between live sets
-Beat Breeze by BMAsia Music provides background music and venue scheduling: https://beatbreeze.io/

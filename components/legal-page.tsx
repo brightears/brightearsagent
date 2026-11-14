@@ -26,10 +26,10 @@ export function EffectiveBanner() {
       role="note"
       className="mb-8 rounded-2xl border border-brand-cyan/40 bg-brand-cyan/10 px-5 py-4"
     >
-      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-brand-cyan">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-[#006478]">
         Effective August 17, 2026
       </p>
-      <p className="mt-1.5 text-sm leading-relaxed text-cream/80">
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-stage/80">
         This document is part of the terms and privacy framework that governs use of Bright Ears from
         the effective date above.
       </p>
@@ -55,14 +55,16 @@ export function ToBeCompleted({ label }: { label?: string }) {
 export function LegalSection({
   kicker,
   title,
+  id,
   children,
 }: {
   kicker?: string;
   title: string;
+  id?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="scroll-mt-24">
+    <section id={id} className="scroll-mt-24">
       {kicker ? (
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-ink-stage/50">
           {kicker}
@@ -123,7 +125,7 @@ export function LegalPage({
       <div className="relative mx-auto max-w-3xl px-6 pb-24">
         <div className="relative">
           <GradientBlob tone="cyan" className="-top-8 -left-10 h-36 w-56" />
-          <article className="relative rounded-[2rem] bg-cream px-6 py-10 shadow-[0_36px_90px_rgba(0,0,0,0.5)] sm:px-10 sm:py-12">
+          <article className="relative break-words rounded-[2rem] bg-cream px-6 py-10 shadow-[0_36px_90px_rgba(0,0,0,0.5)] sm:px-10 sm:py-12">
             <LegalLanguageNotice />
             <EffectiveBanner />
             <p className="mb-10 font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-ink-stage/50">

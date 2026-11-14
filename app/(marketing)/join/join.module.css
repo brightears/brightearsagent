@@ -1,0 +1,17 @@
+.hero{padding:60px 5% 40px;display:grid;grid-template-columns:1.2fr .8fr;gap:6%;align-items:start}
+.hero h1{font-size:clamp(3.2rem,5.4vw,6rem);line-height:1.08;letter-spacing:-.055em;font-weight:500;margin:0 0 30px}
+.panel{border:1px solid #00bbe466;background:#142027;padding:30px 28px;margin-top:20px}
+.panel h2{font-size:.8125rem;letter-spacing:.12em;text-transform:uppercase;color:#aebbc2;font-weight:500;margin:0 0 12px}
+.panel ul{margin:0 0 26px;padding-left:18px;display:grid;gap:8px}
+.panel li{font-size:1rem;line-height:1.65;color:#d5dee2}
+.panel p{font-size:.9375rem;line-height:1.7;color:#aebbc2;margin:0;border-top:1px solid var(--agency-line);padding-top:18px}
+.panel a{color:var(--agency-cyan)}
+.how{margin-top:34px;border-top:1px solid var(--agency-line);padding-top:24px;max-width:640px}
+.how h2{font-size:.8125rem;letter-spacing:.12em;text-transform:uppercase;color:#aebbc2;font-weight:500;margin:0 0 14px}
+.how ul{margin:0;padding-left:18px;display:grid;gap:10px}
+.how li{font-size:1rem;line-height:1.7;color:#d5dee2}
+.formSection{padding:10px 5% 60px;max-width:1080px}
+.alt{font-size:.9375rem;color:#aebbc2;margin-top:22px}
+.alt a{color:var(--agency-cyan)}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding:35px 6% 20px;gap:10px}.formSection{padding:10px 6% 50px}}
+@media(max-width:480px){.hero h1{font-size:3.1rem}}

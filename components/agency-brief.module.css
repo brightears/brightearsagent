@@ -9,4 +9,7 @@
 .receipt code { display: block; overflow-wrap: anywhere; font-size: .75rem; margin: 16px 0; color: #00bbe4; }
 .receipt button { cursor: pointer; background: none; }
 .alternatives { margin-top: 22px; border-top: 1px solid #ffffff25; padding-top: 18px; }
-.alternatives summary { font-size: .8rem; cursor: pointer; color: #b5c0c6; line-height: 1.6; }
+.alternatives summary { font-size: .8rem; cursor: pointer; color: #b5c0c6; line-height: 1.6; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.alternatives summary::before { content: "▸"; font-size: .7rem; }
+.alternatives[open] summary::before { content: "▾"; }
+.alternatives summary::-webkit-details-marker { display: none; }

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createHash } from "node:crypto";
 import curated from "./roster-assets.json";
 import presentation from "./roster-presentation.json";
+import { PUBLIC_ROSTER_CATEGORIES, type BuyerAct } from "./acts";
 const hiddenArtistIds = new Set<string>(presentation.hiddenArtistIds);
 export const heroArtists = curated.heroes.filter(artist => !hiddenArtistIds.has(artist.id) && artist.image);
 
@@ -9,6 +10,7 @@ export type AgencyArtist = {
   id: string; name: string; bio: string; bioTh: string; city: string; genres: string[];
   image: string | null; gallery: string[];
   links: {label: string; url: string}[];
+  actType: BuyerAct["id"];
 };
 const ORIGIN = "https://agency.brightears.io";
 function publicImage(value: unknown): string | null {
@@ -30,6 +32,10 @@ function publicLink(value: unknown, domain: string): string | null {
 export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | null {
   if(!value || typeof value!=="object" || typeof value.id!=="string" || typeof value.stageName!=="string") return null;
   if(hiddenArtistIds.has(value.id)) return null;
+  // Only categories with a buyer-facing act group are public; a profile without
+  // a category is a curated supplemental DJ.
+  const actType=value.category===undefined?"dj":typeof value.category==="string"?PUBLIC_ROSTER_CATEGORIES[value.category]:undefined;
+  if(!actType) return null;
   const genres=Array.isArray(value.genres)?[...new Set(value.genres.filter((v):v is string=>typeof v==="string").map(v=>{const key=v.toLowerCase().replace(/[\s-]/g,"");return key==="hiphop"?"Hip-Hop":key==="kpop"?"K-Pop":v.trim();}).filter(Boolean))].slice(0,12):[];
   const rawBio=typeof value.bio==="string"?value.bio:"";
   const staffingNote=/schedule|rotation|not available|unavailable|replacement|per shift|off every|replaces|every (monday|tuesday|wednesday|thursday|friday|saturday|sunday)|THB|฿|ค่าตัว|ค่าจ้าง|ต่อกะ|บาท(?:\s*\/|\s*ต่อ)|ไม่ว่าง|ตาราง(?:งาน|เวร)|แทน(?:กะ|งาน)/i;
@@ -43,7 +49,7 @@ export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | nu
   const links=[["instagram","Instagram","instagram.com"],["soundcloud","SoundCloud","soundcloud.com"],["mixcloud","Mixcloud","mixcloud.com"],["spotify","Spotify","open.spotify.com"],["youtube","YouTube","youtube.com"]].flatMap(([field,label,domain])=>{
     const url=publicLink(value[field],domain); return url?[{label,url}]:[];
   });
-  return {id:value.id,name:value.stageName,bio,bioTh:unchanged?note.th:internal||staffingNote.test(rawBioTh)?"":rawBioTh,city:typeof value.baseCity==="string"?value.baseCity:"Bangkok",genres,image,gallery:[...new Set([image,...(Array.isArray(value.images)?value.images.map(publicImage):[])].filter((p):p is string=>!!p))],links};
+  return {id:value.id,name:value.stageName,bio,bioTh:unchanged?note.th:internal||staffingNote.test(rawBioTh)?"":rawBioTh,city:typeof value.baseCity==="string"?value.baseCity:"Bangkok",genres,image,gallery:[...new Set([image,...(Array.isArray(value.images)?value.images.map(publicImage):[])].filter((p):p is string=>!!p))],links,actType};
 }
 export function withSupplementalArtists(values: Record<string,unknown>[]):Record<string,unknown>[] {
   const existing=new Set(values.flatMap(value=>typeof value.id==="string"?[value.id]:[]));
@@ -59,7 +65,7 @@ export function buildAgencyRoster(values: Record<string,unknown>[]):AgencyArtist
 }
 export const getAgencyRoster=cache(async ():Promise<AgencyArtist[]>=>{
   try {
-    const response=await fetch(ORIGIN+"/api/artists?categories=DJ&limit=100",{next:{revalidate:300},signal:AbortSignal.timeout(12000)});
+    const response=await fetch(ORIGIN+"/api/artists?categories="+Object.keys(PUBLIC_ROSTER_CATEGORIES).join(",")+"&limit=100",{next:{revalidate:300},signal:AbortSignal.timeout(12000)});
     if(!response.ok) throw new Error("Roster unavailable");
     const data=await response.json();
     if(!Array.isArray(data.artists)) return [];

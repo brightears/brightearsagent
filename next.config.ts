@@ -30,6 +30,12 @@ const nextConfig: NextConfig = {
       { source: "/venue-onboarding/:path*", destination: `${agency}/venue-onboarding/:path*`, permanent: false },
       { source: "/dj-portal/:path*", destination: `${agency}/dj-portal/:path*`, permanent: false },
       { source: "/liff/:path*", destination: `${agency}/liff/:path*`, permanent: false },
+      // The Talent spec named /artists/apply; the application page lives at /join.
+      { source: "/artists/apply", destination: "/join", permanent: false },
+      // Owner decision, 11 Nov 2026: one catalogue, no city split. The former
+      // city pages fold into /venues; old links and search results land there.
+      { source: "/venues/bangkok", destination: "/venues", permanent: true },
+      { source: "/venues/pattaya", destination: "/venues", permanent: true },
       // www must follow the apex or the two hosts serve different applications.
       {
         source: "/:path*",
