@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { organizationJsonLd } from "@/lib/marketing/site";
-import { getAgencyRoster, heroArtists } from "@/lib/agency/roster";
+import { getPublicArtists, heroArtists } from "@/lib/agency/roster";
 import { AgencyBrief } from "@/components/agency-brief";
 import { AgencySound } from "@/components/agency-sound";
 import { AgencyMotion } from "@/components/agency-motion";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 const logos=[{name:"Nobu",file:"nobu.png",width:170},{name:"Marriott",file:"marriott.svg",width:135},{name:"Hilton",file:"hilton.png",width:95},{name:"Centara",file:"centara.png",width:145},{name:"Accor",file:"accor.png",width:100},{name:"Le Du Kaan",file:"ledukaan.svg",width:115},{name:"ABar",file:"abar.png",width:150}];
 export default async function HomePage({searchParams}:{searchParams:Promise<{artist?:string;artists?:string}>}){
- const [params,roster,locale]=await Promise.all([searchParams,getAgencyRoster(),getRequestLocale()]);const th=locale==="th";const c=(en:string,thai:string)=>th?thai:en;
+ const [params,roster,locale]=await Promise.all([searchParams,getPublicArtists(),getRequestLocale()]);const th=locale==="th";const c=(en:string,thai:string)=>th?thai:en;
  const ids=(params.artists||"").split(",").slice(0,6);const initialArtist=roster.filter(a=>ids.includes(a.id)||a.name===params.artist).map(a=>a.name).join(" + ");
  const featured=heroArtists.filter(a=>roster.some(r=>r.id===a.id));
  return <AgencyMotion><div className={styles.home}>

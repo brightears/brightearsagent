@@ -66,6 +66,8 @@ jobs:
         run: npx tsx tests/agency-inquiries.integration.ts
       - name: Verify artist applications with the isolated database
         run: npx tsx tests/agency-applications.integration.ts
+      - name: Verify catalogue profiles with the isolated database
+        run: npx tsx tests/catalogue-profiles.integration.ts
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm test
