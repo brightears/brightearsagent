@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const roster = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/agency/roster", () => ({ getAgencyRoster: roster }));
+vi.mock("@/lib/agency/roster", () => ({ getAgencyRoster: roster, getPublicArtists: roster }));
 vi.mock("@/lib/app-url", () => ({ appUrlLenient: () => "https://brightears.io" }));
 import sitemap from "@/app/sitemap";
 

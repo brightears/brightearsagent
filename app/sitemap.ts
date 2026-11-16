@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { appUrlLenient } from "@/lib/app-url";
-import { getAgencyRoster } from "@/lib/agency/roster";
+import { getPublicArtists } from "@/lib/agency/roster";
 
 export const revalidate = 300;
 
@@ -8,7 +8,7 @@ export const revalidate = 300;
  * feedback, or retired assistant acquisition routes belong in this index. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = appUrlLenient();
-  const artists = await getAgencyRoster();
+  const artists = await getPublicArtists();
   return [
     { url: origin, changeFrequency: "monthly", priority: 1 },
     { url: `${origin}/venues`, changeFrequency: "monthly", priority: 0.9 },

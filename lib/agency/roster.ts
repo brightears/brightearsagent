@@ -11,7 +11,21 @@ export type AgencyArtist = {
   image: string | null; gallery: string[];
   links: {label: string; url: string}[];
   actType: BuyerAct["id"];
+  /** "roster": Vinyl's artist records. "catalogue": a consented /join applicant (lib/agency/catalogue.ts). */
+  source?: "roster" | "catalogue";
+  /** Filter tags from ACT_TAGS (dj, sax, piano, vocals and so on). */
+  actTags?: string[];
+  /** Where the artist is based, a CITIES key. Belongs to the artist, not the company. */
+  basedIn?: string;
+  /** Has played at least one set for Bright Ears (see roster-presentation.json playedArtistIds). */
+  played?: boolean;
+  actLabel?: {en: string; th: string};
+  photoCredit?: string;
 };
+const playedArtistIds = new Set<string>(presentation.playedArtistIds);
+const CATEGORY_TAGS: Record<string,string> = { DJ: "dj", MUSICIAN: "musician", SINGER: "vocals", BAND: "band", MC: "mc" };
+/** "Bangkok" -> "bangkok", "Hua Hin" -> "hua_hin", matching the application CITIES keys. */
+export function cityKey(value: string): string { return value.trim().toLowerCase().replace(/[^a-z]+/g, "_").replace(/^_|_$/g, "") || "bangkok"; }
 const ORIGIN = "https://agency.brightears.io";
 function publicImage(value: unknown): string | null {
   if (typeof value !== "string" || !value) return null;
@@ -49,7 +63,8 @@ export function sanitizeArtist(value: Record<string,unknown>): AgencyArtist | nu
   const links=[["instagram","Instagram","instagram.com"],["soundcloud","SoundCloud","soundcloud.com"],["mixcloud","Mixcloud","mixcloud.com"],["spotify","Spotify","open.spotify.com"],["youtube","YouTube","youtube.com"]].flatMap(([field,label,domain])=>{
     const url=publicLink(value[field],domain); return url?[{label,url}]:[];
   });
-  return {id:value.id,name:value.stageName,bio,bioTh:unchanged?note.th:internal||staffingNote.test(rawBioTh)?"":rawBioTh,city:typeof value.baseCity==="string"?value.baseCity:"Bangkok",genres,image,gallery:[...new Set([image,...(Array.isArray(value.images)?value.images.map(publicImage):[])].filter((p):p is string=>!!p))],links,actType};
+  const city=typeof value.baseCity==="string"?value.baseCity:"Bangkok";
+  return {source:"roster",actTags:[typeof value.category==="string"?CATEGORY_TAGS[value.category]??"dj":"dj"],basedIn:cityKey(city),played:playedArtistIds.has(value.id),id:value.id,name:value.stageName,bio,bioTh:unchanged?note.th:internal||staffingNote.test(rawBioTh)?"":rawBioTh,city,genres,image,gallery:[...new Set([image,...(Array.isArray(value.images)?value.images.map(publicImage):[])].filter((p):p is string=>!!p))],links,actType};
 }
 export function withSupplementalArtists(values: Record<string,unknown>[]):Record<string,unknown>[] {
   const existing=new Set(values.flatMap(value=>typeof value.id==="string"?[value.id]:[]));
@@ -71,4 +86,18 @@ export const getAgencyRoster=cache(async ():Promise<AgencyArtist[]>=>{
     if(!Array.isArray(data.artists)) return [];
     return buildAgencyRoster(data.artists);
   } catch {return [];}
+});
+
+/**
+ * Everyone a buyer can choose on /artists: Vinyl's roster first, then published
+ * catalogue profiles. A catalogue profile never replaces a roster artist with
+ * the same id. Either source failing leaves the other visible.
+ */
+export const getPublicArtists=cache(async ():Promise<AgencyArtist[]>=>{
+  const [roster,catalogue]=await Promise.all([
+    getAgencyRoster(),
+    import("./catalogue").then(m=>m.publishedCatalogueArtists()).catch(()=>[] as AgencyArtist[]),
+  ]);
+  const ids=new Set(roster.map(artist=>artist.id));
+  return [...roster,...catalogue.filter(artist=>!ids.has(artist.id))];
 });

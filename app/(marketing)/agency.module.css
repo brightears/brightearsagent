@@ -58,3 +58,8 @@
    instead of 85px). Keep labels on one line; show only the BE mark, as the
    header already does on narrow phones. */
 @media(min-width:801px) and (max-width:900px){.header .wordmark>span{display:none}.desktopNav{gap:16px}.desktopNav a{white-space:nowrap}.navCta{gap:14px}}
+/* Catalogue profiles: preview banner, played marker, photo credit (16 Nov 2026) */
+.previewBanner{background:var(--agency-cyan);color:#101214;padding:14px 18px;font-size:.9375rem;line-height:1.6;margin-bottom:22px;max-width:760px}
+.playedMark{margin-top:18px;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--agency-cyan);border:1px solid #00bbe466;padding:6px 10px}
+.photoCredit{font-size:.75rem;color:#8b99a2;margin:-14px 0 24px}
+.cardPlayed{display:block;font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--agency-cyan);margin-top:6px}

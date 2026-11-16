@@ -816,3 +816,50 @@ model ArtistApplicationPhoto {
   sha256        String
   bytes         Bytes
 }
+
+// Catalogue profile for an artist who applied through /join and agreed to be
+// listed. Kept apart from Vinyl's artist records and booking system. Only the
+// fields selected in lib/agency/catalogue.ts (PUBLIC_SELECT) ever reach a page.
+model CatalogueProfile {
+  id                  String    @id @default(uuid())
+  slug                String    @unique
+  status              String    @default("draft") // draft | published | removed
+  applicationRef      String
+  consentVersion      String
+  consentAt           DateTime
+  stageName           String
+  actLabelEn          String
+  actLabelTh          String
+  actType             String
+  actTags             String[]
+  bioEn               String
+  bioTh               String
+  genres              String[]
+  basedIn             String
+  links               Json
+  photoBytes          Bytes
+  photoType           String
+  photoSha256         String
+  photoCredit         String?
+  playedForBrightEars Boolean   @default(false)
+  previewTokenHash    String    @unique
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  publishedAt         DateTime?
+  removedAt           DateTime?
+
+  @@index([status])
+}
+
+// Append-only log of desk actions on catalogue profiles. No relation, so the
+// log survives a deleted profile.
+model CatalogueProfileEvent {
+  id        String   @id @default(uuid())
+  profileId String
+  slug      String
+  action    String // created | updated | preview_rotated | published | unpublished | deleted
+  note      String?
+  at        DateTime @default(now())
+
+  @@index([slug, at])
+}
