@@ -389,6 +389,24 @@
       "profileImage": "/agency/roster/sweetheatt-photo1.jpg",
       "images": [],
       "instagram": "https://www.instagram.com/tarn_djsweetheatt/"
+    },
+    {
+      "id": "dj-kurrypup",
+      "stageName": "Kurrypup",
+      "bio": "Kurrypup, also known as Pup, plays House and Disco: nu-disco for sunset sessions, and soulful and classic house for the dance floor. His own bio lists Bed Supper Club, Q Bar and Maggie Choo's in Bangkok, Wonderfruit and fashion runway shows among the places he has played.",
+      "bioTh": "Kurrypup หรือ Pup เล่นแนว House และ Disco ตั้งแต่ Nu-Disco สำหรับช่วงพระอาทิตย์ตก ไปจนถึง Soulful House และ Classic House สำหรับฟลอร์เต้นรำ ประวัติของเขาเองระบุว่าเคยเล่นที่ Bed Supper Club, Q Bar และ Maggie Choo's ในกรุงเทพฯ รวมถึง Wonderfruit และงานแฟชั่นโชว์",
+      "baseCity": "Bangkok",
+      "genres": [
+        "Nu-Disco",
+        "Disco",
+        "Soulful House",
+        "Classic House",
+        "Deep House"
+      ],
+      "profileImage": "/agency/roster/kurrypup-photo1.jpg",
+      "images": [],
+      "instagram": "https://www.instagram.com/kurrypup/",
+      "mixcloud": "https://www.mixcloud.com/kurrypup/"
     }
   ],
   "heroes": [
